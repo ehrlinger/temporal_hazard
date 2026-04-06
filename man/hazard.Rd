@@ -2,7 +2,7 @@
 % Please edit documentation in R/hazard_api.R
 \name{hazard}
 \alias{hazard}
-\title{Build a hazard model object}
+\title{Build and optionally fit a hazard model}
 \usage{
 hazard(
   time,
@@ -10,6 +10,7 @@ hazard(
   x = NULL,
   theta = NULL,
   dist = "weibull",
+  fit = TRUE,
   control = list(),
   ...
 )
@@ -21,21 +22,34 @@ hazard(
 
 \item{x}{Optional design matrix (or data frame coercible to matrix).}
 
-\item{theta}{Optional numeric coefficient vector.}
+\item{theta}{Optional numeric coefficient vector (starting values for optimization).}
 
-\item{dist}{Character baseline distribution label.}
+\item{dist}{Character baseline distribution label (default "weibull").}
 
-\item{control}{Named list of control options.}
+\item{fit}{Logical; if TRUE and theta is provided, fit the model via ML (default TRUE).}
+
+\item{control}{Named list of control options (see Details).}
 
 \item{...}{Additional named arguments retained for parity with legacy calling
 conventions.}
 }
 \value{
-An object of class \code{hazard}.
+An object of class \code{hazard} with fitted parameters and fit diagnostics.
 }
 \description{
-Creates an initial \code{hazard} object designed to mirror the argument-oriented
-workflow used by the legacy HAZARD C/SAS implementation. This first version
-stores validated inputs and a minimal fit state that downstream methods can
-consume as additional ported logic is implemented.
+Creates a \code{hazard} object and optionally fits it via maximum likelihood.
+This mirrors the argument-oriented workflow of the legacy HAZARD C/SAS
+implementation: supply starting values in \code{theta} and the function will
+optimize to produce fitted estimates.
+}
+\details{
+Control parameters:
+\itemize{
+\item \code{maxit}: Maximum iterations (default 1000)
+\item \code{reltol}: Relative parameter change tolerance (default 1e-5)
+\item \code{abstol}: Absolute gradient norm tolerance (default 1e-6)
+\item \code{method}: Optimization method: "bfgs" or "nm" (default "bfgs")
+\item \code{condition}: Condition number control (default 14)
+\item \code{nocov}, \code{nocor}: Suppress covariance/correlation output (legacy; no-op in M2)
+}
 }

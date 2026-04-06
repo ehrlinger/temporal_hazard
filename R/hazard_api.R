@@ -1,26 +1,37 @@
-#' Build a hazard model object
+#' Build and optionally fit a hazard model
 #'
-#' Creates an initial `hazard` object designed to mirror the argument-oriented
-#' workflow used by the legacy HAZARD C/SAS implementation. This first version
-#' stores validated inputs and a minimal fit state that downstream methods can
-#' consume as additional ported logic is implemented.
+#' Creates a `hazard` object and optionally fits it via maximum likelihood.
+#' This mirrors the argument-oriented workflow of the legacy HAZARD C/SAS
+#' implementation: supply starting values in `theta` and the function will
+#' optimize to produce fitted estimates.
 #'
 #' @param time Numeric follow-up time vector.
 #' @param status Numeric or logical event indicator vector.
 #' @param x Optional design matrix (or data frame coercible to matrix).
-#' @param theta Optional numeric coefficient vector.
-#' @param dist Character baseline distribution label.
-#' @param control Named list of control options.
+#' @param theta Optional numeric coefficient vector (starting values for optimization).
+#' @param dist Character baseline distribution label (default "weibull").
+#' @param fit Logical; if TRUE and theta is provided, fit the model via ML (default TRUE).
+#' @param control Named list of control options (see Details).
 #' @param ... Additional named arguments retained for parity with legacy calling
 #'   conventions.
 #'
-#' @return An object of class `hazard`.
+#' @details
+#' Control parameters:
+#' - `maxit`: Maximum iterations (default 1000)
+#' - `reltol`: Relative parameter change tolerance (default 1e-5)
+#' - `abstol`: Absolute gradient norm tolerance (default 1e-6)
+#' - `method`: Optimization method: "bfgs" or "nm" (default "bfgs")
+#' - `condition`: Condition number control (default 14)
+#' - `nocov`, `nocor`: Suppress covariance/correlation output (legacy; no-op in M2)
+#'
+#' @return An object of class `hazard` with fitted parameters and fit diagnostics.
 #' @export
 hazard <- function(time,
                    status,
                    x = NULL,
                    theta = NULL,
                    dist = "weibull",
+                   fit = TRUE,
                    control = list(),
                    ...) {
   if (!is.numeric(time) || any(!is.finite(time)) || any(time < 0)) {
@@ -41,8 +52,11 @@ hazard <- function(time,
       stop("'theta' must be a finite numeric vector when provided.", call. = FALSE)
     }
 
-    if (!is.null(x) && length(theta) != ncol(x)) {
-      stop("'theta' length must match the number of columns in 'x'.", call. = FALSE)
+    # If x exists, theta must include coefficients for all variates
+    # theta = [shape parms ... | covariate coefficients ...]
+    # For now, assume theta length determines whether we expect x
+    if (!is.null(x) && length(theta) < ncol(x)) {
+      stop("'theta' length must be >= number of columns in 'x'.", call. = FALSE)
     }
   }
 
@@ -54,13 +68,45 @@ hazard <- function(time,
     stop("'control' must be a list.", call. = FALSE)
   }
 
+  # Initialize fit state (starting values)
+  fit_state <- list(
+    theta = theta,
+    converged = NA,
+    objective = NA_real_,
+    se = NULL,
+    gradient = NULL
+  )
+
+  # If fitting requested and theta provided, optimize
+  if (fit && !is.null(theta)) {
+    if (dist == "weibull") {
+      optim_result <- .hzr_optim_weibull(
+        time = time,
+        status = status,
+        x = x,
+        theta_start = theta,
+        control = control
+      )
+
+      fit_state$theta <- optim_result$par
+      fit_state$objective <- optim_result$value
+      fit_state$converged <- (optim_result$convergence == 0)
+      fit_state$se <- if (!anyNA(optim_result$vcov)) sqrt(diag(optim_result$vcov)) else NA
+      fit_state$vcov <- optim_result$vcov
+      fit_state$counts <- optim_result$counts
+      fit_state$message <- optim_result$message
+    } else {
+      stop("Distribution '", dist, "' not yet supported for fitting.", call. = FALSE)
+    }
+  }
+
   obj <- list(
     call = match.call(),
     spec = list(dist = dist, control = control),
     data = list(time = time, status = as.numeric(status), x = x),
-    fit = list(theta = theta, converged = NA, objective = NA_real_),
+    fit = fit_state,
     legacy_args = list(...),
-    engine = "native-r-stub"
+    engine = "native-r-m2"
   )
 
   class(obj) <- "hazard"
@@ -113,7 +159,37 @@ print.hazard <- function(x, ...) {
   cat("  predictors:  ", p, "\n")
   cat("  dist:        ", x$spec$dist, "\n")
   cat("  engine:      ", x$engine, "\n")
+  if (!anyNA(x$fit$objective)) {
+    cat("  log-lik:     ", format(x$fit$objective, digits = 6), "\n")
+    cat("  converged:   ", x$fit$converged, "\n")
+  }
   invisible(x)
+}
+
+#' Extract coefficients from hazard model
+#'
+#' @param object A `hazard` object.
+#' @param ... Unused; for S3 compatibility.
+#' @export
+coef.hazard <- function(object, ...) {
+  if (is.null(object$fit$theta)) {
+    return(NULL)
+  }
+  object$fit$theta
+}
+
+#' Extract variance-covariance matrix from hazard model
+#'
+#' Returns the estimated variance-covariance matrix of the fitted coefficients.
+#'
+#' @param object A `hazard` object.
+#' @param ... Unused; for S3 compatibility.
+#' @export
+vcov.hazard <- function(object, ...) {
+  if (is.null(object$fit$vcov) || anyNA(object$fit$vcov)) {
+    return(NA)
+  }
+  object$fit$vcov
 }
 
 .hzr_as_design_matrix <- function(x, n = NULL) {
