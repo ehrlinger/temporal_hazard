@@ -115,17 +115,31 @@ hazard <- function(time,
 
 #' Predict from a hazard model object
 #'
-#' Produces basic prediction outputs from a `hazard` object. This is an initial
-#' compatibility method that will evolve toward full `hazpred` parity.
+#' Produces prediction outputs from a `hazard` object. Supports multiple prediction
+#' types including linear predictor, hazard, survival probability, and cumulative hazard.
 #'
 #' @param object A `hazard` object.
-#' @param newdata Optional matrix or data frame of predictors.
-#' @param type Prediction type: `"hazard"` or `"linear_predictor"`.
+#' @param newdata Optional matrix or data frame of predictors. For types requiring
+#'   time (e.g., "survival", "cumulative_hazard"), newdata should include a `time`
+#'   column, or time will be taken from the fitted object's data.
+#' @param type Prediction type:
+#'   - `"linear_predictor"`: Linear predictor η = x·β
+#'   - `"hazard"`: Hazard scale exp(η) (not conditional on time for Weibull)
+#'   - `"survival"`: Survival probability S(t|x) = exp(-H(t|x))
+#'   - `"cumulative_hazard"`: Cumulative hazard H(t|x) at event times
 #' @param ... Unused; included for S3 compatibility.
+#'
+#' @details
+#' For Weibull models with survival or cumulative_hazard predictions:
+#' - Cumulative hazard: H(t|x) = (μ·t)^ν · exp(η)
+#' - Survival: S(t|x) = exp(-H(t|x))
+#'
+#' Time values must be positive and finite. If newdata contains a `time` column,
+#' it will be used; otherwise, the time vector from the fitted object is used.
 #'
 #' @return Numeric vector of predictions.
 #' @export
-predict.hazard <- function(object, newdata = NULL, type = c("hazard", "linear_predictor"), ...) {
+predict.hazard <- function(object, newdata = NULL, type = c("hazard", "linear_predictor", "survival", "cumulative_hazard"), ...) {
   type <- match.arg(type)
   theta <- object$fit$theta
 
@@ -133,22 +147,120 @@ predict.hazard <- function(object, newdata = NULL, type = c("hazard", "linear_pr
     stop("No coefficients ('theta') are available in 'object'.", call. = FALSE)
   }
 
-  x <- if (is.null(newdata)) object$data$x else .hzr_as_design_matrix(newdata)
-  if (is.null(x)) {
-    stop("Predictors are required either in the fitted object or via 'newdata'.", call. = FALSE)
+  # For types not requiring time, use simple design matrix approach
+  if (type %in% c("hazard", "linear_predictor")) {
+    n_pred <- NULL
+    if (is.null(newdata)) {
+      x <- object$data$x
+    } else {
+      newdata <- as.data.frame(newdata)
+      n_pred <- nrow(newdata)
+      # Remove time column if present (not needed for hazard/linear_predictor)
+      newdata <- newdata[, names(newdata) != "time", drop = FALSE]
+      if (ncol(newdata) > 0) {
+        x <- as.matrix(newdata)
+      } else {
+        x <- NULL
+      }
+    }
+    
+    if (is.null(x)) {
+      # No covariates; check if theta is just shape parameters
+      if (length(theta) == 2 && object$spec$dist == "weibull") {
+        # Univariable case: return constant hazard/predictor
+        if (is.null(n_pred)) {
+          n_pred <- length(object$data$time)
+        }
+        eta <- rep(0, n_pred)
+      } else {
+        stop("Predictors are required either in the fitted object or via 'newdata'.", call. = FALSE)
+      }
+    } else {
+      # Extract covariate coefficients from theta
+      # For Weibull: theta = [mu, nu, beta1, beta2, ...]
+      if (object$spec$dist == "weibull" && length(theta) > 2) {
+        # Remove shape parameters, keep only covariate coefficients
+        beta <- theta[3:length(theta)]
+      } else {
+        # Assume all of theta are covariate coefficients
+        beta <- theta
+      }
+      
+      if (ncol(x) != length(beta)) {
+        stop("Number of predictor columns (", ncol(x), 
+             ") must match number of covariate coefficients (", length(beta), ").", 
+             call. = FALSE)
+      }
+      eta <- as.numeric(x %*% beta)
+    }
+    
+    if (type == "linear_predictor") {
+      return(eta)
+    }
+    return(exp(eta))
   }
 
-  if (ncol(x) != length(theta)) {
-    stop("Predictor columns must match coefficient length.", call. = FALSE)
+  # For types requiring time (survival, cumulative_hazard)
+  if (type %in% c("survival", "cumulative_hazard")) {
+    if (object$spec$dist != "weibull") {
+      stop("Prediction type '", type, "' is only supported for Weibull models.", call. = FALSE)
+    }
+
+    # Extract time from newdata or use fitted data
+    if (!is.null(newdata)) {
+      newdata <- as.data.frame(newdata)
+      if ("time" %in% names(newdata)) {
+        time <- newdata$time
+        x <- as.matrix(newdata[, names(newdata) != "time", drop = FALSE])
+      } else {
+        stop("'newdata' must contain a 'time' column for '", type, "' predictions.", call. = FALSE)
+      }
+    } else {
+      time <- object$data$time
+      x <- object$data$x
+    }
+
+    if (!is.numeric(time) || any(!is.finite(time)) || any(time < 0)) {
+      stop("'time' must be a numeric vector of finite non-negative values.", call. = FALSE)
+    }
+
+    # Extract Weibull shape parameters
+    if (length(theta) < 2) {
+      stop("Weibull model must have at least 2 parameters (mu, nu).", call. = FALSE)
+    }
+
+    mu <- theta[1]
+    nu <- theta[2]
+
+    if (mu <= 0 || nu <= 0) {
+      stop("Weibull shape parameters (mu, nu) must be positive.", call. = FALSE)
+    }
+
+    # Compute linear predictor (covariate effect)
+    if (!is.null(x) && ncol(x) > 0) {
+      if (length(theta) < ncol(x) + 2) {
+        stop("Number of parameters insufficient for predictor columns.", call. = FALSE)
+      }
+      beta <- theta[3:length(theta)]
+      eta <- as.numeric(x %*% beta)
+    } else {
+      eta <- rep(0, length(time))
+    }
+
+    # Compute cumulative hazard: H(t|x) = (mu * t)^nu * exp(eta)
+    cumhaz <- (mu * time) ^ nu * exp(eta)
+
+    if (type == "cumulative_hazard") {
+      return(cumhaz)
+    }
+
+    # Survival: S(t|x) = exp(-H(t|x))
+    return(exp(-cumhaz))
   }
 
-  eta <- as.numeric(x %*% theta)
-  if (type == "linear_predictor") {
-    return(eta)
-  }
-
-  exp(eta)
+  stop("Unknown prediction type: '", type, "'.", call. = FALSE)
 }
+
 
 #' @export
 print.hazard <- function(x, ...) {

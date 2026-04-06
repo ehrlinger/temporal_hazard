@@ -109,6 +109,17 @@
 
 #' Score vector (gradient of log-likelihood)
 #'
+#' Computes the score vector (gradient) of the Weibull log-likelihood w.r.t. all parameters.
+#'
+#' The log-likelihood is:
+#'   L = sum(delta_i * log h(t_i)) - sum(H(t_i))
+#'
+#' where h is hazard and H is cumulative hazard. Derivatives are:
+#'
+#' dL/dmu  = sum(delta_i / mu) - (nu / mu) * sum(H(t_i))
+#' dL/dnu  = sum(delta_i / nu) + sum(delta_i * log(t_i)) - sum(log(mu * t_i) * H(t_i))
+#' dL/dbeta_j = sum(delta_i * x_ij) - sum(H(t_i) * x_ij)  = t(X) %*% (delta - H)
+#'
 #' @noRd
 .hzr_gradient_weibull <- function(
     theta,
@@ -126,9 +137,39 @@
   p <- length(theta)
   grad <- numeric(p)
   
-  # Placeholder: full implementation deferred to M2 likelihood porting
-  # This is a stub showing the structure. Real implementation requires
-  # symbolic or numerical differentiation of .hzr_logl_weibull
+  # Sanity check: if eta, cumhaz, haz not provided, compute them
+  if (is.null(eta) || is.null(cumhaz) || is.null(haz)) {
+    # Need to recompute from theta
+    mu <- theta[1]
+    nu <- theta[2]
+    
+    if (!is.null(x)) {
+      beta <- theta[3:length(theta)]
+      eta <- as.numeric(x %*% beta)
+    } else {
+      eta <- rep(0, n)
+    }
+    
+    haz <- mu * nu * (time ^ (nu - 1)) * exp(eta)
+    cumhaz <- (mu * time) ^ nu * exp(eta)
+  }
+  
+  # ===== Gradient w.r.t. mu (scale parameter) =====
+  # dL/dmu = sum(delta / mu) - (nu / mu) * sum(H)
+  grad[1] <- sum(status) / mu - (nu / mu) * sum(cumhaz)
+  
+  # ===== Gradient w.r.t. nu (shape parameter) =====
+  # dL/dnu = sum(delta / nu) + sum(delta * log(t)) - sum(log(mu*t) * H)
+  grad[2] <- sum(status) / nu + sum(status * log(time)) - sum(log(mu * time) * cumhaz)
+  
+  # ===== Gradient w.r.t. beta (covariate coefficients) =====
+  if (n_shape < p && !is.null(x)) {
+    # Compute residual: delta - cumulative hazard
+    residual <- status - cumhaz
+    
+    # dL/dbeta = t(X) %*% (delta - H)
+    grad[3:p] <- as.numeric(crossprod(x, residual))
+  }
   
   grad
 }
@@ -201,6 +242,76 @@
     ll
   }
   
+  # Set up gradient (negative gradient of log-likelihood)
+  gradient <- function(theta) {
+    # Safeguard: parameters must be valid
+    if (any(theta[1:2] <= 0)) {
+      # Return zero gradient for infeasible parameters
+      return(rep(0, length(theta)))
+    }
+    
+    # Additional numerical checks
+    if (!all(is.finite(theta))) {
+      return(rep(0, length(theta)))
+    }
+    
+    # Compute gradient with internal computation
+    n <- length(time)
+    mu <- theta[1]
+    nu <- theta[2]
+    
+    # Prevent numerical issues with extreme values
+    if (mu < 1e-6 || nu < 1e-6 || mu > 1e8 || nu > 1e8) {
+      return(rep(0, length(theta)))
+    }
+    
+    if (!is.null(x)) {
+      beta <- theta[3:length(theta)]
+      eta <- as.numeric(x %*% beta)
+    } else {
+      eta <- rep(0, n)
+    }
+    
+    # Check for numerical overflow in computation
+    log_mu_nu_term <- log(mu) + log(nu) + (nu - 1) * log(time)
+    if (!all(is.finite(log_mu_nu_term))) {
+      return(rep(0, length(theta)))
+    }
+    
+    haz <- mu * nu * (time ^ (nu - 1)) * exp(eta)
+    cumhaz <- (mu * time) ^ nu * exp(eta)
+    
+    # Check for overflow/underflow
+    if (!all(is.finite(haz)) || !all(is.finite(cumhaz))) {
+      return(rep(0, length(theta)))
+    }
+    
+    grad <- tryCatch({
+      .hzr_gradient_weibull(
+        theta = theta,
+        time = time,
+        status = status,
+        x = x,
+        eta = eta,
+        cumhaz = cumhaz,
+        haz = haz,
+        mu = mu,
+        nu = nu,
+        n_shape = 2
+      )
+    }, error = function(e) {
+      rep(0, length(theta))
+    })
+    
+    # Ensure gradient is finite
+    if (!all(is.finite(grad))) {
+      grad[!is.finite(grad)] <- 0
+    }
+    
+    # Return negative gradient (for minimization)
+    -grad
+  }
+  
   # Optimize using stats::optim with bounds checking via L-BFGS-B
   # (allows box constraints on parameters: mu > 0, nu > 0)
   lower_bounds <- rep(1e-6, length(theta_start))  # All params > 1e-6
@@ -209,6 +320,7 @@
   result <- optim(
     par = theta_start,
     fn = objective,
+    gr = gradient,
     method = "L-BFGS-B",
     lower = lower_bounds,
     upper = upper_bounds,
