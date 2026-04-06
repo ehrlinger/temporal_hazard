@@ -1,6 +1,6 @@
 # M3 Milestone: Broader Model Support
 
-**Status:** Planning phase. M2 foundation complete; ready to extend distribution family and censoring types.
+**Status:** In progress. Exponential distribution complete (28 tests). Log-logistic next.
 
 ## Overview
 
@@ -78,16 +78,21 @@ Expand test harness:
 
 ### In Progress
 
-(None yet; awaiting kickoff)
+- [ ] Log-logistic distribution core (next up)
 
 ### Pending
 
-- [ ] Exponential distribution core
-- [ ] Log-logistic distribution core
 - [ ] Log-normal distribution core
 - [ ] Interval censoring
 - [ ] Time-varying coefficients
 - [ ] Extended parity suite
+
+### Complete
+
+- [x] Exponential distribution: `R/likelihood-exponential.R`, 28 tests in `test-exponential-dist.R`
+  - Reparameterized as log(λ) for unconstrained BFGS optimization
+  - predict() supports survival and cumulative_hazard
+  - Analytical gradient verified against numDeriv
 
 ---
 
@@ -125,10 +130,23 @@ S(t) = 1 - Φ((log(t) - μ) / σ)
 
 ## Next Action
 
-Start with **Task 1: Create distribution module structure and exponential core**.
+**Task: Log-Logistic distribution core** (`R/likelihood-loglogistic.R`)
+
+Math:
+- h(t) = (α · β · t^(β-1)) / (1 + α · t^β)
+- S(t) = 1 / (1 + α · t^β)
+- H(t) = log(1 + α · t^β)
+- With covariates: replace α with α · exp(η)
+- Reparameterize: θ = [log(α), log(β), beta1, beta2, ...] for unconstrained optimization
+
+Score vector (analytically):
+- dL/d(log α) = sum(δ) - sum(α · t^β · exp(η) / (1 + α · t^β · exp(η))) * n_total
+- dL/d(log β) = sum(δ) + sum(δ · log(t)) - sum(α · β · t^β · exp(η) · log(t) / (1 + α · t^β · exp(η)))
+- dL/dβ_j    = t(X) %*% (δ - p) where p_i = α · t^β · exp(η) / (1 + α · t^β · exp(η))
 
 Expected output:
-- `R/likelihood-exponential.R` — likelihood, gradient, optimizer
-- `tests/testthat/test-exponential-dist.R` — 10+ unit tests
-- Update `hazard()` to dispatch on dist = "exponential"
-- Golden fixture: `inst/fixtures/hz_exponential.rds`
+- `R/likelihood-loglogistic.R` — likelihood, gradient, optimizer
+- `tests/testthat/test-loglogistic-dist.R` — 10+ unit tests
+- Update `hazard()` to dispatch on dist = "loglogistic"
+- Update `predict()` to compute H and S for loglogistic
+- Golden fixture: `inst/fixtures/hz_loglogistic.rds`
