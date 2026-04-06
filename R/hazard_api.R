@@ -31,7 +31,7 @@ hazard <- function(time,
                    x = NULL,
                    theta = NULL,
                    dist = "weibull",
-                   fit = TRUE,
+                   fit = FALSE,
                    control = list(),
                    ...) {
   if (!is.numeric(time) || any(!is.finite(time)) || any(time < 0)) {
