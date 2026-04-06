@@ -95,6 +95,22 @@ hazard <- function(time,
       fit_state$vcov <- optim_result$vcov
       fit_state$counts <- optim_result$counts
       fit_state$message <- optim_result$message
+    } else if (dist == "exponential") {
+      optim_result <- .hzr_optim_exponential(
+        time = time,
+        status = status,
+        x = x,
+        theta_start = theta,
+        control = control
+      )
+
+      fit_state$theta <- optim_result$par
+      fit_state$objective <- optim_result$value
+      fit_state$converged <- (optim_result$convergence == 0)
+      fit_state$se <- if (!anyNA(optim_result$vcov)) sqrt(diag(optim_result$vcov)) else NA
+      fit_state$vcov <- optim_result$vcov
+      fit_state$counts <- optim_result$counts
+      fit_state$message <- optim_result$message
     } else {
       stop("Distribution '", dist, "' not yet supported for fitting.", call. = FALSE)
     }
@@ -202,8 +218,8 @@ predict.hazard <- function(object, newdata = NULL, type = c("hazard", "linear_pr
 
   # For types requiring time (survival, cumulative_hazard)
   if (type %in% c("survival", "cumulative_hazard")) {
-    if (object$spec$dist != "weibull") {
-      stop("Prediction type '", type, "' is only supported for Weibull models.", call. = FALSE)
+    if (!object$spec$dist %in% c("weibull", "exponential")) {
+      stop("Prediction type '", type, "' is only supported for Weibull and exponential models.", call. = FALSE)
     }
 
     # Extract time from newdata or use fitted data
@@ -224,31 +240,56 @@ predict.hazard <- function(object, newdata = NULL, type = c("hazard", "linear_pr
       stop("'time' must be a numeric vector of finite non-negative values.", call. = FALSE)
     }
 
-    # Extract Weibull shape parameters
-    if (length(theta) < 2) {
-      stop("Weibull model must have at least 2 parameters (mu, nu).", call. = FALSE)
-    }
-
-    mu <- theta[1]
-    nu <- theta[2]
-
-    if (mu <= 0 || nu <= 0) {
-      stop("Weibull shape parameters (mu, nu) must be positive.", call. = FALSE)
-    }
-
-    # Compute linear predictor (covariate effect)
-    if (!is.null(x) && ncol(x) > 0) {
-      if (length(theta) < ncol(x) + 2) {
-        stop("Number of parameters insufficient for predictor columns.", call. = FALSE)
+    # Dispatch by distribution
+    if (object$spec$dist == "weibull") {
+      # Extract Weibull shape parameters
+      if (length(theta) < 2) {
+        stop("Weibull model must have at least 2 parameters (mu, nu).", call. = FALSE)
       }
-      beta <- theta[3:length(theta)]
-      eta <- as.numeric(x %*% beta)
-    } else {
-      eta <- rep(0, length(time))
-    }
 
-    # Compute cumulative hazard: H(t|x) = (mu * t)^nu * exp(eta)
-    cumhaz <- (mu * time) ^ nu * exp(eta)
+      mu <- theta[1]
+      nu <- theta[2]
+
+      if (mu <= 0 || nu <= 0) {
+        stop("Weibull shape parameters (mu, nu) must be positive.", call. = FALSE)
+      }
+
+      # Compute linear predictor (covariate effect)
+      if (!is.null(x) && ncol(x) > 0) {
+        if (length(theta) < ncol(x) + 2) {
+          stop("Number of parameters insufficient for predictor columns.", call. = FALSE)
+        }
+        beta <- theta[3:length(theta)]
+        eta <- as.numeric(x %*% beta)
+      } else {
+        eta <- rep(0, length(time))
+      }
+
+      # Compute cumulative hazard: H(t|x) = (mu * t)^nu * exp(eta)
+      cumhaz <- (mu * time) ^ nu * exp(eta)
+    } else if (object$spec$dist == "exponential") {
+      # Extract exponential parameter
+      if (length(theta) < 1) {
+        stop("Exponential model must have at least 1 parameter (log(lambda)).", call. = FALSE)
+      }
+
+      log_lambda <- theta[1]
+      lambda <- exp(log_lambda)
+
+      # Compute linear predictor (covariate effect)
+      if (!is.null(x) && ncol(x) > 0) {
+        if (length(theta) < ncol(x) + 1) {
+          stop("Number of parameters insufficient for predictor columns.", call. = FALSE)
+        }
+        beta <- theta[2:length(theta)]
+        eta <- as.numeric(x %*% beta)
+      } else {
+        eta <- rep(0, length(time))
+      }
+
+      # Compute cumulative hazard: H(t|x) = lambda * t * exp(eta)
+      cumhaz <- lambda * time * exp(eta)
+    }
 
     if (type == "cumulative_hazard") {
       return(cumhaz)

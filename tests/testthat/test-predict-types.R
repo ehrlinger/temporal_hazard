@@ -128,7 +128,7 @@ test_that("predict() validates time is positive", {
   expect_error(predict(fit, newdata = newdata, type = "survival"))
 })
 
-test_that("predict() errors if survival requested on non-Weibull", {
+test_that("predict() errors if survival requested on non-Weibull/exponential", {
   time <- c(1, 2, 3)
   status <- c(1, 0, 1)
   
@@ -137,11 +137,11 @@ test_that("predict() errors if survival requested on non-Weibull", {
     status = status,
     x = NULL,
     theta = c(0.5, 0.3),
-    dist = "exponential",  # Non-Weibull
+    dist = "lognormal",  # Not yet supported
     fit = FALSE
   )
   
-  expect_error(predict(fit, type = "survival"), "only supported for Weibull")
+  expect_error(predict(fit, type = "survival"), "only supported for")
 })
 
 test_that("predict() linear_predictor and hazard still work unchanged", {
