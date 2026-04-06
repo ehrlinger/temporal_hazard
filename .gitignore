@@ -1,0 +1,22 @@
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# Package build artifacts
+*.Rcheck/
+*.tar.gz
+
+# Documentation and site
+/docs/
+/pkgdown/
+
+# Vignettes and logs
+vignettes/*.html
+vignettes/*.pdf
+*.log
+
+# OS/editor
+.DS_Store
+*~
+*.swp

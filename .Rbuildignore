@@ -1,0 +1,6 @@
+^\.Rproj\.user$
+^\.git$
+^\.github$
+^tools$
+^inst/extdata/\.gitkeep$
+^inst/fixtures/\.gitkeep$

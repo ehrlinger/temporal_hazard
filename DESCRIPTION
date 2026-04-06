@@ -1,0 +1,20 @@
+Package: hvtiRhazard
+Title: Native R Port of HAZARD Modeling Components
+Version: 0.0.0.9000
+Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@example.com", role = c("aut", "cre"))
+Description: Provides native R implementations of core HAZARD model
+    components with a focus on behavioral parity, transparent numerics,
+    and reproducible validation against reference outputs.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends: R (>= 4.1.0)
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+URL: https://github.com/ehrlinger/hvtiRhazard
+BugReports: https://github.com/ehrlinger/hvtiRhazard/issues
