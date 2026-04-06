@@ -4,7 +4,10 @@ Version: 0.0.0.9000
 Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@example.com", role = c("aut", "cre"))
 Description: Provides native R implementations of core HAZARD model
     components with a focus on behavioral parity, transparent numerics,
-    and reproducible validation against reference outputs.
+    and reproducible validation against reference outputs. The package
+    is intentionally implemented in pure R first; performance-critical
+    paths may later be accelerated with Rcpp without changing the public
+    interface.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
