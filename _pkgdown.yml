@@ -1,0 +1,21 @@
+url: https://ehrlinger.github.io/hvtiRhazard/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [github]
+
+reference:
+  - title: Numerical Primitives
+    contents:
+      - hzr_log1pexp
+      - hzr_log1mexp
+      - hzr_clamp_prob
+
+home:
+  links:
+    - text: HAZARD C Reference Repository
+      href: https://github.com/ehrlinger/hazard
