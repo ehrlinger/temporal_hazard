@@ -1,17 +1,21 @@
 ---
 title: "Example: Multivariable Hazard Model (hm.*)"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Example: Multivariable Hazard Model (hm.*)}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+format: html
 ---
 
-```{r, include = FALSE}
+<!--
+%\VignetteIndexEntry{Example: Multivariable Hazard Model (hm.*)}
+%\VignetteEngine{knitr::quarto}
+%\VignetteEncoding{UTF-8}
+-->
+
+```{r}
+#| include: false
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-```{r setup}
+```{r}
+#| label: setup
 library(TemporalHazard)
 library(hvtiPlotR)
 ```
@@ -46,7 +50,8 @@ PROC HAZARD DATA=AVCS P CONSERVE OUTHAZ=OUTEST CONDITION=14 QUASI;
 
 ### R translation (stub — M2 optimizer required for fitting)
 
-```{r hm-death-avc}
+```{r}
+#| label: hm-death-avc
 # avcs <- read.table("data/avc", ...)
 # avcs$INC_SURG[is.na(avcs$INC_SURG)] <- mean(avcs$INC_SURG, na.rm = TRUE)
 
@@ -82,7 +87,8 @@ predicted event rates across deciles of risk.
 
 ### R translation (stub)
 
-```{r hm-avc-deciles}
+```{r}
+#| label: hm-avc-deciles
 # Requires fitted model from hm.death.AVC above
 
 # Decile goodness-of-fit plot (hvtiPlotR)
@@ -99,7 +105,8 @@ predicted event rates across deciles of risk.
 
 ### R translation (stub)
 
-```{r hm-death-patient}
+```{r}
+#| label: hm-death-patient
 fit_patient <- hazard(
   time    = avcs$INT_DEAD,
   status  = avcs$DEAD,
@@ -119,7 +126,8 @@ VALVES dataset.
 
 ### R translation (stub)
 
-```{r hm-deadp-valves}
+```{r}
+#| label: hm-deadp-valves
 # valves <- read.table("data/valves", ...)
 
 fit_valves <- hazard(

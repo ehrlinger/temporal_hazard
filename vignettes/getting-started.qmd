@@ -1,0 +1,26 @@
+---
+title: "Getting Started with TemporalHazard"
+subtitle: "Build, fit, and predict with temporal parametric hazard models"
+format:
+  html:
+    code-fold: false
+---
+
+<!--
+%\VignetteIndexEntry{Getting Started with TemporalHazard}
+%\VignetteEngine{knitr::quarto}
+%\VignetteEncoding{UTF-8}
+-->
+
+```{r}
+#| include: false
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+This vignette describes the initial package structure and numerical helper
+functions that support future parity validation against HAZARD outputs.
+
+```{r}
+library(TemporalHazard)
+hzr_log1pexp(c(-2, 0, 2))
+```

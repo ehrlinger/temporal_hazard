@@ -1,17 +1,21 @@
 ---
 title: "Example: Estimate Hazard Function (hz.*)"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Example: Estimate Hazard Function (hz.*)}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+format: html
 ---
 
-```{r, include = FALSE}
+<!--
+%\VignetteIndexEntry{Example: Estimate Hazard Function (hz.*)}
+%\VignetteEngine{knitr::quarto}
+%\VignetteEncoding{UTF-8}
+-->
+
+```{r}
+#| include: false
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-```{r setup}
+```{r}
+#| label: setup
 library(TemporalHazard)
 library(hvtiPlotR)
 ```
@@ -42,7 +46,8 @@ PROC HAZARD DATA=AVCS NOCOV NOCOR CONDITION=14;
 
 ### R translation (stub — M2 optimizer required for fitting)
 
-```{r hz-death-avc}
+```{r}
+#| label: hz-death-avc
 # avcs <- read.table("data/avc", header = FALSE, ...)  # load raw data
 
 fit_hz <- hazard(
@@ -71,7 +76,8 @@ Leuven) cardiac surgery dataset.
 
 ### R translation (stub)
 
-```{r hz-deadp-kul}
+```{r}
+#| label: hz-deadp-kul
 # kul <- read.table("data/kul", ...)
 
 fit_kul <- hazard(
@@ -93,7 +99,8 @@ the same model with a time-magnitude parameterization.
 
 ### R translation (stub)
 
-```{r hz-te123-omc}
+```{r}
+#| label: hz-te123-omc
 # omc <- read.table("data/omc", ...)
 
 fit_omc <- hazard(

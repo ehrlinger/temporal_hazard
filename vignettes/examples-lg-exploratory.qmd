@@ -1,17 +1,21 @@
 ---
 title: "Example: Logistic/Gompertz Exploratory Plots (lg.*)"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Example: Logistic/Gompertz Exploratory Plots (lg.*)}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+format: html
 ---
 
-```{r, include = FALSE}
+<!--
+%\VignetteIndexEntry{Example: Logistic/Gompertz Exploratory Plots (lg.*)}
+%\VignetteEngine{knitr::quarto}
+%\VignetteEncoding{UTF-8}
+-->
+
+```{r}
+#| include: false
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-```{r setup}
+```{r}
+#| label: setup
 library(TemporalHazard)
 library(hvtiPlotR)
 ```
@@ -44,7 +48,8 @@ model.
 
 ### R translation (stub — M3 exploratory helpers required)
 
-```{r lg-death-avc}
+```{r}
+#| label: lg-death-avc
 # avcs <- read.table("data/avc", ...)
 
 candidates <- c("AGE", "STATUS", "INC_SURG", "OPMOS",
@@ -75,7 +80,8 @@ Identifies covariates driving operative risk.
 
 ### R translation (stub)
 
-```{r lg-dead30d-avc}
+```{r}
+#| label: lg-dead30d-avc
 # Define 30-day event indicator
 # avcs$dead30 <- as.integer(avcs$DEAD == 1 & avcs$INT_DEAD <= 1)  # 1 month
 
@@ -95,7 +101,8 @@ Identifies covariates driving late (constant-phase) hazard.
 
 ### R translation (stub)
 
-```{r lg-deadlate-avc}
+```{r}
+#| label: lg-deadlate-avc
 # Restrict to survivors of operative period
 # avcs_late <- avcs[avcs$INT_DEAD > 1 | avcs$DEAD == 0, ]
 # avcs_late$dead_late <- as.integer(avcs_late$DEAD == 1)

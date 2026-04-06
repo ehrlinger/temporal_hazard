@@ -1,17 +1,21 @@
 ---
 title: "Example: Actuarial Estimates (ac.*)"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Example: Actuarial Estimates (ac.*)}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+format: html
 ---
 
-```{r, include = FALSE}
+<!--
+%\VignetteIndexEntry{Example: Actuarial Estimates (ac.*)}
+%\VignetteEngine{knitr::quarto}
+%\VignetteEncoding{UTF-8}
+-->
+
+```{r}
+#| include: false
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-```{r setup}
+```{r}
+#| label: setup
 library(TemporalHazard)
 library(hvtiPlotR)
 ```
@@ -40,7 +44,8 @@ RUN;
 
 ### R translation
 
-```{r ac-death-avc}
+```{r}
+#| label: ac-death-avc
 # avcs <- read.table("data/avc", ...)
 
 # Kaplan-Meier using survival package

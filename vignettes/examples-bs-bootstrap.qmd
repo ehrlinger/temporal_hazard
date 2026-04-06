@@ -1,17 +1,21 @@
 ---
 title: "Example: Bootstrap Confidence Intervals (bs.*)"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Example: Bootstrap Confidence Intervals (bs.*)}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+format: html
 ---
 
-```{r, include = FALSE}
+<!--
+%\VignetteIndexEntry{Example: Bootstrap Confidence Intervals (bs.*)}
+%\VignetteEngine{knitr::quarto}
+%\VignetteEncoding{UTF-8}
+-->
+
+```{r}
+#| include: false
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-```{r setup}
+```{r}
+#| label: setup
 library(TemporalHazard)
 library(hvtiPlotR)
 ```
@@ -44,7 +48,8 @@ and accumulates prediction curves; the CI is then summarized across replicates.
 
 ### R translation (stub — M3 bootstrap harness required)
 
-```{r bs-death-avc}
+```{r}
+#| label: bs-death-avc
 # fit_hm loaded from hm.death.AVC example
 
 # Bootstrap loop (200 replicates, seed for reproducibility)
@@ -83,7 +88,8 @@ and produce publication-ready hazard function plots with shaded CI.
 
 ### R translation (stub)
 
-```{r bs-avc-summary}
+```{r}
+#| label: bs-avc-summary
 # Summarize boot_curves into 2.5/97.5 percentile bands
 # ci_bands <- do.call(rbind, lapply(boot_curves, function(x) x$survival))
 # lower <- apply(ci_bands, 2, quantile, probs = 0.025)

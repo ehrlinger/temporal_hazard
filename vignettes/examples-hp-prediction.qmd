@@ -1,17 +1,21 @@
 ---
 title: "Example: Hazard Prediction (hp.*)"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Example: Hazard Prediction (hp.*)}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+format: html
 ---
 
-```{r, include = FALSE}
+<!--
+%\VignetteIndexEntry{Example: Hazard Prediction (hp.*)}
+%\VignetteEngine{knitr::quarto}
+%\VignetteEncoding{UTF-8}
+-->
+
+```{r}
+#| include: false
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
-```{r setup}
+```{r}
+#| label: setup
 library(TemporalHazard)
 library(hvtiPlotR)
 ```
@@ -41,7 +45,8 @@ PROC HAZARD DATA=OUTEST IN=AVCS OUT=HPOUT;
 
 ### R translation (stub — M2 predict types required)
 
-```{r hp-death-avc}
+```{r}
+#| label: hp-death-avc
 # fit_hm loaded from hm.death.AVC example
 
 # Survival and hazard predictions on a time grid
@@ -65,7 +70,8 @@ models (e.g., alternative covariate specifications).
 
 ### R translation (stub)
 
-```{r hp-avc-hm1-hm2}
+```{r}
+#| label: hp-avc-hm1-hm2
 # fit_hm1, fit_hm2 — two separately fitted hazard() objects
 
 # hv_hazard_compare(list(Model1 = fit_hm1, Model2 = fit_hm2))  # M3+
@@ -82,7 +88,8 @@ scenarios on a single plot.
 
 ### R translation (stub)
 
-```{r hp-death-comparison}
+```{r}
+#| label: hp-death-comparison
 # predict() on each fitted model, then bind and plot
 # Requires: predict(fit, type = "survival")   (M2+)
 ```
@@ -98,7 +105,8 @@ Atresia with Intact Ventricular Septum) dataset.
 
 ### R translation (stub)
 
-```{r hp-dthip-paivs}
+```{r}
+#| label: hp-dthip-paivs
 # paivs <- read.table("data/paivs", ...)
 
 # fit_paivs <- hazard(time = paivs$time, status = paivs$dead, ...)

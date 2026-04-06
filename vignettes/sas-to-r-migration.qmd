@@ -1,17 +1,21 @@
 ---
 title: "Migrating from SAS HAZARD to TemporalHazard"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Migrating from SAS HAZARD to TemporalHazard}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+format: html
 ---
 
-```{r, include = FALSE}
+<!--
+%\VignetteIndexEntry{Migrating from SAS HAZARD to TemporalHazard}
+%\VignetteEngine{knitr::quarto}
+%\VignetteEncoding{UTF-8}
+-->
+
+```{r}
+#| include: false
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-```{r setup}
+```{r}
+#| label: setup
 library(TemporalHazard)
 ```
 
@@ -24,7 +28,8 @@ HAZARD analysis into native R using `TemporalHazard`.
 
 The full formal argument mapping table is available programmatically:
 
-```{r mapping-table}
+```{r}
+#| label: mapping-table
 knitr::kable(
   hzr_argument_mapping(),
   caption = "Formal argument map: SAS HAZARD/C → hazard()",
@@ -48,7 +53,8 @@ PROC HAZARD DATA=AVCS NOCOV NOCOR CONDITION=14;
 
 Maps to `hazard()` `control` list:
 
-```{r, eval=FALSE}
+```{r}
+#| eval: false
 fit <- hazard(
   ...,
   control = list(
@@ -72,7 +78,8 @@ TIME INT_DEAD;
 
 Maps directly to `time`:
 
-```{r, eval=FALSE}
+```{r}
+#| eval: false
 fit <- hazard(
   time   = avcs$INT_DEAD,
   ...
@@ -93,7 +100,8 @@ EVENT DEAD;
 
 Maps to `status`:
 
-```{r, eval=FALSE}
+```{r}
+#| eval: false
 fit <- hazard(
   status = avcs$DEAD,   # 1 = event, 0 = censored
   ...
@@ -114,7 +122,8 @@ PARMS MUE=0.3504743 THALF=0.1905077 NU=1.437416 M=1 FIXM
 
 Maps to `theta` (coefficient/parameter vector) and `control` (fix flags):
 
-```{r, eval=FALSE}
+```{r}
+#| eval: false
 fit <- hazard(
   theta   = c(MUE = 0.3504743, THALF = 0.1905077, NU = 1.437416,
               M = 1,           MUC   = 4.391673e-07),
@@ -147,7 +156,8 @@ M2 when the multi-phase likelihood is implemented.
 **Current convention (M1):** combine all covariates into `x` and supply the
 corresponding starting coefficients in `theta`.
 
-```{r, eval=FALSE}
+```{r}
+#| eval: false
 # Build design matrix from the AVC data set
 X <- data.matrix(avcs[, c("AGE", "COM_IV", "MAL", "OPMOS", "OP_AGE",
                            "STATUS", "INC_SURG", "ORIFICE")])
@@ -209,7 +219,9 @@ PROC HAZARD DATA=AVCS P CONSERVE OUTHAZ=OUTEST CONDITION=14 QUASI;
 
 ### R equivalent (M1 stub — stores inputs, optimization pending)
 
-```{r avc-example, eval=FALSE}
+```{r}
+#| label: avc-example
+#| eval: false
 # Assumed: avcs is a data.frame read from the AVC flat file
 # (same variables as the SAS DATA step)
 
@@ -297,7 +309,9 @@ fit
 
 `predict.hazard()` currently supports two output types:
 
-```{r predict-example, eval=FALSE}
+```{r}
+#| eval: false
+#| label: predict-example
 # Linear predictor (X %*% theta)
 eta <- predict(fit, type = "linear_predictor")
 

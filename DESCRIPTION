@@ -19,6 +19,7 @@ Suggests:
     hvtiPlotR,
     knitr,
     pkgdown,
+    quarto,
     roxygen2,
     rmarkdown,
     testthat (>= 3.0.0)
