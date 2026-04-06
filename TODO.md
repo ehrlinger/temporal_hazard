@@ -25,10 +25,10 @@ Progress: M0 complete, M1 in progress.
 - [x] Formal legacy-to-R argument mapping table (`hzr_argument_mapping()`)
 - [x] Unit tests for hazard API and mapping table
 - [x] DESCRIPTION notes pure-R-first / Rcpp-later strategy
-- [ ] SAS-to-R migration vignette (`vignettes/sas-to-r-migration.Rmd`)
-  - [ ] Side-by-side SAS statement vs R call mapping table
-  - [ ] Concrete worked example: one end-to-end SAS HAZARD run translated to R
-  - [ ] Section: Rcpp acceleration roadmap
+- [x] SAS-to-R migration vignette (`vignettes/sas-to-r-migration.Rmd`)
+  - [x] Side-by-side SAS statement vs R call mapping table
+  - [x] Concrete worked example: one end-to-end SAS HAZARD run translated to R
+  - [x] Section: Rcpp acceleration roadmap
 - [ ] Push repo to GitHub (`git remote add origin` + `git push -u origin main`)
 - [ ] Enable GitHub Pages (source: GitHub Actions)
 
@@ -46,6 +46,14 @@ Progress: M0 complete, M1 in progress.
   - [ ] Store in `inst/fixtures/`
   - [ ] `tests/testthat/test-parity-core.R` comparing key metrics with fixed tolerances
 - [ ] CI gate: parity tests must pass on Linux before merge
+- [ ] Complete R translations in example vignettes (stubs all created in M1):
+  - [ ] `vignettes/examples-hz-estimate-hazard.Rmd` (hz.*)
+  - [ ] `vignettes/examples-hm-multivariable.Rmd` (hm.*)
+  - [ ] `vignettes/examples-hp-prediction.Rmd` (hp.*)
+  - [ ] `vignettes/examples-hs-sensitivity.Rmd` (hs.*)
+  - [ ] `vignettes/examples-ac-actuarial.Rmd` (ac.*)
+  - [ ] `vignettes/examples-bs-bootstrap.Rmd` (bs.*)
+  - [ ] `vignettes/examples-lg-exploratory.Rmd` (lg.*)
 
 ---
 

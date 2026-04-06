@@ -3,6 +3,7 @@
 S3method(predict,hazard)
 S3method(print,hazard)
 export(hazard)
+export(hzr_argument_mapping)
 export(hzr_clamp_prob)
 export(hzr_log1mexp)
 export(hzr_log1pexp)

@@ -1,0 +1,131 @@
+---
+title: "Example: Multivariable Hazard Model (hm.*)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Example: Multivariable Hazard Model (hm.*)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+```{r setup}
+library(hvtiRhazard)
+library(hvtiPlotR)
+```
+
+These examples correspond to the `hm.*` SAS files: multivariable parametric
+hazard modeling with covariate selection and phase-specific coefficients.
+
+---
+
+## hm.death.AVC — Multivariable model, death after AVC repair
+
+**SAS source:** `examples/hm.death.AVC.sas`
+
+**Purpose:** Final multivariable hazard model for death after repair of
+atrioventricular septal defects. Covariates split across EARLY (operative
+hazard) and CONSTANT (constant hazard) phases.
+
+### SAS (original)
+
+```sas
+%HAZARD(
+PROC HAZARD DATA=AVCS P CONSERVE OUTHAZ=OUTEST CONDITION=14 QUASI;
+     TIME INT_DEAD;
+     EVENT DEAD;
+     PARMS MUE=0.3504743 THALF=0.1905077 NU=1.437416 M=1 FIXM
+           MUC=4.391673E-07;
+     EARLY   AGE=-0.03205774, COM_IV=1.336675, MAL=0.6872028,
+             OPMOS=-0.01963377, OP_AGE=0.0002086689, STATUS=0.5169533;
+     CONSTANT INC_SURG=1.375285, ORIFICE=3.11765, STATUS=1.054988;
+);
+```
+
+### R translation (stub — M2 optimizer required for fitting)
+
+```{r hm-death-avc}
+# avcs <- read.table("data/avc", ...)
+# avcs$INC_SURG[is.na(avcs$INC_SURG)] <- mean(avcs$INC_SURG, na.rm = TRUE)
+
+X <- data.matrix(avcs[, c("AGE", "COM_IV", "MAL", "OPMOS", "OP_AGE",
+                           "STATUS", "INC_SURG", "ORIFICE")])
+
+fit_hm <- hazard(
+  time    = avcs$INT_DEAD,
+  status  = avcs$DEAD,
+  x       = X,
+  theta   = c(
+    MUE = 0.3504743, THALF = 0.1905077, NU = 1.437416, M = 1,
+    MUC = 4.391673e-07,
+    AGE = -0.03205774, COM_IV = 1.336675, MAL = 0.6872028,
+    OPMOS = -0.01963377, OP_AGE = 0.0002086689, STATUS = 0.5169533,
+    INC_SURG = 1.375285, ORIFICE = 3.11765
+  ),
+  dist    = "weibull",
+  control = list(condition = 14, quasi = TRUE, conserve = TRUE, fix = "M")
+)
+
+fit_hm
+```
+
+---
+
+## hm.death.AVC.deciles — Goodness of fit by decile
+
+**SAS source:** `examples/hm.death.AVC.deciles.sas`
+
+**Purpose:** Validate the AVC multivariable model by comparing observed vs
+predicted event rates across deciles of risk.
+
+### R translation (stub)
+
+```{r hm-avc-deciles}
+# Requires fitted model from hm.death.AVC above
+
+# Decile goodness-of-fit plot (hvtiPlotR)
+# hv_goodness_followup(fit_hm, data = avcs, group_by = "decile")
+```
+
+---
+
+## hm.death.patient — Patient-specific hazard model
+
+**SAS source:** `examples/hm.death.patient.sas`
+
+**Purpose:** Patient-level parametric hazard model with individual risk scores.
+
+### R translation (stub)
+
+```{r hm-death-patient}
+fit_patient <- hazard(
+  time    = avcs$INT_DEAD,
+  status  = avcs$DEAD,
+  x       = X,
+  dist    = "weibull"
+)
+```
+
+---
+
+## hm.deadp.VALVES — Multivariable model, valve surgery
+
+**SAS source:** `examples/hm.deadp.VALVES.sas`
+
+**Purpose:** Multivariable hazard model for death after valve surgery using the
+VALVES dataset.
+
+### R translation (stub)
+
+```{r hm-deadp-valves}
+# valves <- read.table("data/valves", ...)
+
+fit_valves <- hazard(
+  time    = valves$follow_time,
+  status  = valves$dead,
+  x       = data.matrix(valves[, c("age", "nyha", "valve_type")]),
+  dist    = "weibull"
+)
+```

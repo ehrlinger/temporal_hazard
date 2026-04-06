@@ -1,0 +1,92 @@
+---
+title: "Example: Hazard Sensitivity & Scenarios (hs.*)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Example: Hazard Sensitivity & Scenarios (hs.*)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+```{r setup}
+library(hvtiRhazard)
+library(hvtiPlotR)
+```
+
+These examples correspond to the `hs.*` SAS files: sensitivity analyses and
+scenario predictions from a fitted hazard model, typically comparing outcomes
+across different patient profiles or covariate settings.
+
+---
+
+## hs.death.AVC.hm1 — Sensitivity analysis, AVC model 1
+
+**SAS source:** `examples/hs.death.AVC.hm1.sas`
+
+**Purpose:** Evaluate sensitivity of the AVC death model to covariate changes.
+Compares predicted survival at median vs extreme covariate values.
+
+### R translation (stub — M2 predict types and M3 scenario helpers required)
+
+```{r hs-death-avc-hm1}
+# fit_hm1 loaded from hm.death.AVC example
+
+# Define reference and scenario covariate profiles
+ref_profile <- data.frame(
+  AGE = median(avcs$AGE), COM_IV = 0, MAL = 0,
+  OPMOS = median(avcs$OPMOS), OP_AGE = median(avcs$OP_AGE),
+  STATUS = 2, INC_SURG = 0, ORIFICE = 0
+)
+
+# Scenario: older patient, higher NYHA, important anomaly
+scen_profile <- ref_profile
+scen_profile$AGE    <- quantile(avcs$AGE, 0.9)
+scen_profile$STATUS <- 4
+scen_profile$MAL    <- 1
+
+# eta_ref  <- predict(fit_hm1, newdata = data.matrix(ref_profile),
+#                     type = "linear_predictor")
+# eta_scen <- predict(fit_hm1, newdata = data.matrix(scen_profile),
+#                     type = "linear_predictor")
+```
+
+---
+
+## hs.dthar.TGA.setup / hs.dthar.TGA.hs1 — Arrhythmia after TGA repair
+
+**SAS sources:** `examples/hs.dthar.TGA.setup.sas`, `examples/hs.dthar.TGA.hs1.sas`
+
+**Purpose:** Two-step analysis for arrhythmia after transposition of the great
+arteries (TGA) repair. The `setup` file prepares the dataset and fits the
+hazard model; `hs1` runs the scenario predictions.
+
+### R translation (stub)
+
+```{r hs-dthar-tga-setup}
+# Step 1: Fit model (from hs.dthar.TGA.setup.sas)
+# tga <- read.table("data/tga", ...)
+
+# fit_tga <- hazard(
+#   time    = tga$time_ar,
+#   status  = tga$arrhythmia,
+#   x       = data.matrix(tga[, c("age", "repair_type", "bypass_time")]),
+#   dist    = "weibull"
+# )
+```
+
+```{r hs-dthar-tga-hs1}
+# Step 2: Scenario predictions (from hs.dthar.TGA.hs1.sas)
+# scenarios <- expand.grid(
+#   age         = c(1, 5, 10),
+#   repair_type = c(0, 1),
+#   bypass_time = median(tga$bypass_time)
+# )
+
+# eta_scenarios <- predict(fit_tga,
+#                          newdata = data.matrix(scenarios),
+#                          type = "linear_predictor")
+# hv_hazard(fit_tga, groups = scenarios)  # hvtiPlotR
+```

@@ -1,0 +1,105 @@
+---
+title: "Example: Estimate Hazard Function (hz.*)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Example: Estimate Hazard Function (hz.*)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+```{r setup}
+library(hvtiRhazard)
+library(hvtiPlotR)
+```
+
+These examples correspond to the `hz.*` SAS files: univariable hazard function
+estimation with no covariates. The hazard function shape is fit to
+time-to-event data to characterize early, late, and constant hazard phases.
+
+---
+
+## hz.death.AVC — Death after AVC repair
+
+**SAS source:** `examples/hz.death.AVC.sas`
+
+**Purpose:** Estimate the parametric hazard function for death after repair of
+atrioventricular septal defects. No covariates — shape parameters only.
+
+### SAS (original)
+
+```sas
+%HAZARD(
+PROC HAZARD DATA=AVCS NOCOV NOCOR CONDITION=14;
+     TIME INT_DEAD;
+     EVENT DEAD;
+     PARMS MUE=0.2 THALF=0.15 NU=1.4 M=1;
+);
+```
+
+### R translation (stub — M2 optimizer required for fitting)
+
+```{r hz-death-avc}
+# avcs <- read.table("data/avc", header = FALSE, ...)  # load raw data
+
+fit_hz <- hazard(
+  time    = avcs$INT_DEAD,
+  status  = avcs$DEAD,
+  x       = NULL,          # no covariates
+  theta   = c(MUE = 0.2, THALF = 0.15, NU = 1.4, M = 1),
+  dist    = "weibull",
+  control = list(condition = 14, nocov = TRUE, nocor = TRUE)
+)
+
+fit_hz
+
+# Plot hazard function (hvtiPlotR)
+# hv_hazard(fit_hz)
+```
+
+---
+
+## hz.deadp.KUL — Death after KUL procedures
+
+**SAS source:** `examples/hz.deadp.KUL.sas`
+
+**Purpose:** Estimate hazard function for the KUL (Katholieke Universiteit
+Leuven) cardiac surgery dataset.
+
+### R translation (stub)
+
+```{r hz-deadp-kul}
+# kul <- read.table("data/kul", ...)
+
+fit_kul <- hazard(
+  time    = kul$follow_time,
+  status  = kul$dead,
+  control = list(condition = 14)
+)
+```
+
+---
+
+## hz.te123.OMC / hz.tm123.OMC — Time-to-event with multiple phases (OMC)
+
+**SAS sources:** `examples/hz.te123.OMC.sas`, `examples/hz.tm123.OMC.sas`
+
+**Purpose:** Three-phase hazard model (early, constant, late) for the OMC
+(Ontario Multicenter) dataset. `te123` uses event-time input; `tm123` uses
+the same model with a time-magnitude parameterization.
+
+### R translation (stub)
+
+```{r hz-te123-omc}
+# omc <- read.table("data/omc", ...)
+
+fit_omc <- hazard(
+  time    = omc$time,
+  status  = omc$event,
+  dist    = "weibull",
+  control = list(phases = 3)
+)
+```

@@ -1,0 +1,106 @@
+---
+title: "Example: Hazard Prediction (hp.*)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Example: Hazard Prediction (hp.*)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+```{r setup}
+library(hvtiRhazard)
+library(hvtiPlotR)
+```
+
+These examples correspond to the `hp.*` SAS files: prediction from a fitted
+hazard model including survival curves, patient-level risk, and group
+comparisons. These map to `predict.hazard()` and `hvtiPlotR` plotting output.
+
+---
+
+## hp.death.AVC — Predicted survival after AVC repair
+
+**SAS source:** `examples/hp.death.AVC.sas`
+
+**Purpose:** Compute and plot predicted survival and hazard curves from the
+fitted AVC model.
+
+### SAS (original)
+
+```sas
+%HAZPRED(
+PROC HAZARD DATA=OUTEST IN=AVCS OUT=HPOUT;
+     TIME INT_DEAD;
+     PREDICT SURVIVAL HAZARD;
+);
+```
+
+### R translation (stub — M2 predict types required)
+
+```{r hp-death-avc}
+# fit_hm loaded from hm.death.AVC example
+
+# Survival and hazard predictions on a time grid
+time_grid <- seq(0, max(avcs$INT_DEAD, na.rm = TRUE), length.out = 500)
+
+# hz_pred  <- predict(fit_hm, newdata = ..., type = "hazard")
+# surv_pred <- predict(fit_hm, newdata = ..., type = "survival")  # M2+
+
+# Plot with hvtiPlotR
+# hv_hazard(fit_hm, time_max = max(time_grid))
+```
+
+---
+
+## hp.death.AVC.hm1 / hp.death.AVC.hm2 — Predictions from two models
+
+**SAS sources:** `examples/hp.death.AVC.hm1.sas`, `examples/hp.death.AVC.hm2.sas`
+
+**Purpose:** Compare predicted hazard curves from two fitted multivariable
+models (e.g., alternative covariate specifications).
+
+### R translation (stub)
+
+```{r hp-avc-hm1-hm2}
+# fit_hm1, fit_hm2 — two separately fitted hazard() objects
+
+# hv_hazard_compare(list(Model1 = fit_hm1, Model2 = fit_hm2))  # M3+
+```
+
+---
+
+## hp.death.COMPARISON — Model comparison
+
+**SAS source:** `examples/hp.death.COMPARISON.sas`
+
+**Purpose:** Overlay predicted survival/hazard from multiple models or covariate
+scenarios on a single plot.
+
+### R translation (stub)
+
+```{r hp-death-comparison}
+# predict() on each fitted model, then bind and plot
+# Requires: predict(fit, type = "survival")   (M2+)
+```
+
+---
+
+## hp.dthip.PAIVS.time — Prediction with time-varying risk
+
+**SAS source:** `examples/hp.dthip.PAIVS.time.sas`
+
+**Purpose:** Predict patient-specific hazard over time for the PAIVS (Pulmonary
+Atresia with Intact Ventricular Septum) dataset.
+
+### R translation (stub)
+
+```{r hp-dthip-paivs}
+# paivs <- read.table("data/paivs", ...)
+
+# fit_paivs <- hazard(time = paivs$time, status = paivs$dead, ...)
+# eta <- predict(fit_paivs, type = "linear_predictor")
+```

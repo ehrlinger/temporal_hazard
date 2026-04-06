@@ -1,0 +1,96 @@
+---
+title: "Example: Bootstrap Confidence Intervals (bs.*)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Example: Bootstrap Confidence Intervals (bs.*)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+```{r setup}
+library(hvtiRhazard)
+library(hvtiPlotR)
+```
+
+These examples correspond to the `bs.*` SAS files: bootstrap confidence
+intervals for hazard function estimates and model summaries. Bootstrap CI is
+the primary uncertainty quantification method used in the HAZARD workflow.
+
+---
+
+## bs.death.AVC — Bootstrap CI for AVC death hazard
+
+**SAS source:** `examples/bs.death.AVC.sas`
+
+**Purpose:** Generate bootstrap confidence intervals for the parametric hazard
+function fitted to AVC death data. Each bootstrap replicate refits the model
+and accumulates prediction curves; the CI is then summarized across replicates.
+
+### SAS (original)
+
+```sas
+%BOOTSTRAP(
+  DATA    = AVCS,
+  HAZEST  = EXAMPLES.HMDEATH,
+  N       = 200,
+  SEED    = 12345,
+  OUT     = BSOUT
+);
+```
+
+### R translation (stub — M3 bootstrap harness required)
+
+```{r bs-death-avc}
+# fit_hm loaded from hm.death.AVC example
+
+# Bootstrap loop (200 replicates, seed for reproducibility)
+set.seed(12345)
+n_boot <- 200
+
+boot_curves <- replicate(n_boot, simplify = FALSE, {
+  idx    <- sample(nrow(avcs), replace = TRUE)
+  boot_d <- avcs[idx, ]
+
+  boot_fit <- hazard(
+    time   = boot_d$INT_DEAD,
+    status = boot_d$DEAD,
+    x      = data.matrix(boot_d[, c("AGE", "COM_IV", "MAL", "OPMOS",
+                                    "OP_AGE", "STATUS", "INC_SURG", "ORIFICE")]),
+    theta  = coef(fit_hm),     # warm start from fitted model (M2+)
+    dist   = "weibull",
+    control = list(condition = 14)
+  )
+
+  # predict(boot_fit, type = "survival")  # M2+ survival predictions
+})
+
+# Summarize CI across replicates and plot
+# hv_hazard(fit_hm, boot_curves = boot_curves)  # hvtiPlotR
+```
+
+---
+
+## bs.death.AVC.summary — Bootstrap summary statistics
+
+**SAS source:** `examples/bs.death.AVC.summary.sas`
+
+**Purpose:** Compute percentile-based confidence bands from bootstrap replicates
+and produce publication-ready hazard function plots with shaded CI.
+
+### R translation (stub)
+
+```{r bs-avc-summary}
+# Summarize boot_curves into 2.5/97.5 percentile bands
+# ci_bands <- do.call(rbind, lapply(boot_curves, function(x) x$survival))
+# lower <- apply(ci_bands, 2, quantile, probs = 0.025)
+# upper <- apply(ci_bands, 2, quantile, probs = 0.975)
+
+# Plot with hvtiPlotR confidence bands
+# hv_hazard(fit_hm,
+#           ci_lower = lower,
+#           ci_upper = upper)
+```

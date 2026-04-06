@@ -8,7 +8,34 @@ navbar:
     left: [intro, reference, articles, news]
     right: [github]
 
+articles:
+  - title: Getting started
+    navbar: Getting started
+    contents:
+      - getting-started
+  - title: Migration guides
+    navbar: Migration guides
+    contents:
+      - sas-to-r-migration
+  - title: "Examples: by analysis family"
+    navbar: Examples
+    contents:
+      - examples-lg-exploratory
+      - examples-ac-actuarial
+      - examples-hz-estimate-hazard
+      - examples-hm-multivariable
+      - examples-hp-prediction
+      - examples-bs-bootstrap
+      - examples-hs-sensitivity
+
 reference:
+  - title: Hazard model
+    contents:
+      - hazard
+      - predict.hazard
+  - title: Migration tools
+    contents:
+      - hzr_argument_mapping
   - title: Numerical Primitives
     contents:
       - hzr_log1pexp
