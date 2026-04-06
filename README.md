@@ -1,6 +1,6 @@
-# hvtiRhazard
+# temporal_hazard
 
-`hvtiRhazard` is a native R port of core HAZARD modeling components.
+`temporal_hazard` is a native R implementation of parametric temporal hazard modeling components.
 
 ## Development goals
 

@@ -1,4 +1,4 @@
 library(testthat)
-library(hvtiRhazard)
+library(TemporalHazard)
 
-test_check("hvtiRhazard")
+test_check("TemporalHazard")

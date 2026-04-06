@@ -15,6 +15,6 @@ This vignette describes the initial package structure and numerical helper
 functions that support future parity validation against HAZARD outputs.
 
 ```{r}
-library(hvtiRhazard)
+library(TemporalHazard)
 hzr_log1pexp(c(-2, 0, 2))
 ```

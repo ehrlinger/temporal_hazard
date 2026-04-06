@@ -1,6 +1,6 @@
-# hvtiRhazard news
+# temporal_hazard news
 
-## hvtiRhazard 0.0.0.9000
+## temporal_hazard 0.0.0.9000
 
 - Initial package scaffold.
 - Added numerically stable helper primitives.

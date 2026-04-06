@@ -1,8 +1,8 @@
 ---
-title: "Migrating from SAS HAZARD to hvtiRhazard"
+title: "Migrating from SAS HAZARD to TemporalHazard"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Migrating from SAS HAZARD to hvtiRhazard}
+  %\VignetteIndexEntry{Migrating from SAS HAZARD to TemporalHazard}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -12,7 +12,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
 ```{r setup}
-library(hvtiRhazard)
+library(TemporalHazard)
 ```
 
 ## Overview
@@ -20,7 +20,7 @@ library(hvtiRhazard)
 The legacy HAZARD program is a SAS macro (`%HAZARD(...)`) that wraps a compiled
 C executable. It models event-time data using a parametric hazard function with
 multiple phases. This vignette is the canonical reference for translating a SAS
-HAZARD analysis into native R using `hvtiRhazard`.
+HAZARD analysis into native R using `TemporalHazard`.
 
 The full formal argument mapping table is available programmatically:
 
@@ -100,7 +100,7 @@ fit <- hazard(
 )
 ```
 
-- `hvtiRhazard` coerces `status` to `numeric`; logical vectors are also accepted.
+- `TemporalHazard` coerces `status` to `numeric`; logical vectors are also accepted.
 - The HAZARD convention uses `1` = occurred, `0` = censored/alive at last contact.
 
 ---
@@ -140,7 +140,7 @@ CONSTANT INC_SURG=1.375285, ORIFICE=3.11765, STATUS=1.054988;
 ```
 
 In HAZARD, `EARLY` and `CONSTANT` define phase-specific covariate coefficients.
-In `hvtiRhazard` these are unified into a single design matrix `x` and
+In `TemporalHazard` these are unified into a single design matrix `x` and
 coefficient vector `theta` during M1. Phase assignment will be formalised in
 M2 when the multi-phase likelihood is implemented.
 
@@ -181,7 +181,7 @@ fit <- hazard(
 SELECTION SLE=0.2 SLS=0.1;
 ```
 
-Stepwise variable selection is **not yet implemented** in `hvtiRhazard`. Planned
+Stepwise variable selection is **not yet implemented** in `TemporalHazard`. Planned
 for M3. During migration, resolve your final variable set in the SAS analysis
 first, then port the confirmed model to R.
 
@@ -264,7 +264,7 @@ fit
 
 ## Data preparation differences
 
-| SAS HAZARD                             | hvtiRhazard R                                     |
+| SAS HAZARD                             | TemporalHazard R                                     |
 |----------------------------------------|---------------------------------------------------|
 | `PROC STANDARD REPLACE` for missing    | Replace with `mean(..., na.rm = TRUE)` manually  |
 | Log transforms in `DATA` step          | `transform()` or `dplyr::mutate()`                |
@@ -312,7 +312,7 @@ mirror the `P` (predict/print) option in `PROC HAZARD`.
 
 ## Rcpp acceleration note
 
-`hvtiRhazard` is currently pure R. If profiling against large real datasets
+`TemporalHazard` is currently pure R. If profiling against large real datasets
 reveals bottlenecks in the likelihood kernel or optimizer inner loop, those
 specific functions will be re-implemented with Rcpp. The public interface
 (`hazard()`, `predict.hazard()`, etc.) will not change.

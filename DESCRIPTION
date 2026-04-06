@@ -1,5 +1,5 @@
-Package: hvtiRhazard
-Title: Native R Port of HAZARD Modeling Components
+Package: TemporalHazard
+Title: Temporal Parametric Hazard Modeling in R
 Version: 0.0.0.9000
 Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@example.com", role = c("aut", "cre"))
 Description: Provides native R implementations of core HAZARD model
@@ -26,5 +26,5 @@ Remotes:
     ehrlinger/hvtiPlotR
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-URL: https://github.com/ehrlinger/hvtiRhazard
-BugReports: https://github.com/ehrlinger/hvtiRhazard/issues
+URL: https://github.com/ehrlinger/temporal_hazard
+BugReports: https://github.com/ehrlinger/temporal_hazard/issues
