@@ -46,35 +46,74 @@ and accumulates prediction curves; the CI is then summarized across replicates.
 );
 ```
 
-### R translation (stub — M3 bootstrap harness required)
+### R translation (runnable M3 example)
 
 ```{r}
 #| label: bs-death-avc
-# fit_hm loaded from hm.death.AVC example
+set.seed(3201)
+n <- 280
+avcs <- data.frame(
+  INT_DEAD = rexp(n, rate = 0.6),
+  AGE = rnorm(n, 6, 3),
+  COM_IV = rbinom(n, 1, 0.2),
+  MAL = rbinom(n, 1, 0.2),
+  OPMOS = runif(n, 0, 18),
+  OP_AGE = runif(n, 0, 12),
+  STATUS = sample(1:4, n, replace = TRUE),
+  INC_SURG = rbinom(n, 1, 0.12),
+  ORIFICE = rbinom(n, 1, 0.1)
+)
 
-# Bootstrap loop (200 replicates, seed for reproducibility)
+lp <- -2.5 + 0.05 * avcs$AGE + 0.6 * avcs$COM_IV + 0.4 * avcs$MAL +
+  0.25 * (avcs$STATUS >= 3) + 0.4 * avcs$INC_SURG
+avcs$DEAD <- rbinom(n, 1, plogis(lp))
+
+X <- data.matrix(avcs[, c("AGE", "COM_IV", "MAL", "OPMOS", "OP_AGE",
+                          "STATUS", "INC_SURG", "ORIFICE")])
+
+fit_hm <- hazard(
+  time = avcs$INT_DEAD,
+  status = avcs$DEAD,
+  x = X,
+  theta = c(mu = 0.25, nu = 1.10, rep(0, ncol(X))),
+  dist = "weibull",
+  fit = TRUE,
+  control = list(maxit = 400)
+)
+
+time_grid <- data.frame(time = seq(0.1, 4.0, length.out = 40))
+
+# Bootstrap loop (smaller n for vignette runtime).
 set.seed(12345)
-n_boot <- 200
+n_boot <- 60
 
 boot_curves <- replicate(n_boot, simplify = FALSE, {
   idx    <- sample(nrow(avcs), replace = TRUE)
   boot_d <- avcs[idx, ]
+  boot_x <- data.matrix(boot_d[, c("AGE", "COM_IV", "MAL", "OPMOS", "OP_AGE",
+                                   "STATUS", "INC_SURG", "ORIFICE")])
 
-  boot_fit <- hazard(
-    time   = boot_d$INT_DEAD,
-    status = boot_d$DEAD,
-    x      = data.matrix(boot_d[, c("AGE", "COM_IV", "MAL", "OPMOS",
-                                    "OP_AGE", "STATUS", "INC_SURG", "ORIFICE")]),
-    theta  = coef(fit_hm),     # warm start from fitted model (M2+)
-    dist   = "weibull",
-    control = list(condition = 14)
-  )
+  out <- tryCatch({
+    boot_fit <- hazard(
+      time   = boot_d$INT_DEAD,
+      status = boot_d$DEAD,
+      x      = boot_x,
+      theta  = coef(fit_hm),
+      dist   = "weibull",
+      fit    = TRUE,
+      control = list(maxit = 250)
+    )
 
-  # predict(boot_fit, type = "survival")  # M2+ survival predictions
+    predict(boot_fit, newdata = cbind(time_grid, as.data.frame(boot_x[1:nrow(time_grid), ])),
+            type = "survival")
+  }, error = function(e) {
+    rep(NA_real_, nrow(time_grid))
+  })
+
+  out
 })
 
-# Summarize CI across replicates and plot
-# hv_hazard(fit_hm, boot_curves = boot_curves)  # hvtiPlotR
+length(boot_curves)
 ```
 
 ---
@@ -86,17 +125,22 @@ boot_curves <- replicate(n_boot, simplify = FALSE, {
 **Purpose:** Compute percentile-based confidence bands from bootstrap replicates
 and produce publication-ready hazard function plots with shaded CI.
 
-### R translation (stub)
+### R translation (runnable M3 example)
 
 ```{r}
 #| label: bs-avc-summary
-# Summarize boot_curves into 2.5/97.5 percentile bands
-# ci_bands <- do.call(rbind, lapply(boot_curves, function(x) x$survival))
-# lower <- apply(ci_bands, 2, quantile, probs = 0.025)
-# upper <- apply(ci_bands, 2, quantile, probs = 0.975)
+ci_bands <- do.call(rbind, boot_curves)
+ci_bands <- ci_bands[rowSums(is.na(ci_bands)) == 0, , drop = FALSE]
+median_surv <- apply(ci_bands, 2, median)
+lower <- apply(ci_bands, 2, quantile, probs = 0.025)
+upper <- apply(ci_bands, 2, quantile, probs = 0.975)
 
-# Plot with hvtiPlotR confidence bands
-# hv_hazard(fit_hm,
-#           ci_lower = lower,
-#           ci_upper = upper)
+bootstrap_summary <- data.frame(
+  time = time_grid$time,
+  surv_median = median_surv,
+  surv_lower = lower,
+  surv_upper = upper
+)
+
+head(bootstrap_summary)
 ```

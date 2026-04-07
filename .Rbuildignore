@@ -5,3 +5,4 @@
 ^inst/extdata/\.gitkeep$
 ^inst/fixtures/\.gitkeep$
 ^TODO\.md$
+^.*\.Rproj$

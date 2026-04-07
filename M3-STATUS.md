@@ -1,6 +1,6 @@
 # M3 Milestone: Broader Model Support
 
-**Status:** In progress. Exponential distribution complete (28 tests). Log-logistic next.
+**Status:** Complete. Phase 1-4 delivered for M3 scope. **222 total tests passing.**
 
 ## Overview
 
@@ -76,16 +76,23 @@ Expand test harness:
 - ✅ Golden fixtures and parity tests (Weibull only)
 - ✅ 83 passing test suite
 
+### M3 Progress
+
+- ✅ Exponential distribution (28 tests)
+- ✅ Log-logistic distribution (31 tests)
+- ✅ Log-normal distribution (33 tests)
+- ✅ Interval/left/right mixed censoring support (Weibull + exponential + log-logistic + log-normal)
+- ✅ Time-varying coefficients via piecewise windows (API + predict + tests)
+- ✅ Expanded parity edge coverage (fixtures + high-dimensional and boundary stability tests)
+- **Current total: 222 passing tests**
+
 ### In Progress
 
-- [ ] Log-logistic distribution core (next up)
+- [ ] None (M3 complete)
 
 ### Pending
 
-- [ ] Log-normal distribution core
-- [ ] Interval censoring
-- [ ] Time-varying coefficients
-- [ ] Extended parity suite
+- [ ] None within M3
 
 ### Complete
 
@@ -93,6 +100,16 @@ Expand test harness:
   - Reparameterized as log(λ) for unconstrained BFGS optimization
   - predict() supports survival and cumulative_hazard
   - Analytical gradient verified against numDeriv
+- [x] Log-logistic distribution: `R/likelihood-loglogistic.R`, 31 tests in `test-loglogistic-dist.R`
+  - Reparameterized as log(α), log(β) for unconstrained BFGS optimization
+  - predict() supports linear_predictor, hazard, survival, cumulative_hazard
+  - Analytical gradient verified against numDeriv
+  - Golden fixture: `inst/fixtures/hz_loglogistic.rds`
+- [x] Log-normal distribution: `R/likelihood-lognormal.R`, 33 tests in `test-lognormal-dist.R`
+  - AFT model: theta = [μ, log(σ), β₁, ...]; covariates shift log(T) location
+  - predict() returns Φ(−z) directly (not exp(−H)); avoids numerical cancellation
+  - Analytical gradient verified against numDeriv
+  - Golden fixture: `inst/fixtures/hz_lognormal.rds`
 
 ---
 
@@ -130,23 +147,9 @@ S(t) = 1 - Φ((log(t) - μ) / σ)
 
 ## Next Action
 
-**Task: Log-Logistic distribution core** (`R/likelihood-loglogistic.R`)
+**Task: M4 API stabilization and vignette completion**
 
-Math:
-- h(t) = (α · β · t^(β-1)) / (1 + α · t^β)
-- S(t) = 1 / (1 + α · t^β)
-- H(t) = log(1 + α · t^β)
-- With covariates: replace α with α · exp(η)
-- Reparameterize: θ = [log(α), log(β), beta1, beta2, ...] for unconstrained optimization
-
-Score vector (analytically):
-- dL/d(log α) = sum(δ) - sum(α · t^β · exp(η) / (1 + α · t^β · exp(η))) * n_total
-- dL/d(log β) = sum(δ) + sum(δ · log(t)) - sum(α · β · t^β · exp(η) · log(t) / (1 + α · t^β · exp(η)))
-- dL/dβ_j    = t(X) %*% (δ - p) where p_i = α · t^β · exp(η) / (1 + α · t^β · exp(η))
-
-Expected output:
-- `R/likelihood-loglogistic.R` — likelihood, gradient, optimizer
-- `tests/testthat/test-loglogistic-dist.R` — 10+ unit tests
-- Update `hazard()` to dispatch on dist = "loglogistic"
-- Update `predict()` to compute H and S for loglogistic
-- Golden fixture: `inst/fixtures/hz_loglogistic.rds`
+Suggested next steps:
+- Add summary.hazard() and formula interface coverage
+- Continue replacing vignette stubs with runnable examples
+- Tighten warning profile (currently Hessian-related warnings in edge fits)

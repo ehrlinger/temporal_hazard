@@ -137,7 +137,7 @@ test_that("predict() errors if survival requested on non-Weibull/exponential", {
     status = status,
     x = NULL,
     theta = c(0.5, 0.3),
-    dist = "lognormal",  # Not yet supported
+    dist = "gompertz",  # Not yet supported
     fit = FALSE
   )
   

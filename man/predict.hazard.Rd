@@ -4,14 +4,27 @@
 \alias{predict.hazard}
 \title{Predict from a hazard model object}
 \usage{
-\method{predict}{hazard}(object, newdata = NULL, type = c("hazard", "linear_predictor"), ...)
+\method{predict}{hazard}(
+  object,
+  newdata = NULL,
+  type = c("hazard", "linear_predictor", "survival", "cumulative_hazard"),
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{hazard} object.}
 
-\item{newdata}{Optional matrix or data frame of predictors.}
+\item{newdata}{Optional matrix or data frame of predictors. For types requiring
+time (e.g., "survival", "cumulative_hazard"), newdata should include a \code{time}
+column, or time will be taken from the fitted object's data.}
 
-\item{type}{Prediction type: \code{"hazard"} or \code{"linear_predictor"}.}
+\item{type}{Prediction type:
+\itemize{
+\item \code{"linear_predictor"}: Linear predictor η = x·β
+\item \code{"hazard"}: Hazard scale exp(η) (not conditional on time for Weibull)
+\item \code{"survival"}: Survival probability S(t|x) = exp(-H(t|x))
+\item \code{"cumulative_hazard"}: Cumulative hazard H(t|x) at event times
+}}
 
 \item{...}{Unused; included for S3 compatibility.}
 }
@@ -19,6 +32,16 @@
 Numeric vector of predictions.
 }
 \description{
-Produces basic prediction outputs from a \code{hazard} object. This is an initial
-compatibility method that will evolve toward full \code{hazpred} parity.
+Produces prediction outputs from a \code{hazard} object. Supports multiple prediction
+types including linear predictor, hazard, survival probability, and cumulative hazard.
+}
+\details{
+For Weibull models with survival or cumulative_hazard predictions:
+\itemize{
+\item Cumulative hazard: H(t|x) = (μ·t)^ν · exp(η)
+\item Survival: S(t|x) = exp(-H(t|x))
+}
+
+Time values must be positive and finite. If newdata contains a \code{time} column,
+it will be used; otherwise, the time vector from the fitted object is used.
 }

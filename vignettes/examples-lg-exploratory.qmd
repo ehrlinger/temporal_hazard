@@ -46,11 +46,28 @@ model.
 );
 ```
 
-### R translation (stub — M3 exploratory helpers required)
+### R translation (runnable M3 example)
 
 ```{r}
 #| label: lg-death-avc
-# avcs <- read.table("data/avc", ...)
+set.seed(5201)
+n <- 360
+avcs <- data.frame(
+  INT_DEAD = rexp(n, rate = 0.6),
+  AGE = rnorm(n, mean = 6, sd = 3),
+  STATUS = sample(1:4, n, replace = TRUE),
+  INC_SURG = rbinom(n, 1, 0.15),
+  OPMOS = runif(n, 0, 18),
+  MAL = rbinom(n, 1, 0.25),
+  COM_IV = rbinom(n, 1, 0.2),
+  ORIFICE = rbinom(n, 1, 0.1),
+  OP_AGE = runif(n, 0, 12)
+)
+
+lp <- -2.7 + 0.05 * avcs$AGE + 0.20 * avcs$STATUS + 0.55 * avcs$INC_SURG +
+  0.03 * avcs$OPMOS + 0.45 * avcs$MAL + 0.60 * avcs$COM_IV +
+  0.35 * avcs$ORIFICE + 0.01 * avcs$OP_AGE
+avcs$DEAD <- rbinom(n, 1, plogis(lp))
 
 candidates <- c("AGE", "STATUS", "INC_SURG", "OPMOS",
                 "MAL", "COM_IV", "ORIFICE", "OP_AGE")
@@ -63,7 +80,8 @@ logit_fits <- lapply(candidates, function(var) {
 names(logit_fits) <- candidates
 
 # Inspect: which covariates show monotone relationships?
-lapply(logit_fits, function(f) coef(summary(f)))
+coef_tables <- lapply(logit_fits, function(f) coef(summary(f)))
+coef_tables[["AGE"]]
 
 # Plot covariate effects (hvtiPlotR exploratory helper — M3)
 # hv_logit_explorer(avcs, event = "DEAD", vars = candidates)
@@ -78,16 +96,16 @@ lapply(logit_fits, function(f) coef(summary(f)))
 **Purpose:** Logistic regression for early (30-day) mortality after AVC repair.
 Identifies covariates driving operative risk.
 
-### R translation (stub)
+### R translation (runnable M3 example)
 
 ```{r}
 #| label: lg-dead30d-avc
 # Define 30-day event indicator
-# avcs$dead30 <- as.integer(avcs$DEAD == 1 & avcs$INT_DEAD <= 1)  # 1 month
+avcs$dead30 <- as.integer(avcs$DEAD == 1 & avcs$INT_DEAD <= 1)
 
-# fit_30d <- glm(dead30 ~ AGE + STATUS + COM_IV + MAL,
-#               data = avcs, family = binomial())
-# summary(fit_30d)
+fit_30d <- glm(dead30 ~ AGE + STATUS + COM_IV + MAL,
+               data = avcs, family = binomial())
+summary(fit_30d)
 ```
 
 ---
@@ -99,17 +117,17 @@ Identifies covariates driving operative risk.
 **Purpose:** Logistic regression restricted to patients surviving 30 days.
 Identifies covariates driving late (constant-phase) hazard.
 
-### R translation (stub)
+### R translation (runnable M3 example)
 
 ```{r}
 #| label: lg-deadlate-avc
 # Restrict to survivors of operative period
-# avcs_late <- avcs[avcs$INT_DEAD > 1 | avcs$DEAD == 0, ]
-# avcs_late$dead_late <- as.integer(avcs_late$DEAD == 1)
+avcs_late <- avcs[avcs$INT_DEAD > 1 | avcs$DEAD == 0, ]
+avcs_late$dead_late <- as.integer(avcs_late$DEAD == 1)
 
-# fit_late <- glm(dead_late ~ INC_SURG + ORIFICE + STATUS,
-#                data = avcs_late, family = binomial())
-# summary(fit_late)
+fit_late <- glm(dead_late ~ INC_SURG + ORIFICE + STATUS,
+                data = avcs_late, family = binomial())
+summary(fit_late)
 ```
 
 ### Note on lg.* → hz.* workflow

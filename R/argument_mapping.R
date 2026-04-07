@@ -1,3 +1,16 @@
+# argument_mapping.R — SAS HAZARD → R argument translation table
+#
+# PURPOSE
+# -------
+# During the SAS-to-R migration, analysts may need to know how legacy HAZARD
+# procedure statements map to hazard() arguments.  hzr_argument_mapping()
+# exposes the mapping as a data frame so it can be consulted programmatically
+# or rendered in vignettes.
+#
+# The internal table .hzr_argument_mapping_table drives the exported function.
+# Add rows as new arguments are implemented; update implementation_status from
+# "planned" to "implemented" when the feature lands.
+
 #' Legacy HAZARD to hvtiRhazard argument mapping
 #'
 #' Returns a formal mapping table that defines how legacy SAS HAZARD/C-style

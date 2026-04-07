@@ -1,3 +1,16 @@
+# math_primitives.R — Numerically stable elementary functions
+#
+# PURPOSE
+# -------
+# Floating-point naive implementations of log(1+exp(x)), log(1-exp(-x)), and
+# probability clamping produce incorrect results near the boundaries of
+# double precision.  These primitives use piece-wise stable formulas that are
+# safe across the full range of inputs encountered in survival analysis
+# (very small or very large hazard rates, near-zero probabilities).
+#
+# All three functions are exported so users can call them directly when
+# constructing custom likelihoods or diagnostics.
+
 #' Numerically stable log(1 + exp(x))
 #'
 #' @param x Numeric vector.

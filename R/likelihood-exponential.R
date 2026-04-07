@@ -1,3 +1,30 @@
+# likelihood-exponential.R — Exponential parametric hazard likelihood, gradient, and optimizer
+#
+# MODEL
+# -----
+# Constant-hazard (memoryless) proportional-hazards model:
+#
+#   h(t | x)  = λ exp(η)                    hazard (constant in t)
+#   H(t | x)  = λ t exp(η)                  cumulative hazard
+#   S(t | x)  = exp(−λ t exp(η))            survival
+#
+# where λ > 0 (baseline rate), η = x β (linear predictor).
+#
+# THETA LAYOUT
+# ------------
+#   theta[1]   = log(λ)   (unconstrained; λ recovered via exp())
+#   theta[2:p] = β        (covariate coefficients; unrestricted)
+#
+# The exponential is a special case of Weibull with ν = 1.  It has no shape
+# parameter so theta is one element shorter than Weibull for the same data.
+# Unconstrained BFGS is used (no box bounds needed).
+#
+# FUNCTIONS
+# ---------
+#   .hzr_logl_exponential()     — log-likelihood (optionally returning gradient)
+#   .hzr_gradient_exponential() — analytical score vector
+#   .hzr_optim_exponential()    — unconstrained BFGS wrapper
+
 #' Exponential Parametric Hazard Likelihood
 #'
 #' Evaluate the log-likelihood and its derivatives for exponential hazard models.
@@ -16,6 +43,10 @@
 #'
 #' @param time Numeric vector of follow-up times (n)
 #' @param status Numeric vector of event indicators: 1 = event, 0 = censored (n)
+#' @param time_lower Optional numeric lower bound vector for interval-censored rows.
+#'   Defaults to `time` if NULL.
+#' @param time_upper Optional numeric upper bound vector for left/interval-censored rows.
+#'   Defaults to `time` if NULL.
 #' @param x Design matrix of covariates (n × p_coef); NULL for no covariates
 #' @param return_gradient Logical; if TRUE, attach gradient vector as attribute
 #'
@@ -42,11 +73,19 @@
 #'
 #' Reparameterization: θ[1] = log(λ) avoids constrained optimization.
 #'
+#' Mixed censoring status coding:
+#' - `1`: exact event at `time`
+#' - `0`: right-censored at `time`
+#' - `-1`: left-censored with upper bound `time_upper` (or `time`)
+#' - `2`: interval-censored in [`time_lower`, `time_upper`]
+#'
 #' @noRd
 .hzr_logl_exponential <- function(
     theta,
     time,
     status,
+  time_lower = NULL,
+  time_upper = NULL,
     x = NULL,
     return_gradient = FALSE) {
   
@@ -67,15 +106,59 @@
     eta <- rep(0, n)
   }
   
-  # Hazard: h(t) = lambda * exp(eta)
-  # Survival: S(t) = exp(-lambda * t * exp(eta))
-  # Cumulative hazard: H(t) = lambda * t * exp(eta)
-  
-  cumhaz <- lambda * time * exp(eta)  # cumulative hazard
-  
-  # Log-likelihood:
-  # ℓ = sum(δ_i * [log(λ) + η_i]) - sum(λ * t_i * exp(η_i))
-  logl <- sum(status * (log_lambda + eta)) - sum(cumhaz)
+  # Resolve censoring bounds once so each likelihood term can reference
+  # a consistent lower/upper representation regardless of user input style.
+  lower <- if (is.null(time_lower)) time else time_lower
+  upper <- if (is.null(time_upper)) time else time_upper
+
+  if (any(status %in% c(-1, 2)) && any(upper <= 0)) {
+    return(Inf)
+  }
+  if (any(status == 2) && any(lower[status == 2] >= upper[status == 2])) {
+    return(Inf)
+  }
+
+  # Cumulative hazards at event/lower/upper times; all terms can be
+  # expressed using H(t) for the exponential model.
+  cumhaz_event <- lambda * time * exp(eta)
+  cumhaz_lower <- lambda * lower * exp(eta)
+  cumhaz_upper <- lambda * upper * exp(eta)
+
+  idx_event <- status == 1
+  idx_right <- status == 0
+  idx_left <- status == -1
+  idx_interval <- status == 2
+
+  # Event: log h(t) + log S(t) = [log(lambda)+eta] - H(t)
+  ll_event <- if (any(idx_event)) {
+    sum((log_lambda + eta[idx_event]) - cumhaz_event[idx_event])
+  } else {
+    0
+  }
+
+  # Right-censored: log S(t) = -H(t)
+  ll_right <- if (any(idx_right)) {
+    -sum(cumhaz_event[idx_right])
+  } else {
+    0
+  }
+
+  # Left-censored: log F(u) = log(1 - exp(-H(u)))
+  ll_left <- if (any(idx_left)) {
+    sum(hzr_log1mexp(cumhaz_upper[idx_left]))
+  } else {
+    0
+  }
+
+  # Interval-censored: log(S(l)-S(u))
+  ll_interval <- if (any(idx_interval)) {
+    delta_h <- cumhaz_upper[idx_interval] - cumhaz_lower[idx_interval]
+    sum(-cumhaz_lower[idx_interval] + hzr_log1mexp(delta_h))
+  } else {
+    0
+  }
+
+  logl <- ll_event + ll_right + ll_left + ll_interval
   
   if (!is.finite(logl)) {
     return(Inf)
@@ -84,7 +167,7 @@
   # If gradient requested, compute score vector
   if (return_gradient) {
     grad <- .hzr_gradient_exponential(
-      theta, time, status, x, eta, cumhaz, lambda, log_lambda
+      theta, time, status, time_lower, time_upper, x, eta, cumhaz_event, lambda, log_lambda
     )
     attr(logl, "gradient") <- grad
   }
@@ -108,6 +191,8 @@
     theta,
     time,
     status,
+  time_lower = NULL,
+  time_upper = NULL,
     x = NULL,
     eta = NULL,
     cumhaz = NULL,
@@ -117,6 +202,12 @@
   n <- length(time)
   p <- length(theta)
   grad <- numeric(p)
+
+  # Numerical fallback for left/interval censoring contributions.
+  # Right-censored/event-only rows still use the closed-form score below.
+  if (any(status %in% c(-1, 2))) {
+    return(.hzr_numeric_grad_exponential(theta, time, status, time_lower, time_upper, x))
+  }
   
   # Recompute if not provided
   if (is.null(eta) || is.null(cumhaz) || is.null(lambda)) {
@@ -170,6 +261,8 @@
 .hzr_optim_exponential <- function(
     time,
     status,
+  time_lower = NULL,
+  time_upper = NULL,
     x = NULL,
     theta_start,
     control = list()) {
@@ -191,6 +284,8 @@
       theta = theta,
       time = time,
       status = status,
+      time_lower = time_lower,
+      time_upper = time_upper,
       x = x,
       return_gradient = FALSE
     )
@@ -227,6 +322,8 @@
         theta = theta,
         time = time,
         status = status,
+        time_lower = time_lower,
+        time_upper = time_upper,
         x = x,
         eta = eta,
         cumhaz = cumhaz,
@@ -291,4 +388,34 @@
     hessian = hess_result,
     vcov = vcov
   )
+}
+
+.hzr_numeric_grad_exponential <- function(theta, time, status, time_lower = NULL, time_upper = NULL, x = NULL) {
+  # Reuse log-likelihood as scalar objective and differentiate numerically.
+  objective <- function(par) {
+    .hzr_logl_exponential(
+      theta = par,
+      time = time,
+      status = status,
+      time_lower = time_lower,
+      time_upper = time_upper,
+      x = x,
+      return_gradient = FALSE
+    )
+  }
+
+  if (requireNamespace("numDeriv", quietly = TRUE)) {
+    return(as.numeric(numDeriv::grad(objective, theta)))
+  }
+
+  eps <- 1e-6
+  grad <- numeric(length(theta))
+  for (i in seq_along(theta)) {
+    tp <- theta
+    tm <- theta
+    tp[i] <- tp[i] + eps
+    tm[i] <- tm[i] - eps
+    grad[i] <- (objective(tp) - objective(tm)) / (2 * eps)
+  }
+  grad
 }

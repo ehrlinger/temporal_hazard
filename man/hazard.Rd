@@ -10,7 +10,7 @@ hazard(
   x = NULL,
   theta = NULL,
   dist = "weibull",
-  fit = TRUE,
+  fit = FALSE,
   control = list(),
   ...
 )

@@ -43,7 +43,7 @@ PROC HAZARD DATA=OUTEST IN=AVCS OUT=HPOUT;
 );
 ```
 
-### R translation (stub — M2 predict types required)
+### R translation (partial)
 
 ```{r}
 #| label: hp-death-avc
@@ -53,7 +53,7 @@ PROC HAZARD DATA=OUTEST IN=AVCS OUT=HPOUT;
 time_grid <- seq(0, max(avcs$INT_DEAD, na.rm = TRUE), length.out = 500)
 
 # hz_pred  <- predict(fit_hm, newdata = ..., type = "hazard")
-# surv_pred <- predict(fit_hm, newdata = ..., type = "survival")  # M2+
+# surv_pred <- predict(fit_hm, newdata = ..., type = "survival")
 
 # Plot with hvtiPlotR
 # hv_hazard(fit_hm, time_max = max(time_grid))
@@ -68,13 +68,13 @@ time_grid <- seq(0, max(avcs$INT_DEAD, na.rm = TRUE), length.out = 500)
 **Purpose:** Compare predicted hazard curves from two fitted multivariable
 models (e.g., alternative covariate specifications).
 
-### R translation (stub)
+### R translation (partial)
 
 ```{r}
 #| label: hp-avc-hm1-hm2
 # fit_hm1, fit_hm2 — two separately fitted hazard() objects
 
-# hv_hazard_compare(list(Model1 = fit_hm1, Model2 = fit_hm2))  # M3+
+# hv_hazard_compare(list(Model1 = fit_hm1, Model2 = fit_hm2))
 ```
 
 ---
@@ -86,12 +86,12 @@ models (e.g., alternative covariate specifications).
 **Purpose:** Overlay predicted survival/hazard from multiple models or covariate
 scenarios on a single plot.
 
-### R translation (stub)
+### R translation (partial)
 
 ```{r}
 #| label: hp-death-comparison
 # predict() on each fitted model, then bind and plot
-# Requires: predict(fit, type = "survival")   (M2+)
+# Requires: predict(fit, type = "survival")
 ```
 
 ---
@@ -103,12 +103,49 @@ scenarios on a single plot.
 **Purpose:** Predict patient-specific hazard over time for the PAIVS (Pulmonary
 Atresia with Intact Ventricular Septum) dataset.
 
-### R translation (stub)
+### R translation
 
 ```{r}
 #| label: hp-dthip-paivs
-# paivs <- read.table("data/paivs", ...)
+set.seed(42)
 
-# fit_paivs <- hazard(time = paivs$time, status = paivs$dead, ...)
-# eta <- predict(fit_paivs, type = "linear_predictor")
+# Synthetic PAIVS-like example for time-varying risk demonstration.
+n <- 120
+paivs <- data.frame(
+     time = rexp(n, rate = 0.25) + 0.05,
+     dead = rbinom(n, size = 1, prob = 0.65),
+     vent_score = rnorm(n),
+     shunt = rbinom(n, size = 1, prob = 0.4)
+)
+
+# Define piecewise windows for β(t): early, mid, late follow-up.
+tv_windows <- c(1.0, 3.0)
+
+# Weibull with time-varying coefficients via windowed design expansion.
+# theta layout with two predictors and 3 windows:
+# [mu, nu, vent_w1, shunt_w1, vent_w2, shunt_w2, vent_w3, shunt_w3]
+fit_paivs <- hazard(
+     time = paivs$time,
+     status = paivs$dead,
+     x = paivs[, c("vent_score", "shunt")],
+     time_windows = tv_windows,
+     theta = c(0.4, 1.1, 0, 0, 0, 0, 0, 0),
+     dist = "weibull",
+     fit = TRUE
+)
+
+# Time-specific risk summaries.
+pred_df <- paivs
+pred_df$lp <- predict(
+     fit_paivs,
+     newdata = pred_df[, c("time", "vent_score", "shunt")],
+     type = "linear_predictor"
+)
+pred_df$haz_mult <- predict(
+     fit_paivs,
+     newdata = pred_df[, c("time", "vent_score", "shunt")],
+     type = "hazard"
+)
+
+head(pred_df[, c("time", "lp", "haz_mult")])
 ```

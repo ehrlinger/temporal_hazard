@@ -1,3 +1,32 @@
+# parity-helpers.R — Helpers for cross-validating R output against the legacy C binary
+#
+# STATUS: Stub / scaffold (M1 infrastructure, awaiting C binary integration)
+#
+# PURPOSE
+# -------
+# These functions wrap the compiled HAZARD C binary so the test suite can invoke
+# it programmatically, capture its output, and compare parameter estimates with
+# those produced by the R implementation.  This cross-validation is the primary
+# correctness signal during the SAS→R migration.
+#
+# CURRENT STATE
+# -------------
+# .hzr_get_hazard_binary() — locates the binary at inst/bin/hazard
+# .hzr_run_hazard_binary() — scaffolded; writes input CSV and builds the command
+#                             string, but the actual system() invocation and output
+#                             parser are not yet finalised (see TODO comments).
+# .hzr_parse_hazard_output() — parser stub; returns list(NA) until implemented.
+#
+# ENABLING C PARITY TESTS
+# -----------------------
+# 1. Place the compiled binary at inst/bin/hazard (chmod +x).
+# 2. Complete .hzr_run_hazard_binary(): actual system() call + output parser.
+# 3. Update test-parity-core.R to call .hzr_run_hazard_binary() instead of
+#    loading .rds fixtures where true C-binary comparison is desired.
+#
+# Until the binary is wired up, parity tests use synthetic R-generated fixtures
+# produced by golden_fixtures.R.
+
 #' Parity Testing Helpers
 #'
 #' Functions to generate golden fixtures from the C reference \code{hazard} binary
@@ -116,6 +145,10 @@
 }
 
 #' Parse hazard binary output (placeholder)
+#'
+#' TODO: Implement once the exact column layout of the C binary's output file
+#' is documented.  Expected columns: parameter name, estimate, SE, z-statistic,
+#' p-value.  See inst/bin/hazard --help for format details.
 #'
 #' @noRd
 .hzr_parse_hazard_output <- function(output_text, theta = NULL) {

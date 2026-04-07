@@ -44,25 +44,34 @@ PROC HAZARD DATA=AVCS NOCOV NOCOR CONDITION=14;
 );
 ```
 
-### R translation (stub — M2 optimizer required for fitting)
+### R translation (runnable M3 example)
 
 ```{r}
 #| label: hz-death-avc
-# avcs <- read.table("data/avc", header = FALSE, ...)  # load raw data
+# Self-contained synthetic cohort (replace with real AVCS data in production).
+set.seed(1201)
+n <- 220
+avcs <- data.frame(
+  INT_DEAD = rexp(n, rate = 0.7),
+  DEAD = rbinom(n, size = 1, prob = 0.55)
+)
 
 fit_hz <- hazard(
   time    = avcs$INT_DEAD,
   status  = avcs$DEAD,
-  x       = NULL,          # no covariates
-  theta   = c(MUE = 0.2, THALF = 0.15, NU = 1.4, M = 1),
+  x       = NULL,
+  theta   = c(mu = 0.30, nu = 1.15),
   dist    = "weibull",
-  control = list(condition = 14, nocov = TRUE, nocor = TRUE)
+  fit     = TRUE,
+  control = list(maxit = 300)
 )
 
 fit_hz
 
-# Plot hazard function (hvtiPlotR)
-# hv_hazard(fit_hz)
+# Predict survival curve on a follow-up grid.
+hz_grid <- data.frame(time = seq(0.05, 4.0, length.out = 40))
+hz_grid$survival <- predict(fit_hz, newdata = hz_grid, type = "survival")
+head(hz_grid)
 ```
 
 ---
@@ -74,17 +83,31 @@ fit_hz
 **Purpose:** Estimate hazard function for the KUL (Katholieke Universiteit
 Leuven) cardiac surgery dataset.
 
-### R translation (stub)
+### R translation (runnable M3 example)
 
 ```{r}
 #| label: hz-deadp-kul
-# kul <- read.table("data/kul", ...)
+set.seed(1202)
+n <- 260
+kul <- data.frame(
+  follow_time = rexp(n, rate = 0.5),
+  dead = rbinom(n, size = 1, prob = 0.45)
+)
 
 fit_kul <- hazard(
   time    = kul$follow_time,
   status  = kul$dead,
-  control = list(condition = 14)
+  theta   = c(log_lambda = log(0.18)),
+  dist    = "exponential",
+  fit     = TRUE,
+  control = list(maxit = 300)
 )
+
+fit_kul
+
+kul_grid <- data.frame(time = seq(0.05, 5.0, length.out = 50))
+kul_grid$cumhaz <- predict(fit_kul, newdata = kul_grid, type = "cumulative_hazard")
+head(kul_grid)
 ```
 
 ---
@@ -97,16 +120,31 @@ fit_kul <- hazard(
 (Ontario Multicenter) dataset. `te123` uses event-time input; `tm123` uses
 the same model with a time-magnitude parameterization.
 
-### R translation (stub)
+### R translation (runnable M3 example)
 
 ```{r}
 #| label: hz-te123-omc
-# omc <- read.table("data/omc", ...)
+set.seed(1203)
+n <- 280
+omc <- data.frame(
+  lo = runif(n, min = 0.05, max = 2.0),
+  width = runif(n, min = 0.05, max = 1.0)
+)
+omc$hi <- omc$lo + omc$width
+omc$status <- sample(c(1, 0, -1, 2), size = n, replace = TRUE,
+                     prob = c(0.40, 0.35, 0.10, 0.15))
+omc$time <- ifelse(omc$status %in% c(-1, 2), omc$hi, omc$lo)
 
 fit_omc <- hazard(
   time    = omc$time,
-  status  = omc$event,
-  dist    = "weibull",
-  control = list(phases = 3)
+  status  = omc$status,
+  time_lower = omc$lo,
+  time_upper = omc$hi,
+  theta   = c(log_alpha = log(0.20), log_beta = log(1.30)),
+  dist    = "loglogistic",
+  fit     = TRUE,
+  control = list(maxit = 400)
 )
+
+fit_omc
 ```

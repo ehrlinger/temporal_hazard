@@ -1,3 +1,31 @@
+# likelihood-weibull.R — Weibull parametric hazard likelihood, gradient, and optimizer
+#
+# MODEL
+# -----
+# Proportional-hazards (PH) parameterization:
+#
+#   h(t | x)  = μ ν t^(ν−1) exp(η)         hazard
+#   H(t | x)  = (μ t)^ν exp(η)              cumulative hazard
+#   S(t | x)  = exp(−H(t | x))              survival
+#
+# where μ > 0 (scale), ν > 0 (shape), η = x β (linear predictor).
+#
+# THETA LAYOUT
+# ------------
+#   theta[1] = μ   (must be > 0; enforced by L-BFGS-B lower bound)
+#   theta[2] = ν   (must be > 0; enforced by L-BFGS-B lower bound)
+#   theta[3:p] = β (covariate coefficients; unrestricted)
+#
+# Note: unlike the other distributions, Weibull optimises on the natural scale
+# and uses L-BFGS-B with lower = 1e-6 instead of log-reparameterisation.
+# This preserves direct interpretability of the μ/ν estimates.
+#
+# FUNCTIONS
+# ---------
+#   .hzr_logl_weibull()     — log-likelihood (optionally returning gradient)
+#   .hzr_gradient_weibull() — analytical score vector
+#   .hzr_optim_weibull()    — L-BFGS-B wrapper with post-fit Hessian SE
+
 #' Weibull Parametric Hazard Likelihood
 #'
 #' Evaluate the log-likelihood and its derivatives for Weibull hazard models.
@@ -17,6 +45,10 @@
 #'
 #' @param time Numeric vector of follow-up times (n)
 #' @param status Numeric vector of event indicators: 1 = event, 0 = censored (n)
+#' @param time_lower Optional numeric lower bound vector for interval-censored rows.
+#'   Defaults to `time` if NULL.
+#' @param time_upper Optional numeric upper bound vector for left/interval-censored rows.
+#'   Defaults to `time` if NULL.
 #' @param x Design matrix of covariates (n × p_coef); NULL for no covariates
 #' @param dist_name Character name of baseline distribution ("weibull", etc.)
 #' @param return_gradient Logical; if TRUE, attach gradient vector as attribute
@@ -43,11 +75,19 @@
 #'
 #' where S is the survival function (1 - CDF).
 #'
+#' Mixed censoring status coding:
+#' - `1`: exact event at `time`
+#' - `0`: right-censored at `time`
+#' - `-1`: left-censored with upper bound `time_upper` (or `time`)
+#' - `2`: interval-censored in [`time_lower`, `time_upper`]
+#'
 #' @noRd
 .hzr_logl_weibull <- function(
     theta,
     time,
     status,
+    time_lower = NULL,
+    time_upper = NULL,
     x = NULL,
     dist_name = "weibull",
     return_gradient = FALSE,
@@ -77,24 +117,75 @@
     return(Inf)  # Infeasible: return large penalty
   }
   
-  # Hazard: h(t) = mu * nu * t^(nu-1) * exp(eta)
-  haz <- mu * nu * (time ^ (nu - 1)) * exp(eta)
-  
-  # Survival (Weibull CDF): S(t) = exp(-(mu*t)^nu * exp(eta))
-  cumhaz <- (mu * time) ^ nu * exp(eta)  # cumulative hazard
-  surv <- exp(-cumhaz)
-  
-  # Log-likelihood (negative for minimization)
-  logl <- sum(status * log(haz)) - sum(cumhaz)
+  # Normalize censoring bounds to lower/upper vectors for unified formulas.
+  lower <- if (is.null(time_lower)) time else time_lower
+  upper <- if (is.null(time_upper)) time else time_upper
+
+  # Exact events require strictly positive time because log(h(t)) is used.
+  # Right-censored observations can be at time 0 (valid: log S(0) = 0).
+  if (any(status == 1 & time <= 0)) {
+    return(Inf)
+  }
+  if (any(status %in% c(-1, 2)) && any(upper <= 0)) {
+    return(Inf)
+  }
+  if (any(status == 2) && any(lower[status == 2] >= upper[status == 2])) {
+    return(Inf)
+  }
+
+  # Event-time hazard/cumulative-hazard (exact events only).
+  haz_event <- mu * nu * (time ^ (nu - 1)) * exp(eta)
+  cumhaz_event <- (mu * time) ^ nu * exp(eta)
+
+  # Lower/upper cumulative hazards for censoring contributions.
+  cumhaz_lower <- (mu * lower) ^ nu * exp(eta)
+  cumhaz_upper <- (mu * upper) ^ nu * exp(eta)
+
+  idx_event <- status == 1
+  idx_right <- status == 0
+  idx_left <- status == -1
+  idx_interval <- status == 2
+
+  # Exact events: log h(t) + log S(t) = log h(t) - H(t)
+  ll_event <- if (any(idx_event)) {
+    sum(log(haz_event[idx_event]) - cumhaz_event[idx_event])
+  } else {
+    0
+  }
+
+  # Right-censored: log S(t) = -H(t)
+  ll_right <- if (any(idx_right)) {
+    -sum(cumhaz_event[idx_right])
+  } else {
+    0
+  }
+
+  # Left-censored: log F(u) = log(1 - S(u)) = log(1 - exp(-H(u)))
+  ll_left <- if (any(idx_left)) {
+    sum(hzr_log1mexp(cumhaz_upper[idx_left]))
+  } else {
+    0
+  }
+
+  # Interval-censored: log(S(l) - S(u)) = -H(l) + log(1 - exp(-(H(u)-H(l))))
+  ll_interval <- if (any(idx_interval)) {
+    delta_h <- cumhaz_upper[idx_interval] - cumhaz_lower[idx_interval]
+    sum(-cumhaz_lower[idx_interval] + hzr_log1mexp(delta_h))
+  } else {
+    0
+  }
+
+  logl <- ll_event + ll_right + ll_left + ll_interval
   
   if (!is.finite(logl)) {
     return(Inf)
   }
   
-  # If gradient requested, compute score vector (will be filled in M2-full port)
+  # If gradient requested, compute score vector.
   if (return_gradient) {
     grad <- .hzr_gradient_weibull(
-      theta, time, status, x, eta, cumhaz, haz, mu, nu, n_shape
+      theta, time, status, time_lower, time_upper, x, eta,
+      cumhaz_event, haz_event, mu, nu, n_shape
     )
     attr(logl, "gradient") <- grad
   }
@@ -111,6 +202,9 @@
 #'
 #' Computes the score vector (gradient) of the Weibull log-likelihood w.r.t. all parameters.
 #'
+#' @param time_lower Optional lower bounds for interval-censored rows.
+#' @param time_upper Optional upper bounds for left/interval-censored rows.
+#'
 #' The log-likelihood is:
 #'   L = sum(delta_i * log h(t_i)) - sum(H(t_i))
 #'
@@ -125,6 +219,8 @@
     theta,
     time,
     status,
+    time_lower = NULL,
+    time_upper = NULL,
     x = NULL,
     eta = NULL,
     cumhaz = NULL,
@@ -136,6 +232,12 @@
   n <- length(time)
   p <- length(theta)
   grad <- numeric(p)
+
+  # Interval/left censoring currently uses a robust numerical gradient fallback.
+  # The closed-form derivatives for these terms are deferred to a later pass.
+  if (any(status %in% c(-1, 2))) {
+    return(.hzr_numeric_grad_weibull(theta, time, status, time_lower, time_upper, x))
+  }
   
   # Sanity check: if eta, cumhaz, haz not provided, compute them
   if (is.null(eta) || is.null(cumhaz) || is.null(haz)) {
@@ -202,6 +304,8 @@
 .hzr_optim_weibull <- function(
     time,
     status,
+  time_lower = NULL,
+  time_upper = NULL,
     x = NULL,
     theta_start,
     control = list()) {
@@ -233,6 +337,8 @@
       theta = theta,
       time = time,
       status = status,
+      time_lower = time_lower,
+      time_upper = time_upper,
       x = x,
       return_gradient = FALSE
     )
@@ -254,8 +360,31 @@
     if (!all(is.finite(theta))) {
       return(rep(0, length(theta)))
     }
+
+    # For left/interval censoring, use numerical score directly.
+    # This avoids forcing hazard computations at exact event times.
+    if (any(status %in% c(-1, 2))) {
+      grad <- tryCatch({
+        .hzr_gradient_weibull(
+          theta = theta,
+          time = time,
+          status = status,
+          time_lower = time_lower,
+          time_upper = time_upper,
+          x = x
+        )
+      }, error = function(e) {
+        rep(0, length(theta))
+      })
+
+      if (!all(is.finite(grad))) {
+        grad[!is.finite(grad)] <- 0
+      }
+
+      return(-grad)
+    }
     
-    # Compute gradient with internal computation
+    # Compute gradient with internal computation (right-censored/event data)
     n <- length(time)
     mu <- theta[1]
     nu <- theta[2]
@@ -291,6 +420,8 @@
         theta = theta,
         time = time,
         status = status,
+        time_lower = time_lower,
+        time_upper = time_upper,
         x = x,
         eta = eta,
         cumhaz = cumhaz,
@@ -365,4 +496,34 @@
     hessian = hess_result,
     vcov = vcov
   )
+}
+
+.hzr_numeric_grad_weibull <- function(theta, time, status, time_lower = NULL, time_upper = NULL, x = NULL) {
+  objective <- function(par) {
+    .hzr_logl_weibull(
+      theta = par,
+      time = time,
+      status = status,
+      time_lower = time_lower,
+      time_upper = time_upper,
+      x = x,
+      return_gradient = FALSE
+    )
+  }
+
+  if (requireNamespace("numDeriv", quietly = TRUE)) {
+    return(as.numeric(numDeriv::grad(objective, theta)))
+  }
+
+  # Fallback central differences if numDeriv is unavailable.
+  eps <- 1e-6
+  grad <- numeric(length(theta))
+  for (i in seq_along(theta)) {
+    tp <- theta
+    tm <- theta
+    tp[i] <- tp[i] + eps
+    tm[i] <- tm[i] - eps
+    grad[i] <- (objective(tp) - objective(tm)) / (2 * eps)
+  }
+  grad
 }
