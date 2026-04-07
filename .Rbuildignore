@@ -5,6 +5,7 @@
 ^inst/extdata/\.gitkeep$
 ^inst/fixtures/\.gitkeep$
 ^TODO\.md$
+^MIGRATION-STATUS\.md$
 ^.*\.Rproj$
 ^_pkgdown\.yml$
 ^M2-STATUS\.md$

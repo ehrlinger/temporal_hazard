@@ -34,7 +34,10 @@ reference:
   - title: Hazard model
     contents:
       - hazard
+      - summary.hazard
       - predict.hazard
+      - coef.hazard
+      - vcov.hazard
   - title: Migration tools
     contents:
       - hzr_argument_mapping

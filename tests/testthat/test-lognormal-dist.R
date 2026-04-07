@@ -165,7 +165,7 @@ test_that("hazard() dispatches lognormal and converges", {
   status <- as.integer(time <= cens)
   time   <- pmin(time, cens)
 
-  fit <- hazard(time, status,
+  fit <- hazard(time = time, status = status,
                 theta = c(mu = 1.0, log_sigma = 0.0),
                 dist = "lognormal", fit = TRUE)
 

@@ -5,8 +5,10 @@
 \title{Build and optionally fit a hazard model}
 \usage{
 hazard(
-  time,
-  status,
+  formula = NULL,
+  data = NULL,
+  time = NULL,
+  status = NULL,
   time_lower = NULL,
   time_upper = NULL,
   x = NULL,
@@ -19,6 +21,12 @@ hazard(
 )
 }
 \arguments{
+\item{formula}{Optional formula of the form \code{Surv(time, status) ~ predictors}.
+When provided, overrides direct time/status/x arguments and extracts from data.
+Example: \code{hazard(Surv(time, status) ~ x1 + x2, data = df, dist = "weibull", fit = TRUE)}.}
+
+\item{data}{Optional data frame containing variables referenced in formula.}
+
 \item{time}{Numeric follow-up time vector.}
 
 \item{status}{Numeric or logical event indicator vector.}
@@ -46,9 +54,6 @@ coefficient.}
 
 \item{...}{Additional named arguments retained for parity with legacy calling
 conventions.}
-}
-\value{
-An object of class \code{hazard} with fitted parameters and fit diagnostics.
 }
 \description{
 Creates a \code{hazard} object and optionally fits it via maximum likelihood.

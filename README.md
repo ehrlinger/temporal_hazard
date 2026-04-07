@@ -2,11 +2,23 @@
 
 `temporal_hazard` is a native R implementation of parametric temporal hazard modeling components.
 
+## Current status
+
+- Migration status is tracked in `MIGRATION-STATUS.md`.
+- Core modeling is implemented through M3, with major M4 API stabilization now in place.
+- Current package validation is clean: tests pass and `R CMD check --no-manual` is OK.
+
 ## Development goals
 
 - Preserve numerical behavior where feasible.
 - Validate parity against reference HAZARD outputs.
 - Keep implementation readable and testable in pure R.
+
+## Documentation entry points
+
+- Start with `vignettes/getting-started.qmd` for a minimal fit-predict workflow.
+- Use `vignettes/sas-to-r-migration.qmd` for SAS/HAZARD to R translation guidance.
+- Browse the analysis-family examples under `vignettes/` for exploratory, multivariable, prediction, bootstrap, and sensitivity workflows.
 
 ## Development setup
 

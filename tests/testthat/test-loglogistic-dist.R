@@ -361,7 +361,7 @@ test_that("Log-logistic error handling: invalid theta length", {
   theta_bad <- c(log(1.0))  # Missing log(beta)
   
   expect_error(
-    hazard(time, status, x = NULL, theta = theta_bad, dist = "loglogistic", fit = FALSE),
+    hazard(time = time, status = status, x = NULL, theta = theta_bad, dist = "loglogistic", fit = FALSE),
     NA  # Should allow creation without fitting
   )
 })

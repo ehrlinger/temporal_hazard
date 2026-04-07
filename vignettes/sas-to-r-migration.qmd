@@ -134,9 +134,10 @@ fit <- hazard(
 )
 ```
 
-> **Note:** Full `PARMS` keyword parsing (FIX flags, phase selectors) is planned
-> for M2. For now supply a plain numeric vector via `theta` and record any FIX
-> constraints in `control$fix`.
+> **Note:** Full SAS `PARMS` syntax is not mirrored one-for-one in the public API.
+> In the current package, supply the parameter vector directly via `theta` and
+> record fixed-parameter intent in `control$fix`. The legacy parity helpers do
+> generate SAS-style control text when comparing against the historical binaries.
 
 ---
 
@@ -191,9 +192,9 @@ fit <- hazard(
 SELECTION SLE=0.2 SLS=0.1;
 ```
 
-Stepwise variable selection is **not yet implemented** in `TemporalHazard`. Planned
-for M3. During migration, resolve your final variable set in the SAS analysis
-first, then port the confirmed model to R.
+Stepwise variable selection is **not implemented** in `TemporalHazard`. For now,
+resolve the final variable set outside the package and then fit the confirmed
+model directly in R.
 
 ---
 
@@ -217,7 +218,7 @@ PROC HAZARD DATA=AVCS P CONSERVE OUTHAZ=OUTEST CONDITION=14 QUASI;
 );
 ```
 
-### R equivalent (M1 stub — stores inputs, optimization pending)
+### R equivalent (current runnable translation pattern)
 
 ```{r}
 #| label: avc-example

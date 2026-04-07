@@ -17,6 +17,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```{r}
 #| label: setup
 library(TemporalHazard)
+library(survival)
 library(hvtiPlotR)
 ```
 
@@ -43,20 +44,44 @@ PROC HAZARD DATA=OUTEST IN=AVCS OUT=HPOUT;
 );
 ```
 
-### R translation (partial)
+### R translation (runnable M4 example)
 
 ```{r}
 #| label: hp-death-avc
-# fit_hm loaded from hm.death.AVC example
+set.seed(3201)
+n <- 240
+avcs <- data.frame(
+  INT_DEAD = rexp(n, rate = 0.55) + 0.05,
+  DEAD = rbinom(n, size = 1, prob = 0.52),
+  AGE = rnorm(n, mean = 6, sd = 3),
+  STATUS = sample(1:4, n, replace = TRUE),
+  MAL = rbinom(n, 1, 0.2)
+)
 
-# Survival and hazard predictions on a time grid
-time_grid <- seq(0, max(avcs$INT_DEAD, na.rm = TRUE), length.out = 500)
+fit_hm <- hazard(
+  Surv(INT_DEAD, DEAD) ~ AGE + STATUS + MAL,
+  data = avcs,
+  theta = c(mu = 0.25, nu = 1.10, beta1 = 0, beta2 = 0, beta3 = 0),
+  dist = "weibull",
+  fit = TRUE,
+  control = list(maxit = 300)
+)
 
-# hz_pred  <- predict(fit_hm, newdata = ..., type = "hazard")
-# surv_pred <- predict(fit_hm, newdata = ..., type = "survival")
+time_grid <- seq(0.1, 4.0, length.out = 40)
+base_profile <- data.frame(
+  time = time_grid,
+  AGE = median(avcs$AGE),
+  STATUS = 2,
+  MAL = 0
+)
 
-# Plot with hvtiPlotR
-# hv_hazard(fit_hm, time_max = max(time_grid))
+pred_grid <- transform(
+  base_profile,
+  survival = predict(fit_hm, newdata = base_profile, type = "survival"),
+  cumulative_hazard = predict(fit_hm, newdata = base_profile, type = "cumulative_hazard")
+)
+
+head(pred_grid)
 ```
 
 ---
@@ -68,13 +93,40 @@ time_grid <- seq(0, max(avcs$INT_DEAD, na.rm = TRUE), length.out = 500)
 **Purpose:** Compare predicted hazard curves from two fitted multivariable
 models (e.g., alternative covariate specifications).
 
-### R translation (partial)
+### R translation (runnable M4 example)
 
 ```{r}
 #| label: hp-avc-hm1-hm2
-# fit_hm1, fit_hm2 — two separately fitted hazard() objects
+fit_hm1 <- hazard(
+  Surv(INT_DEAD, DEAD) ~ AGE + STATUS,
+  data = avcs,
+  theta = c(mu = 0.25, nu = 1.10, beta1 = 0, beta2 = 0),
+  dist = "weibull",
+  fit = TRUE
+)
 
-# hv_hazard_compare(list(Model1 = fit_hm1, Model2 = fit_hm2))
+fit_hm2 <- hazard(
+  Surv(INT_DEAD, DEAD) ~ AGE + STATUS + MAL,
+  data = avcs,
+  theta = c(mu = 0.25, nu = 1.10, beta1 = 0, beta2 = 0, beta3 = 0),
+  dist = "weibull",
+  fit = TRUE
+)
+
+compare_grid <- data.frame(
+  time = rep(seq(0.1, 4.0, length.out = 25), times = 2),
+  AGE = median(avcs$AGE),
+  STATUS = 3,
+  MAL = rep(c(0, 1), each = 25),
+  model = rep(c("Model1", "Model2"), each = 25)
+)
+
+compare_grid$survival <- c(
+  predict(fit_hm1, newdata = subset(compare_grid, model == "Model1")[, c("time", "AGE", "STATUS")], type = "survival"),
+  predict(fit_hm2, newdata = subset(compare_grid, model == "Model2")[, c("time", "AGE", "STATUS", "MAL")], type = "survival")
+)
+
+head(compare_grid)
 ```
 
 ---
@@ -86,12 +138,27 @@ models (e.g., alternative covariate specifications).
 **Purpose:** Overlay predicted survival/hazard from multiple models or covariate
 scenarios on a single plot.
 
-### R translation (partial)
+### R translation (runnable M4 example)
 
 ```{r}
 #| label: hp-death-comparison
-# predict() on each fitted model, then bind and plot
-# Requires: predict(fit, type = "survival")
+scenario_grid <- rbind(
+  data.frame(profile = "low-risk", time = seq(0.1, 4.0, length.out = 20), AGE = quantile(avcs$AGE, 0.25), STATUS = 1, MAL = 0),
+  data.frame(profile = "high-risk", time = seq(0.1, 4.0, length.out = 20), AGE = quantile(avcs$AGE, 0.75), STATUS = 4, MAL = 1)
+)
+
+scenario_grid$survival <- predict(
+  fit_hm,
+  newdata = scenario_grid[, c("time", "AGE", "STATUS", "MAL")],
+  type = "survival"
+)
+scenario_grid$hazard_multiplier <- predict(
+  fit_hm,
+  newdata = scenario_grid[, c("time", "AGE", "STATUS", "MAL")],
+  type = "hazard"
+)
+
+head(scenario_grid)
 ```
 
 ---

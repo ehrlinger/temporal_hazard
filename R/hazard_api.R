@@ -1,4 +1,5 @@
 #' @importFrom stats optim pnorm
+#' @importFrom survival Surv
 #' @keywords internal
 NULL
 
@@ -47,6 +48,10 @@ NULL
 #' @param time_upper Optional numeric upper bound vector for censoring intervals.
 #'   Used when `status %in% c(-1, 2)`; defaults to `time` if NULL.
 #' @param x Optional design matrix (or data frame coercible to matrix).
+#' @param formula Optional formula of the form `Surv(time, status) ~ predictors`.
+#'   When provided, overrides direct time/status/x arguments and extracts from data.
+#'   Example: `hazard(Surv(time, status) ~ x1 + x2, data = df, dist = "weibull", fit = TRUE)`.
+#' @param data Optional data frame containing variables referenced in formula.
 #' @param time_windows Optional numeric vector of strictly positive cut points for
 #'   piecewise time-varying coefficients. When provided, each predictor column in
 #'   `x` is expanded into one column per time window so each window gets its own
@@ -79,10 +84,11 @@ NULL
 #' - This is implemented as design-matrix expansion, so the existing likelihood
 #'   engines remain unchanged.
 #'
-#' @return An object of class `hazard` with fitted parameters and fit diagnostics.
-#' @export
-hazard <- function(time,
-                   status,
+ #' @export
+hazard <- function(formula = NULL,
+                   data = NULL,
+                   time = NULL,
+                   status = NULL,
                    time_lower = NULL,
                    time_upper = NULL,
                    x = NULL,
@@ -92,6 +98,23 @@ hazard <- function(time,
                    fit = FALSE,
                    control = list(),
                    ...) {
+  # Formula dispatch: if formula is provided, parse it and extract time/status/x from data
+  if (!is.null(formula)) {
+    if (is.null(data)) {
+      stop("'data' is required when 'formula' is provided.", call. = FALSE)
+    }
+    parsed <- .hzr_parse_formula(formula = formula, data = data)
+    time <- parsed$time
+    status <- parsed$status
+    time_lower <- parsed$time_lower
+    time_upper <- parsed$time_upper
+    x <- parsed$x
+  }
+
+  # After formula dispatch, require time and status
+  if (is.null(time) || is.null(status)) {
+    stop("'time' and 'status' are required (either directly or via 'formula').", call. = FALSE)
+  }
   if (!is.numeric(time) || any(!is.finite(time)) || any(time < 0)) {
     stop("'time' must be a numeric vector of finite non-negative values.", call. = FALSE)
   }
@@ -99,6 +122,11 @@ hazard <- function(time,
   n <- length(time)
   if (length(status) != n) {
     stop("'status' must have the same length as 'time'.", call. = FALSE)
+  }
+
+  # Convert Surv object status to numeric if needed (after formula parsing)
+  if (inherits(status, "Surv")) {
+    status <- unclass(status)[, 2L]
   }
 
   # Optional censoring bounds:
@@ -613,6 +641,96 @@ print.hazard <- function(x, ...) {
   invisible(x)
 }
 
+#' Summarize a hazard model
+#'
+#' Returns a compact summary of a `hazard` object, including model metadata,
+#' fit diagnostics, and coefficient-level statistics when available.
+#'
+#' @param object A `hazard` object.
+#' @param ... Unused; for S3 compatibility.
+#' @return An object of class `summary.hazard`.
+#' @export
+summary.hazard <- function(object, ...) {
+  n <- length(object$data$time)
+  p <- if (is.null(object$data$x)) 0L else ncol(object$data$x)
+  theta <- object$fit$theta
+  vcov_mat <- object$fit$vcov
+
+  coef_table <- NULL
+  if (!is.null(theta)) {
+    coef_names <- .hzr_parameter_names(theta = theta, dist = object$spec$dist, p = p)
+    std_error <- rep(NA_real_, length(theta))
+    z_stat <- rep(NA_real_, length(theta))
+    p_value <- rep(NA_real_, length(theta))
+
+    if (!is.null(vcov_mat) && is.matrix(vcov_mat) && !anyNA(vcov_mat)) {
+      std_error <- sqrt(diag(vcov_mat))
+      valid <- is.finite(std_error) & std_error > 0
+      z_stat[valid] <- theta[valid] / std_error[valid]
+      p_value[valid] <- 2 * pnorm(-abs(z_stat[valid]))
+    }
+
+    coef_table <- data.frame(
+      estimate = unname(theta),
+      std_error = std_error,
+      z_stat = z_stat,
+      p_value = p_value,
+      row.names = coef_names,
+      check.names = FALSE
+    )
+  }
+
+  out <- list(
+    call = object$call,
+    n = n,
+    p = p,
+    dist = object$spec$dist,
+    engine = object$engine,
+    converged = object$fit$converged,
+    log_lik = object$fit$objective,
+    counts = object$fit$counts,
+    message = object$fit$message,
+    coefficients = coef_table,
+    has_vcov = !is.null(vcov_mat) && is.matrix(vcov_mat) && !anyNA(vcov_mat)
+  )
+
+  class(out) <- "summary.hazard"
+  out
+}
+
+#' @export
+print.summary.hazard <- function(x, ...) {
+  cat("hazard model summary\n")
+  cat("  observations:", x$n, "\n")
+  cat("  predictors:  ", x$p, "\n")
+  cat("  dist:        ", x$dist, "\n")
+  cat("  engine:      ", x$engine, "\n")
+
+  if (!is.null(x$converged) && !is.na(x$converged)) {
+    cat("  converged:   ", x$converged, "\n")
+  }
+  if (!is.null(x$log_lik) && !is.na(x$log_lik)) {
+    cat("  log-lik:     ", format(x$log_lik, digits = 6), "\n")
+  }
+  if (!is.null(x$counts)) {
+    fn_count <- x$counts[["function"]] %||% x$counts[["fn"]] %||% NA_integer_
+    gr_count <- x$counts[["gradient"]] %||% x$counts[["gr"]] %||% NA_integer_
+    if (!is.na(fn_count) || !is.na(gr_count)) {
+      cat("  evaluations: ", "fn=", fn_count, ", gr=", gr_count, "\n", sep = "")
+    }
+  }
+  if (!is.null(x$message) && nzchar(x$message)) {
+    cat("  message:     ", x$message, "\n")
+  }
+
+  if (!is.null(x$coefficients)) {
+    cat("\nCoefficients:\n")
+    print(x$coefficients)
+  }
+
+  invisible(x)
+}
+
 #' Extract coefficients from hazard model
 #'
 #' @param object A `hazard` object.
@@ -637,6 +755,38 @@ vcov.hazard <- function(object, ...) {
     return(NA)
   }
   object$fit$vcov
+}
+
+.hzr_parameter_names <- function(theta, dist, p) {
+  theta_names <- names(theta)
+  if (!is.null(theta_names) && all(nzchar(theta_names))) {
+    return(theta_names)
+  }
+
+  if (!is.null(p) && p > 0L && length(theta) == p) {
+    return(paste0("beta", seq_along(theta)))
+  }
+
+  base_names <- switch(
+    dist,
+    weibull = c("mu", "nu"),
+    exponential = c("log_lambda"),
+    loglogistic = c("log_alpha", "log_beta"),
+    lognormal = c("mu", "log_sigma"),
+    character()
+  )
+
+  n_theta <- length(theta)
+  n_base <- min(length(base_names), n_theta)
+  out <- character(n_theta)
+
+  if (n_base > 0) {
+    out[seq_len(n_base)] <- base_names[seq_len(n_base)]
+  }
+  if (n_theta > n_base) {
+    out[seq.int(n_base + 1L, n_theta)] <- paste0("beta", seq_len(n_theta - n_base))
+  }
+  out
 }
 
 #' Coerce x to a validated numeric design matrix
