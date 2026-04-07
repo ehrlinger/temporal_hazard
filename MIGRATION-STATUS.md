@@ -3,21 +3,20 @@
 Last updated: 2026-04-07
 
 This file is the single source of truth for migration progress in this repository.
-Older milestone documents remain in the repo as archival notes only and should not be used as the current status.
 
 ## Executive Summary
 
-The pure-R migration is through M3.
+The pure-R migration is through M4 with core features, testing, and documentation substantially complete.
 
 - M0 complete: package scaffold, CI, documentation tooling, math primitives
 - M1 complete: public constructor/predict/print API, argument mapping, migration vignette baseline
 - M2 complete: Weibull fitting core, analytical gradient, optimizer path, prediction expansion, synthetic golden fixtures, parity harness
 - M3 complete: exponential, log-logistic, and log-normal support; mixed censoring; piecewise time-varying coefficients; expanded parity and edge-case coverage; legacy binary parity helpers
-- M4 next: API stabilization and documentation completion
+- M4 complete: `summary.hazard()` method, formula interface (`Surv(...) ~ predictors`), comprehensive vignettes, release documentation, platform-aware CI
 
 Current validation state:
 
-- 236 tests passing
+- 275 tests passing; 1 platform-aware skip (Unix legacy binary parity)
 - `R CMD check --no-manual` status: OK
 - Working tree: clean at the time this file was updated
 
