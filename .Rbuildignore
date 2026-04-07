@@ -11,3 +11,5 @@
 ^M3-STATUS\.md$
 ^vignettes/.*\.qmd$
 ^inst/bin/hazard$
+^inst/bin/hazard\.exe$
+^inst/bin/hazpred\.exe$
