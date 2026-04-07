@@ -1,0 +1,169 @@
+# Example: Multivariable Hazard Model (hm.\*)
+
+``` r
+library(TemporalHazard)
+library(hvtiPlotR)
+```
+
+These examples correspond to the `hm.*` SAS files: multivariable
+parametric hazard modeling with covariate selection and phase-specific
+coefficients.
+
+------------------------------------------------------------------------
+
+## hm.death.AVC — Multivariable model, death after AVC repair
+
+**SAS source:** `examples/hm.death.AVC.sas`
+
+**Purpose:** Final multivariable hazard model for death after repair of
+atrioventricular septal defects. Covariates split across EARLY
+(operative hazard) and CONSTANT (constant hazard) phases.
+
+### SAS (original)
+
+``` sas
+%HAZARD(
+PROC HAZARD DATA=AVCS P CONSERVE OUTHAZ=OUTEST CONDITION=14 QUASI;
+     TIME INT_DEAD;
+     EVENT DEAD;
+     PARMS MUE=0.3504743 THALF=0.1905077 NU=1.437416 M=1 FIXM
+           MUC=4.391673E-07;
+     EARLY   AGE=-0.03205774, COM_IV=1.336675, MAL=0.6872028,
+             OPMOS=-0.01963377, OP_AGE=0.0002086689, STATUS=0.5169533;
+     CONSTANT INC_SURG=1.375285, ORIFICE=3.11765, STATUS=1.054988;
+);
+```
+
+### R translation (runnable M3 example)
+
+``` r
+set.seed(2201)
+n <- 320
+avcs <- data.frame(
+  INT_DEAD = rexp(n, rate = 0.6),
+  AGE = rnorm(n, mean = 6, sd = 3),
+  COM_IV = rbinom(n, 1, 0.2),
+  MAL = rbinom(n, 1, 0.25),
+  OPMOS = runif(n, 0, 18),
+  OP_AGE = runif(n, 0, 12),
+  STATUS = sample(1:4, n, replace = TRUE),
+  INC_SURG = rbinom(n, 1, 0.15),
+  ORIFICE = rbinom(n, 1, 0.1)
+)
+
+lp <- -2.4 + 0.04 * avcs$AGE + 0.55 * avcs$COM_IV + 0.45 * avcs$MAL +
+  0.20 * (avcs$STATUS >= 3) + 0.35 * avcs$INC_SURG + 0.50 * avcs$ORIFICE
+avcs$DEAD <- rbinom(n, 1, plogis(lp))
+
+X <- data.matrix(avcs[, c("AGE", "COM_IV", "MAL", "OPMOS", "OP_AGE",
+                           "STATUS", "INC_SURG", "ORIFICE")])
+
+fit_hm <- hazard(
+  time    = avcs$INT_DEAD,
+  status  = avcs$DEAD,
+  x       = X,
+  theta   = c(mu = 0.25, nu = 1.10, rep(0, ncol(X))),
+  dist    = "weibull",
+  fit     = TRUE,
+  control = list(maxit = 500)
+)
+
+fit_hm
+```
+
+------------------------------------------------------------------------
+
+## hm.death.AVC.deciles — Goodness of fit by decile
+
+**SAS source:** `examples/hm.death.AVC.deciles.sas`
+
+**Purpose:** Validate the AVC multivariable model by comparing observed
+vs predicted event rates across deciles of risk.
+
+### R translation (runnable M3 example)
+
+``` r
+# Decile-style risk grouping from linear predictor.
+risk_score <- predict(fit_hm, type = "linear_predictor")
+q_breaks <- unique(quantile(risk_score, probs = seq(0, 1, by = 0.1), na.rm = TRUE))
+if (length(q_breaks) < 3) {
+  decile <- cut(rank(risk_score, ties.method = "average"),
+                breaks = quantile(rank(risk_score, ties.method = "average"), probs = seq(0, 1, by = 0.1)),
+                include.lowest = TRUE)
+} else {
+  decile <- cut(risk_score, breaks = q_breaks, include.lowest = TRUE)
+}
+
+aggregate(avcs$DEAD, by = list(decile = decile), FUN = mean)
+```
+
+------------------------------------------------------------------------
+
+## hm.death.patient — Patient-specific hazard model
+
+**SAS source:** `examples/hm.death.patient.sas`
+
+**Purpose:** Patient-level parametric hazard model with individual risk
+scores.
+
+### R translation (runnable M3 example)
+
+``` r
+new_patients <- data.frame(
+  time = c(0.5, 1.5, 3.0),
+  AGE = c(2, 8, 12),
+  COM_IV = c(0, 1, 1),
+  MAL = c(0, 0, 1),
+  OPMOS = c(2, 6, 10),
+  OP_AGE = c(1, 4, 8),
+  STATUS = c(1, 3, 4),
+  INC_SURG = c(0, 0, 1),
+  ORIFICE = c(0, 1, 1)
+)
+
+patient_lp <- predict(fit_hm, newdata = new_patients, type = "linear_predictor")
+patient_surv <- predict(fit_hm, newdata = new_patients, type = "survival")
+
+cbind(new_patients, lp = patient_lp, survival = patient_surv)
+```
+
+------------------------------------------------------------------------
+
+## hm.deadp.VALVES — Multivariable model, valve surgery
+
+**SAS source:** `examples/hm.deadp.VALVES.sas`
+
+**Purpose:** Multivariable hazard model for death after valve surgery
+using the VALVES dataset.
+
+### R translation (runnable M3 example)
+
+``` r
+set.seed(2202)
+n <- 260
+valves <- data.frame(
+  follow_time = rexp(n, rate = 0.45),
+  age = rnorm(n, mean = 67, sd = 11),
+  nyha = sample(1:4, n, replace = TRUE),
+  valve_type = factor(sample(c("bio", "mech"), n, replace = TRUE))
+)
+valves$dead <- rbinom(
+  n,
+  1,
+  plogis(-2.1 + 0.025 * valves$age + 0.35 * (valves$nyha >= 3) + 0.20 * (valves$valve_type == "mech"))
+)
+
+X_valves <- model.matrix(~ age + nyha + valve_type, data = valves)[, -1, drop = FALSE]
+
+fit_valves <- hazard(
+  time    = valves$follow_time,
+  status  = valves$dead,
+  x       = X_valves,
+  theta   = c(mu = 0.20, nu = 1.00, rep(0, ncol(X_valves))),
+  dist    = "weibull",
+  fit     = TRUE,
+  control = list(maxit = 400)
+)
+
+fit_valves
+```
