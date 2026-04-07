@@ -15,6 +15,12 @@ test_that("hazard binary can be located (if available)", {
 })
 
 test_that("legacy command uses stdin/stdout redirection", {
+  # Skip on Windows where /bin/cat does not exist
+  skip_if(
+    .Platform$OS.type != "unix",
+    "Unix shell tools not available (Windows)"
+  )
+  
   temp_dir <- tempdir()
   sas_file <- file.path(temp_dir, "test-prefix.sas")
   lst_file <- file.path(temp_dir, "test-prefix.lst")

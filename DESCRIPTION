@@ -4,6 +4,8 @@ Version: 0.0.0.9000
 Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@example.com", role = c("aut", "cre"))
 Author: John Ehrlinger [aut, cre]
 Maintainer: John Ehrlinger <john.ehrlinger@example.com>
+URL: https://ehrlinger.github.io/temporal_hazard
+BugReports: https://github.com/ehrlinger/temporal_hazard/issues
 Description: Provides native R implementations of core HAZARD model
     components with a focus on behavioral parity, transparent numerics,
     and reproducible validation against reference outputs. The package
@@ -14,6 +16,7 @@ License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
+VignetteBuilder: quarto
 Depends: R (>= 4.1.0)
 Imports:
     survival,
@@ -32,5 +35,3 @@ Suggests:
 Remotes:
     ehrlinger/hvtiPlotR
 Config/testthat/edition: 3
-URL: https://github.com/ehrlinger/temporal_hazard
-BugReports: https://github.com/ehrlinger/temporal_hazard/issues

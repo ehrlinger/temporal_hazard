@@ -1,6 +1,4 @@
-# temporal_hazard news
-
-## temporal_hazard 0.0.0.9000
+# Version 0.0.0.9000
 
 - Initial package scaffold.
 - Added numerically stable helper primitives.

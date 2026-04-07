@@ -16,7 +16,12 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 ```{r}
 #| label: setup
-library(TemporalHazard)
+if (!requireNamespace("TemporalHazard", quietly = TRUE)) {
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    stop("TemporalHazard is unavailable and pkgload is not installed.", call. = FALSE)
+  }
+  pkgload::load_all(".", quiet = TRUE, export_all = FALSE)
+}
 ```
 
 ## Overview
@@ -31,7 +36,7 @@ The full formal argument mapping table is available programmatically:
 ```{r}
 #| label: mapping-table
 knitr::kable(
-  hzr_argument_mapping(),
+  TemporalHazard::hzr_argument_mapping(),
   caption = "Formal argument map: SAS HAZARD/C → hazard()",
   col.names = c(
     "SAS Statement", "Legacy Input", "C Concept",

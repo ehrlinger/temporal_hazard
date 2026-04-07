@@ -21,7 +21,12 @@ This vignette shows the minimal workflow for fitting a parametric hazard model,
 summarizing the fit, and generating predictions.
 
 ```{r}
-library(TemporalHazard)
+if (!requireNamespace("TemporalHazard", quietly = TRUE)) {
+  if (!requireNamespace("pkgload", quietly = TRUE)) {
+    stop("TemporalHazard is unavailable and pkgload is not installed.", call. = FALSE)
+  }
+  pkgload::load_all(".", quiet = TRUE, export_all = FALSE)
+}
 library(survival)
 
 set.seed(1001)
@@ -34,7 +39,7 @@ dat <- data.frame(
   shock = rbinom(n, size = 1, prob = 0.18)
 )
 
-fit <- hazard(
+fit <- TemporalHazard::hazard(
   Surv(time, status) ~ age + nyha + shock,
   data = dat,
   theta = c(mu = 0.25, nu = 1.10, beta1 = 0, beta2 = 0, beta3 = 0),
@@ -56,10 +61,12 @@ new_patients <- data.frame(
   shock = c(0, 0, 1)
 )
 
-new_patients$linear_predictor <- predict(fit, newdata = new_patients, type = "linear_predictor")
-new_patients$hazard_multiplier <- predict(fit, newdata = new_patients, type = "hazard")
-new_patients$survival <- predict(fit, newdata = new_patients, type = "survival")
-new_patients$cumulative_hazard <- predict(fit, newdata = new_patients, type = "cumulative_hazard")
+pred_input <- new_patients
+
+new_patients$linear_predictor <- predict(fit, newdata = pred_input, type = "linear_predictor")
+new_patients$hazard_multiplier <- predict(fit, newdata = pred_input, type = "hazard")
+new_patients$survival <- predict(fit, newdata = pred_input, type = "survival")
+new_patients$cumulative_hazard <- predict(fit, newdata = pred_input, type = "cumulative_hazard")
 
 new_patients
 ```
@@ -70,5 +77,5 @@ The numerical helper functions remain available directly when you need stable
 log-scale calculations for custom work or debugging.
 
 ```{r}
-hzr_log1pexp(c(-2, 0, 2))
+TemporalHazard::hzr_log1pexp(c(-2, 0, 2))
 ```
