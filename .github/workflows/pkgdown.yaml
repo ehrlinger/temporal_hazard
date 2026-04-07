@@ -5,17 +5,8 @@ on:
     branches: [main, master]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pkgdown
-  cancel-in-progress: false
-
 jobs:
-  build-site:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -40,20 +31,10 @@ jobs:
           roxygen2::roxygenise(load_code = roxygen2::load_source)
           pkgdown::build_site(new_process = FALSE)
 
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          path: docs
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build-site
-
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          cname: ehrlinger.github.io
