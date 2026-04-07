@@ -1,3 +1,7 @@
+#' @importFrom stats optim
+#' @keywords internal
+NULL
+
 # likelihood-exponential.R — Exponential parametric hazard likelihood, gradient, and optimizer
 #
 # MODEL
@@ -38,15 +42,15 @@
 #' parametric hazard model with optional linear-predictor covariates.
 #'
 #' @param theta Vector of parameters:
-#'   theta[1] = log(λ) where λ > 0 is the baseline hazard rate
-#'   theta[2:length]: Covariate coefficients (linear on log-hazard scale)
+#'   theta\[1\] = log(λ) where λ > 0 is the baseline hazard rate
+#'   theta\[2:length\]: Covariate coefficients (linear on log-hazard scale)
 #'
 #' @param time Numeric vector of follow-up times (n)
 #' @param status Numeric vector of event indicators: 1 = event, 0 = censored (n)
 #' @param time_lower Optional numeric lower bound vector for interval-censored rows.
-#'   Defaults to `time` if NULL.
+#'   Defaults to time if NULL.
 #' @param time_upper Optional numeric upper bound vector for left/interval-censored rows.
-#'   Defaults to `time` if NULL.
+#'   Defaults to time if NULL.
 #' @param x Design matrix of covariates (n × p_coef); NULL for no covariates
 #' @param return_gradient Logical; if TRUE, attach gradient vector as attribute
 #'
@@ -71,13 +75,13 @@
 #' \deqn{\ell(\theta) = \sum_{i: \delta_i = 1} [\log\lambda + \eta_i] 
 #'   - \lambda \sum_i t_i \exp(\eta_i)}
 #'
-#' Reparameterization: θ[1] = log(λ) avoids constrained optimization.
+#' Reparameterization: \u03b8\[1\] = log(\u03bb) avoids constrained optimization.
 #'
 #' Mixed censoring status coding:
-#' - `1`: exact event at `time`
-#' - `0`: right-censored at `time`
-#' - `-1`: left-censored with upper bound `time_upper` (or `time`)
-#' - `2`: interval-censored in [`time_lower`, `time_upper`]
+#' - 1: exact event at time
+#' - 0: right-censored at time
+#' - -1: left-censored with upper bound time_upper \(or time\)
+#' - 2: interval-censored in the interval \(time_lower, time_upper\)
 #'
 #' @noRd
 .hzr_logl_exponential <- function(
@@ -180,7 +184,7 @@
 #' Computes the score vector of the exponential log-likelihood w.r.t. all parameters.
 #'
 #' The log-likelihood is:
-#'   L = sum(δ_i * [log(λ) + η_i]) - sum(λ * t_i * exp(η_i))
+#'   \eqn{L = \sum(\delta_i * [\log(\lambda) + \eta_i]) - \sum(\lambda * t_i * \exp(\eta_i))}
 #'
 #' Derivatives:
 #' dL/d(log λ) = sum(δ_i) - sum(λ * t_i * exp(η_i)) = sum(δ_i) - sum(H_i)

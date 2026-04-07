@@ -1,3 +1,7 @@
+#' @importFrom utils write.csv
+#' @keywords internal
+NULL
+
 # parity-helpers.R — Helpers for cross-validating R output against the legacy C binary
 #
 # STATUS: Stub / scaffold (M1 infrastructure, awaiting C binary integration)
@@ -11,7 +15,7 @@
 #
 # CURRENT STATE
 # -------------
-# .hzr_get_hazard_binary() — locates the binary at inst/bin/hazard
+# .hzr_get_hazard_binary() — locates binary via env var / option / package fallback
 # .hzr_run_hazard_binary() — scaffolded; writes input CSV and builds the command
 #                             string, but the actual system() invocation and output
 #                             parser are not yet finalised (see TODO comments).
@@ -19,9 +23,11 @@
 #
 # ENABLING C PARITY TESTS
 # -----------------------
-# 1. Place the compiled binary at inst/bin/hazard (chmod +x).
-# 2. Complete .hzr_run_hazard_binary(): actual system() call + output parser.
-# 3. Update test-parity-core.R to call .hzr_run_hazard_binary() instead of
+# 1. Prefer external path via TEMPORAL_HAZARD_BIN or options(temporal_hazard.binary=...)
+#    for local acceptance testing.
+# 2. Optionally place the compiled binary at inst/bin/hazard (chmod +x) for local use.
+# 3. Complete .hzr_run_hazard_binary(): actual system() call + output parser.
+# 4. Update test-parity-core.R to call .hzr_run_hazard_binary() instead of
 #    loading .rds fixtures where true C-binary comparison is desired.
 #
 # Until the binary is wired up, parity tests use synthetic R-generated fixtures
@@ -38,12 +44,28 @@
 #'
 #' @noRd
 .hzr_get_hazard_binary <- function() {
-  # Path to compiled hazard executable in package inst/bin
+  external_path <- Sys.getenv("TEMPORAL_HAZARD_BIN", unset = "")
+  if (!nzchar(external_path)) {
+    external_path <- getOption("temporal_hazard.binary", default = "")
+  }
+
+  if (nzchar(external_path)) {
+    if (!file.exists(external_path)) {
+      stop(
+        "Binary path from TEMPORAL_HAZARD_BIN/options(temporal_hazard.binary=...) does not exist: ",
+        external_path,
+        call. = FALSE
+      )
+    }
+    return(external_path)
+  }
+
+  # Fallback to package-local binary in inst/bin.
   bin_path <- system.file("bin", "hazard", package = "TemporalHazard")
-  if (!file.exists(bin_path)) {
+  if (!nzchar(bin_path) || !file.exists(bin_path)) {
     stop(
-      "Hazard C binary not found at: ", bin_path, "\n",
-      "Run: cp /path/to/hazard/src/hazard/hazard inst/bin/",
+      "Hazard C binary not found. Set TEMPORAL_HAZARD_BIN or options(temporal_hazard.binary=...) ",
+      "to an external executable, or place a local binary at inst/bin/hazard.",
       call. = FALSE
     )
   }

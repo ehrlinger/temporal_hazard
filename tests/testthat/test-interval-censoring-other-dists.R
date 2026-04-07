@@ -1,7 +1,4 @@
 library(testthat)
-library(devtools)
-
-load_all()
 
 .make_mixed_censor_data <- function(n = 70, seed = 321) {
   set.seed(seed)

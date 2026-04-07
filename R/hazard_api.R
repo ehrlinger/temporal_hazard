@@ -1,3 +1,7 @@
+#' @importFrom stats optim pnorm
+#' @keywords internal
+NULL
+
 # hazard_api.R — Primary user-facing API for TemporalHazard
 #
 # This file contains the main entry points:
@@ -64,10 +68,10 @@
 #' - `nocov`, `nocor`: Suppress covariance/correlation output (legacy; no-op in M2)
 #'
 #' Censoring status coding:
-#' - `1`: Exact event at `time`
-#' - `0`: Right-censored at `time`
-#' - `-1`: Left-censored with upper bound at `time_upper` (or `time`)
-#' - `2`: Interval-censored in [`time_lower`, `time_upper`]
+#' - 1: Exact event at time
+#' - 0: Right-censored at time
+#' - -1: Left-censored with upper bound at time_upper \(or time\)
+#' - 2: Interval-censored in the interval \(time_lower, time_upper\)
 #'
 #' Time-varying coefficients:
 #' - If `time_windows` is supplied, predictors are expanded to piecewise window
@@ -187,13 +191,26 @@ hazard <- function(time,
     gradient = NULL
   )
 
+  .hzr_run_fit_safely <- function(expr) {
+    withCallingHandlers(
+      expr,
+      warning = function(w) {
+        msg <- conditionMessage(w)
+        if (grepl("NaNs produced", msg, fixed = TRUE) ||
+            grepl("Hessian not invertible; standard errors unavailable", msg, fixed = TRUE)) {
+          invokeRestart("muffleWarning")
+        }
+      }
+    )
+  }
+
   # Distribution dispatch — maximise log-likelihood via the distribution-specific
   # optimiser.  Each branch calls .hzr_optim_<dist>() and writes the standardised
   # fit_state fields.  See the file header for parameterisation conventions and
   # instructions for adding new distributions.
   if (fit && !is.null(theta)) {
     if (dist == "weibull") {
-      optim_result <- .hzr_optim_weibull(
+      optim_result <- .hzr_run_fit_safely(.hzr_optim_weibull(
         time = time,
         status = status,
         time_lower = time_lower,
@@ -201,7 +218,7 @@ hazard <- function(time,
         x = x_fit,
         theta_start = theta,
         control = control
-      )
+      ))
 
       fit_state$theta <- optim_result$par
       fit_state$objective <- optim_result$value
@@ -211,7 +228,7 @@ hazard <- function(time,
       fit_state$counts <- optim_result$counts
       fit_state$message <- optim_result$message
     } else if (dist == "exponential") {
-      optim_result <- .hzr_optim_exponential(
+      optim_result <- .hzr_run_fit_safely(.hzr_optim_exponential(
         time = time,
         status = status,
         time_lower = time_lower,
@@ -219,7 +236,7 @@ hazard <- function(time,
         x = x_fit,
         theta_start = theta,
         control = control
-      )
+      ))
 
       fit_state$theta <- optim_result$par
       fit_state$objective <- optim_result$value
@@ -229,7 +246,7 @@ hazard <- function(time,
       fit_state$counts <- optim_result$counts
       fit_state$message <- optim_result$message
     } else if (dist == "loglogistic") {
-      optim_result <- .hzr_optim_loglogistic(
+      optim_result <- .hzr_run_fit_safely(.hzr_optim_loglogistic(
         time = time,
         status = status,
         time_lower = time_lower,
@@ -237,7 +254,7 @@ hazard <- function(time,
         x = x_fit,
         theta_start = theta,
         control = control
-      )
+      ))
 
       fit_state$theta <- optim_result$par
       fit_state$objective <- optim_result$value
@@ -247,7 +264,7 @@ hazard <- function(time,
       fit_state$counts <- optim_result$counts
       fit_state$message <- optim_result$message
     } else if (dist == "lognormal") {
-      optim_result <- .hzr_optim_lognormal(
+      optim_result <- .hzr_run_fit_safely(.hzr_optim_lognormal(
         time = time,
         status = status,
         time_lower = time_lower,
@@ -255,7 +272,7 @@ hazard <- function(time,
         x = x_fit,
         theta_start = theta,
         control = control
-      )
+      ))
 
       fit_state$theta <- optim_result$par
       fit_state$objective <- optim_result$value
@@ -631,7 +648,8 @@ vcov.hazard <- function(object, ...) {
 #' @param x A numeric matrix or data frame with numeric columns.
 #' @param n Expected row count (length of time/status vectors); checked if non-NULL.
 #' @return A numeric matrix with column names preserved (or added if absent).
-#' @noRd
+#' @keywords internal
+#'
 .hzr_as_design_matrix <- function(x, n = NULL) {
   if (is.data.frame(x)) {
     x <- data.matrix(x)

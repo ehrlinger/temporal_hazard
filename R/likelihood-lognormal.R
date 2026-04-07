@@ -1,3 +1,7 @@
+#' @importFrom stats dnorm pnorm optim
+#' @keywords internal
+NULL
+
 # likelihood-lognormal.R — Log-normal parametric hazard likelihood, gradient, and optimizer
 #
 # MODEL
@@ -58,16 +62,16 @@
 #' parametric hazard model with optional linear-predictor covariates.
 #'
 #' @param theta Vector of parameters:
-#'   theta[1] = μ (location, unrestricted)
-#'   theta[2] = log(σ) where σ > 0 is the scale parameter
-#'   theta[3:length]: Covariate coefficients (AFT parameterization: add to location)
+#'   theta\[1\] = μ (location, unrestricted)
+#'   theta\[2\] = log(σ) where σ > 0 is the scale parameter
+#'   theta\[3:length\]: Covariate coefficients (AFT parameterization: add to location)
 #'
 #' @param time Numeric vector of follow-up times (n)
 #' @param status Numeric vector of event indicators: 1 = event, 0 = censored (n)
 #' @param time_lower Optional numeric lower bound vector for interval-censored rows.
-#'   Defaults to `time` if NULL.
+#'   Defaults to time if NULL.
 #' @param time_upper Optional numeric upper bound vector for left/interval-censored rows.
-#'   Defaults to `time` if NULL.
+#'   Defaults to time if NULL.
 #' @param x Design matrix of covariates (n × p_coef); NULL for no covariates
 #' @param return_gradient Logical; if TRUE, attach gradient vector as attribute
 #'
@@ -92,13 +96,13 @@
 #' \deqn{\ell(\theta) = \sum_{\delta_i=1} [\log \phi(z_i) - \log \sigma - \log t_i]
 #'   + \sum_{\delta_i=0} \log \Phi(-z_i)}
 #'
-#' Reparameterization: θ[1] = μ, θ[2] = log(σ) avoids constraints.
+#' Reparameterization: \u03b8\[1\] = \u03bc, \u03b8\[2\] = log(\u03c3) avoids constraints.
 #'
 #' Mixed censoring status coding:
-#' - `1`: exact event at `time`
-#' - `0`: right-censored at `time`
-#' - `-1`: left-censored with upper bound `time_upper` (or `time`)
-#' - `2`: interval-censored in [`time_lower`, `time_upper`]
+#' - 1: exact event at time
+#' - 0: right-censored at time
+#' - -1: left-censored with upper bound time_upper \(or time\)
+#' - 2: interval-censored in the interval \(time_lower, time_upper\)
 #'
 #' @noRd
 .hzr_logl_lognormal <- function(
@@ -207,9 +211,9 @@
 #' Let w_i = φ(z_i) / Φ(-z_i) (inverse Mills ratio)
 #'
 #' Derivatives:
-#' dL/dμ         = (1/σ) * [sum(δ_i * z_i) + sum((1 - δ_i) * w_i)]
-#' dL/d(log σ)   = sum(δ_i * (z_i² - 1)) + sum((1 - δ_i) * w_i * z_i)
-#' dL/dβ_j       = (1/σ) * sum([δ_i * z_i + (1 - δ_i) * w_i] * x_ij)
+#' \eqn{dL/d\mu = (1/\sigma) * [\sum(\delta_i * z_i) + \sum((1 - \delta_i) * w_i)]}
+#' \eqn{dL/d(\log \sigma) = \sum(\delta_i * (z_i^2 - 1)) + \sum((1 - \delta_i) * w_i * z_i)}
+#' \eqn{dL/d\beta_j = (1/\sigma) * \sum([\delta_i * z_i + (1 - \delta_i) * w_i] * x_{ij})}
 #'
 #' @noRd
 .hzr_gradient_lognormal <- function(

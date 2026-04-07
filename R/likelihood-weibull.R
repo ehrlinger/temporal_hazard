@@ -1,3 +1,7 @@
+#' @importFrom stats optim
+#' @keywords internal
+NULL
+
 # likelihood-weibull.R — Weibull parametric hazard likelihood, gradient, and optimizer
 #
 # MODEL
@@ -39,16 +43,16 @@
 #' parametric hazard model with optional linear-predictor covariates.
 #'
 #' @param theta Vector of parameters:
-#'   theta[1:n_shape]: Shape/scale parameters (distribution-specific)
-#'   theta[n_shape+1:length]: Covariate coefficients (linear on log-hazard scale)
+#'   theta\[1:n_shape\]: Shape/scale parameters (distribution-specific)
+#'   theta\[n_shape+1:length\]: Covariate coefficients (linear on log-hazard scale)
 #'   where n_shape = number of shape parameters (e.g., 2 for Weibull scale/shape)
 #'
 #' @param time Numeric vector of follow-up times (n)
 #' @param status Numeric vector of event indicators: 1 = event, 0 = censored (n)
 #' @param time_lower Optional numeric lower bound vector for interval-censored rows.
-#'   Defaults to `time` if NULL.
+#'   Defaults to time if NULL.
 #' @param time_upper Optional numeric upper bound vector for left/interval-censored rows.
-#'   Defaults to `time` if NULL.
+#'   Defaults to time if NULL.
 #' @param x Design matrix of covariates (n × p_coef); NULL for no covariates
 #' @param dist_name Character name of baseline distribution ("weibull", etc.)
 #' @param return_gradient Logical; if TRUE, attach gradient vector as attribute
@@ -76,10 +80,10 @@
 #' where S is the survival function (1 - CDF).
 #'
 #' Mixed censoring status coding:
-#' - `1`: exact event at `time`
-#' - `0`: right-censored at `time`
-#' - `-1`: left-censored with upper bound `time_upper` (or `time`)
-#' - `2`: interval-censored in [`time_lower`, `time_upper`]
+#' - 1: exact event at time
+#' - 0: right-censored at time
+#' - -1: left-censored with upper bound time_upper \(or time\)
+#' - 2: interval-censored in the interval \(time_lower, time_upper\)
 #'
 #' @noRd
 .hzr_logl_weibull <- function(

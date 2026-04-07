@@ -7,7 +7,10 @@
 hazard(
   time,
   status,
+  time_lower = NULL,
+  time_upper = NULL,
   x = NULL,
+  time_windows = NULL,
   theta = NULL,
   dist = "weibull",
   fit = FALSE,
@@ -20,7 +23,18 @@ hazard(
 
 \item{status}{Numeric or logical event indicator vector.}
 
+\item{time_lower}{Optional numeric lower bound vector for censoring intervals.
+Used when \code{status == 2} (interval-censored); defaults to \code{time} if NULL.}
+
+\item{time_upper}{Optional numeric upper bound vector for censoring intervals.
+Used when \code{status \%in\% c(-1, 2)}; defaults to \code{time} if NULL.}
+
 \item{x}{Optional design matrix (or data frame coercible to matrix).}
+
+\item{time_windows}{Optional numeric vector of strictly positive cut points for
+piecewise time-varying coefficients. When provided, each predictor column in
+\code{x} is expanded into one column per time window so each window gets its own
+coefficient.}
 
 \item{theta}{Optional numeric coefficient vector (starting values for optimization).}
 
@@ -51,5 +65,21 @@ Control parameters:
 \item \code{method}: Optimization method: "bfgs" or "nm" (default "bfgs")
 \item \code{condition}: Condition number control (default 14)
 \item \code{nocov}, \code{nocor}: Suppress covariance/correlation output (legacy; no-op in M2)
+}
+
+Censoring status coding:
+\itemize{
+\item 1: Exact event at time
+\item 0: Right-censored at time
+\item -1: Left-censored with upper bound at time_upper \(or time\)
+\item 2: Interval-censored in the interval \(time_lower, time_upper\)
+}
+
+Time-varying coefficients:
+\itemize{
+\item If \code{time_windows} is supplied, predictors are expanded to piecewise window
+interactions so each window has its own coefficient vector.
+\item This is implemented as design-matrix expansion, so the existing likelihood
+engines remain unchanged.
 }
 }

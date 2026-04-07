@@ -1,7 +1,4 @@
 library(testthat)
-library(devtools)
-
-load_all()
 
 test_that("log-logistic fixture refits reproducibly", {
   fixture_file <- system.file("fixtures", "hz_loglogistic.rds", package = "TemporalHazard")

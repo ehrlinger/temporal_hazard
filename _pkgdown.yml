@@ -1,4 +1,6 @@
 url: https://ehrlinger.github.io/temporal_hazard/
+title: TemporalHazard
+description: Pure-R implementation of the HAZARD model with transparency and parity validation
 
 template:
   bootstrap: 5
@@ -46,3 +48,10 @@ home:
   links:
     - text: HAZARD C Reference Repository
       href: https://github.com/ehrlinger/hazard
+
+footer:
+  structure:
+    left: [developed_by]
+    right: [built_with, package]
+  components:
+    package: Built with <a href="https://pkgdown.r-lib.org/">pkgdown</a>

@@ -2,6 +2,8 @@ Package: TemporalHazard
 Title: Temporal Parametric Hazard Modeling in R
 Version: 0.0.0.9000
 Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@example.com", role = c("aut", "cre"))
+Author: John Ehrlinger [aut, cre]
+Maintainer: John Ehrlinger <john.ehrlinger@example.com>
 Description: Provides native R implementations of core HAZARD model
     components with a focus on behavioral parity, transparent numerics,
     and reproducible validation against reference outputs. The package
@@ -13,11 +15,14 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Depends: R (>= 4.1.0)
+Imports:
+    tibble
 Suggests:
     covr,
     ggplot2,
     hvtiPlotR,
     knitr,
+    numDeriv,
     pkgdown,
     quarto,
     roxygen2,
@@ -25,7 +30,6 @@ Suggests:
     testthat (>= 3.0.0)
 Remotes:
     ehrlinger/hvtiPlotR
-VignetteBuilder: knitr
 Config/testthat/edition: 3
 URL: https://github.com/ehrlinger/temporal_hazard
 BugReports: https://github.com/ehrlinger/temporal_hazard/issues

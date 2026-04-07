@@ -6,3 +6,8 @@
 ^inst/fixtures/\.gitkeep$
 ^TODO\.md$
 ^.*\.Rproj$
+^_pkgdown\.yml$
+^M2-STATUS\.md$
+^M3-STATUS\.md$
+^vignettes/.*\.qmd$
+^inst/bin/hazard$

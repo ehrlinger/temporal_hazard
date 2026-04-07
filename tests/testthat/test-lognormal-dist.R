@@ -12,8 +12,6 @@
 ##   - Boundary / edge cases (extreme sigma, all events, all censored)
 
 library(testthat)
-library(devtools)
-load_all()
 
 # ---------------------------------------------------------------------------
 # Likelihood

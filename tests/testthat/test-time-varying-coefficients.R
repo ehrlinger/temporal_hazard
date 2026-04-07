@@ -1,7 +1,4 @@
 library(testthat)
-library(devtools)
-
-load_all()
 
 test_that("time-varying design expansion dimensions and names are correct", {
   x <- cbind(x1 = c(1, 2, 3, 4), x2 = c(2, 2, 2, 2))

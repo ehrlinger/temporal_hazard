@@ -1,7 +1,4 @@
 library(testthat)
-library(devtools)
-
-load_all()
 
 test_that("Weibull log-likelihood handles mixed censoring statuses", {
   time <- c(1.0, 2.0, 1.5, 0.8)

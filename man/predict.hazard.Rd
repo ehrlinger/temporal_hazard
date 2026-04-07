@@ -44,4 +44,7 @@ For Weibull models with survival or cumulative_hazard predictions:
 
 Time values must be positive and finite. If newdata contains a \code{time} column,
 it will be used; otherwise, the time vector from the fitted object is used.
+For models fit with \code{time_windows}, predictions for \code{type = "linear_predictor"}
+or \code{"hazard"} also require time values (via \code{newdata$time} or fitted-time fallback)
+so window-specific coefficients can be selected.
 }

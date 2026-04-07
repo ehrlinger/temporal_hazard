@@ -1,4 +1,8 @@
-# golden_fixtures.R — Synthetic golden fixture generation for parity testing
+#' @importFrom stats runif quantile rnorm rexp rbinom rlnorm
+#' @keywords internal
+NULL
+
+# golden_fixtures.R - Synthetic golden fixture generation for parity testing
 #
 # PURPOSE
 # -------
@@ -93,7 +97,7 @@
   # Save fixture
   fixture_file_1 <- file.path(output_dir, "hz_univariate.rds")
   saveRDS(fixture_hz_uni, fixture_file_1)
-  message("✓ Generated fixture: hz_univariate.rds")
+  message("Generated fixture: hz_univariate.rds")
   
   # ===== Fixture 2: Multivariable Weibull with 2 covariates =====
   # Design matrix with 2 covariates
@@ -147,7 +151,7 @@
   # Save fixture
   fixture_file_2 <- file.path(output_dir, "hm_multivariate.rds")
   saveRDS(fixture_hm_multi, fixture_file_2)
-  message("✓ Generated fixture: hm_multivariate.rds")
+  message("Generated fixture: hm_multivariate.rds")
   
   # ===== Fixture 3: High-covariate small sample (edge case) =====
   n_small <- 20
@@ -187,7 +191,7 @@
   
   fixture_file_3 <- file.path(output_dir, "hm_edge_case.rds")
   saveRDS(fixture_edge, fixture_file_3)
-  message("✓ Generated fixture: hm_edge_case.rds")
+  message("Generated fixture: hm_edge_case.rds")
   
   invisible(list(
     fixture_hz_uni = fixture_hz_uni,
@@ -263,7 +267,7 @@
   # Save fixture
   fixture_file <- file.path(output_dir, "hz_loglogistic.rds")
   saveRDS(fixture_hz_ll, fixture_file)
-  message("✓ Generated fixture: hz_loglogistic.rds")
+  message("Generated fixture: hz_loglogistic.rds")
   
   invisible(fixture_hz_ll)
 }
@@ -326,7 +330,7 @@
   
   fixture_file <- file.path(output_dir, "hz_lognormal.rds")
   saveRDS(fixture_hz_ln, fixture_file)
-  message("✓ Generated fixture: hz_lognormal.rds")
+  message("Generated fixture: hz_lognormal.rds")
   
   invisible(fixture_hz_ln)
 }

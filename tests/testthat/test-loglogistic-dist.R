@@ -1,9 +1,4 @@
-context("Log-logistic distribution")
-
 library(testthat)
-library(devtools)
-
-load_all()
 
 test_that("Log-logistic likelihood computation (univariate)", {
   # Simple univariate case

@@ -1,3 +1,7 @@
+#' @importFrom stats optim
+#' @keywords internal
+NULL
+
 # likelihood-loglogistic.R — Log-logistic parametric hazard likelihood, gradient, and optimizer
 #
 # MODEL
@@ -53,16 +57,16 @@
 #' parametric hazard model with optional linear-predictor covariates.
 #'
 #' @param theta Vector of parameters:
-#'   theta[1] = log(α) where α > 0 is the scale parameter
-#'   theta[2] = log(β) where β > 0 is the shape parameter
-#'   theta[3:length]: Covariate coefficients (linear on log-scale of cumulative hazard)
+#'   theta\[1\] = log(α) where α > 0 is the scale parameter
+#'   theta\[2\] = log(β) where β > 0 is the shape parameter
+#'   theta\[3:length\]: Covariate coefficients (linear on log-scale of cumulative hazard)
 #'
 #' @param time Numeric vector of follow-up times (n)
 #' @param status Numeric vector of event indicators: 1 = event, 0 = censored (n)
 #' @param time_lower Optional numeric lower bound vector for interval-censored rows.
-#'   Defaults to `time` if NULL.
+#'   Defaults to time if NULL.
 #' @param time_upper Optional numeric upper bound vector for left/interval-censored rows.
-#'   Defaults to `time` if NULL.
+#'   Defaults to time if NULL.
 #' @param x Design matrix of covariates (n × p_coef); NULL for no covariates
 #' @param return_gradient Logical; if TRUE, attach gradient vector as attribute
 #'
@@ -92,13 +96,13 @@
 #' \deqn{\ell(\theta) = \sum_{\delta_i = 1} [\log(\alpha \beta) + (\beta - 1) \log(t_i) - \log(1 + \alpha t_i^{\beta} \exp(\eta_i))]
 #'   + \sum_{i} \log(1 + \alpha t_i^{\beta} \exp(\eta_i))}
 #'
-#' Reparameterization: θ[1] = log(α), θ[2] = log(β) avoids constrained optimization.
+#' Reparameterization: \u03b8\[1\] = log(\u03b1), \u03b8\[2\] = log(\u03b2) avoids constrained optimization.
 #'
 #' Mixed censoring status coding:
-#' - `1`: exact event at `time`
-#' - `0`: right-censored at `time`
-#' - `-1`: left-censored with upper bound `time_upper` (or `time`)
-#' - `2`: interval-censored in [`time_lower`, `time_upper`]
+#' - 1: exact event at time
+#' - 0: right-censored at time
+#' - -1: left-censored with upper bound time_upper \(or time\)
+#' - 2: interval-censored in the interval \(time_lower, time_upper\)
 #'
 #' @noRd
 .hzr_logl_loglogistic <- function(
@@ -221,7 +225,7 @@
 #' Computes the score vector of the log-logistic log-likelihood w.r.t. all parameters.
 #'
 #' The log-likelihood is:
-#'   L = sum(δ_i * [log(α) + log(β) + (β-1)*log(t_i)]) - sum(log(1 + α*t_i^β*exp(η_i)))
+#'   \eqn{L = \sum(\delta_i * [\log(\alpha) + \log(\beta) + (\beta-1)*\log(t_i)]) - \sum(\log(1 + \alpha*t_i^\beta*\exp(\eta_i)))}
 #'
 #' Let p_i = α·t_i^β·exp(η_i) / (1 + α·t_i^β·exp(η_i)) = probability of event at t_i
 #'
