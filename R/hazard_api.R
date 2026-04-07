@@ -232,6 +232,18 @@ hazard <- function(formula = NULL,
     )
   }
 
+  .hzr_safe_se_from_vcov <- function(vcov_mat) {
+    if (is.null(vcov_mat) || !is.matrix(vcov_mat) || anyNA(vcov_mat)) {
+      return(NA)
+    }
+    d <- diag(vcov_mat)
+    # Guard against small negative/invalid variances from numerical Hessians.
+    if (!all(is.finite(d)) || any(d < 0)) {
+      return(rep(NA_real_, length(d)))
+    }
+    sqrt(d)
+  }
+
   # Distribution dispatch — maximise log-likelihood via the distribution-specific
   # optimiser.  Each branch calls .hzr_optim_<dist>() and writes the standardised
   # fit_state fields.  See the file header for parameterisation conventions and
@@ -251,7 +263,7 @@ hazard <- function(formula = NULL,
       fit_state$theta <- optim_result$par
       fit_state$objective <- optim_result$value
       fit_state$converged <- (optim_result$convergence == 0)
-      fit_state$se <- if (!anyNA(optim_result$vcov)) sqrt(diag(optim_result$vcov)) else NA
+      fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
       fit_state$vcov <- optim_result$vcov
       fit_state$counts <- optim_result$counts
       fit_state$message <- optim_result$message
@@ -269,7 +281,7 @@ hazard <- function(formula = NULL,
       fit_state$theta <- optim_result$par
       fit_state$objective <- optim_result$value
       fit_state$converged <- (optim_result$convergence == 0)
-      fit_state$se <- if (!anyNA(optim_result$vcov)) sqrt(diag(optim_result$vcov)) else NA
+      fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
       fit_state$vcov <- optim_result$vcov
       fit_state$counts <- optim_result$counts
       fit_state$message <- optim_result$message
@@ -287,7 +299,7 @@ hazard <- function(formula = NULL,
       fit_state$theta <- optim_result$par
       fit_state$objective <- optim_result$value
       fit_state$converged <- (optim_result$convergence == 0)
-      fit_state$se <- if (!anyNA(optim_result$vcov)) sqrt(diag(optim_result$vcov)) else NA
+      fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
       fit_state$vcov <- optim_result$vcov
       fit_state$counts <- optim_result$counts
       fit_state$message <- optim_result$message
@@ -305,7 +317,7 @@ hazard <- function(formula = NULL,
       fit_state$theta <- optim_result$par
       fit_state$objective <- optim_result$value
       fit_state$converged <- (optim_result$convergence == 0)
-      fit_state$se <- if (!anyNA(optim_result$vcov)) sqrt(diag(optim_result$vcov)) else NA
+      fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
       fit_state$vcov <- optim_result$vcov
       fit_state$counts <- optim_result$counts
       fit_state$message <- optim_result$message
