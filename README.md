@@ -1,5 +1,11 @@
 # temporal_hazard
 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/ehrlinger/temporal_hazard/branch/main/graph/badge.svg)](https://app.codecov.io/gh/ehrlinger/temporal_hazard?branch=main)
+![active](https://www.repostatus.org/badges/latest/active.svg)
+<!-- badges: end -->
+
 `temporal_hazard` is a native R implementation of parametric temporal hazard modeling components.
 
 ## Current status
