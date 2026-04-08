@@ -82,6 +82,30 @@ pred_grid <- transform(
 )
 
 head(pred_grid)
+
+# Plot predicted survival for median-profile patient
+km_avc <- survival::survfit(
+  survival::Surv(INT_DEAD, DEAD) ~ 1, data = avcs
+)
+km_df <- data.frame(time = km_avc$time, estimate = km_avc$surv * 100)
+
+hz_obj <- hv_hazard(
+  curve_data   = transform(pred_grid, survival = survival * 100),
+  x_col        = "time",
+  estimate_col = "survival",
+  empirical    = km_df,
+  emp_x_col    = "time",
+  emp_estimate_col = "estimate"
+)
+
+plot(hz_obj) +
+  ggplot2::scale_y_continuous(limits = c(0, 100)) +
+  ggplot2::labs(
+    x = "Years after repair",
+    y = "Freedom from death (%)",
+    title = "Predicted survival — median-profile AVC patient"
+  ) +
+  hv_theme()
 ```
 
 ---
@@ -159,6 +183,23 @@ scenario_grid$hazard_multiplier <- predict(
 )
 
 head(scenario_grid)
+
+# Plot low-risk vs high-risk comparison
+hz_compare <- hv_hazard(
+  curve_data   = transform(scenario_grid, survival = survival * 100),
+  x_col        = "time",
+  estimate_col = "survival",
+  group_col    = "profile"
+)
+
+plot(hz_compare) +
+  ggplot2::scale_y_continuous(limits = c(0, 100)) +
+  ggplot2::labs(
+    x = "Years after repair",
+    y = "Freedom from death (%)",
+    title = "Low-risk vs high-risk predicted survival"
+  ) +
+  hv_theme()
 ```
 
 ---

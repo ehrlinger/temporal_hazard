@@ -55,8 +55,14 @@ km_fit <- survfit(Surv(INT_DEAD, DEAD) ~ 1, data = avcs)
 summary(km_fit)
 
 # Plot with hvtiPlotR
-# hv_km(km_fit, time_label = "Months after repair",
-#        event_label = "Freedom from death (%)")
+hv_obj <- hv_survival(avcs, time_col = "INT_DEAD", event_col = "DEAD")
+plot(hv_obj, type = "survival") +
+  ggplot2::labs(
+    x = "Years after repair",
+    y = "Freedom from death (%)",
+    title = "Kaplan-Meier: Death after AVC repair"
+  ) +
+  hv_theme()
 ```
 
 ### Notes
@@ -65,5 +71,5 @@ summary(km_fit)
   which the fitted parametric hazard model is compared visually.
 - In HAZARD workflow, you always run `ac.*` first to characterize the raw data,
   then `hz.*` to fit the parametric shape.
-- `hvtiPlotR::hv_km()` produces publication-quality KM plots with confidence
-  intervals matching the SAS `PROC LIFETEST PLOTS=(S)` output style.
+- `hvtiPlotR::hv_survival()` + `plot()` produces publication-quality KM plots
+  with confidence intervals matching the SAS `PROC LIFETEST PLOTS=(S)` output style.

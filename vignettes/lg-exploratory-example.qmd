@@ -83,8 +83,15 @@ names(logit_fits) <- candidates
 coef_tables <- lapply(logit_fits, function(f) coef(summary(f)))
 coef_tables[["AGE"]]
 
-# Plot covariate effects (hvtiPlotR exploratory helper — M3)
-# hv_logit_explorer(avcs, event = "DEAD", vars = candidates)
+# Plot univariable covariate effects using hvtiPlotR EDA
+hv_obj <- hv_eda(avcs, x = "AGE", y = "DEAD")
+plot(hv_obj) +
+  ggplot2::labs(
+    x = "Age at operation (years)",
+    y = "Death",
+    title = "Exploratory: AGE vs mortality"
+  ) +
+  hv_theme()
 ```
 
 ---

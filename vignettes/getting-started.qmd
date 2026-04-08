@@ -66,6 +66,59 @@ new_patients$cumulative_hazard <- predict(fit, newdata = pred_input, type = "cum
 new_patients
 ```
 
+## Visualizing predicted survival
+
+The `hvtiPlotR` package provides publication-quality plotting for parametric
+hazard models via `hv_hazard()` and its `plot()` method. Here we build a
+survival curve over a fine time grid for a median-profile patient and overlay
+the Kaplan-Meier nonparametric estimate from the raw data.
+
+```{r}
+#| label: fig-survival
+#| fig-cap: "Parametric Weibull survival curve with Kaplan-Meier overlay"
+#| fig-width: 7
+#| fig-height: 5
+if (requireNamespace("hvtiPlotR", quietly = TRUE)) {
+  library(hvtiPlotR)
+
+  # Parametric curve on a fine grid
+  t_grid <- seq(0.05, max(dat$time), length.out = 80)
+  curve_df <- data.frame(
+    time = t_grid,
+    AGE = median(dat$age),
+    nyha = 2,
+    shock = 0
+  )
+  curve_df$survival <- predict(fit, newdata = curve_df, type = "survival")
+
+  # Kaplan-Meier empirical overlay
+  km <- survival::survfit(survival::Surv(time, status) ~ 1, data = dat)
+  km_df <- data.frame(
+    time = km$time,
+    estimate = km$surv * 100
+  )
+
+  # Build plot with hv_hazard + plot
+  hz_obj <- hv_hazard(
+    curve_data   = transform(curve_df, survival = survival * 100),
+    x_col        = "time",
+    estimate_col = "survival",
+    empirical    = km_df,
+    emp_x_col    = "time",
+    emp_estimate_col = "estimate"
+  )
+
+  plot(hz_obj) +
+    ggplot2::scale_y_continuous(limits = c(0, 100)) +
+    ggplot2::labs(
+      x = "Years after surgery",
+      y = "Freedom from death (%)",
+      title = "Parametric survival vs Kaplan-Meier"
+    ) +
+    hv_theme()
+}
+```
+
 ## Numerical helpers
 
 The numerical helper functions remain available directly when you need stable

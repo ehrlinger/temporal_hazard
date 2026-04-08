@@ -22,13 +22,13 @@ articles:
   - title: "Examples: by analysis family"
     navbar: Examples
     contents:
-      - examples-lg-exploratory
-      - examples-ac-actuarial
-      - examples-hz-estimate-hazard
-      - examples-hm-multivariable
-      - examples-hp-prediction
-      - examples-bs-bootstrap
-      - examples-hs-sensitivity
+      - lg-exploratory-example
+      - ac-actuarial-example
+      - hz-estimate-hazard-example
+      - hm-multivariable-example
+      - hp-prediction-example
+      - bs-bootstrap-example
+      - hs-sensitivity-example
 
 reference:
   - title: Hazard model
