@@ -79,6 +79,36 @@ data.frame(
   linear_predictor = c(eta_ref, eta_scen),
   survival_t1_5 = c(s_ref, s_scen)
 )
+
+# Plot sensitivity: reference vs scenario over time
+t_grid <- seq(0.05, 4.0, length.out = 40)
+sens_curves <- rbind(
+  data.frame(time = t_grid, ref_profile[rep(1, length(t_grid)), ], profile = "Reference"),
+  data.frame(time = t_grid, scen_profile[rep(1, length(t_grid)), ], profile = "High-risk scenario")
+)
+
+sens_curves$survival <- predict(
+  fit_hm1,
+  newdata = sens_curves[, c("time", "AGE", "COM_IV", "MAL", "OPMOS",
+                            "OP_AGE", "STATUS", "INC_SURG", "ORIFICE")],
+  type = "survival"
+) * 100
+
+hz_sens <- hv_hazard(
+  curve_data   = sens_curves,
+  x_col        = "time",
+  estimate_col = "survival",
+  group_col    = "profile"
+)
+
+plot(hz_sens) +
+  ggplot2::scale_y_continuous(limits = c(0, 100)) +
+  ggplot2::labs(
+    x = "Years after repair",
+    y = "Freedom from death (%)",
+    title = "Sensitivity analysis — reference vs high-risk"
+  ) +
+  hv_theme()
 ```
 
 ------------------------------------------------------------------------
@@ -135,5 +165,39 @@ scenarios <- expand.grid(
 eta_scenarios <- predict(fit_tga, newdata = scenarios, type = "linear_predictor")
 s_scenarios <- predict(fit_tga, newdata = scenarios, type = "survival")
 
-cbind(scenarios, linear_predictor = eta_scenarios, survival = s_scenarios)
+scenario_results <- cbind(scenarios, linear_predictor = eta_scenarios,
+                          survival = s_scenarios)
+scenario_results
+
+# Plot survival by age and repair type across time
+t_fine <- seq(0.1, 5.0, length.out = 40)
+scenario_curves <- expand.grid(
+  time = t_fine,
+  age = c(1, 5, 10),
+  repair_type = c(0, 1),
+  bypass_time = median(tga$bypass_time)
+)
+scenario_curves$group <- paste0(
+  "Age ", scenario_curves$age,
+  ifelse(scenario_curves$repair_type == 1, " (repair)", " (no repair)")
+)
+scenario_curves$survival <- predict(
+  fit_tga, newdata = scenario_curves, type = "survival"
+) * 100
+
+hz_tga <- hv_hazard(
+  curve_data   = scenario_curves,
+  x_col        = "time",
+  estimate_col = "survival",
+  group_col    = "group"
+)
+
+plot(hz_tga) +
+  ggplot2::scale_y_continuous(limits = c(0, 100)) +
+  ggplot2::labs(
+    x = "Years after TGA repair",
+    y = "Freedom from arrhythmia (%)",
+    title = "Scenario analysis — arrhythmia risk by age and repair type"
+  ) +
+  hv_theme()
 ```

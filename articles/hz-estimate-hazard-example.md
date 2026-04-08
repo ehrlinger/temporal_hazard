@@ -57,7 +57,28 @@ fit_hz
 # Predict survival curve on a follow-up grid.
 hz_grid <- data.frame(time = seq(0.05, 4.0, length.out = 40))
 hz_grid$survival <- predict(fit_hz, newdata = hz_grid, type = "survival")
-head(hz_grid)
+
+# Kaplan-Meier overlay
+km_avc <- survival::survfit(survival::Surv(INT_DEAD, DEAD) ~ 1, data = avcs)
+km_df <- data.frame(time = km_avc$time, estimate = km_avc$surv * 100)
+
+hz_obj <- hv_hazard(
+  curve_data   = transform(hz_grid, survival = survival * 100),
+  x_col        = "time",
+  estimate_col = "survival",
+  empirical    = km_df,
+  emp_x_col    = "time",
+  emp_estimate_col = "estimate"
+)
+
+plot(hz_obj) +
+  ggplot2::scale_y_continuous(limits = c(0, 100)) +
+  ggplot2::labs(
+    x = "Years after repair",
+    y = "Freedom from death (%)",
+    title = "Weibull parametric survival — AVC death"
+  ) +
+  hv_theme()
 ```
 
 ------------------------------------------------------------------------
@@ -92,7 +113,31 @@ fit_kul
 
 kul_grid <- data.frame(time = seq(0.05, 5.0, length.out = 50))
 kul_grid$cumhaz <- predict(fit_kul, newdata = kul_grid, type = "cumulative_hazard")
-head(kul_grid)
+kul_grid$survival <- predict(fit_kul, newdata = kul_grid, type = "survival")
+
+# Kaplan-Meier overlay
+km_kul <- survival::survfit(
+  survival::Surv(follow_time, dead) ~ 1, data = kul
+)
+km_kul_df <- data.frame(time = km_kul$time, estimate = km_kul$surv * 100)
+
+hz_kul <- hv_hazard(
+  curve_data   = transform(kul_grid, survival = survival * 100),
+  x_col        = "time",
+  estimate_col = "survival",
+  empirical    = km_kul_df,
+  emp_x_col    = "time",
+  emp_estimate_col = "estimate"
+)
+
+plot(hz_kul) +
+  ggplot2::scale_y_continuous(limits = c(0, 100)) +
+  ggplot2::labs(
+    x = "Years of follow-up",
+    y = "Freedom from death (%)",
+    title = "Exponential parametric survival — KUL procedures"
+  ) +
+  hv_theme()
 ```
 
 ------------------------------------------------------------------------

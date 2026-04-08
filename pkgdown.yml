@@ -2,16 +2,16 @@ pandoc: 3.1.11
 pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
-  examples-ac-actuarial: examples-ac-actuarial.html
-  examples-bs-bootstrap: examples-bs-bootstrap.html
-  examples-hm-multivariable: examples-hm-multivariable.html
-  examples-hp-prediction: examples-hp-prediction.html
-  examples-hs-sensitivity: examples-hs-sensitivity.html
-  examples-hz-estimate-hazard: examples-hz-estimate-hazard.html
-  examples-lg-exploratory: examples-lg-exploratory.html
+  ac-actuarial-example: ac-actuarial-example.html
+  bs-bootstrap-example: bs-bootstrap-example.html
   getting-started: getting-started.html
+  hm-multivariable-example: hm-multivariable-example.html
+  hp-prediction-example: hp-prediction-example.html
+  hs-sensitivity-example: hs-sensitivity-example.html
+  hz-estimate-hazard-example: hz-estimate-hazard-example.html
+  lg-exploratory-example: lg-exploratory-example.html
   sas-to-r-migration: sas-to-r-migration.html
-last_built: 2026-04-08T12:04Z
+last_built: 2026-04-08T20:52Z
 urls:
   reference: https://ehrlinger.github.io/temporal_hazard/reference
   article: https://ehrlinger.github.io/temporal_hazard/articles

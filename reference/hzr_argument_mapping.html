@@ -9,7 +9,7 @@ inputs map to hazard(...) arguments in this package."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -28,13 +28,13 @@ inputs map to hazard(...) arguments in this package."></head><body>
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
-    <li><a class="dropdown-item" href="../articles/examples-lg-exploratory.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-ac-actuarial.html">Example: Actuarial Estimates (ac.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hz-estimate-hazard.html">Example: Estimate Hazard Function (hz.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hm-multivariable.html">Example: Multivariable Hazard Model (hm.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hp-prediction.html">Example: Hazard Prediction (hp.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-bs-bootstrap.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hs-sensitivity.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/lg-exploratory-example.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/ac-actuarial-example.html">Example: Actuarial Estimates (ac.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hz-estimate-hazard-example.html">Example: Estimate Hazard Function (hz.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hm-multivariable-example.html">Example: Multivariable Hazard Model (hm.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hp-prediction-example.html">Example: Hazard Prediction (hp.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/bs-bootstrap-example.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hs-sensitivity-example.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/ehrlinger/temporal_hazard/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -75,6 +75,104 @@ are returned.</p></dd>
     <p>A data frame with one row per mapping rule.</p>
     </div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">hzr_argument_mapping</span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    sas_statement              legacy_input                   c_concept</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1         HAZARD             TIME variable              obs time array</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2         HAZARD     EVENT/censor variable       event indicator array</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3         HAZARD         X covariate block               design matrix</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4         HAZARD        initial parameters            parameter vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5         HAZARD     baseline distribution phase distribution selector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6         HAZARD           control options    optimizer/control struct</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7         HAZARD additional legacy options        misc legacy switches</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8           TIME                         t                 time vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9          EVENT                    status                event vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10         PARMS                    theta0               starting coef</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11          DIST                      dist               dist selector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    r_parameter required                expected_type</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1         time     TRUE               numeric vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2       status     TRUE       numeric/logical vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3            x    FALSE numeric matrix or data.frame</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4        theta    FALSE               numeric vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5         dist    FALSE             character scalar</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      control    FALSE                   named list</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7          ...    FALSE              named arguments</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8         time     TRUE               numeric vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9       status     TRUE       numeric/logical vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10       theta    FALSE               numeric vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11        dist    FALSE             character scalar</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                 transform_rule implementation_status</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                      pass through as numeric           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2                        coerce to numeric 0/1           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3                    data.frame -&gt; data.matrix           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  length must equal ncol(x) when x is present           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5                  normalized lower-case label           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6                       stored in spec$control           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7             stored in legacy_args for parity           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8                                 pass through           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9                            coerce to numeric           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10                  map PARMS/INITIAL to theta               planned</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11                           map DIST= to dist           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                   notes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                                          Core observation time input.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  Event indicator currently retained as numeric in object$data$status.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3          Future versions will support richer design encoding helpers.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4                         Used by predict.hazard as coefficient vector.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5                   Current default is 'weibull'; more options planned.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6             Control list is stored and reserved for optimizer parity.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7          Supports legacy-style pass-through options during migration.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8                           Canonical SAS migration uses TIME= mapping.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9                          Canonical SAS migration uses EVENT= mapping.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10                         SAS PARMS syntax parser not yet implemented.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11                              SAS DIST keyword maps directly to dist.</span>
+<span class="r-in"><span><span class="fu">hzr_argument_mapping</span><span class="op">(</span>include_planned <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    sas_statement              legacy_input                   c_concept</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1         HAZARD             TIME variable              obs time array</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2         HAZARD     EVENT/censor variable       event indicator array</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3         HAZARD         X covariate block               design matrix</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4         HAZARD        initial parameters            parameter vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5         HAZARD     baseline distribution phase distribution selector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6         HAZARD           control options    optimizer/control struct</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7         HAZARD additional legacy options        misc legacy switches</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8           TIME                         t                 time vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9          EVENT                    status                event vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10          DIST                      dist               dist selector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    r_parameter required                expected_type</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1         time     TRUE               numeric vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2       status     TRUE       numeric/logical vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3            x    FALSE numeric matrix or data.frame</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4        theta    FALSE               numeric vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5         dist    FALSE             character scalar</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6      control    FALSE                   named list</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7          ...    FALSE              named arguments</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8         time     TRUE               numeric vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9       status     TRUE       numeric/logical vector</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10        dist    FALSE             character scalar</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                 transform_rule implementation_status</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                      pass through as numeric           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2                        coerce to numeric 0/1           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3                    data.frame -&gt; data.matrix           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  length must equal ncol(x) when x is present           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5                  normalized lower-case label           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6                       stored in spec$control           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7             stored in legacy_args for parity           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8                                 pass through           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9                            coerce to numeric           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10                           map DIST= to dist           implemented</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                   notes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1                                          Core observation time input.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  Event indicator currently retained as numeric in object$data$status.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3          Future versions will support richer design encoding helpers.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4                         Used by predict.hazard as coefficient vector.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5                   Current default is 'weibull'; more options planned.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6             Control list is stored and reserved for optimizer parity.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 7          Supports legacy-style pass-through options during migration.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 8                           Canonical SAS migration uses TIME= mapping.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 9                          Canonical SAS migration uses EVENT= mapping.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10                              SAS DIST keyword maps directly to dist.</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

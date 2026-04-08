@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,13 +43,13 @@
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
-    <li><a class="dropdown-item" href="../articles/examples-lg-exploratory.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-ac-actuarial.html">Example: Actuarial Estimates (ac.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hz-estimate-hazard.html">Example: Estimate Hazard Function (hz.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hm-multivariable.html">Example: Multivariable Hazard Model (hm.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hp-prediction.html">Example: Hazard Prediction (hp.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-bs-bootstrap.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hs-sensitivity.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/lg-exploratory-example.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/ac-actuarial-example.html">Example: Actuarial Estimates (ac.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hz-estimate-hazard-example.html">Example: Estimate Hazard Function (hz.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hm-multivariable-example.html">Example: Multivariable Hazard Model (hm.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hp-prediction-example.html">Example: Hazard Prediction (hp.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/bs-bootstrap-example.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hs-sensitivity-example.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -81,17 +81,12 @@
 
     <!--
 %\VignetteIndexEntry{Getting Started with TemporalHazard}
-%\VignetteEngine{knitr::quarto}
+%\VignetteEngine{quarto::html}
 %\VignetteEncoding{UTF-8}
 --><p>This vignette shows the minimal workflow for fitting a parametric hazard model, summarizing the fit, and generating predictions.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"TemporalHazard"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"pkgload"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"TemporalHazard is unavailable and pkgload is not installed."</span>, call. <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  <span class="fu">pkgload</span><span class="fu">::</span><span class="fu"><a href="https://pkgload.r-lib.org/reference/load_all.html" class="external-link">load_all</a></span><span class="op">(</span><span class="st">"."</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span>, export_all <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ehrlinger.github.io/temporal_hazard">TemporalHazard</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival" class="external-link">survival</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1001</span><span class="op">)</span></span>
@@ -120,17 +115,17 @@
 <span><span class="co">#&gt;   dist:         weibull </span></span>
 <span><span class="co">#&gt;   engine:       native-r-m2 </span></span>
 <span><span class="co">#&gt;   converged:    FALSE </span></span>
-<span><span class="co">#&gt;   log-lik:      31843.7 </span></span>
-<span><span class="co">#&gt;   evaluations: fn=126, gr=126</span></span>
+<span><span class="co">#&gt;   log-lik:      28089.8 </span></span>
+<span><span class="co">#&gt;   evaluations: fn=135, gr=135</span></span>
 <span><span class="co">#&gt;   message:      ERROR: ABNORMAL_TERMINATION_IN_LNSRCH </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;           estimate std_error z_stat p_value</span></span>
-<span><span class="co">#&gt; mu      0.02629409        NA     NA      NA</span></span>
-<span><span class="co">#&gt; nu    194.92997141        NA     NA      NA</span></span>
-<span><span class="co">#&gt; beta1   2.25357255        NA     NA      NA</span></span>
-<span><span class="co">#&gt; beta2   0.49084734        NA     NA      NA</span></span>
-<span><span class="co">#&gt; beta3   0.02367525        NA     NA      NA</span></span></code></pre></div>
+<span><span class="co">#&gt; mu    3.126462e-03        NA     NA      NA</span></span>
+<span><span class="co">#&gt; nu    2.101821e+02        NA     NA      NA</span></span>
+<span><span class="co">#&gt; beta1 1.544198e+00        NA     NA      NA</span></span>
+<span><span class="co">#&gt; beta2 4.913602e-01        NA     NA      NA</span></span>
+<span><span class="co">#&gt; beta3 2.438124e-02        NA     NA      NA</span></span></code></pre></div>
 </div>
 <section class="level2"><h2 id="prediction-workflow">Prediction workflow<a class="anchor" aria-label="anchor" href="#prediction-workflow"></a>
 </h2>
@@ -152,19 +147,74 @@
 <span></span>
 <span><span class="va">new_patients</span></span>
 <span><span class="co">#&gt;   time age nyha shock linear_predictor hazard_multiplier survival</span></span>
-<span><span class="co">#&gt; 1  0.5  50    1     0         113.1695      1.408895e+49        1</span></span>
-<span><span class="co">#&gt; 2  1.5  65    3     0         147.9548      1.802748e+64        1</span></span>
-<span><span class="co">#&gt; 3  3.0  75    4     1         171.0050      1.847271e+74        1</span></span>
+<span><span class="co">#&gt; 1  0.5  50    1     0         77.70128      5.562084e+33        1</span></span>
+<span><span class="co">#&gt; 2  1.5  65    3     0        101.84698      1.704435e+44        1</span></span>
+<span><span class="co">#&gt; 3  3.0  75    4     1        117.80470      1.451886e+51        1</span></span>
 <span><span class="co">#&gt;   cumulative_hazard</span></span>
-<span><span class="co">#&gt; 1      0.000000e+00</span></span>
-<span><span class="co">#&gt; 2     3.667761e-210</span></span>
-<span><span class="co">#&gt; 3     1.797898e-141</span></span></code></pre></div>
+<span><span class="co">#&gt; 1                 0</span></span>
+<span><span class="co">#&gt; 2                 0</span></span>
+<span><span class="co">#&gt; 3                 0</span></span></code></pre></div>
+</div>
+</section><section class="level2"><h2 id="visualizing-predicted-survival">Visualizing predicted survival<a class="anchor" aria-label="anchor" href="#visualizing-predicted-survival"></a>
+</h2>
+<p>The <code>hvtiPlotR</code> package provides publication-quality plotting for parametric hazard models via <code><a href="https://ehrlinger.github.io/hvtiPlotR/reference/hv_hazard.html" class="external-link">hv_hazard()</a></code> and its <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method. Here we build a survival curve over a fine time grid for a median-profile patient and overlay the Kaplan-Meier nonparametric estimate from the raw data.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"hvtiPlotR"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ehrlinger/hvtiPlotR" class="external-link">hvtiPlotR</a></span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># Parametric curve on a fine grid</span></span>
+<span>  <span class="va">t_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">time</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="fl">80</span><span class="op">)</span></span>
+<span>  <span class="va">curve_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    time <span class="op">=</span> <span class="va">t_grid</span>,</span>
+<span>    AGE <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">age</span><span class="op">)</span>,</span>
+<span>    nyha <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>    shock <span class="op">=</span> <span class="fl">0</span></span>
+<span>  <span class="op">)</span></span>
+<span>  <span class="va">curve_df</span><span class="op">$</span><span class="va">survival</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">curve_df</span>, type <span class="op">=</span> <span class="st">"survival"</span><span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># Kaplan-Meier empirical overlay</span></span>
+<span>  <span class="va">km</span> <span class="op">&lt;-</span> <span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/survfit.html" class="external-link">survfit</a></span><span class="op">(</span><span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span>
+<span>  <span class="va">km_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    time <span class="op">=</span> <span class="va">km</span><span class="op">$</span><span class="va">time</span>,</span>
+<span>    estimate <span class="op">=</span> <span class="va">km</span><span class="op">$</span><span class="va">surv</span> <span class="op">*</span> <span class="fl">100</span></span>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span>  <span class="co"># Build plot with hv_hazard + plot</span></span>
+<span>  <span class="va">hz_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ehrlinger.github.io/hvtiPlotR/reference/hv_hazard.html" class="external-link">hv_hazard</a></span><span class="op">(</span></span>
+<span>    curve_data   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/transform.html" class="external-link">transform</a></span><span class="op">(</span><span class="va">curve_df</span>, survival <span class="op">=</span> <span class="va">survival</span> <span class="op">*</span> <span class="fl">100</span><span class="op">)</span>,</span>
+<span>    x_col        <span class="op">=</span> <span class="st">"time"</span>,</span>
+<span>    estimate_col <span class="op">=</span> <span class="st">"survival"</span>,</span>
+<span>    empirical    <span class="op">=</span> <span class="va">km_df</span>,</span>
+<span>    emp_x_col    <span class="op">=</span> <span class="st">"time"</span>,</span>
+<span>    emp_estimate_col <span class="op">=</span> <span class="st">"estimate"</span></span>
+<span>  <span class="op">)</span></span>
+<span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hz_obj</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
+<span>      x <span class="op">=</span> <span class="st">"Years after surgery"</span>,</span>
+<span>      y <span class="op">=</span> <span class="st">"Freedom from death (%)"</span>,</span>
+<span>      title <span class="op">=</span> <span class="st">"Parametric survival vs Kaplan-Meier"</span></span>
+<span>    <span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://ehrlinger.github.io/hvtiPlotR/reference/hv_theme.html" class="external-link">hv_theme</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<div class="cell-output-display">
+<div id="fig-survival" class="quarto-float quarto-figure quarto-figure-center">
+<figure class="quarto-float quarto-float-fig"><div aria-describedby="fig-survival-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="getting-started_files/figure-html/fig-survival-1.png" width="672">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-survival-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure 1: Parametric Weibull survival curve with Kaplan-Meier overlay
+</figcaption></figure>
+</div>
+</div>
 </div>
 </section><section class="level2"><h2 id="numerical-helpers">Numerical helpers<a class="anchor" aria-label="anchor" href="#numerical-helpers"></a>
 </h2>
 <p>The numerical helper functions remain available directly when you need stable log-scale calculations for custom work or debugging.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">TemporalHazard</span><span class="fu">::</span><span class="fu"><a href="../reference/hzr_log1pexp.html">hzr_log1pexp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">2</span>, <span class="fl">0</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 0.1269280 0.6931472 2.1269280</span></span></code></pre></div>
 </div>

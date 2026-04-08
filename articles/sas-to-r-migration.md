@@ -1,12 +1,7 @@
 # Migrating from SAS HAZARD to TemporalHazard
 
 ``` r
-if (!requireNamespace("TemporalHazard", quietly = TRUE)) {
-  if (!requireNamespace("pkgload", quietly = TRUE)) {
-    stop("TemporalHazard is unavailable and pkgload is not installed.", call. = FALSE)
-  }
-  pkgload::load_all(".", quiet = TRUE, export_all = FALSE)
-}
+library(TemporalHazard)
 ```
 
 ## Overview

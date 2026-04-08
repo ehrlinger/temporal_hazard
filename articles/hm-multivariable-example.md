@@ -124,7 +124,36 @@ new_patients <- data.frame(
 patient_lp <- predict(fit_hm, newdata = new_patients, type = "linear_predictor")
 patient_surv <- predict(fit_hm, newdata = new_patients, type = "survival")
 
-cbind(new_patients, lp = patient_lp, survival = patient_surv)
+patient_results <- cbind(new_patients, lp = patient_lp, survival = patient_surv)
+patient_results
+
+# Plot predicted survival curves for each patient profile
+t_grid <- seq(0.05, 4.0, length.out = 40)
+patient_curves <- do.call(rbind, lapply(seq_len(nrow(new_patients)), function(i) {
+  nd <- new_patients[rep(i, length(t_grid)), ]
+  nd$time <- t_grid
+  data.frame(
+    time = t_grid,
+    survival = predict(fit_hm, newdata = nd, type = "survival") * 100,
+    patient = paste0("Patient ", i)
+  )
+}))
+
+hz_patients <- hv_hazard(
+  curve_data   = patient_curves,
+  x_col        = "time",
+  estimate_col = "survival",
+  group_col    = "patient"
+)
+
+plot(hz_patients) +
+  ggplot2::scale_y_continuous(limits = c(0, 100)) +
+  ggplot2::labs(
+    x = "Years after repair",
+    y = "Freedom from death (%)",
+    title = "Patient-specific predicted survival — AVC model"
+  ) +
+  hv_theme()
 ```
 
 ------------------------------------------------------------------------

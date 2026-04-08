@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -26,13 +26,13 @@
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
-    <li><a class="dropdown-item" href="../articles/examples-lg-exploratory.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-ac-actuarial.html">Example: Actuarial Estimates (ac.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hz-estimate-hazard.html">Example: Estimate Hazard Function (hz.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hm-multivariable.html">Example: Multivariable Hazard Model (hm.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hp-prediction.html">Example: Hazard Prediction (hp.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-bs-bootstrap.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hs-sensitivity.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/lg-exploratory-example.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/ac-actuarial-example.html">Example: Actuarial Estimates (ac.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hz-estimate-hazard-example.html">Example: Estimate Hazard Function (hz.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hm-multivariable-example.html">Example: Multivariable Hazard Model (hm.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hp-prediction-example.html">Example: Hazard Prediction (hp.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/bs-bootstrap-example.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hs-sensitivity-example.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/ehrlinger/temporal_hazard/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -72,6 +72,16 @@
 
 </dl></div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="hazard.html">hazard</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">0.5</span><span class="op">)</span>, status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">30</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>              theta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">1.0</span><span class="op">)</span>, dist <span class="op">=</span> <span class="st">"weibull"</span>, fit <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               [,1]         [,2]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1,] -1.921992e-14 3.786418e-13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [2,]  3.786418e-13 1.436949e-09</span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

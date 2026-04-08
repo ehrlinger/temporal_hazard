@@ -129,4 +129,27 @@ bootstrap_summary <- data.frame(
 )
 
 head(bootstrap_summary)
+
+# Plot parametric survival with bootstrap 95% CI
+hz_bs <- hv_hazard(
+  curve_data   = data.frame(
+    time     = bootstrap_summary$time,
+    survival = bootstrap_summary$surv_median * 100,
+    lower    = bootstrap_summary$surv_lower * 100,
+    upper    = bootstrap_summary$surv_upper * 100
+  ),
+  x_col        = "time",
+  estimate_col = "survival",
+  lower_col    = "lower",
+  upper_col    = "upper"
+)
+
+plot(hz_bs) +
+  ggplot2::scale_y_continuous(limits = c(0, 100)) +
+  ggplot2::labs(
+    x = "Years after repair",
+    y = "Freedom from death (%)",
+    title = "Bootstrap 95% CI — AVC death hazard model"
+  ) +
+  hv_theme()
 ```

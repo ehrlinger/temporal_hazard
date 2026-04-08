@@ -1,8 +1,8 @@
 # Parse hazard binary output
 
-Parses tabular output from the C hazard binary into a structured tibble.
-Expects columns: parameter, estimate, StdErr (or SE), z-value (or z),
-p-value (or pval). The parser is flexible and case-insensitive for
+Parses tabular output from the C hazard binary into a structured data
+frame. Expects columns: parameter, estimate, StdErr (or SE), z-value (or
+z), p-value (or pval). The parser is flexible and case-insensitive for
 column matching.
 
 ## Usage
@@ -23,4 +23,4 @@ column matching.
 
 ## Value
 
-Tibble with columns: parameter, estimate, std_err, z_stat, p_value
+Data frame with columns: parameter, estimate, std_err, z_stat, p_value

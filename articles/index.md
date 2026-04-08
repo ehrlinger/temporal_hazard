@@ -13,16 +13,16 @@
 ### Examples: by analysis family
 
 - [Example: Logistic/Gompertz Exploratory Plots
-  (lg.\*)](https://ehrlinger.github.io/temporal_hazard/articles/examples-lg-exploratory.md):
+  (lg.\*)](https://ehrlinger.github.io/temporal_hazard/articles/lg-exploratory-example.md):
 - [Example: Actuarial Estimates
-  (ac.\*)](https://ehrlinger.github.io/temporal_hazard/articles/examples-ac-actuarial.md):
+  (ac.\*)](https://ehrlinger.github.io/temporal_hazard/articles/ac-actuarial-example.md):
 - [Example: Estimate Hazard Function
-  (hz.\*)](https://ehrlinger.github.io/temporal_hazard/articles/examples-hz-estimate-hazard.md):
+  (hz.\*)](https://ehrlinger.github.io/temporal_hazard/articles/hz-estimate-hazard-example.md):
 - [Example: Multivariable Hazard Model
-  (hm.\*)](https://ehrlinger.github.io/temporal_hazard/articles/examples-hm-multivariable.md):
+  (hm.\*)](https://ehrlinger.github.io/temporal_hazard/articles/hm-multivariable-example.md):
 - [Example: Hazard Prediction
-  (hp.\*)](https://ehrlinger.github.io/temporal_hazard/articles/examples-hp-prediction.md):
+  (hp.\*)](https://ehrlinger.github.io/temporal_hazard/articles/hp-prediction-example.md):
 - [Example: Bootstrap Confidence Intervals
-  (bs.\*)](https://ehrlinger.github.io/temporal_hazard/articles/examples-bs-bootstrap.md):
+  (bs.\*)](https://ehrlinger.github.io/temporal_hazard/articles/bs-bootstrap-example.md):
 - [Example: Hazard Sensitivity & Scenarios
-  (hs.\*)](https://ehrlinger.github.io/temporal_hazard/articles/examples-hs-sensitivity.md):
+  (hs.\*)](https://ehrlinger.github.io/temporal_hazard/articles/hs-sensitivity-example.md):

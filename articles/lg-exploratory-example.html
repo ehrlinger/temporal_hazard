@@ -10,8 +10,8 @@
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><script src="examples-lg-exploratory_files/libs/quarto-html/popper.min.js"></script><script src="examples-lg-exploratory_files/libs/quarto-html/tippy.umd.min.js"></script><link href="examples-lg-exploratory_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="examples-lg-exploratory_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><script src="lg-exploratory-example_files/libs/quarto-html/popper.min.js"></script><script src="lg-exploratory-example_files/libs/quarto-html/tippy.umd.min.js"></script><link href="lg-exploratory-example_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="lg-exploratory-example_files/libs/quarto-html/light-border.css" rel="stylesheet">
 <!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Example: Logistic/Gompertz Exploratory Plots (lg.*)">
 </head>
 <body>
@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,13 +43,13 @@
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
-    <li><a class="dropdown-item" href="../articles/examples-lg-exploratory.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-ac-actuarial.html">Example: Actuarial Estimates (ac.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hz-estimate-hazard.html">Example: Estimate Hazard Function (hz.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hm-multivariable.html">Example: Multivariable Hazard Model (hm.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hp-prediction.html">Example: Hazard Prediction (hp.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-bs-bootstrap.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/examples-hs-sensitivity.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/lg-exploratory-example.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/ac-actuarial-example.html">Example: Actuarial Estimates (ac.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hz-estimate-hazard-example.html">Example: Estimate Hazard Function (hz.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hm-multivariable-example.html">Example: Multivariable Hazard Model (hm.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hp-prediction-example.html">Example: Hazard Prediction (hp.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/bs-bootstrap-example.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/hs-sensitivity-example.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -70,7 +70,7 @@
 
 
 
-      <small class="dont-index">Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/vignettes/examples-lg-exploratory.qmd" class="external-link"><code>vignettes/examples-lg-exploratory.qmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/vignettes/lg-exploratory-example.qmd" class="external-link"><code>vignettes/lg-exploratory-example.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
     </div>
 
@@ -81,7 +81,7 @@
 
     <!--
 %\VignetteIndexEntry{Example: Logistic/Gompertz Exploratory Plots (lg.*)}
-%\VignetteEngine{knitr::quarto}
+%\VignetteEngine{quarto::html}
 %\VignetteEncoding{UTF-8}
 --><div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="downlit sourceCode r">
@@ -138,8 +138,15 @@
 <span><span class="va">coef_tables</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">logit_fits</span>, <span class="kw">function</span><span class="op">(</span><span class="va">f</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">f</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">coef_tables</span><span class="op">[[</span><span class="st">"AGE"</span><span class="op">]</span><span class="op">]</span></span>
 <span></span>
-<span><span class="co"># Plot covariate effects (hvtiPlotR exploratory helper — M3)</span></span>
-<span><span class="co"># hv_logit_explorer(avcs, event = "DEAD", vars = candidates)</span></span></code></pre></div>
+<span><span class="co"># Plot univariable covariate effects using hvtiPlotR EDA</span></span>
+<span><span class="va">hv_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ehrlinger.github.io/hvtiPlotR/reference/hv_eda.html" class="external-link">hv_eda</a></span><span class="op">(</span><span class="va">avcs</span>, x <span class="op">=</span> <span class="st">"AGE"</span>, y <span class="op">=</span> <span class="st">"DEAD"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hv_obj</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
+<span>    x <span class="op">=</span> <span class="st">"Age at operation (years)"</span>,</span>
+<span>    y <span class="op">=</span> <span class="st">"Death"</span>,</span>
+<span>    title <span class="op">=</span> <span class="st">"Exploratory: AGE vs mortality"</span></span>
+<span>  <span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ehrlinger.github.io/hvtiPlotR/reference/hv_theme.html" class="external-link">hv_theme</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <hr></section></section><section class="level2"><h2 id="lg-dead30d-avc-30-day-mortality-logistic-model">lg.dead30d.AVC — 30-day mortality logistic model<a class="anchor" aria-label="anchor" href="#lg-dead30d-avc-30-day-mortality-logistic-model"></a>
 </h2>

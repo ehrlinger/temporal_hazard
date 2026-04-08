@@ -63,3 +63,16 @@ object is used. For models fit with `time_windows`, predictions for
 `type = "linear_predictor"` or `"hazard"` also require time values (via
 `newdata$time` or fitted-time fallback) so window-specific coefficients
 can be selected.
+
+## Examples
+
+``` r
+set.seed(1)
+fit <- hazard(time = rexp(50, 0.3), status = rep(1L, 50),
+              theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
+predict(fit, type = "survival")
+#>  [1] 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+#> [39] 1 1 1 1 1 1 1 1 1 1 1 1
+predict(fit, newdata = data.frame(time = c(1, 2, 5)), type = "cumulative_hazard")
+#> [1] 0 0 0
+```
