@@ -120,17 +120,17 @@
 <span><span class="co">#&gt;   dist:         weibull </span></span>
 <span><span class="co">#&gt;   engine:       native-r-m2 </span></span>
 <span><span class="co">#&gt;   converged:    FALSE </span></span>
-<span><span class="co">#&gt;   log-lik:      28299.2 </span></span>
-<span><span class="co">#&gt;   evaluations: fn=112, gr=112</span></span>
+<span><span class="co">#&gt;   log-lik:      31843.7 </span></span>
+<span><span class="co">#&gt;   evaluations: fn=126, gr=126</span></span>
 <span><span class="co">#&gt;   message:      ERROR: ABNORMAL_TERMINATION_IN_LNSRCH </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;           estimate std_error z_stat p_value</span></span>
-<span><span class="co">#&gt; mu      0.02056897        NA     NA      NA</span></span>
-<span><span class="co">#&gt; nu    209.33313265        NA     NA      NA</span></span>
-<span><span class="co">#&gt; beta1   1.55485771        NA     NA      NA</span></span>
-<span><span class="co">#&gt; beta2   0.49007717        NA     NA      NA</span></span>
-<span><span class="co">#&gt; beta3   0.02430348        NA     NA      NA</span></span></code></pre></div>
+<span><span class="co">#&gt; mu      0.02629409        NA     NA      NA</span></span>
+<span><span class="co">#&gt; nu    194.92997141        NA     NA      NA</span></span>
+<span><span class="co">#&gt; beta1   2.25357255        NA     NA      NA</span></span>
+<span><span class="co">#&gt; beta2   0.49084734        NA     NA      NA</span></span>
+<span><span class="co">#&gt; beta3   0.02367525        NA     NA      NA</span></span></code></pre></div>
 </div>
 <section class="level2"><h2 id="prediction-workflow">Prediction workflow<a class="anchor" aria-label="anchor" href="#prediction-workflow"></a>
 </h2>
@@ -152,13 +152,13 @@
 <span></span>
 <span><span class="va">new_patients</span></span>
 <span><span class="co">#&gt;   time age nyha shock linear_predictor hazard_multiplier survival</span></span>
-<span><span class="co">#&gt; 1  0.5  50    1     0         78.23296      9.465509e+33        1</span></span>
-<span><span class="co">#&gt; 2  1.5  65    3     0        102.53598      3.394779e+44        1</span></span>
-<span><span class="co">#&gt; 3  3.0  75    4     1        118.59894      3.212664e+51        1</span></span>
+<span><span class="co">#&gt; 1  0.5  50    1     0         113.1695      1.408895e+49        1</span></span>
+<span><span class="co">#&gt; 2  1.5  65    3     0         147.9548      1.802748e+64        1</span></span>
+<span><span class="co">#&gt; 3  3.0  75    4     1         171.0050      1.847271e+74        1</span></span>
 <span><span class="co">#&gt;   cumulative_hazard</span></span>
 <span><span class="co">#&gt; 1      0.000000e+00</span></span>
-<span><span class="co">#&gt; 2     1.959013e-272</span></span>
-<span><span class="co">#&gt; 3     1.921513e-202</span></span></code></pre></div>
+<span><span class="co">#&gt; 2     3.667761e-210</span></span>
+<span><span class="co">#&gt; 3     1.797898e-141</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="numerical-helpers">Numerical helpers<a class="anchor" aria-label="anchor" href="#numerical-helpers"></a>
 </h2>
