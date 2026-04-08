@@ -5,7 +5,7 @@ format: html
 
 <!--
 %\VignetteIndexEntry{Example: Bootstrap Confidence Intervals (bs.*)}
-%\VignetteEngine{knitr::quarto}
+%\VignetteEngine{quarto::html}
 %\VignetteEncoding{UTF-8}
 -->
 

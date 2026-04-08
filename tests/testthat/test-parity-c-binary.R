@@ -78,7 +78,7 @@ test_that("build_hazpred_sas_input emits legacy %HAZPRED block", {
 
 test_that("parse_hazard_output handles empty output gracefully", {
   result <- TemporalHazard:::.hzr_parse_hazard_output(character())
-  expect_s3_class(result, "tbl_df")
+  expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 0)
   expect_named(result, c("parameter", "estimate", "std_err", "z_stat", "p_value"))
 })
@@ -92,7 +92,7 @@ test_that("parse_hazard_output parses standard parameter table", {
   )
 
   result <- TemporalHazard:::.hzr_parse_hazard_output(output)
-  expect_s3_class(result, "tbl_df")
+  expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 2)
   expect_equal(result$parameter, c("shape", "scale"))
   expect_true(all(!is.na(result$estimate)))
@@ -127,7 +127,7 @@ test_that("run_hazard_binary integration test (if binary available)", {
   expect_match(result$call_string, "\\.lst")
   
   parsed <- result$parsed
-  expect_s3_class(parsed, "tbl_df")
+  expect_s3_class(parsed, "data.frame")
   expect_named(parsed, c("parameter", "estimate", "std_err", "z_stat", "p_value"))
 
   if (!is.na(result$info$status_code) && result$info$status_code != 0) {

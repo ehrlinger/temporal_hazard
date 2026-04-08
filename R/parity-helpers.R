@@ -407,7 +407,7 @@ NULL
 #' @return List with:
 #'   - \code{call_string}: Full command-line invocation for reproducibility
 #'   - \code{stdout}: Raw standard output from hazard binary
-#'   - \code{parsed}: Parsed results (tibble with estimates, SE, z, p-values)
+#'   - \code{parsed}: Parsed results (data frame with estimates, SE, z, p-values)
 #'   - \code{info}: Metadata (df, condition, convergence flags)
 #'
 #' @noRd
@@ -511,12 +511,13 @@ NULL
     .hzr_parse_hazard_output(exec_result$output_text, theta = theta)
   } else {
     structure(
-      tibble::tibble(
+      data.frame(
         parameter = character(),
         estimate = numeric(),
         std_err = numeric(),
         z_stat = numeric(),
-        p_value = numeric()
+        p_value = numeric(),
+        stringsAsFactors = FALSE
       ),
       output_text = paste(exec_result$output_text, collapse = "\n"),
       parse_status = "binary_failed"
@@ -544,25 +545,26 @@ NULL
 
 #' Parse hazard binary output
 #'
-#' Parses tabular output from the C hazard binary into a structured tibble.
+#' Parses tabular output from the C hazard binary into a structured data frame.
 #' Expects columns: parameter, estimate, StdErr (or SE), z-value (or z), p-value (or pval).
 #' The parser is flexible and case-insensitive for column matching.
 #'
 #' @param output_text Character vector (lines) from binary output file
 #' @param theta Optional parameter vector for context/validation
 #'
-#' @return Tibble with columns: parameter, estimate, std_err, z_stat, p_value
+#' @return Data frame with columns: parameter, estimate, std_err, z_stat, p_value
 #' @keywords internal
 .hzr_parse_hazard_output <- function(output_text, theta = NULL) {
   if (length(output_text) == 0 || all(nchar(trimws(output_text)) == 0)) {
-    # Empty output: return empty tibble with proper structure
+    # Empty output: return empty data frame with proper structure
     return(structure(
-      tibble::tibble(
+      data.frame(
         parameter = character(),
         estimate = numeric(),
         std_err = numeric(),
         z_stat = numeric(),
-        p_value = numeric()
+        p_value = numeric(),
+        stringsAsFactors = FALSE
       ),
       output_text = "",
       parse_status = "empty"
@@ -583,12 +585,13 @@ NULL
       if (is.na(header_idx)) {
         warning("Could not identify header line in hazard output", call. = FALSE)
         return(structure(
-          tibble::tibble(
+          data.frame(
             parameter = character(),
             estimate = numeric(),
             std_err = numeric(),
             z_stat = numeric(),
-            p_value = numeric()
+            p_value = numeric(),
+            stringsAsFactors = FALSE
           ),
           output_text = text,
           parse_status = "no_header"
@@ -612,12 +615,13 @@ NULL
       
       if (nrow(df) == 0) {
         return(structure(
-          tibble::tibble(
+          data.frame(
             parameter = character(),
             estimate = numeric(),
             std_err = numeric(),
             z_stat = numeric(),
-            p_value = numeric()
+            p_value = numeric(),
+            stringsAsFactors = FALSE
           ),
           output_text = text,
           parse_status = "empty_table"
@@ -635,12 +639,13 @@ NULL
       z_col <- suppressWarnings(as.numeric(df[[4]]))
       p_col <- suppressWarnings(as.numeric(df[[5]]))
       
-      result <- tibble::tibble(
+      result <- data.frame(
         parameter = as.character(param_col),
         estimate = est_col,
         std_err = se_col,
         z_stat = z_col,
-        p_value = p_col
+        p_value = p_col,
+        stringsAsFactors = FALSE
       )
       
       structure(
@@ -652,12 +657,13 @@ NULL
     error = function(e) {
       warning("Failed to parse hazard binary output: ", e$message, call. = FALSE)
       structure(
-        tibble::tibble(
+        data.frame(
           parameter = character(),
           estimate = numeric(),
           std_err = numeric(),
           z_stat = numeric(),
-          p_value = numeric()
+          p_value = numeric(),
+          stringsAsFactors = FALSE
         ),
         output_text = text,
         parse_status = paste("error:", e$message)
@@ -721,8 +727,3 @@ NULL
 #'
 #' @noRd
 '%+%' <- function(x, y) paste0(x, y)
-
-#' Utility: logical OR with NA handling
-#'
-#' @noRd
-'%||%' <- function(x, y) if (is.null(x) || is.na(x)) y else x

@@ -17,3 +17,6 @@ Numeric vector bounded to \verb{[eps, 1 - eps]}.
 \description{
 Clamp probabilities away from 0 and 1
 }
+\examples{
+hzr_clamp_prob(c(0, 0.5, 1))
+}

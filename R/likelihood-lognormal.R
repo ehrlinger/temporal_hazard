@@ -287,163 +287,17 @@ NULL
   grad
 }
 
-#' Optimize log-normal hazard likelihood
-#'
-#' Fits a parametric log-normal hazard model by maximizing the log-likelihood
-#' using BFGS optimization (unconstrained, via AFT reparameterization and log(σ)).
-#'
-#' @param time Numeric vector of follow-up times
-#' @param status Numeric vector of event indicators (0/1)
-#' @param x Optional design matrix of covariates
-#' @param theta_start Vector of starting parameter values
-#' @param control List of optimization control parameters
-#'
-#' @return List with:
-#'   - \code{par}: Final parameter estimates
-#'   - \code{value}: Log-likelihood at solution
-#'   - \code{convergence}: Code (0 = success)
-#'   - \code{counts}: Number of function/gradient evaluations
-#'   - \code{message}: Convergence message
-#'   - \code{vcov}: Variance-covariance matrix at solution
-#'
 #' @noRd
 .hzr_optim_lognormal <- function(
-    time,
-    status,
-  time_lower = NULL,
-  time_upper = NULL,
-    x = NULL,
-    theta_start,
-    control = list()) {
-  
-  # Merge defaults
-  control <- utils::modifyList(
-    list(
-      maxit = 1000,
-      reltol = 1e-5,
-      abstol = 1e-6,
-      method = "BFGS"
-    ),
-    control
-  )
-  
-  log_t <- log(time)  # Pre-compute once
-
-  # Set up objective (negative log-likelihood for minimization)
-  objective <- function(theta) {
-    ll <- -.hzr_logl_lognormal(
-      theta = theta,
-      time = time,
-      status = status,
-      time_lower = time_lower,
-      time_upper = time_upper,
-      x = x,
-      return_gradient = FALSE
-    )
-    
-    if (!is.finite(ll)) return(1e10)
-    ll
-  }
-  
-  # Set up gradient
-  gradient <- function(theta) {
-    if (!all(is.finite(theta))) {
-      return(rep(0, length(theta)))
-    }
-    
-    mu <- theta[1]
-    log_sigma <- theta[2]
-    sigma <- exp(log_sigma)
-    
-    if (!is.null(x)) {
-      beta_coef <- theta[3:length(theta)]
-      eta <- mu + as.numeric(x %*% beta_coef)
-    } else {
-      eta <- rep(mu, length(time))
-    }
-    
-    z <- (log_t - eta) / sigma
-    
-    # Guard against degenerate cases
-    if (!all(is.finite(z))) {
-      return(rep(0, length(theta)))
-    }
-    
-    log_phi_z <- dnorm(z, log = TRUE)
-    log_surv <- pnorm(-z, log.p = TRUE)
-    
-    grad <- tryCatch({
-      .hzr_gradient_lognormal(
-        theta = theta,
-        time = time,
-        status = status,
-        time_lower = time_lower,
-        time_upper = time_upper,
-        x = x,
-        eta = eta,
-        sigma = sigma,
-        log_sigma = log_sigma,
-        z = z,
-        log_phi_z = log_phi_z,
-        log_surv = log_surv
-      )
-    }, error = function(e) {
-      rep(0, length(theta))
-    })
-    
-    if (!all(is.finite(grad))) {
-      grad[!is.finite(grad)] <- 0
-    }
-    
-    # Return negative gradient (for minimization)
-    -grad
-  }
-  
-  # Optimize (unconstrained: μ ∈ ℝ, log(σ) ∈ ℝ, β ∈ ℝ^p)
-  result <- optim(
-    par = theta_start,
-    fn = objective,
-    gr = gradient,
-    method = "BFGS",
-    control = list(
-      maxit = control$maxit,
-      reltol = control$reltol
-    ),
-    hessian = FALSE
-  )
-  
-  # Post-fit Hessian computation for standard errors
-  hess_result <- tryCatch(
-    {
-      if (requireNamespace("numDeriv", quietly = TRUE)) {
-        numDeriv::hessian(objective, result$par)
-      } else {
-        NA
-      }
-    },
-    error = function(e) NA
-  )
-  
-  vcov <- if (!anyNA(hess_result)) {
-    tryCatch(
-      solve(-hess_result),
-      error = function(e) {
-        warning("Hessian not invertible; standard errors unavailable")
-        NA
-      }
-    )
-  } else {
-    NA
-  }
-  
-  list(
-    par = result$par,
-    value = -result$value,  # Restore log-likelihood
-    convergence = result$convergence,
-    counts = result$counts,
-    message = result$message,
-    hessian = hess_result,
-    vcov = vcov
+    time, status, time_lower = NULL, time_upper = NULL,
+    x = NULL, theta_start, control = list()) {
+  .hzr_optim_generic(
+    logl_fn = .hzr_logl_lognormal,
+    gradient_fn = .hzr_gradient_lognormal,
+    time = time, status = status,
+    time_lower = time_lower, time_upper = time_upper,
+    x = x, theta_start = theta_start,
+    control = control, use_bounds = FALSE
   )
 }
 

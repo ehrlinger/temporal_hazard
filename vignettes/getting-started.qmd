@@ -8,7 +8,7 @@ format:
 
 <!--
 %\VignetteIndexEntry{Getting Started with TemporalHazard}
-%\VignetteEngine{knitr::quarto}
+%\VignetteEngine{quarto::html}
 %\VignetteEncoding{UTF-8}
 -->
 
@@ -21,12 +21,7 @@ This vignette shows the minimal workflow for fitting a parametric hazard model,
 summarizing the fit, and generating predictions.
 
 ```{r}
-if (!requireNamespace("TemporalHazard", quietly = TRUE)) {
-  if (!requireNamespace("pkgload", quietly = TRUE)) {
-    stop("TemporalHazard is unavailable and pkgload is not installed.", call. = FALSE)
-  }
-  pkgload::load_all(".", quiet = TRUE, export_all = FALSE)
-}
+library(TemporalHazard)
 library(survival)
 
 set.seed(1001)

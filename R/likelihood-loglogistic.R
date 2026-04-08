@@ -8,7 +8,7 @@ NULL
 # -----
 # Log-logistic proportional-odds model (commonly used in actuarial work):
 #
-#   h(t | x)  = α β t^(β−1) / (1 + α t^β exp(η))   hazard
+#   h(t | x)  = α β t^(β−1) exp(η) / (1 + α t^β exp(η))   hazard
 #   H(t | x)  = log(1 + α t^β exp(η))               cumulative hazard
 #   S(t | x)  = 1 / (1 + α t^β exp(η))              survival
 #
@@ -26,16 +26,16 @@ NULL
 #
 # KEY GRADIENT NOTE
 # -----------------
-# Let prob_weight_i = α t_i^β exp(η_i) / (1 + α t_i^β exp(η_i))
-# (probability weight, i.e., the logistic "p" for each observation).
+# Let pw_i = term_i / (1 + term_i) where term_i = α t_i^β exp(η_i)
+# and let w_i = (1 + δ_i) · pw_i  (events get weight 2, censored get 1).
 #
-#   dL/d(log α) = sum(δ) − sum(prob_weight)                       [n scalar]
-#   dL/d(log β) = sum(δ) + sum(δ·log t) − β·sum(log(t)·prob_weight)
-#   dL/dβ_j     = −t(X) %*% prob_weight                          [NO δ term]
+#   dL/d(log α) = sum(δ) − sum(w)
+#   dL/d(log β) = sum(δ) + β · [sum(δ · log t) − sum(w · log t)]
+#   dL/dβ_j     = t(X) %*% (δ − w)
 #
-# The β_j gradient has no event-indicator term because the log-logistic
-# log-likelihood penalises all observations for the log(1+term) survival
-# contribution, not just events.  This differs from, e.g., exponential.
+# The (1+δ) weighting arises because events contribute both log h(t) and
+# log S(t), each of which depends on log(1 + term).  Censored observations
+# contribute only log S(t).
 #
 # FUNCTIONS
 # ---------
@@ -167,11 +167,13 @@ NULL
   idx_left <- status == -1
   idx_interval <- status == 2
 
-  # Exact event: log h + log S
+  # Exact event: log f = log h + log S
+  # f(t|x) = α β t^(β-1) exp(η) / (1 + α t^β exp(η))²
+  # log f  = log α + log β + (β-1) log t + η - 2 log(1 + term)
   ll_event <- if (any(idx_event)) {
     sum(
-      log_alpha + log_beta + (beta - 1) * log(time[idx_event]) -
-        2 * log1p(term_event[idx_event])
+      log_alpha + log_beta + (beta - 1) * log(time[idx_event]) +
+        eta[idx_event] - 2 * log1p(term_event[idx_event])
     )
   } else {
     0
@@ -253,172 +255,64 @@ NULL
     log_alpha = NULL,
     log_beta = NULL,
     term = NULL) {
-  
-  # Numerical score currently used for all status patterns to guarantee
-  # consistency with the mixed-censoring likelihood expression above.
-  .hzr_numeric_grad_loglogistic(theta, time, status, time_lower, time_upper, x)
-}
 
-#' Optimize log-logistic hazard likelihood
-#'
-#' Fits a parametric log-logistic hazard model by maximizing the log-likelihood
-#' using L-BFGS-B optimization (unconstrained, via log(alpha) and log(beta) reparameterization).
-#'
-#' @param time Numeric vector of follow-up times
-#' @param status Numeric vector of event indicators (0/1)
-#' @param x Optional design matrix of covariates
-#' @param theta_start Vector of starting parameter values
-#' @param control List of optimization control parameters
-#'
-#' @return List with:
-#'   - \code{par}: Final parameter estimates
-#'   - \code{value}: Log-likelihood at solution
-#'   - \code{convergence}: Code (0 = success)
-#'   - \code{counts}: Number of function/gradient evaluations
-#'   - \code{message}: Convergence message
-#'   - \code{vcov}: Variance-covariance matrix at solution
-#'
-#' @noRd
-.hzr_optim_loglogistic <- function(
-    time,
-    status,
-  time_lower = NULL,
-  time_upper = NULL,
-    x = NULL,
-    theta_start,
-    control = list()) {
-  
-  # Merge defaults
-  control <- utils::modifyList(
-    list(
-      maxit = 1000,
-      reltol = 1e-5,
-      abstol = 1e-6,
-      method = "BFGS"
-    ),
-    control
-  )
-  
-  # Set up objective (negative log-likelihood for minimization)
-  objective <- function(theta) {
-    ll <- -.hzr_logl_loglogistic(
-      theta = theta,
-      time = time,
-      status = status,
-      time_lower = time_lower,
-      time_upper = time_upper,
-      x = x,
-      return_gradient = FALSE
-    )
-    
-    if (!is.finite(ll)) return(1e10)
-    ll
+  n <- length(time)
+  p <- length(theta)
+  grad <- numeric(p)
+
+  # Mixed censoring uses numerical gradient for robustness.
+  if (any(status %in% c(-1, 2))) {
+    return(.hzr_numeric_grad_loglogistic(theta, time, status, time_lower, time_upper, x))
   }
-  
-  # Set up gradient
-  gradient <- function(theta) {
-    # Prevent numerical issues
-    if (!all(is.finite(theta))) {
-      return(rep(0, length(theta)))
-    }
-    
+
+  # Recompute if not provided
+  if (is.null(term) || is.null(alpha) || is.null(beta)) {
     log_alpha <- theta[1]
     log_beta <- theta[2]
     alpha <- exp(log_alpha)
     beta <- exp(log_beta)
-    
+
     if (!is.null(x)) {
       beta_coef <- theta[3:length(theta)]
       eta <- as.numeric(x %*% beta_coef)
     } else {
-      eta <- rep(0, length(time))
+      eta <- rep(0, n)
     }
-    
-    log_term <- log_alpha + beta * log(time) + eta
-    
-    # Check for overflow
-    if (max(log_term, na.rm = TRUE) > 100) {
-      return(rep(0, length(theta)))
-    }
-    
-    term <- exp(log_term)
-    
-    if (!all(is.finite(term))) {
-      return(rep(0, length(theta)))
-    }
-    
-    grad <- tryCatch({
-      .hzr_gradient_loglogistic(
-        theta = theta,
-        time = time,
-        status = status,
-        time_lower = time_lower,
-        time_upper = time_upper,
-        x = x,
-        eta = eta,
-        alpha = alpha,
-        beta = beta,
-        log_alpha = log_alpha,
-        log_beta = log_beta,
-        term = term
-      )
-    }, error = function(e) {
-      rep(0, length(theta))
-    })
-    
-    if (!all(is.finite(grad))) {
-      grad[!is.finite(grad)] <- 0
-    }
-    
-    # Return negative gradient (for minimization)
-    -grad
+
+    term <- alpha * (time ^ beta) * exp(eta)
   }
-  
-  # Optimize (unconstrained optimization since log(alpha) and log(beta) are unrestricted)
-  result <- optim(
-    par = theta_start,
-    fn = objective,
-    gr = gradient,
-    method = "BFGS",
-    control = list(
-      maxit = control$maxit,
-      reltol = control$reltol
-    ),
-    hessian = FALSE
-  )
-  
-  # Post-fit Hessian computation
-  hess_result <- tryCatch(
-    {
-      if (requireNamespace("numDeriv", quietly = TRUE)) {
-        numDeriv::hessian(objective, result$par)
-      } else {
-        NA
-      }
-    },
-    error = function(e) NA
-  )
-  
-  vcov <- if (!anyNA(hess_result)) {
-    tryCatch(
-      solve(-hess_result),
-      error = function(e) {
-        warning("Hessian not invertible; standard errors unavailable")
-        NA
-      }
-    )
-  } else {
-    NA
+
+  # pw_i = term_i / (1 + term_i), w_i = (1 + δ_i) * pw_i
+  pw <- term / (1 + term)
+  w <- (1 + status) * pw
+
+  # dL/d(log α) = sum(δ) - sum(w)
+  grad[1] <- sum(status) - sum(w)
+
+  # dL/d(log β) = sum(δ) + β * [sum(δ * log t) - sum(w * log t)]
+  log_t <- log(time)
+  grad[2] <- sum(status) + beta * (sum(status * log_t) - sum(w * log_t))
+
+  # dL/dβ_j = t(X) %*% (δ - w)
+  if (p > 2 && !is.null(x)) {
+    residual <- status - w
+    grad[3:p] <- as.numeric(crossprod(x, residual))
   }
-  
-  list(
-    par = result$par,
-    value = -result$value,  # Restore log-likelihood
-    convergence = result$convergence,
-    counts = result$counts,
-    message = result$message,
-    hessian = hess_result,
-    vcov = vcov
+
+  grad
+}
+
+#' @noRd
+.hzr_optim_loglogistic <- function(
+    time, status, time_lower = NULL, time_upper = NULL,
+    x = NULL, theta_start, control = list()) {
+  .hzr_optim_generic(
+    logl_fn = .hzr_logl_loglogistic,
+    gradient_fn = .hzr_gradient_loglogistic,
+    time = time, status = status,
+    time_lower = time_lower, time_upper = time_upper,
+    x = x, theta_start = theta_start,
+    control = control, use_bounds = FALSE
   )
 }
 

@@ -84,7 +84,20 @@ NULL
 #' - This is implemented as design-matrix expansion, so the existing likelihood
 #'   engines remain unchanged.
 #'
- #' @export
+#' @examples
+#' # Fit a Weibull hazard model
+#' set.seed(1)
+#' time <- rexp(50, rate = 0.3)
+#' status <- sample(0:1, 50, replace = TRUE, prob = c(0.3, 0.7))
+#' fit <- hazard(time = time, status = status,
+#'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
+#' print(fit)
+#'
+#' # Formula interface
+#' df <- data.frame(time = time, status = status, x1 = rnorm(50))
+#' fit2 <- hazard(survival::Surv(time, status) ~ x1, data = df,
+#'                theta = c(0.3, 1.0, 0), dist = "weibull", fit = TRUE)
+#' @export
 hazard <- function(formula = NULL,
                    data = NULL,
                    time = NULL,
@@ -244,86 +257,30 @@ hazard <- function(formula = NULL,
     sqrt(d)
   }
 
-  # Distribution dispatch — maximise log-likelihood via the distribution-specific
-  # optimiser.  Each branch calls .hzr_optim_<dist>() and writes the standardised
-  # fit_state fields.  See the file header for parameterisation conventions and
-  # instructions for adding new distributions.
+  # Distribution dispatch — select the distribution-specific optimizer and fit.
   if (fit && !is.null(theta)) {
-    if (dist == "weibull") {
-      optim_result <- .hzr_run_fit_safely(.hzr_optim_weibull(
-        time = time,
-        status = status,
-        time_lower = time_lower,
-        time_upper = time_upper,
-        x = x_fit,
-        theta_start = theta,
-        control = control
-      ))
-
-      fit_state$theta <- optim_result$par
-      fit_state$objective <- optim_result$value
-      fit_state$converged <- (optim_result$convergence == 0)
-      fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
-      fit_state$vcov <- optim_result$vcov
-      fit_state$counts <- optim_result$counts
-      fit_state$message <- optim_result$message
-    } else if (dist == "exponential") {
-      optim_result <- .hzr_run_fit_safely(.hzr_optim_exponential(
-        time = time,
-        status = status,
-        time_lower = time_lower,
-        time_upper = time_upper,
-        x = x_fit,
-        theta_start = theta,
-        control = control
-      ))
-
-      fit_state$theta <- optim_result$par
-      fit_state$objective <- optim_result$value
-      fit_state$converged <- (optim_result$convergence == 0)
-      fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
-      fit_state$vcov <- optim_result$vcov
-      fit_state$counts <- optim_result$counts
-      fit_state$message <- optim_result$message
-    } else if (dist == "loglogistic") {
-      optim_result <- .hzr_run_fit_safely(.hzr_optim_loglogistic(
-        time = time,
-        status = status,
-        time_lower = time_lower,
-        time_upper = time_upper,
-        x = x_fit,
-        theta_start = theta,
-        control = control
-      ))
-
-      fit_state$theta <- optim_result$par
-      fit_state$objective <- optim_result$value
-      fit_state$converged <- (optim_result$convergence == 0)
-      fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
-      fit_state$vcov <- optim_result$vcov
-      fit_state$counts <- optim_result$counts
-      fit_state$message <- optim_result$message
-    } else if (dist == "lognormal") {
-      optim_result <- .hzr_run_fit_safely(.hzr_optim_lognormal(
-        time = time,
-        status = status,
-        time_lower = time_lower,
-        time_upper = time_upper,
-        x = x_fit,
-        theta_start = theta,
-        control = control
-      ))
-
-      fit_state$theta <- optim_result$par
-      fit_state$objective <- optim_result$value
-      fit_state$converged <- (optim_result$convergence == 0)
-      fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
-      fit_state$vcov <- optim_result$vcov
-      fit_state$counts <- optim_result$counts
-      fit_state$message <- optim_result$message
-    } else {
+    optim_fn <- switch(
+      dist,
+      weibull = .hzr_optim_weibull,
+      exponential = .hzr_optim_exponential,
+      loglogistic = .hzr_optim_loglogistic,
+      lognormal = .hzr_optim_lognormal,
       stop("Distribution '", dist, "' not yet supported for fitting.", call. = FALSE)
-    }
+    )
+
+    optim_result <- .hzr_run_fit_safely(optim_fn(
+      time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x_fit, theta_start = theta, control = control
+    ))
+
+    fit_state$theta <- optim_result$par
+    fit_state$objective <- optim_result$value
+    fit_state$converged <- (optim_result$convergence == 0)
+    fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
+    fit_state$vcov <- optim_result$vcov
+    fit_state$counts <- optim_result$counts
+    fit_state$message <- optim_result$message
   }
 
   # Assemble the hazard S3 object.
@@ -380,6 +337,12 @@ hazard <- function(formula = NULL,
 #' so window-specific coefficients can be selected.
 #'
 #' @return Numeric vector of predictions.
+#' @examples
+#' set.seed(1)
+#' fit <- hazard(time = rexp(50, 0.3), status = rep(1L, 50),
+#'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
+#' predict(fit, type = "survival")
+#' predict(fit, newdata = data.frame(time = c(1, 2, 5)), type = "cumulative_hazard")
 #' @export
 predict.hazard <- function(object, newdata = NULL, type = c("hazard", "linear_predictor", "survival", "cumulative_hazard"), ...) {
   type <- match.arg(type)
@@ -429,41 +392,22 @@ predict.hazard <- function(object, newdata = NULL, type = c("hazard", "linear_pr
       x <- .hzr_expand_time_varying_design(x = x, time = pred_time, time_windows = time_windows)
     }
     
+    # Extract covariate coefficients by stripping shape parameters from theta.
+    n_shape <- .hzr_shape_parameter_count(object$spec$dist)
+
     if (is.null(x)) {
-      # No covariates; univariate models with only shape parameters are still valid.
-      # Return a zero linear predictor (η = 0 ⇒ no covariate adjustment).
-      if (length(theta) == 2 && object$spec$dist == "weibull") {
-        # Univariable case: return constant hazard/predictor
-        if (is.null(n_pred)) {
-          n_pred <- length(object$data$time)
-        }
+      if (length(theta) <= n_shape) {
+        # Univariable model: no covariates, η = 0
+        if (is.null(n_pred)) n_pred <- length(object$data$time)
         eta <- rep(0, n_pred)
       } else {
         stop("Predictors are required either in the fitted object or via 'newdata'.", call. = FALSE)
       }
     } else {
-      # Extract covariate coefficients from theta
-      # For Weibull: theta = [mu, nu, beta1, beta2, ...]
-      if (object$spec$dist == "weibull" && length(theta) > 2) {
-        # Remove shape parameters, keep only covariate coefficients
-        beta <- theta[3:length(theta)]
-      } else if (object$spec$dist == "loglogistic" && length(theta) > 2) {
-        # Log-logistic: theta = [log(alpha), log(beta), beta1, beta2, ...]
-        beta <- theta[3:length(theta)]
-      } else if (object$spec$dist == "lognormal" && length(theta) > 2) {
-        # Log-normal: theta = [mu, log(sigma), beta1, beta2, ...]
-        beta <- theta[3:length(theta)]
-      } else if (object$spec$dist == "exponential" && length(theta) > 1) {
-        # Exponential: theta = [log(lambda), beta1, beta2, ...]
-        beta <- theta[2:length(theta)]
-      } else {
-        # Assume all of theta are covariate coefficients
-        beta <- theta
-      }
-      
+      beta <- if (length(theta) > n_shape) theta[(n_shape + 1):length(theta)] else theta
       if (ncol(x) != length(beta)) {
-        stop("Number of predictor columns (", ncol(x), 
-             ") must match number of covariate coefficients (", length(beta), ").", 
+        stop("Number of predictor columns (", ncol(x),
+             ") must match number of covariate coefficients (", length(beta), ").",
              call. = FALSE)
       }
       eta <- as.numeric(x %*% beta)
@@ -516,120 +460,41 @@ predict.hazard <- function(object, newdata = NULL, type = c("hazard", "linear_pr
       stop("'time' must be a numeric vector of finite non-negative values.", call. = FALSE)
     }
 
-    # Dispatch by distribution — each branch sets `cumhaz`.
-    # Log-normal is the exception: it returns early (see note above).
+    # Extract shape parameters and covariate coefficients
+    n_shape <- .hzr_shape_parameter_count(object$spec$dist)
+
+    if (!is.null(x) && ncol(x) > 0) {
+      if (length(theta) < ncol(x) + n_shape) {
+        stop("Number of parameters insufficient for predictor columns.", call. = FALSE)
+      }
+      beta_coef <- theta[(n_shape + 1):length(theta)]
+      eta <- as.numeric(x %*% beta_coef)
+    } else {
+      eta <- rep(0, length(time))
+    }
+
+    # Dispatch cumulative hazard computation by distribution.
+    # Log-normal is an AFT model and returns survival/cumhaz directly.
     if (object$spec$dist == "weibull") {
-      # Extract Weibull shape parameters
-      if (length(theta) < 2) {
-        stop("Weibull model must have at least 2 parameters (mu, nu).", call. = FALSE)
-      }
-
-      mu <- theta[1]
-      nu <- theta[2]
-
-      if (mu <= 0 || nu <= 0) {
-        stop("Weibull shape parameters (mu, nu) must be positive.", call. = FALSE)
-      }
-
-      # Compute linear predictor (covariate effect)
-      if (!is.null(x) && ncol(x) > 0) {
-        if (length(theta) < ncol(x) + 2) {
-          stop("Number of parameters insufficient for predictor columns.", call. = FALSE)
-        }
-        beta <- theta[3:length(theta)]
-        eta <- as.numeric(x %*% beta)
-      } else {
-        eta <- rep(0, length(time))
-      }
-
-      # Compute cumulative hazard: H(t|x) = (mu * t)^nu * exp(eta)
+      mu <- theta[1]; nu <- theta[2]
+      if (mu <= 0 || nu <= 0) stop("Weibull shape parameters (mu, nu) must be positive.", call. = FALSE)
       cumhaz <- (mu * time) ^ nu * exp(eta)
     } else if (object$spec$dist == "exponential") {
-      # Extract exponential parameter
-      if (length(theta) < 1) {
-        stop("Exponential model must have at least 1 parameter (log(lambda)).", call. = FALSE)
-      }
-
-      log_lambda <- theta[1]
-      lambda <- exp(log_lambda)
-
-      # Compute linear predictor (covariate effect)
-      if (!is.null(x) && ncol(x) > 0) {
-        if (length(theta) < ncol(x) + 1) {
-          stop("Number of parameters insufficient for predictor columns.", call. = FALSE)
-        }
-        beta <- theta[2:length(theta)]
-        eta <- as.numeric(x %*% beta)
-      } else {
-        eta <- rep(0, length(time))
-      }
-
-      # Compute cumulative hazard: H(t|x) = lambda * t * exp(eta)
+      lambda <- exp(theta[1])
       cumhaz <- lambda * time * exp(eta)
     } else if (object$spec$dist == "loglogistic") {
-      # Extract log-logistic parameters
-      if (length(theta) < 2) {
-        stop("Log-logistic model must have at least 2 parameters (log(alpha), log(beta)).", call. = FALSE)
-      }
-
-      log_alpha <- theta[1]
-      log_beta <- theta[2]
-      alpha <- exp(log_alpha)
-      beta <- exp(log_beta)
-
-      # Compute linear predictor (covariate effect)
-      if (!is.null(x) && ncol(x) > 0) {
-        if (length(theta) < ncol(x) + 2) {
-          stop("Number of parameters insufficient for predictor columns.", call. = FALSE)
-        }
-        beta_coef <- theta[3:length(theta)]
-        eta <- as.numeric(x %*% beta_coef)
-      } else {
-        eta <- rep(0, length(time))
-      }
-
-      # Compute cumulative hazard: H(t|x) = log(1 + alpha * t^beta * exp(eta))
-      cumhaz <- log(1 + alpha * (time ^ beta) * exp(eta))
+      alpha <- exp(theta[1]); beta_shape <- exp(theta[2])
+      cumhaz <- log(1 + alpha * (time ^ beta_shape) * exp(eta))
     } else if (object$spec$dist == "lognormal") {
-      # Extract log-normal parameters (AFT: location + scale)
-      if (length(theta) < 2) {
-        stop("Log-normal model must have at least 2 parameters (mu, log(sigma)).", call. = FALSE)
-      }
-
-      mu <- theta[1]
-      log_sigma <- theta[2]
-      sigma <- exp(log_sigma)
-
-      # Compute linear predictor (AFT: covariates add to location)
-      if (!is.null(x) && ncol(x) > 0) {
-        if (length(theta) < ncol(x) + 2) {
-          stop("Number of parameters insufficient for predictor columns.", call. = FALSE)
-        }
-        beta_coef <- theta[3:length(theta)]
-        eta <- mu + as.numeric(x %*% beta_coef)
-      } else {
-        eta <- rep(mu, length(time))
-      }
-
-      # Standardized residual: z = (log(t) - eta) / sigma
-      z <- (log(time) - eta) / sigma
-
-      # Survival: S(t|x) = Phi(-z)
-      surv <- pnorm(-z)
-
-      if (type == "survival") {
-        return(surv)
-      }
-
-      # Cumulative hazard: H(t|x) = -log(S(t|x))
+      mu <- theta[1]; sigma <- exp(theta[2])
+      # AFT: covariates shift the location
+      eta_aft <- if (!is.null(x) && ncol(x) > 0) mu + as.numeric(x %*% beta_coef) else rep(mu, length(time))
+      z <- (log(time) - eta_aft) / sigma
+      if (type == "survival") return(pnorm(-z))
       return(-pnorm(-z, log.p = TRUE))
     }
 
-    if (type == "cumulative_hazard") {
-      return(cumhaz)
-    }
-
-    # Survival: S(t|x) = exp(-H(t|x))
+    if (type == "cumulative_hazard") return(cumhaz)
     return(exp(-cumhaz))
   }
 
@@ -661,6 +526,10 @@ print.hazard <- function(x, ...) {
 #' @param object A `hazard` object.
 #' @param ... Unused; for S3 compatibility.
 #' @return An object of class `summary.hazard`.
+#' @examples
+#' fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
+#'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
+#' summary(fit)
 #' @export
 summary.hazard <- function(object, ...) {
   n <- length(object$data$time)
@@ -747,6 +616,10 @@ print.summary.hazard <- function(x, ...) {
 #'
 #' @param object A `hazard` object.
 #' @param ... Unused; for S3 compatibility.
+#' @examples
+#' fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
+#'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
+#' coef(fit)
 #' @export
 coef.hazard <- function(object, ...) {
   if (is.null(object$fit$theta)) {
@@ -761,6 +634,10 @@ coef.hazard <- function(object, ...) {
 #'
 #' @param object A `hazard` object.
 #' @param ... Unused; for S3 compatibility.
+#' @examples
+#' fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
+#'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
+#' vcov(fit)
 #' @export
 vcov.hazard <- function(object, ...) {
   if (is.null(object$fit$vcov) || anyNA(object$fit$vcov)) {
@@ -817,6 +694,20 @@ vcov.hazard <- function(object, ...) {
     x <- data.matrix(x)
   }
 
+  if (!is.matrix(x) || !is.numeric(x)) {
+    stop("Predictor input must be a numeric matrix or coercible data frame.", call. = FALSE)
+  }
+
+  if (any(!is.finite(x))) {
+    stop("Predictor matrix contains non-finite values.", call. = FALSE)
+  }
+
+  if (!is.null(n) && nrow(x) != n) {
+    stop("Predictor rows must match the length of 'time'.", call. = FALSE)
+  }
+
+  x
+}
 
 #' Expand predictors for piecewise time-varying coefficients
 #'
@@ -834,21 +725,6 @@ vcov.hazard <- function(object, ...) {
 #' @param time_windows Numeric vector of window cut points.
 #' @return Expanded numeric matrix with window-specific column names.
 #' @noRd
-  if (!is.matrix(x) || !is.numeric(x)) {
-    stop("Predictor input must be a numeric matrix or coercible data frame.", call. = FALSE)
-  }
-
-  if (any(!is.finite(x))) {
-    stop("Predictor matrix contains non-finite values.", call. = FALSE)
-  }
-
-  if (!is.null(n) && nrow(x) != n) {
-    stop("Predictor rows must match the length of 'time'.", call. = FALSE)
-  }
-
-  x
-}
-
 .hzr_expand_time_varying_design <- function(x, time, time_windows) {
   if (is.data.frame(x)) {
     x <- data.matrix(x)

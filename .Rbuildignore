@@ -10,7 +10,9 @@
 ^_pkgdown\.yml$
 ^M2-STATUS\.md$
 ^M3-STATUS\.md$
-^vignettes/.*\.qmd$
+^vignettes/.*\.html$
 ^inst/bin/hazard$
 ^inst/bin/hazard\.exe$
 ^inst/bin/hazpred\.exe$
+^docs$
+^vignettes/\.quarto$

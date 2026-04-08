@@ -1,0 +1,140 @@
+#' @importFrom stats optim
+#' @keywords internal
+NULL
+
+# optimizer.R — Generic parametric hazard optimizer
+#
+# Consolidates the common optimization pattern shared across all distributions.
+# Each distribution provides its own log-likelihood and gradient functions;
+# this module handles the objective wrapping, optim() call, and post-fit
+# Hessian/vcov computation.
+
+#' Generic optimizer for parametric hazard likelihoods
+#'
+#' Maximises a log-likelihood by minimising its negation via \code{stats::optim}.
+#' Handles constrained (L-BFGS-B) and unconstrained (BFGS) optimization,
+#' post-fit Hessian computation, and vcov extraction.
+#'
+#' @param logl_fn Function(theta, time, status, time_lower, time_upper, x, ...)
+#'   returning the scalar log-likelihood.  Must accept \code{return_gradient}
+#'   argument (not used here directly, but the function signature must allow it).
+#' @param gradient_fn Function(theta, time, status, time_lower, time_upper, x, ...)
+#'   returning the score vector (gradient of the log-likelihood, NOT negated).
+#' @param time Numeric vector of follow-up times.
+#' @param status Numeric vector of event/censoring indicators.
+#' @param time_lower Optional lower bounds for interval censoring.
+#' @param time_upper Optional upper bounds for left/interval censoring.
+#' @param x Optional design matrix.
+#' @param theta_start Starting parameter vector.
+#' @param control List of control options (maxit, reltol, abstol).
+#' @param use_bounds Logical; if TRUE, use L-BFGS-B with lower bounds of 1e-6
+#'   on all parameters.  Used for Weibull where mu/nu are on the natural scale.
+#'
+#' @return List with par, value (log-likelihood), convergence, counts, message,
+#'   hessian, vcov.
+#' @noRd
+.hzr_optim_generic <- function(
+    logl_fn,
+    gradient_fn,
+    time,
+    status,
+    time_lower = NULL,
+    time_upper = NULL,
+    x = NULL,
+    theta_start,
+    control = list(),
+    use_bounds = FALSE) {
+
+  control <- utils::modifyList(
+    list(maxit = 1000, reltol = 1e-5, abstol = 1e-6),
+    control
+  )
+
+  # Negative log-likelihood for minimization
+  objective <- function(theta) {
+    if (!all(is.finite(theta))) return(1e10)
+    if (use_bounds && any(theta <= 0)) return(1e10)
+
+    ll <- -logl_fn(
+      theta = theta, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x, return_gradient = FALSE
+    )
+    if (!is.finite(ll)) return(1e10)
+    ll
+  }
+
+  # Negative score vector for minimization
+  gradient <- function(theta) {
+    if (!all(is.finite(theta))) return(rep(0, length(theta)))
+    if (use_bounds && any(theta <= 0)) return(rep(0, length(theta)))
+
+    grad <- tryCatch(
+      gradient_fn(
+        theta = theta, time = time, status = status,
+        time_lower = time_lower, time_upper = time_upper, x = x
+      ),
+      error = function(e) rep(0, length(theta))
+    )
+
+    grad[!is.finite(grad)] <- 0
+    -grad
+  }
+
+  # Dispatch to constrained or unconstrained optimizer
+  if (use_bounds) {
+    result <- optim(
+      par = theta_start, fn = objective, gr = gradient,
+      method = "L-BFGS-B",
+      lower = rep(1e-6, length(theta_start)),
+      upper = rep(Inf, length(theta_start)),
+      control = list(
+        maxit = control$maxit,
+        factr = 1 / control$reltol,
+        pgtol = control$abstol
+      ),
+      hessian = FALSE
+    )
+  } else {
+    result <- optim(
+      par = theta_start, fn = objective, gr = gradient,
+      method = "BFGS",
+      control = list(maxit = control$maxit, reltol = control$reltol),
+      hessian = FALSE
+    )
+  }
+
+  # Post-fit Hessian for standard errors
+  hess_result <- tryCatch(
+    {
+      if (requireNamespace("numDeriv", quietly = TRUE)) {
+        numDeriv::hessian(objective, result$par)
+      } else {
+        NA
+      }
+    },
+    error = function(e) NA
+  )
+
+  vcov <- if (!anyNA(hess_result)) {
+    tryCatch(
+      solve(hess_result),
+      error = function(e) {
+        warning("Hessian not invertible; standard errors unavailable")
+        NA
+      }
+    )
+  } else {
+    NA
+  }
+
+  list(
+    par = result$par,
+    value = -result$value,
+    convergence = result$convergence,
+    counts = result$counts,
+    message = result$message,
+    hessian = hess_result,
+    vcov = vcov
+  )
+}

@@ -20,6 +20,9 @@
 #'   are returned.
 #'
 #' @return A data frame with one row per mapping rule.
+#' @examples
+#' hzr_argument_mapping()
+#' hzr_argument_mapping(include_planned = FALSE)
 #' @export
 hzr_argument_mapping <- function(include_planned = TRUE) {
   map <- .hzr_argument_mapping_table

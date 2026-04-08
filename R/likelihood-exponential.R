@@ -242,155 +242,17 @@ NULL
   grad
 }
 
-#' Optimize exponential hazard likelihood
-#'
-#' Fits a parametric exponential hazard model by maximizing the log-likelihood
-#' using L-BFGS-B optimization (unconstrained, via log(lambda) reparameterization).
-#'
-#' @param time Numeric vector of follow-up times
-#' @param status Numeric vector of event indicators (0/1)
-#' @param x Optional design matrix of covariates
-#' @param theta_start Vector of starting parameter values
-#' @param control List of optimization control parameters
-#'
-#' @return List with:
-#'   - \code{par}: Final parameter estimates
-#'   - \code{value}: Log-likelihood at solution
-#'   - \code{convergence}: Code (0 = success)
-#'   - \code{counts}: Number of function/gradient evaluations
-#'   - \code{message}: Convergence message
-#'   - \code{vcov}: Variance-covariance matrix at solution
-#'
 #' @noRd
 .hzr_optim_exponential <- function(
-    time,
-    status,
-  time_lower = NULL,
-  time_upper = NULL,
-    x = NULL,
-    theta_start,
-    control = list()) {
-  
-  # Merge defaults
-  control <- utils::modifyList(
-    list(
-      maxit = 1000,
-      reltol = 1e-5,
-      abstol = 1e-6,
-      method = "BFGS"
-    ),
-    control
-  )
-  
-  # Set up objective (negative log-likelihood for minimization)
-  objective <- function(theta) {
-    ll <- -.hzr_logl_exponential(
-      theta = theta,
-      time = time,
-      status = status,
-      time_lower = time_lower,
-      time_upper = time_upper,
-      x = x,
-      return_gradient = FALSE
-    )
-    
-    if (!is.finite(ll)) return(1e10)
-    ll
-  }
-  
-  # Set up gradient
-  gradient <- function(theta) {
-    # Prevent numerical issues
-    if (!all(is.finite(theta))) {
-      return(rep(0, length(theta)))
-    }
-    
-    log_lambda <- theta[1]
-    lambda <- exp(log_lambda)
-    
-    if (!is.null(x)) {
-      beta <- theta[2:length(theta)]
-      eta <- as.numeric(x %*% beta)
-    } else {
-      eta <- rep(0, length(time))
-    }
-    
-    cumhaz <- lambda * time * exp(eta)
-    
-    if (!all(is.finite(cumhaz))) {
-      return(rep(0, length(theta)))
-    }
-    
-    grad <- tryCatch({
-      .hzr_gradient_exponential(
-        theta = theta,
-        time = time,
-        status = status,
-        time_lower = time_lower,
-        time_upper = time_upper,
-        x = x,
-        eta = eta,
-        cumhaz = cumhaz,
-        lambda = lambda,
-        log_lambda = log_lambda
-      )
-    }, error = function(e) {
-      rep(0, length(theta))
-    })
-    
-    if (!all(is.finite(grad))) {
-      grad[!is.finite(grad)] <- 0
-    }
-    
-    # Return negative gradient (for minimization)
-    -grad
-  }
-  
-  # Optimize (unconstrained optimization since log(lambda) is unrestricted)
-  result <- optim(
-    par = theta_start,
-    fn = objective,
-    gr = gradient,
-    method = "BFGS",
-    control = list(
-      maxit = control$maxit,
-      reltol = control$reltol
-    ),
-    hessian = FALSE
-  )
-  
-  # Post-fit Hessian computation
-  hess_result <- tryCatch(
-    {
-      if (requireNamespace("numDeriv", quietly = TRUE)) {
-        numDeriv::hessian(objective, result$par)
-      } else {
-        NA
-      }
-    },
-    error = function(e) NA
-  )
-  
-  vcov <- if (!anyNA(hess_result)) {
-    tryCatch(
-      solve(-hess_result),
-      error = function(e) {
-        warning("Hessian not invertible; standard errors unavailable")
-        NA
-      }
-    )
-  } else {
-    NA
-  }
-  
-  list(
-    par = result$par,
-    value = -result$value,  # Restore log-likelihood
-    convergence = result$convergence,
-    counts = result$counts,
-    message = result$message,
-    hessian = hess_result,
-    vcov = vcov
+    time, status, time_lower = NULL, time_upper = NULL,
+    x = NULL, theta_start, control = list()) {
+  .hzr_optim_generic(
+    logl_fn = .hzr_logl_exponential,
+    gradient_fn = .hzr_gradient_exponential,
+    time = time, status = status,
+    time_lower = time_lower, time_upper = time_upper,
+    x = x, theta_start = theta_start,
+    control = control, use_bounds = FALSE
   )
 }
 

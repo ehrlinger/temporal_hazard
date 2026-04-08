@@ -1,9 +1,9 @@
 Package: TemporalHazard
 Title: Temporal Parametric Hazard Modeling in R
-Version: 0.0.0.9000
-Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@example.com", role = c("aut", "cre"))
+Version: 0.1.0
+Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@gmail.com", role = c("aut", "cre"))
 Author: John Ehrlinger [aut, cre]
-Maintainer: John Ehrlinger <john.ehrlinger@example.com>
+Maintainer: John Ehrlinger <john.ehrlinger@gmail.com>
 URL: https://ehrlinger.github.io/temporal_hazard
 BugReports: https://github.com/ehrlinger/temporal_hazard/issues
 Description: Provides native R implementations of core HAZARD model
@@ -19,8 +19,7 @@ RoxygenNote: 7.3.3
 VignetteBuilder: quarto
 Depends: R (>= 4.1.0)
 Imports:
-    survival,
-    tibble
+    survival
 Suggests:
     covr,
     ggplot2,

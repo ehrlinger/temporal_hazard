@@ -93,6 +93,66 @@ test_that("summary.hazard includes standard errors when vcov is available", {
   expect_true(is.finite(s$coefficients$p_value))
 })
 
+test_that("optimizer produces valid vcov and SEs for all distributions", {
+  skip_if_not_installed("numDeriv")
+
+  set.seed(42)
+  n <- 200
+  time <- rexp(n, 0.5)
+  cens <- runif(n, 0, quantile(time, 0.8))
+  status <- as.integer(time <= cens)
+  time <- pmin(time, cens)
+
+  # Weibull
+  fit_w <- hazard(time = time, status = status,
+                  theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
+  expect_true(is.matrix(fit_w$fit$vcov))
+  expect_true(all(diag(fit_w$fit$vcov) > 0))
+  expect_true(all(is.finite(fit_w$fit$se)))
+  expect_equal(fit_w$fit$se, sqrt(diag(fit_w$fit$vcov)))
+
+  # Exponential
+  fit_e <- hazard(time = time, status = status,
+                  theta = c(log(0.3)), dist = "exponential", fit = TRUE)
+  expect_true(is.matrix(fit_e$fit$vcov))
+  expect_true(all(diag(fit_e$fit$vcov) > 0))
+  expect_true(all(is.finite(fit_e$fit$se)))
+
+  # Log-logistic
+  fit_ll <- hazard(time = time, status = status,
+                   theta = c(0, 0.2), dist = "loglogistic", fit = TRUE)
+  expect_true(is.matrix(fit_ll$fit$vcov))
+  expect_true(all(diag(fit_ll$fit$vcov) > 0))
+  expect_true(all(is.finite(fit_ll$fit$se)))
+
+  # Log-normal
+  fit_ln <- hazard(time = time, status = status,
+                   theta = c(1, 0), dist = "lognormal", fit = TRUE)
+  expect_true(is.matrix(fit_ln$fit$vcov))
+  expect_true(all(diag(fit_ln$fit$vcov) > 0))
+  expect_true(all(is.finite(fit_ln$fit$se)))
+})
+
+test_that("summary shows finite z-stats and p-values from fitted model", {
+  skip_if_not_installed("numDeriv")
+
+  set.seed(99)
+  n <- 150
+  x <- matrix(rnorm(n), ncol = 1)
+  time <- rexp(n, exp(0.5 * x))
+  status <- rep(1L, n)
+
+  fit <- hazard(time = time, status = status, x = x,
+                theta = c(0.3, 1.0, 0), dist = "weibull", fit = TRUE)
+  s <- summary(fit)
+
+  expect_true(s$has_vcov)
+  expect_true(all(is.finite(s$coefficients$std_error)))
+  expect_true(all(is.finite(s$coefficients$z_stat)))
+  expect_true(all(is.finite(s$coefficients$p_value)))
+  expect_true(all(s$coefficients$p_value >= 0 & s$coefficients$p_value <= 1))
+})
+
 test_that("print.summary.hazard prints without error", {
   fit <- hazard(
     time = c(1, 2),

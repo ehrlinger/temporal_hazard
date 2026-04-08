@@ -88,3 +88,17 @@ interactions so each window has its own coefficient vector.
 engines remain unchanged.
 }
 }
+\examples{
+# Fit a Weibull hazard model
+set.seed(1)
+time <- rexp(50, rate = 0.3)
+status <- sample(0:1, 50, replace = TRUE, prob = c(0.3, 0.7))
+fit <- hazard(time = time, status = status,
+              theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
+print(fit)
+
+# Formula interface
+df <- data.frame(time = time, status = status, x1 = rnorm(50))
+fit2 <- hazard(survival::Surv(time, status) ~ x1, data = df,
+               theta = c(0.3, 1.0, 0), dist = "weibull", fit = TRUE)
+}

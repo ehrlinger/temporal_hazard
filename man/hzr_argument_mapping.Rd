@@ -17,3 +17,7 @@ A data frame with one row per mapping rule.
 Returns a formal mapping table that defines how legacy SAS HAZARD/C-style
 inputs map to \code{hazard(...)} arguments in this package.
 }
+\examples{
+hzr_argument_mapping()
+hzr_argument_mapping(include_planned = FALSE)
+}

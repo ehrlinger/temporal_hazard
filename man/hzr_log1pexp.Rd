@@ -15,3 +15,6 @@ Numeric vector with element-wise \code{log(1 + exp(x))}.
 \description{
 Numerically stable log(1 + exp(x))
 }
+\examples{
+hzr_log1pexp(c(-50, 0, 50))
+}

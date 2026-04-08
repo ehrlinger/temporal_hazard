@@ -100,11 +100,13 @@ test_that("optimizer converges using analytical gradient", {
 test_that("optimizer with gradient is faster than without (heuristic)", {
   skip_if_not_installed("numDeriv")
   
-  # Create larger dataset for meaningful timing
+  # Simulate proper Weibull data with censoring
   set.seed(123)
   n <- 50
-  time <- rexp(n, rate = 0.5)
-  status <- rbinom(n, 1, 0.7)
+  event_time <- (-log(runif(n)) / 0.5) ^ (1 / 1.2)
+  cens_time <- runif(n, 0, quantile(event_time, 0.8))
+  status <- as.integer(event_time <= cens_time)
+  time <- pmin(event_time, cens_time)
   
   theta_start <- c(mu = 0.5, nu = 1.0)
   
@@ -114,9 +116,9 @@ test_that("optimizer with gradient is faster than without (heuristic)", {
     status = status,
     x = NULL,
     theta_start = theta_start,
-    control = list(maxit = 100)
+    control = list(maxit = 1000)
   )
-  
+
   # Should converge
   expect_equal(result_with_grad$convergence, 0)
   

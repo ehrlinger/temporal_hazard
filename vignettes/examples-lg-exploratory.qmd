@@ -5,7 +5,7 @@ format: html
 
 <!--
 %\VignetteIndexEntry{Example: Logistic/Gompertz Exploratory Plots (lg.*)}
-%\VignetteEngine{knitr::quarto}
+%\VignetteEngine{quarto::html}
 %\VignetteEncoding{UTF-8}
 -->
 

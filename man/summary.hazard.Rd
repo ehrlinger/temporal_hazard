@@ -18,3 +18,8 @@ An object of class \code{summary.hazard}.
 Returns a compact summary of a \code{hazard} object, including model metadata,
 fit diagnostics, and coefficient-level statistics when available.
 }
+\examples{
+fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
+              theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
+summary(fit)
+}

@@ -5,7 +5,7 @@ format: html
 
 <!--
 %\VignetteIndexEntry{Migrating from SAS HAZARD to TemporalHazard}
-%\VignetteEngine{knitr::quarto}
+%\VignetteEngine{quarto::html}
 %\VignetteEncoding{UTF-8}
 -->
 
@@ -16,12 +16,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 ```{r}
 #| label: setup
-if (!requireNamespace("TemporalHazard", quietly = TRUE)) {
-  if (!requireNamespace("pkgload", quietly = TRUE)) {
-    stop("TemporalHazard is unavailable and pkgload is not installed.", call. = FALSE)
-  }
-  pkgload::load_all(".", quiet = TRUE, export_all = FALSE)
-}
+library(TemporalHazard)
 ```
 
 ## Overview

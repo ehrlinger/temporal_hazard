@@ -22,7 +22,7 @@
   rhs <- formula[[3L]]
 
   # Extract Surv() call
-  if (!is.call(lhs) || as.character(lhs[[1L]]) != "Surv") {
+  if (!is.call(lhs) || !grepl("Surv$", deparse(lhs[[1L]]))) {
     stop("Formula LHS must be a Surv() call.", call. = FALSE)
   }
 

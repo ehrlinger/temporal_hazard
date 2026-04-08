@@ -15,3 +15,6 @@ Numeric vector with element-wise \code{log(1 - exp(-x))}.
 \description{
 Numerically stable log(1 - exp(-x)) for x > 0
 }
+\examples{
+hzr_log1mexp(c(0.01, 0.5, 5))
+}
