@@ -11,7 +11,12 @@ format: html
 
 ```{r}
 #| include: false
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = has_pkg
+)
 ```
 
 ```{r}

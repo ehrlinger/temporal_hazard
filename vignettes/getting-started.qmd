@@ -14,7 +14,12 @@ format:
 
 ```{r}
 #| include: false
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = has_pkg
+)
 ```
 
 This vignette shows the minimal workflow for fitting a parametric hazard model,
