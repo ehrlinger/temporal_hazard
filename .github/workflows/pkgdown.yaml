@@ -27,10 +27,15 @@ jobs:
           extra-packages: any::pkgdown, any::roxygen2
           needs: website
 
-      - name: Build pkgdown site
+      - name: Install package
         shell: Rscript {0}
         run: |
           roxygen2::roxygenise(load_code = roxygen2::load_source)
+          install.packages(".", repos = NULL, type = "source")
+
+      - name: Build pkgdown site
+        shell: Rscript {0}
+        run: |
           pkgdown::build_site(new_process = FALSE)
 
       - name: Deploy to gh-pages branch
