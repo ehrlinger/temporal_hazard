@@ -1,4 +1,4 @@
-#' @importFrom stats optim
+#' @importFrom stats optim setNames
 #' @keywords internal
 NULL
 
