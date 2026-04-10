@@ -407,7 +407,7 @@ NULL
   mu_hat    <- exp(alpha_hat / nu_hat)
   beta_hat  <- if (p > n_shape) result$par[(n_shape + 1):p] else numeric(0)
 
-  result$par <- unname(c(mu_hat, nu_hat, beta_hat))
+  result$par <- setNames(c(mu_hat, nu_hat, beta_hat), names(theta_start))
 
   # Delta method: Cov(μ, ν, β) = J · Cov(α, ψ, β) · Jᵀ
   #
