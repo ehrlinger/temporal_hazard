@@ -62,7 +62,7 @@ plot(hv_obj, type = "survival") +
     y = "Freedom from death (%)",
     title = "Kaplan-Meier: Death after AVC repair"
   ) +
-  hv_theme()
+  hv_theme_manuscript()
 ```
 
 ### Notes

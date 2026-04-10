@@ -123,7 +123,7 @@ plot(hz_sens) +
     y = "Freedom from death (%)",
     title = "Sensitivity analysis — reference vs high-risk"
   ) +
-  hv_theme()
+  hv_theme_manuscript()
 ```
 
 ---
@@ -215,5 +215,5 @@ plot(hz_tga) +
     y = "Freedom from arrhythmia (%)",
     title = "Scenario analysis — arrhythmia risk by age and repair type"
   ) +
-  hv_theme()
+  hv_theme_manuscript()
 ```
