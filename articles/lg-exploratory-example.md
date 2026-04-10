@@ -75,7 +75,7 @@ plot(hv_obj) +
     y = "Death",
     title = "Exploratory: AGE vs mortality"
   ) +
-  hv_theme()
+  hv_theme_manuscript()
 ```
 
 ------------------------------------------------------------------------

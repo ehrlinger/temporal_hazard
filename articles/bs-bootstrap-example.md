@@ -151,5 +151,5 @@ plot(hz_bs) +
     y = "Freedom from death (%)",
     title = "Bootstrap 95% CI — AVC death hazard model"
   ) +
-  hv_theme()
+  hv_theme_manuscript()
 ```

@@ -91,7 +91,7 @@ plot(hz_obj) +
     y = "Freedom from death (%)",
     title = "Predicted survival — median-profile AVC patient"
   ) +
-  hv_theme()
+  hv_theme_manuscript()
 ```
 
 ------------------------------------------------------------------------
@@ -184,7 +184,7 @@ plot(hz_compare) +
     y = "Freedom from death (%)",
     title = "Low-risk vs high-risk predicted survival"
   ) +
-  hv_theme()
+  hv_theme_manuscript()
 ```
 
 ------------------------------------------------------------------------

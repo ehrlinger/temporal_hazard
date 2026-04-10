@@ -78,7 +78,7 @@ plot(hz_obj) +
     y = "Freedom from death (%)",
     title = "Weibull parametric survival — AVC death"
   ) +
-  hv_theme()
+  hv_theme_manuscript()
 ```
 
 ------------------------------------------------------------------------
@@ -137,7 +137,7 @@ plot(hz_kul) +
     y = "Freedom from death (%)",
     title = "Exponential parametric survival — KUL procedures"
   ) +
-  hv_theme()
+  hv_theme_manuscript()
 ```
 
 ------------------------------------------------------------------------

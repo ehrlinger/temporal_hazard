@@ -153,7 +153,7 @@ plot(hz_patients) +
     y = "Freedom from death (%)",
     title = "Patient-specific predicted survival — AVC model"
   ) +
-  hv_theme()
+  hv_theme_manuscript()
 ```
 
 ------------------------------------------------------------------------
