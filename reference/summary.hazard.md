@@ -37,11 +37,11 @@ summary(fit)
 #>   dist:         weibull 
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -57.0753 
-#>   evaluations: fn=16, gr=5
+#>   log-lik:      -45.5527 
+#>   evaluations: fn=34, gr=9
 #> 
 #> Coefficients:
 #>     estimate  std_error   z_stat      p_value
-#> mu 0.3843428 0.06606602 5.817556 5.971440e-09
-#> nu 1.1216580 0.15900235 7.054349 1.734106e-12
+#> mu 0.5586338 0.09245866 6.041985 1.522301e-09
+#> nu 1.1575846 0.17065867 6.783040 1.176732e-11
 ```

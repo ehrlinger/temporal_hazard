@@ -165,25 +165,101 @@ engines remain unchanged.</p></li>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Fit a Weibull hazard model</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># ── Univariable Weibull ──────────────────────────────────────────────</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="fl">50</span>, rate <span class="op">=</span> <span class="fl">0.3</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">time</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="fl">50</span>, rate <span class="op">=</span> <span class="fl">0.3</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">status</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">0</span><span class="op">:</span><span class="fl">1</span>, <span class="fl">50</span>, replace <span class="op">=</span> <span class="cn">TRUE</span>, prob <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">0.7</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">hazard</span><span class="op">(</span>time <span class="op">=</span> <span class="va">time</span>, status <span class="op">=</span> <span class="va">status</span>,</span></span>
 <span class="r-in"><span>              theta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">1.0</span><span class="op">)</span>, dist <span class="op">=</span> <span class="st">"weibull"</span>, fit <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> hazard object</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> hazard model summary</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   observations: 50 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   predictors:   0 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   dist:         weibull </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -89.5173 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -89.5173 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=23, gr=7</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     estimate  std_error   z_stat      p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu 0.2190092 0.02728228 8.027524 9.945983e-16</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> nu 1.3389540 0.15829050 8.458840 2.700510e-17</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Formula interface</span></span></span>
-<span class="r-in"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="va">time</span>, status <span class="op">=</span> <span class="va">status</span>, x1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">50</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu">hazard</span><span class="op">(</span><span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">x1</span>, data <span class="op">=</span> <span class="va">df</span>,</span></span>
-<span class="r-in"><span>               theta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">1.0</span>, <span class="fl">0</span><span class="op">)</span>, dist <span class="op">=</span> <span class="st">"weibull"</span>, fit <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># ── Formula interface with covariates ────────────────────────────────</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1001</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">n</span>   <span class="op">&lt;-</span> <span class="fl">180</span></span></span>
+<span class="r-in"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  time   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="va">n</span>, rate <span class="op">=</span> <span class="fl">0.35</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.05</span>,</span></span>
+<span class="r-in"><span>  status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">n</span>, size <span class="op">=</span> <span class="fl">1</span>, prob <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  age    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, mean <span class="op">=</span> <span class="fl">62</span>, sd <span class="op">=</span> <span class="fl">11</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  nyha   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="va">n</span>, replace <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  shock  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">n</span>, size <span class="op">=</span> <span class="fl">1</span>, prob <span class="op">=</span> <span class="fl">0.18</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu">hazard</span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">age</span> <span class="op">+</span> <span class="va">nyha</span> <span class="op">+</span> <span class="va">shock</span>,</span></span>
+<span class="r-in"><span>  data    <span class="op">=</span> <span class="va">dat</span>,</span></span>
+<span class="r-in"><span>  theta   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="fl">0.25</span>, nu <span class="op">=</span> <span class="fl">1.10</span>, beta1 <span class="op">=</span> <span class="fl">0</span>, beta2 <span class="op">=</span> <span class="fl">0</span>, beta3 <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  dist    <span class="op">=</span> <span class="st">"weibull"</span>,</span></span>
+<span class="r-in"><span>  fit     <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">300</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit2</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> hazard model summary</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   observations: 180 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   predictors:   3 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   dist:         weibull </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -293.553 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=36, gr=8</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          estimate   std_error      z_stat      p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu    0.121860518 0.062260594  1.95726558 5.031625e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> nu    1.143730632 0.084302528 13.56697905 6.285984e-42</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> beta1 0.001716551 0.008807986  0.19488579 8.454824e-01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> beta2 0.156208724 0.090597558  1.72420457 8.467092e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> beta3 0.017352702 0.362918437  0.04781433 9.618642e-01</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="co"># ── Parametric survival with Kaplan-Meier overlay (requires hvtiPlotR)</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"hvtiPlotR"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"ggplot2"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ehrlinger/hvtiPlotR" class="external-link">hvtiPlotR</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co"># Parametric curve on a fine grid at median covariate profile</span></span></span>
+<span class="r-in"><span>  <span class="va">t_grid</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">time</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="fl">80</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">curve_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    time <span class="op">=</span> <span class="va">t_grid</span>, age <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">age</span><span class="op">)</span>, nyha <span class="op">=</span> <span class="fl">2</span>, shock <span class="op">=</span> <span class="fl">0</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">curve_df</span><span class="op">$</span><span class="va">survival</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit2</span>, newdata <span class="op">=</span> <span class="va">curve_df</span>, type <span class="op">=</span> <span class="st">"survival"</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="co"># Kaplan-Meier empirical overlay</span></span></span>
+<span class="r-in"><span>  <span class="va">km</span>    <span class="op">&lt;-</span> <span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/survfit.html" class="external-link">survfit</a></span><span class="op">(</span><span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, data <span class="op">=</span> <span class="va">dat</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="va">km_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="va">km</span><span class="op">$</span><span class="va">time</span>, estimate <span class="op">=</span> <span class="va">km</span><span class="op">$</span><span class="va">surv</span> <span class="op">*</span> <span class="fl">100</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="va">hz_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ehrlinger.github.io/hvtiPlotR/reference/hv_hazard.html" class="external-link">hv_hazard</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    curve_data       <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/transform.html" class="external-link">transform</a></span><span class="op">(</span><span class="va">curve_df</span>, survival <span class="op">=</span> <span class="va">survival</span> <span class="op">*</span> <span class="fl">100</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    x_col            <span class="op">=</span> <span class="st">"time"</span>,</span></span>
+<span class="r-in"><span>    estimate_col     <span class="op">=</span> <span class="st">"survival"</span>,</span></span>
+<span class="r-in"><span>    empirical        <span class="op">=</span> <span class="va">km_df</span>,</span></span>
+<span class="r-in"><span>    emp_x_col        <span class="op">=</span> <span class="st">"time"</span>,</span></span>
+<span class="r-in"><span>    emp_estimate_col <span class="op">=</span> <span class="st">"estimate"</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hz_obj</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>      x     <span class="op">=</span> <span class="st">"Years after surgery"</span>,</span></span>
+<span class="r-in"><span>      y     <span class="op">=</span> <span class="st">"Freedom from death (%)"</span>,</span></span>
+<span class="r-in"><span>      title <span class="op">=</span> <span class="st">"Parametric survival vs Kaplan-Meier"</span></span></span>
+<span class="r-in"><span>    <span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://ehrlinger.github.io/hvtiPlotR/reference/hv_theme_manuscript.html" class="external-link">hv_theme_manuscript</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span></span></span>
+<span class="r-plt img"><img src="hazard-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
