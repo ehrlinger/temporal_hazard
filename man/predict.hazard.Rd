@@ -49,9 +49,86 @@ or \code{"hazard"} also require time values (via \code{newdata$time} or fitted-t
 so window-specific coefficients can be selected.
 }
 \examples{
+# ── Basic predictions ────────────────────────────────────────────────
 set.seed(1)
 fit <- hazard(time = rexp(50, 0.3), status = rep(1L, 50),
               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 predict(fit, type = "survival")
-predict(fit, newdata = data.frame(time = c(1, 2, 5)), type = "cumulative_hazard")
+predict(fit, newdata = data.frame(time = c(1, 2, 5)),
+        type = "cumulative_hazard")
+
+# ── Patient-specific survival curves ─────────────────────────────────
+set.seed(1001)
+n   <- 180
+dat <- data.frame(
+  time   = rexp(n, rate = 0.35) + 0.05,
+  status = rbinom(n, size = 1, prob = 0.6),
+  age    = rnorm(n, mean = 62, sd = 11),
+  nyha   = sample(1:4, n, replace = TRUE),
+  shock  = rbinom(n, size = 1, prob = 0.18)
+)
+fit2 <- hazard(
+  survival::Surv(time, status) ~ age + nyha + shock,
+  data  = dat,
+  theta = c(mu = 0.25, nu = 1.10, beta1 = 0, beta2 = 0, beta3 = 0),
+  dist  = "weibull", fit = TRUE
+)
+
+new_patients <- data.frame(
+  time = c(0.5, 1.5, 3.0),
+  age  = c(50, 65, 75),
+  nyha = c(1, 3, 4),
+  shock = c(0, 0, 1)
+)
+new_patients$survival        <- predict(fit2, newdata = new_patients,
+                                        type = "survival")
+new_patients$cumulative_hazard <- predict(fit2, newdata = new_patients,
+                                          type = "cumulative_hazard")
+new_patients
+
+\donttest{
+# ── Grouped survival curves (requires hvtiPlotR) ─────────────────────
+if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
+    requireNamespace("ggplot2", quietly = TRUE)) {
+  library(hvtiPlotR)
+
+  t_grid <- seq(0.05, max(dat$time), length.out = 80)
+  profiles <- data.frame(
+    label = c("Low risk (age 50, NYHA I)",
+              "High risk (age 75, NYHA IV)"),
+    age   = c(50, 75),
+    nyha  = c(1, 4),
+    shock = c(0, 1)
+  )
+
+  curve_list <- lapply(seq_len(nrow(profiles)), function(i) {
+    nd <- data.frame(
+      time  = t_grid,
+      age   = profiles$age[i],
+      nyha  = profiles$nyha[i],
+      shock = profiles$shock[i]
+    )
+    nd$survival <- predict(fit2, newdata = nd, type = "survival") * 100
+    nd$profile  <- profiles$label[i]
+    nd
+  })
+  curve_df <- do.call(rbind, curve_list)
+
+  hz_obj <- hv_hazard(
+    curve_data   = curve_df,
+    x_col        = "time",
+    estimate_col = "survival",
+    group_col    = "profile"
+  )
+
+  plot(hz_obj) +
+    ggplot2::scale_y_continuous(limits = c(0, 100)) +
+    ggplot2::labs(
+      x     = "Years after surgery",
+      y     = "Freedom from death (\%)",
+      title = "Predicted survival by risk profile"
+    ) +
+    hv_theme_manuscript()
+}
+}
 }

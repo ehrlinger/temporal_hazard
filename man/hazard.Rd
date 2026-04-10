@@ -89,16 +89,69 @@ engines remain unchanged.
 }
 }
 \examples{
-# Fit a Weibull hazard model
+# ── Univariable Weibull ──────────────────────────────────────────────
 set.seed(1)
-time <- rexp(50, rate = 0.3)
+time   <- rexp(50, rate = 0.3)
 status <- sample(0:1, 50, replace = TRUE, prob = c(0.3, 0.7))
 fit <- hazard(time = time, status = status,
               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
-print(fit)
+summary(fit)
 
-# Formula interface
-df <- data.frame(time = time, status = status, x1 = rnorm(50))
-fit2 <- hazard(survival::Surv(time, status) ~ x1, data = df,
-               theta = c(0.3, 1.0, 0), dist = "weibull", fit = TRUE)
+# ── Formula interface with covariates ────────────────────────────────
+set.seed(1001)
+n   <- 180
+dat <- data.frame(
+  time   = rexp(n, rate = 0.35) + 0.05,
+  status = rbinom(n, size = 1, prob = 0.6),
+  age    = rnorm(n, mean = 62, sd = 11),
+  nyha   = sample(1:4, n, replace = TRUE),
+  shock  = rbinom(n, size = 1, prob = 0.18)
+)
+
+fit2 <- hazard(
+  survival::Surv(time, status) ~ age + nyha + shock,
+  data    = dat,
+  theta   = c(mu = 0.25, nu = 1.10, beta1 = 0, beta2 = 0, beta3 = 0),
+  dist    = "weibull",
+  fit     = TRUE,
+  control = list(maxit = 300)
+)
+summary(fit2)
+
+\donttest{
+# ── Parametric survival with Kaplan-Meier overlay (requires hvtiPlotR)
+if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
+    requireNamespace("ggplot2", quietly = TRUE)) {
+  library(hvtiPlotR)
+
+  # Parametric curve on a fine grid at median covariate profile
+  t_grid   <- seq(0.05, max(dat$time), length.out = 80)
+  curve_df <- data.frame(
+    time = t_grid, age = median(dat$age), nyha = 2, shock = 0
+  )
+  curve_df$survival <- predict(fit2, newdata = curve_df, type = "survival")
+
+  # Kaplan-Meier empirical overlay
+  km    <- survival::survfit(survival::Surv(time, status) ~ 1, data = dat)
+  km_df <- data.frame(time = km$time, estimate = km$surv * 100)
+
+  hz_obj <- hv_hazard(
+    curve_data       = transform(curve_df, survival = survival * 100),
+    x_col            = "time",
+    estimate_col     = "survival",
+    empirical        = km_df,
+    emp_x_col        = "time",
+    emp_estimate_col = "estimate"
+  )
+
+  plot(hz_obj) +
+    ggplot2::scale_y_continuous(limits = c(0, 100)) +
+    ggplot2::labs(
+      x     = "Years after surgery",
+      y     = "Freedom from death (\%)",
+      title = "Parametric survival vs Kaplan-Meier"
+    ) +
+    hv_theme_manuscript()
+}
+}
 }
