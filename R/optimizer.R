@@ -27,8 +27,14 @@ NULL
 #' @param x Optional design matrix.
 #' @param theta_start Starting parameter vector.
 #' @param control List of control options (maxit, reltol, abstol).
-#' @param use_bounds Logical; if TRUE, use L-BFGS-B with lower bounds of 1e-6
-#'   on all parameters.  Used for Weibull where mu/nu are on the natural scale.
+#' @param use_bounds Logical; if TRUE, use L-BFGS-B with lower bounds on
+#'   constrained parameters.  Used for Weibull where mu/nu are on the natural
+#'   scale.
+#' @param lower_bounds Numeric vector of lower bounds for L-BFGS-B, the same
+#'   length as \code{theta_start}.  Only used when \code{use_bounds = TRUE}.
+#'   Defaults to \code{rep(1e-6, length(theta_start))} when NULL, but callers
+#'   should supply distribution-specific bounds (e.g. \code{c(1e-6, 1e-6,
+#'   rep(-Inf, p_cov))} for Weibull so that covariate betas are unconstrained).
 #'
 #' @return List with par, value (log-likelihood), convergence, counts, message,
 #'   hessian, vcov.
@@ -43,17 +49,27 @@ NULL
     x = NULL,
     theta_start,
     control = list(),
-    use_bounds = FALSE) {
+    use_bounds = FALSE,
+    lower_bounds = NULL) {
 
   control <- utils::modifyList(
     list(maxit = 1000, reltol = 1e-5, abstol = 1e-6),
     control
   )
 
+  # Resolve lower bounds: default to 1e-6 on all params only when the caller
+  # has not supplied explicit bounds.  Callers like .hzr_optim_weibull pass
+  # c(1e-6, 1e-6, -Inf, ...) so that shape params are constrained but betas
+  # are free.
+  if (use_bounds && is.null(lower_bounds)) {
+    lower_bounds <- rep(1e-6, length(theta_start))
+  }
+
   # Negative log-likelihood for minimization
   objective <- function(theta) {
     if (!all(is.finite(theta))) return(1e10)
-    if (use_bounds && any(theta <= 0)) return(1e10)
+    # Only penalise infeasible shape params (those with finite lower bounds > -Inf).
+    if (use_bounds && any(theta[is.finite(lower_bounds)] <= lower_bounds[is.finite(lower_bounds)])) return(1e10)
 
     ll <- -logl_fn(
       theta = theta, time = time, status = status,
@@ -67,7 +83,7 @@ NULL
   # Negative score vector for minimization
   gradient <- function(theta) {
     if (!all(is.finite(theta))) return(rep(0, length(theta)))
-    if (use_bounds && any(theta <= 0)) return(rep(0, length(theta)))
+    if (use_bounds && any(theta[is.finite(lower_bounds)] <= lower_bounds[is.finite(lower_bounds)])) return(rep(0, length(theta)))
 
     grad <- tryCatch(
       gradient_fn(
@@ -86,7 +102,7 @@ NULL
     result <- optim(
       par = theta_start, fn = objective, gr = gradient,
       method = "L-BFGS-B",
-      lower = rep(1e-6, length(theta_start)),
+      lower = lower_bounds,
       upper = rep(Inf, length(theta_start)),
       control = list(
         maxit = control$maxit,

@@ -120,7 +120,7 @@ if (requireNamespace("hvtiPlotR", quietly = TRUE)) {
       y = "Freedom from death (%)",
       title = "Parametric survival vs Kaplan-Meier"
     ) +
-    hv_theme()
+    hv_theme_manuscript()
 }
 ```
 

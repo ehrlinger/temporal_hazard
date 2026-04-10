@@ -284,14 +284,146 @@ NULL
 .hzr_optim_weibull <- function(
     time, status, time_lower = NULL, time_upper = NULL,
     x = NULL, theta_start, control = list()) {
-  .hzr_optim_generic(
-    logl_fn = .hzr_logl_weibull,
-    gradient_fn = .hzr_gradient_weibull,
-    time = time, status = status,
-    time_lower = time_lower, time_upper = time_upper,
-    x = x, theta_start = theta_start,
-    control = control, use_bounds = TRUE
+
+  # ── Internal reparameterisation ────────────────────────────────────────────
+  # The original hazard C code parameterises the cumulative hazard as
+  #
+  #     H(t | x) = exp(α + Xβ) · t^γ
+  #
+  # where α is a free intercept, γ = exp(ψ) is the shape, and β enters
+  # the same log-hazard-rate space as α.  This decouples scale from shape
+  # and avoids the degenerate ridge that appears when covariates with large
+  # means (e.g. age ≈ 62) interact with the (log mu, log nu) parameterisation.
+  #
+  # We optimise over φ = (α, ψ, β₁, …) — all unconstrained — then
+  # back-transform to the user-facing (μ, ν, β) scale:
+  #
+  #     ν = exp(ψ)      μ = exp(α / ν)
+  #
+  # and apply the delta method for the variance–covariance matrix.
+  # ──────────────────────────────────────────────────────────────────────────
+
+  n_shape <- 2L
+  p <- length(theta_start)
+  n <- length(time)
+
+  # ── Convert user theta (mu, nu, beta) → internal (alpha, psi, beta) ──────
+  mu_start    <- unname(theta_start[1])
+  nu_start    <- unname(theta_start[2])
+  alpha_start <- nu_start * log(mu_start)   # α = ν · log(μ)
+  psi_start   <- log(nu_start)              # ψ = log(ν)
+  beta_start  <- if (p > n_shape) unname(theta_start[(n_shape + 1):p]) else numeric(0)
+  phi_start   <- c(alpha_start, psi_start, beta_start)
+
+  # ── Internal likelihood: H(t|x) = exp(α + Xβ) · t^exp(ψ) ────────────────
+  logl_internal <- function(theta, time, status, time_lower, time_upper, x, ...) {
+    alpha <- theta[1]
+    g     <- exp(theta[2])   # nu = shape
+    beta  <- if (p > n_shape) theta[(n_shape + 1):p] else numeric(0)
+    eta   <- if (!is.null(x) && length(beta) > 0) as.numeric(x %*% beta) else rep(0, n)
+
+    # Left / interval censoring: delegate to full Weibull likelihood via
+    # the natural-scale function, converting params on the fly.
+    if (any(status %in% c(-1, 2))) {
+      mu <- exp(alpha / g)
+      return(.hzr_logl_weibull(c(mu, g, beta), time, status,
+                               time_lower, time_upper, x, ...))
+    }
+
+    log_t <- log(pmax(time, .Machine$double.xmin))
+    H     <- exp(alpha + eta) * (time ^ g)
+
+    idx_event <- status == 1
+    idx_right <- status == 0
+
+    ll_event <- if (any(idx_event)) {
+      sum(alpha + eta[idx_event] + theta[2] +
+          (g - 1) * log_t[idx_event] - H[idx_event])
+    } else 0
+
+    ll_right <- if (any(idx_right)) -sum(H[idx_right]) else 0
+
+    logl <- ll_event + ll_right
+    if (!is.finite(logl)) return(Inf)
+    logl
+  }
+
+  # ── Internal gradient ─────────────────────────────────────────────────────
+  grad_internal <- function(theta, time, status, time_lower, time_upper, x, ...) {
+    alpha <- theta[1]
+    psi   <- theta[2]
+    g     <- exp(psi)
+    beta  <- if (p > n_shape) theta[(n_shape + 1):p] else numeric(0)
+    eta   <- if (!is.null(x) && length(beta) > 0) as.numeric(x %*% beta) else rep(0, n)
+
+    # Left / interval censoring → numerical gradient fallback.
+    if (any(status %in% c(-1, 2))) {
+      obj <- function(th) logl_internal(th, time, status, time_lower, time_upper, x)
+      if (requireNamespace("numDeriv", quietly = TRUE))
+        return(as.numeric(numDeriv::grad(obj, theta)))
+      eps <- 1e-6
+      grd <- numeric(p)
+      for (i in seq_along(theta)) {
+        tp <- tm <- theta; tp[i] <- tp[i] + eps; tm[i] <- tm[i] - eps
+        grd[i] <- (obj(tp) - obj(tm)) / (2 * eps)
+      }
+      return(grd)
+    }
+
+    log_t <- log(pmax(time, .Machine$double.xmin))
+    H     <- exp(alpha + eta) * (time ^ g)
+    grad  <- numeric(p)
+
+    # dL/dα = n_events − Σ H
+    grad[1] <- sum(status) - sum(H)
+
+    # dL/dψ = n_events + g · Σ_events log(t) − g · Σ H·log(t)
+    grad[2] <- sum(status) + g * sum(status * log_t) - g * sum(H * log_t)
+
+    # dL/dβ_j = X_j'(δ − H)
+    if (p > n_shape && !is.null(x)) {
+      grad[(n_shape + 1):p] <- as.numeric(crossprod(x, status - H))
+    }
+
+    grad
+  }
+
+  # ── Optimise (all unconstrained) ──────────────────────────────────────────
+  result <- .hzr_optim_generic(
+    logl_fn     = logl_internal,
+    gradient_fn = grad_internal,
+    time        = time, status = status,
+    time_lower  = time_lower, time_upper = time_upper,
+    x           = x,
+    theta_start = phi_start,
+    control     = control,
+    use_bounds  = FALSE
   )
+
+  # ── Back-transform to natural scale (μ, ν, β) ────────────────────────────
+  alpha_hat <- result$par[1]
+  psi_hat   <- result$par[2]
+  nu_hat    <- exp(psi_hat)
+  mu_hat    <- exp(alpha_hat / nu_hat)
+  beta_hat  <- if (p > n_shape) result$par[(n_shape + 1):p] else numeric(0)
+
+  result$par <- unname(c(mu_hat, nu_hat, beta_hat))
+
+  # Delta method: Cov(μ, ν, β) = J · Cov(α, ψ, β) · Jᵀ
+  #
+  #   dμ/dα = μ / ν             dμ/dψ = −μ α / ν
+  #   dν/dα = 0                 dν/dψ = ν
+  #   dβ/dα = 0                 dβ/dψ = 0         dβ/dβ = I
+  if (is.matrix(result$vcov) && !anyNA(result$vcov)) {
+    J <- diag(p)
+    J[1, 1] <- mu_hat / nu_hat
+    J[1, 2] <- -mu_hat * alpha_hat / nu_hat
+    J[2, 1] <- 0
+    J[2, 2] <- nu_hat
+    result$vcov <- J %*% result$vcov %*% t(J)
+  }
+
+  result
 }
 
 .hzr_numeric_grad_weibull <- function(theta, time, status, time_lower = NULL, time_upper = NULL, x = NULL) {
