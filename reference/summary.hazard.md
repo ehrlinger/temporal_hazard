@@ -37,12 +37,11 @@ summary(fit)
 #>   dist:         weibull 
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      4350.07 
-#>   evaluations: fn=167, gr=167
-#>   message:      CONVERGENCE: REL_REDUCTION_OF_F <= FACTR*EPSMCH 
+#>   log-lik:      -57.0753 
+#>   evaluations: fn=16, gr=5
 #> 
 #> Coefficients:
-#>      estimate    std_error  z_stat p_value
-#> mu   0.102828 1.287868e-08 7984361       0
-#> nu 312.346556 3.911979e-05 7984361       0
+#>     estimate  std_error   z_stat      p_value
+#> mu 0.3843428 0.06606602 5.817556 5.971440e-09
+#> nu 1.1216580 0.15900235 7.054349 1.734106e-12
 ```

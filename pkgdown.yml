@@ -11,7 +11,7 @@ articles:
   hz-estimate-hazard-example: hz-estimate-hazard-example.html
   lg-exploratory-example: lg-exploratory-example.html
   sas-to-r-migration: sas-to-r-migration.html
-last_built: 2026-04-08T21:01Z
+last_built: 2026-04-10T19:58Z
 urls:
   reference: https://ehrlinger.github.io/temporal_hazard/reference
   article: https://ehrlinger.github.io/temporal_hazard/articles

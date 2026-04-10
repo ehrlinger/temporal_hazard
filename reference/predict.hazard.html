@@ -114,10 +114,17 @@ so window-specific coefficients can be selected.</p>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="hazard.html">hazard</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">0.3</span><span class="op">)</span>, status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">50</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>              theta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">1.0</span><span class="op">)</span>, dist <span class="op">=</span> <span class="st">"weibull"</span>, fit <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"survival"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [39] 1 1 1 1 1 1 1 1 1 1 1 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] 0.508448836 0.315117497 0.909632142 0.913801355 0.704022509 0.034429522</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] 0.297904379 0.635876619 0.407732732 0.908685617 0.245861859 0.504733067</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [13] 0.295096862 0.003729697 0.364948062 0.373066533 0.134498594 0.565324696</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [19] 0.772692686 0.605268524 0.070992893 0.572924045 0.803140735 0.619329758</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [25] 0.937239852 0.968075472 0.611315229 0.007471798 0.318195648 0.389681823</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [31] 0.232969073 0.981596565 0.781843506 0.267479469 0.868327070 0.378412625</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [37] 0.797695039 0.524953194 0.510431884 0.845615583 0.354514703 0.376046945</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [43] 0.276615587 0.289749395 0.626388405 0.798022001 0.276332062 0.390676459</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [49] 0.652266897 0.113525051</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span>, type <span class="op">=</span> <span class="st">"cumulative_hazard"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0 0 0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.2244716 0.5138491 1.5356737</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

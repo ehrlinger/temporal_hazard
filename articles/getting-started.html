@@ -114,18 +114,17 @@
 <span><span class="co">#&gt;   predictors:   3 </span></span>
 <span><span class="co">#&gt;   dist:         weibull </span></span>
 <span><span class="co">#&gt;   engine:       native-r-m2 </span></span>
-<span><span class="co">#&gt;   converged:    FALSE </span></span>
-<span><span class="co">#&gt;   log-lik:      28089.8 </span></span>
-<span><span class="co">#&gt;   evaluations: fn=135, gr=135</span></span>
-<span><span class="co">#&gt;   message:      ERROR: ABNORMAL_TERMINATION_IN_LNSRCH </span></span>
+<span><span class="co">#&gt;   converged:    TRUE </span></span>
+<span><span class="co">#&gt;   log-lik:      -293.553 </span></span>
+<span><span class="co">#&gt;   evaluations: fn=36, gr=8</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt;           estimate std_error z_stat p_value</span></span>
-<span><span class="co">#&gt; mu    3.126462e-03        NA     NA      NA</span></span>
-<span><span class="co">#&gt; nu    2.101821e+02        NA     NA      NA</span></span>
-<span><span class="co">#&gt; beta1 1.544198e+00        NA     NA      NA</span></span>
-<span><span class="co">#&gt; beta2 4.913602e-01        NA     NA      NA</span></span>
-<span><span class="co">#&gt; beta3 2.438124e-02        NA     NA      NA</span></span></code></pre></div>
+<span><span class="co">#&gt;          estimate   std_error      z_stat      p_value</span></span>
+<span><span class="co">#&gt; mu    0.121860518 0.062260594  1.95726558 5.031625e-02</span></span>
+<span><span class="co">#&gt; nu    1.143730632 0.084302528 13.56697905 6.285984e-42</span></span>
+<span><span class="co">#&gt; beta1 0.001716551 0.008807986  0.19488579 8.454824e-01</span></span>
+<span><span class="co">#&gt; beta2 0.156208724 0.090597558  1.72420457 8.467092e-02</span></span>
+<span><span class="co">#&gt; beta3 0.017352702 0.362918437  0.04781433 9.618642e-01</span></span></code></pre></div>
 </div>
 <section class="level2"><h2 id="prediction-workflow">Prediction workflow<a class="anchor" aria-label="anchor" href="#prediction-workflow"></a>
 </h2>
@@ -146,14 +145,14 @@
 <span><span class="va">new_patients</span><span class="op">$</span><span class="va">cumulative_hazard</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">pred_input</span>, type <span class="op">=</span> <span class="st">"cumulative_hazard"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">new_patients</span></span>
-<span><span class="co">#&gt;   time age nyha shock linear_predictor hazard_multiplier survival</span></span>
-<span><span class="co">#&gt; 1  0.5  50    1     0         77.70128      5.562084e+33        1</span></span>
-<span><span class="co">#&gt; 2  1.5  65    3     0        101.84698      1.704435e+44        1</span></span>
-<span><span class="co">#&gt; 3  3.0  75    4     1        117.80470      1.451886e+51        1</span></span>
+<span><span class="co">#&gt;   time age nyha shock linear_predictor hazard_multiplier  survival</span></span>
+<span><span class="co">#&gt; 1  0.5  50    1     0        0.2420363          1.273840 0.9494097</span></span>
+<span><span class="co">#&gt; 2  1.5  65    3     0        0.5802020          1.786399 0.7743185</span></span>
+<span><span class="co">#&gt; 3  3.0  75    4     1        0.7709289          2.161774 0.5046535</span></span>
 <span><span class="co">#&gt;   cumulative_hazard</span></span>
-<span><span class="co">#&gt; 1                 0</span></span>
-<span><span class="co">#&gt; 2                 0</span></span>
-<span><span class="co">#&gt; 3                 0</span></span></code></pre></div>
+<span><span class="co">#&gt; 1        0.05191482</span></span>
+<span><span class="co">#&gt; 2        0.25577202</span></span>
+<span><span class="co">#&gt; 3        0.68388317</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="visualizing-predicted-survival">Visualizing predicted survival<a class="anchor" aria-label="anchor" href="#visualizing-predicted-survival"></a>
 </h2>
@@ -197,7 +196,7 @@
 <span>      y <span class="op">=</span> <span class="st">"Freedom from death (%)"</span>,</span>
 <span>      title <span class="op">=</span> <span class="st">"Parametric survival vs Kaplan-Meier"</span></span>
 <span>    <span class="op">)</span> <span class="op">+</span></span>
-<span>    <span class="fu"><a href="https://ehrlinger.github.io/hvtiPlotR/reference/hv_theme.html" class="external-link">hv_theme</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://ehrlinger.github.io/hvtiPlotR/reference/hv_theme_manuscript.html" class="external-link">hv_theme_manuscript</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <div class="cell-output-display">
 <div id="fig-survival" class="quarto-float quarto-figure quarto-figure-center">

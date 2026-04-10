@@ -32,18 +32,17 @@ summary(fit)
 #>   predictors:   3 
 #>   dist:         weibull 
 #>   engine:       native-r-m2 
-#>   converged:    FALSE 
-#>   log-lik:      28089.8 
-#>   evaluations: fn=135, gr=135
-#>   message:      ERROR: ABNORMAL_TERMINATION_IN_LNSRCH 
+#>   converged:    TRUE 
+#>   log-lik:      -293.553 
+#>   evaluations: fn=36, gr=8
 #> 
 #> Coefficients:
-#>           estimate std_error z_stat p_value
-#> mu    3.126462e-03        NA     NA      NA
-#> nu    2.101821e+02        NA     NA      NA
-#> beta1 1.544198e+00        NA     NA      NA
-#> beta2 4.913602e-01        NA     NA      NA
-#> beta3 2.438124e-02        NA     NA      NA
+#>          estimate   std_error      z_stat      p_value
+#> mu    0.121860518 0.062260594  1.95726558 5.031625e-02
+#> nu    1.143730632 0.084302528 13.56697905 6.285984e-42
+#> beta1 0.001716551 0.008807986  0.19488579 8.454824e-01
+#> beta2 0.156208724 0.090597558  1.72420457 8.467092e-02
+#> beta3 0.017352702 0.362918437  0.04781433 9.618642e-01
 ```
 
 ## Prediction workflow
@@ -64,14 +63,14 @@ new_patients$survival <- predict(fit, newdata = pred_input, type = "survival")
 new_patients$cumulative_hazard <- predict(fit, newdata = pred_input, type = "cumulative_hazard")
 
 new_patients
-#>   time age nyha shock linear_predictor hazard_multiplier survival
-#> 1  0.5  50    1     0         77.70128      5.562084e+33        1
-#> 2  1.5  65    3     0        101.84698      1.704435e+44        1
-#> 3  3.0  75    4     1        117.80470      1.451886e+51        1
+#>   time age nyha shock linear_predictor hazard_multiplier  survival
+#> 1  0.5  50    1     0        0.2420363          1.273840 0.9494097
+#> 2  1.5  65    3     0        0.5802020          1.786399 0.7743185
+#> 3  3.0  75    4     1        0.7709289          2.161774 0.5046535
 #>   cumulative_hazard
-#> 1                 0
-#> 2                 0
-#> 3                 0
+#> 1        0.05191482
+#> 2        0.25577202
+#> 3        0.68388317
 ```
 
 ## Visualizing predicted survival
@@ -122,7 +121,7 @@ if (requireNamespace("hvtiPlotR", quietly = TRUE)) {
       y = "Freedom from death (%)",
       title = "Parametric survival vs Kaplan-Meier"
     ) +
-    hv_theme()
+    hv_theme_manuscript()
 }
 ```
 

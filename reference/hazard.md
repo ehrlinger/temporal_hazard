@@ -140,8 +140,8 @@ print(fit)
 #>   predictors:   0 
 #>   dist:         weibull 
 #>   engine:       native-r-m2 
-#>   log-lik:      9353.55 
-#>   converged:    FALSE 
+#>   log-lik:      -89.5173 
+#>   converged:    TRUE 
 
 # Formula interface
 df <- data.frame(time = time, status = status, x1 = rnorm(50))
