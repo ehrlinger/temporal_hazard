@@ -129,25 +129,37 @@ NULL
 #'
 #'   # Kaplan-Meier empirical overlay
 #'   km    <- survival::survfit(survival::Surv(time, status) ~ 1, data = dat)
-#'   km_df <- data.frame(time = km$time, estimate = km$surv * 100)
+#'   km_df <- data.frame(time = km$time, estimate = km$surv * 100,
+#'                        source = "Kaplan-Meier")
+#'
+#'   curve_plot <- transform(curve_df, survival = survival * 100,
+#'                           source = "Parametric (Weibull)")
 #'
 #'   hz_obj <- hv_hazard(
-#'     curve_data       = transform(curve_df, survival = survival * 100),
+#'     curve_data       = curve_plot,
 #'     x_col            = "time",
 #'     estimate_col     = "survival",
+#'     group_col        = "source",
 #'     empirical        = km_df,
 #'     emp_x_col        = "time",
-#'     emp_estimate_col = "estimate"
+#'     emp_estimate_col = "estimate",
+#'     emp_group_col    = "source",
+#'     emp_geom         = "step"
 #'   )
 #'
 #'   plot(hz_obj) +
+#'     ggplot2::scale_colour_manual(
+#'       values = c("Parametric (Weibull)" = "#0072B2",
+#'                  "Kaplan-Meier"         = "#D55E00")
+#'     ) +
 #'     ggplot2::scale_y_continuous(limits = c(0, 100)) +
 #'     ggplot2::labs(
-#'       x     = "Years after surgery",
-#'       y     = "Freedom from death (%)",
-#'       title = "Parametric survival vs Kaplan-Meier"
+#'       x      = "Years after surgery",
+#'       y      = "Freedom from death (%)",
+#'       colour = NULL
 #'     ) +
-#'     hv_theme_manuscript()
+#'     hv_theme_manuscript() +
+#'     ggplot2::theme(legend.position = "bottom")
 #' }
 #' }
 #' @export
