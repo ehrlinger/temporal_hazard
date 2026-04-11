@@ -255,6 +255,169 @@ hzr_phase_cumhaz <- function(time, t_half = 1, nu = 1, m = 0,
 }
 
 
+# ============================================================================
+# Phase-level derivatives for analytic gradient
+# ============================================================================
+
+#' Derivatives of phase cumulative and instantaneous hazard w.r.t. shape params
+#'
+#' Computes \eqn{\Phi_j(t)}, \eqn{\phi_j(t)}, and their derivatives with
+#' respect to `t_half`, `nu`, and `m` using central finite differences on
+#' [hzr_decompos()].  The `log_t_half` derivative is obtained via the chain
+#' rule: \eqn{d\Phi/d(\log t_{1/2}) = t_{1/2} \cdot d\Phi/dt_{1/2}}.
+#'
+#' @param time Numeric vector of positive times.
+#' @param t_half Positive scalar half-life.
+#' @param nu Numeric scalar time exponent.
+#' @param m Numeric scalar shape exponent.
+#' @param type Phase type: `"cdf"`, `"hazard"`, or `"constant"`.
+#'
+#' @return Named list:
+#' \describe{
+#'   \item{Phi}{Cumulative hazard contribution \eqn{\Phi(t)}.}
+#'   \item{phi}{Instantaneous hazard contribution \eqn{\phi(t) = d\Phi/dt}.}
+#'   \item{dPhi_dlog_thalf}{\eqn{d\Phi / d(\log t_{1/2})}.}
+#'   \item{dPhi_dnu}{\eqn{d\Phi / d\nu}.}
+#'   \item{dPhi_dm}{\eqn{d\Phi / dm}.}
+#'   \item{dphi_dlog_thalf}{\eqn{d\phi / d(\log t_{1/2})}.}
+#'   \item{dphi_dnu}{\eqn{d\phi / d\nu}.}
+#'   \item{dphi_dm}{\eqn{d\phi / dm}.}
+#' }
+#' @keywords internal
+.hzr_phase_derivatives <- function(time, t_half, nu, m,
+                                    type = c("cdf", "hazard", "constant")) {
+  type <- match.arg(type)
+  n <- length(time)
+
+  # Constant phases: Phi = t, phi = 1, no shape dependence
+
+  if (type == "constant") {
+    zeros <- rep(0, n)
+    return(list(
+      Phi = time,
+      phi = rep(1, n),
+      dPhi_dlog_thalf = zeros,
+      dPhi_dnu        = zeros,
+      dPhi_dm         = zeros,
+      dphi_dlog_thalf = zeros,
+      dphi_dnu        = zeros,
+      dphi_dm         = zeros
+    ))
+  }
+
+  # Base evaluation
+  d0 <- hzr_decompos(time, t_half = t_half, nu = nu, m = m)
+
+  # Extract Phi and phi from decomposition for the given phase type
+  extract <- function(d, tp) {
+    if (tp == "cdf") {
+      Phi <- d$G
+      phi <- d$g
+    } else {
+      # "hazard": Phi = -log(1 - G), phi = h
+      one_minus_G <- pmax(1 - d$G, .Machine$double.xmin)
+      Phi <- -log(one_minus_G)
+      phi <- d$h
+    }
+    list(Phi = Phi, phi = phi)
+  }
+
+  base <- extract(d0, type)
+
+  # Central-difference derivatives w.r.t. shape parameters
+  eps_rel <- (.Machine$double.eps)^(1/3)  # optimal for central diff
+
+  # Helper: perturbed decomposition (returns NULL if invalid params)
+  perturb_decompos <- function(th, n_val, m_val) {
+    if (m_val < 0 && n_val < 0) return(NULL)
+    if (th <= 0) return(NULL)
+    tryCatch(
+      hzr_decompos(time, t_half = th, nu = n_val, m = m_val),
+      error = function(e) NULL
+    )
+  }
+
+  # Derivative w.r.t. t_half (then multiply by t_half for log_t_half chain rule)
+  h_th <- eps_rel * max(abs(t_half), 1e-4)
+  d_plus  <- perturb_decompos(t_half + h_th, nu, m)
+  d_minus <- perturb_decompos(t_half - h_th, nu, m)
+  if (!is.null(d_plus) && !is.null(d_minus)) {
+    e_plus  <- extract(d_plus, type)
+    e_minus <- extract(d_minus, type)
+    dPhi_dt_half <- (e_plus$Phi - e_minus$Phi) / (2 * h_th)
+    dphi_dt_half <- (e_plus$phi - e_minus$phi) / (2 * h_th)
+  } else {
+    # One-sided fallback
+    if (!is.null(d_plus)) {
+      e_plus <- extract(d_plus, type)
+      dPhi_dt_half <- (e_plus$Phi - base$Phi) / h_th
+      dphi_dt_half <- (e_plus$phi - base$phi) / h_th
+    } else {
+      dPhi_dt_half <- rep(0, n)
+      dphi_dt_half <- rep(0, n)
+    }
+  }
+  # Chain rule: d/d(log_t_half) = t_half * d/d(t_half)
+  dPhi_dlog_thalf <- t_half * dPhi_dt_half
+  dphi_dlog_thalf <- t_half * dphi_dt_half
+
+  # Derivative w.r.t. nu
+  h_nu <- eps_rel * max(abs(nu), 1)
+  d_plus  <- perturb_decompos(t_half, nu + h_nu, m)
+  d_minus <- perturb_decompos(t_half, nu - h_nu, m)
+  if (!is.null(d_plus) && !is.null(d_minus)) {
+    e_plus  <- extract(d_plus, type)
+    e_minus <- extract(d_minus, type)
+    dPhi_dnu <- (e_plus$Phi - e_minus$Phi) / (2 * h_nu)
+    dphi_dnu <- (e_plus$phi - e_minus$phi) / (2 * h_nu)
+  } else if (!is.null(d_plus)) {
+    e_plus <- extract(d_plus, type)
+    dPhi_dnu <- (e_plus$Phi - base$Phi) / h_nu
+    dphi_dnu <- (e_plus$phi - base$phi) / h_nu
+  } else if (!is.null(d_minus)) {
+    e_minus <- extract(d_minus, type)
+    dPhi_dnu <- (base$Phi - e_minus$Phi) / h_nu
+    dphi_dnu <- (base$phi - e_minus$phi) / h_nu
+  } else {
+    dPhi_dnu <- rep(0, n)
+    dphi_dnu <- rep(0, n)
+  }
+
+  # Derivative w.r.t. m
+  h_m <- eps_rel * max(abs(m), 1)
+  d_plus  <- perturb_decompos(t_half, nu, m + h_m)
+  d_minus <- perturb_decompos(t_half, nu, m - h_m)
+  if (!is.null(d_plus) && !is.null(d_minus)) {
+    e_plus  <- extract(d_plus, type)
+    e_minus <- extract(d_minus, type)
+    dPhi_dm <- (e_plus$Phi - e_minus$Phi) / (2 * h_m)
+    dphi_dm <- (e_plus$phi - e_minus$phi) / (2 * h_m)
+  } else if (!is.null(d_plus)) {
+    e_plus <- extract(d_plus, type)
+    dPhi_dm <- (e_plus$Phi - base$Phi) / h_m
+    dphi_dm <- (e_plus$phi - base$phi) / h_m
+  } else if (!is.null(d_minus)) {
+    e_minus <- extract(d_minus, type)
+    dPhi_dm <- (base$Phi - e_minus$Phi) / h_m
+    dphi_dm <- (base$phi - e_minus$phi) / h_m
+  } else {
+    dPhi_dm <- rep(0, n)
+    dphi_dm <- rep(0, n)
+  }
+
+  list(
+    Phi             = base$Phi,
+    phi             = base$phi,
+    dPhi_dlog_thalf = dPhi_dlog_thalf,
+    dPhi_dnu        = dPhi_dnu,
+    dPhi_dm         = dPhi_dm,
+    dphi_dlog_thalf = dphi_dlog_thalf,
+    dphi_dnu        = dphi_dnu,
+    dphi_dm         = dphi_dm
+  )
+}
+
+
 #' Instantaneous hazard contribution from a single phase
 #'
 #' Computes \eqn{\phi_j(t) = d\Phi_j/dt} for one phase — the derivative of

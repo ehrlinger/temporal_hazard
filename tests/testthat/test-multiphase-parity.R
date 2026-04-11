@@ -206,14 +206,18 @@ test_that("Full multiphase fit on KUL data converges", {
   expect_s3_class(fit, "hazard")
   expect_true(is.finite(fit$fit$objective))
 
-  # R optimizer uses numerical gradients on 9 free parameters vs the C binary's
-  # 3 (shapes fixed) with analytic derivatives.  Multi-start with random
-  # perturbation yields log-likelihoods in [-3790, -3750] across runs.
-  # TODO: tighten to >= -3742 once analytic gradients are implemented.
-  # C log-likelihood: -3740.52 (shapes fixed)
+  # R optimizer uses semi-analytic gradients (chain-rule for mu/beta, central
+  # differences for shape params) on 9 free parameters vs the C binary's
+  # 3 (shapes fixed) with analytic derivatives.
+  # C log-likelihood: -3740.52 (shapes fixed).
+  # With 9 free params and multi-start randomness, convergence typically
+  # reaches [-3790, -3750].  The threshold is set conservatively to avoid
+  # flaky failures.
+  # TODO: tighten to >= -3742 once shape-fixing and fully analytic
+  # gradients are implemented.
   expect_true(fit$fit$objective >= -3800,
               label = paste("R logl", round(fit$fit$objective, 2),
-                            ">= -3800 (numerical gradient limit)"))
+                            ">= -3800"))
 
   # Phase names should be preserved
   expect_equal(names(fit$spec$phases), c("early", "constant", "late"))
