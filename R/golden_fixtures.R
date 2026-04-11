@@ -1,4 +1,4 @@
-#' @importFrom stats runif quantile rnorm rexp rbinom rlnorm
+#' @importFrom stats runif quantile rnorm rexp rbinom rlnorm approx
 #' @keywords internal
 NULL
 
@@ -333,4 +333,195 @@ NULL
   message("Generated fixture: hz_lognormal.rds")
   
   invisible(fixture_hz_ln)
+}
+
+
+# ============================================================================
+# Multiphase golden fixtures
+# ============================================================================
+
+#' Create golden fixture for multiphase parity testing (synthetic)
+#'
+#' Generates a synthetic 3-phase dataset with known parameters, fits the
+#' multiphase model, and saves the result.  Used for round-trip regression
+#' testing of the optimizer.
+#'
+#' @keywords internal
+
+.hzr_create_multiphase_golden_fixture <- function(output_dir = NULL) {
+
+  if (is.null(output_dir)) {
+    output_dir <- system.file("fixtures", package = "TemporalHazard")
+    if (!nzchar(output_dir)) {
+      output_dir <- "inst/fixtures"
+    }
+  }
+
+  dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+
+  set.seed(42)
+
+  # --- Simulate 3-phase survival data -----------------------------------------
+  # True model: early CDF phase + constant background + late hazard phase
+  n <- 500
+  t_grid <- seq(0.01, 20, length.out = n)
+
+  # True parameters (user scale)
+  mu_early <- 0.05
+  mu_const <- 0.002
+  mu_late  <- 1e-6
+
+  # Shape parameters for early and late phases
+  t_half_early <- 0.5; nu_early <- 1; m_early <- 1
+  t_half_late  <- 3;   nu_late  <- 1; m_late  <- 1
+
+  # Generate cumulative hazard at each time for Poisson-thinning
+  # H(t) = mu_e * G(t) + mu_c * t + mu_l * (-log(1-G_l(t)))
+  d_early <- hzr_decompos(t_grid, t_half = t_half_early, nu = nu_early, m = m_early)
+  d_late  <- hzr_decompos(t_grid, t_half = t_half_late,  nu = nu_late,  m = m_late)
+
+  H_true <- mu_early * d_early$G + mu_const * t_grid +
+    mu_late * (-log(pmax(1 - d_late$G, .Machine$double.xmin)))
+  S_true <- exp(-H_true)
+
+  # Inverse-CDF sampling: U ~ Uniform(0,1), find t such that S(t) = U
+  u <- runif(n)
+  time <- approx(S_true, t_grid, xout = u, rule = 2)$y
+
+  # Add censoring (~30%)
+  cens_time <- runif(n, 0, quantile(time, 0.80))
+  status <- as.integer(time <= cens_time)
+  time <- pmin(time, cens_time)
+
+  # Remove any zero or negative times
+
+  keep <- time > 0
+  time <- time[keep]; status <- status[keep]
+
+  # --- Fit 3-phase model with R -----------------------------------------------
+  fit <- hazard(
+    time = time, status = status,
+    dist = "multiphase",
+    phases = list(
+      early    = hzr_phase("cdf",      t_half = t_half_early, nu = nu_early, m = m_early),
+      constant = hzr_phase("constant"),
+      late     = hzr_phase("hazard",   t_half = t_half_late,  nu = nu_late,  m = m_late)
+    ),
+    fit = TRUE,
+    control = list(n_starts = 5, maxit = 1000, reltol = 1e-8)
+  )
+
+  fixture <- list(
+    description = "Synthetic 3-phase multiphase model (early CDF + constant + late hazard)",
+    data = list(time = time, status = status, n = length(time), events = sum(status)),
+    seed = 42,
+    true_params = list(
+      mu_early = mu_early, t_half_early = t_half_early, nu_early = nu_early, m_early = m_early,
+      mu_const = mu_const,
+      mu_late  = mu_late,  t_half_late  = t_half_late,  nu_late  = nu_late,  m_late  = m_late
+    ),
+    phases = list(
+      early    = list(type = "cdf",      t_half = t_half_early, nu = nu_early, m = m_early),
+      constant = list(type = "constant"),
+      late     = list(type = "hazard",   t_half = t_half_late,  nu = nu_late,  m = m_late)
+    ),
+    fit = if (!is.null(fit$fit)) {
+      list(
+        theta = fit$fit$theta,
+        logl  = fit$fit$objective,
+        converged = fit$fit$converged,
+        vcov  = fit$fit$vcov
+      )
+    } else NULL,
+    timestamp = Sys.time()
+  )
+
+  fixture_file <- file.path(output_dir, "mp_synthetic_3phase.rds")
+  saveRDS(fixture, fixture_file)
+  message("Generated fixture: mp_synthetic_3phase.rds")
+
+  invisible(fixture)
+}
+
+
+#' Create golden fixture for C binary parity (KUL CABG dataset)
+#'
+#' Loads the KUL cardiac surgery dataset from inst/extdata/cabgkul.csv and
+#' stores it alongside the C HAZARD binary reference output for parity testing.
+#' This fixture does NOT fit a model — it stores the data and C reference
+#' values so that tests can evaluate the R log-likelihood at C-estimated
+#' parameters and/or fit the model and compare.
+#'
+#' @keywords internal
+
+.hzr_create_c_reference_kul_fixture <- function(output_dir = NULL) {
+
+  if (is.null(output_dir)) {
+    output_dir <- system.file("fixtures", package = "TemporalHazard")
+    if (!nzchar(output_dir)) {
+      output_dir <- "inst/fixtures"
+    }
+  }
+
+  dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+
+  # Load KUL dataset
+  csv_path <- system.file("extdata", "cabgkul.csv", package = "TemporalHazard")
+  if (!nzchar(csv_path)) csv_path <- "inst/extdata/cabgkul.csv"
+
+  dat <- utils::read.csv(csv_path)
+  stopifnot(nrow(dat) == 5880, sum(dat$dead) == 545)
+
+  # C binary reference output from hz.deadp.KUL.lst
+  # All shapes FIXED; only 3 log(mu) parameters estimated.
+  c_reference <- list(
+    description = paste(
+      "C HAZARD binary output for KUL Primary Isolated CABG,",
+      "3-phase (Early/Constant/Late), shapes fixed, intercept-only."
+    ),
+    n = 5880L,
+    events = 545L,
+    log_likelihood = -3740.52,
+    iterations = 9L,
+
+    # Estimated parameters (internal/log scale)
+    theta = c(E0 = -3.77955, C0 = -7.2258, L0 = -16.6578),
+
+    # Standard errors
+    std_err = c(E0 = 0.09381214, C0 = 0.09312647, L0 = 0.1157703),
+
+    # User-scale mu estimates
+    mu = c(MUE = 0.02283304, MUC = 0.0007275697, MUL = 5.829177e-08),
+
+    # Fixed shape parameters
+    early_shapes = list(delta = 0, t_half = 0.2, nu = 1, m = 1),
+    late_shapes  = list(tau = 1, gamma = 3, alpha = 1, eta = 1),
+
+    # Asymptotic variance-covariance matrix
+    vcov = matrix(
+      c(0.008800718, -0.00116984,  0.0007409538,
+       -0.00116984,   0.008672539, -0.00564017,
+        0.0007409538, -0.00564017,  0.01340277),
+      nrow = 3, byrow = TRUE,
+      dimnames = list(c("E0", "C0", "L0"), c("E0", "C0", "L0"))
+    )
+  )
+
+  fixture <- list(
+    description = "KUL CABG dataset with C HAZARD binary 3-phase reference output",
+    data = list(
+      time   = dat$int_dead,
+      status = dat$dead,
+      n      = nrow(dat),
+      events = sum(dat$dead)
+    ),
+    c_reference = c_reference,
+    timestamp = Sys.time()
+  )
+
+  fixture_file <- file.path(output_dir, "mp_c_reference_kul.rds")
+  saveRDS(fixture, fixture_file)
+  message("Generated fixture: mp_c_reference_kul.rds")
+
+  invisible(fixture)
 }

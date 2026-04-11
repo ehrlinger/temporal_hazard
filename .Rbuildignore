@@ -16,3 +16,5 @@
 ^inst/bin/hazpred\.exe$
 ^docs$
 ^vignettes/\.quarto$
+^HANDOFF\.md$
+^MULTIPHASE_PLAN\.md$

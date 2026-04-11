@@ -15,6 +15,7 @@ hazard(
   time_windows = NULL,
   theta = NULL,
   dist = "weibull",
+  phases = NULL,
   fit = FALSE,
   control = list(),
   ...
@@ -46,7 +47,11 @@ coefficient.}
 
 \item{theta}{Optional numeric coefficient vector (starting values for optimization).}
 
-\item{dist}{Character baseline distribution label (default "weibull").}
+\item{dist}{Character baseline distribution label (default "weibull").
+Use \code{"multiphase"} for N-phase additive hazard models (requires \code{phases}).}
+
+\item{phases}{Optional named list of \code{\link[=hzr_phase]{hzr_phase()}} objects specifying the
+phases for a multiphase model (\code{dist = "multiphase"}).  See Examples.}
 
 \item{fit}{Logical; if TRUE and theta is provided, fit the model via ML (default TRUE).}
 
@@ -133,25 +138,100 @@ if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
 
   # Kaplan-Meier empirical overlay
   km    <- survival::survfit(survival::Surv(time, status) ~ 1, data = dat)
-  km_df <- data.frame(time = km$time, estimate = km$surv * 100)
+  km_df <- data.frame(time = km$time, estimate = km$surv * 100,
+                       source = "Kaplan-Meier")
+
+  curve_plot <- transform(curve_df, survival = survival * 100,
+                          source = "Parametric (Weibull)")
 
   hz_obj <- hv_hazard(
-    curve_data       = transform(curve_df, survival = survival * 100),
+    curve_data       = curve_plot,
     x_col            = "time",
     estimate_col     = "survival",
+    group_col        = "source",
     empirical        = km_df,
     emp_x_col        = "time",
-    emp_estimate_col = "estimate"
+    emp_estimate_col = "estimate",
+    emp_group_col    = "source",
+    emp_geom         = "step"
   )
 
   plot(hz_obj) +
+    ggplot2::scale_colour_manual(
+      values = c("Parametric (Weibull)" = "#0072B2",
+                 "Kaplan-Meier"         = "#D55E00")
+    ) +
     ggplot2::scale_y_continuous(limits = c(0, 100)) +
     ggplot2::labs(
-      x     = "Years after surgery",
-      y     = "Freedom from death (\%)",
-      title = "Parametric survival vs Kaplan-Meier"
+      x      = "Years after surgery",
+      y      = "Freedom from death (\%)",
+      colour = NULL
     ) +
-    hv_theme_manuscript()
+    hv_theme_manuscript() +
+    ggplot2::theme(legend.position = "bottom")
 }
 }
+
+\donttest{
+# ── Multiphase model (two phases) ─────────────────────────────────
+fit_mp <- hazard(
+  survival::Surv(time, status) ~ 1,
+  data   = dat,
+  dist   = "multiphase",
+  phases = list(
+    early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
+    late  = hzr_phase("hazard",   t_half = 5,   nu = 1, m = 0)
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 3, maxit = 500)
+)
+summary(fit_mp)
+
+# ── Per-phase decomposed cumulative hazard ────────────────────────
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  t_grid <- seq(0.01, max(dat$time), length.out = 100)
+  decomp <- predict(fit_mp, newdata = data.frame(time = t_grid),
+                    type = "cumulative_hazard", decompose = TRUE)
+
+  df_long <- data.frame(
+    time = rep(decomp$time, 3),
+    cumhaz = c(decomp$total, decomp$early, decomp$late),
+    component = rep(c("Total", "Early (cdf)", "Late (hazard)"),
+                    each = nrow(decomp))
+  )
+  df_long$component <- factor(df_long$component,
+    levels = c("Total", "Early (cdf)", "Late (hazard)"))
+
+  ggplot2::ggplot(df_long,
+    ggplot2::aes(x = time, y = cumhaz, colour = component,
+                 linewidth = component)) +
+    ggplot2::geom_line() +
+    ggplot2::scale_colour_manual(values = c(
+      "Total" = "black", "Early (cdf)" = "#0072B2",
+      "Late (hazard)" = "#D55E00"
+    )) +
+    ggplot2::scale_linewidth_manual(values = c(
+      "Total" = 1.2, "Early (cdf)" = 0.6, "Late (hazard)" = 0.6
+    )) +
+    ggplot2::labs(
+      x = "Time", y = "Cumulative hazard H(t)",
+      colour = NULL, linewidth = NULL,
+      title = "Multiphase decomposition: early + late"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(legend.position = "bottom")
+}
+}
+
+}
+\references{
+Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying
+hazard into phases, each incorporating a separate stream of concomitant
+information. \emph{J Am Stat Assoc.} 1986;81(395):615--624.
+\doi{10.1080/01621459.1986.10478314}
+
+Rajeswaran J, Blackstone EH, Ehrlinger J, Li L, Ishwaran H, Parides MK.
+Probability of atrial fibrillation after ablation: Using a parametric
+nonlinear temporal decomposition mixed effects model. \emph{Stat Methods Med Res.}
+2018;27(1):126--141. \doi{10.1177/0962280215623583}
 }

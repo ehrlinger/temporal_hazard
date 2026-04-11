@@ -8,6 +8,7 @@
   object,
   newdata = NULL,
   type = c("hazard", "linear_predictor", "survival", "cumulative_hazard"),
+  decompose = FALSE,
   ...
 )
 }
@@ -20,11 +21,15 @@ column, or time will be taken from the fitted object's data.}
 
 \item{type}{Prediction type:
 \itemize{
-\item \code{"linear_predictor"}: Linear predictor η = x·β
-\item \code{"hazard"}: Hazard scale exp(η) (not conditional on time for Weibull)
+\item \code{"linear_predictor"}: Linear predictor η = x·β (not available for multiphase)
+\item \code{"hazard"}: Hazard scale exp(η) (not available for multiphase)
 \item \code{"survival"}: Survival probability S(t|x) = exp(-H(t|x))
 \item \code{"cumulative_hazard"}: Cumulative hazard H(t|x) at event times
 }}
+
+\item{decompose}{Logical; if \code{TRUE} and the model is multiphase, return a
+data frame with per-phase cumulative hazard contributions alongside the
+total.  Ignored for single-distribution models.  Default \code{FALSE}.}
 
 \item{...}{Unused; included for S3 compatibility.}
 }
@@ -80,10 +85,11 @@ new_patients <- data.frame(
   nyha = c(1, 3, 4),
   shock = c(0, 0, 1)
 )
-new_patients$survival        <- predict(fit2, newdata = new_patients,
-                                        type = "survival")
-new_patients$cumulative_hazard <- predict(fit2, newdata = new_patients,
-                                          type = "cumulative_hazard")
+# Compute predictions from the clean covariate frame before adding columns
+surv   <- predict(fit2, newdata = new_patients, type = "survival")
+cumhaz <- predict(fit2, newdata = new_patients, type = "cumulative_hazard")
+new_patients$survival          <- surv
+new_patients$cumulative_hazard <- cumhaz
 new_patients
 
 \donttest{

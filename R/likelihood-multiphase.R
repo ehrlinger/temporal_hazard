@@ -1,0 +1,515 @@
+# likelihood-multiphase.R — Multiphase additive hazard likelihood and optimizer
+#
+# REFERENCES
+# ----------
+# Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying
+# hazard into phases, each incorporating a separate stream of concomitant
+# information. J Am Stat Assoc. 1986;81(395):615-624.
+#
+# Rajeswaran J, Blackstone EH, Ehrlinger J, Li L, Ishwaran H, Parides MK.
+# Probability of atrial fibrillation after ablation: Using a parametric
+# nonlinear temporal decomposition mixed effects model. Stat Methods Med Res.
+# 2018;27(1):126-141.
+#
+# MODEL
+# -----
+# Additive cumulative hazard across J phases:
+#
+#   H(t | x) = sum_{j=1}^{J}  mu_j(x) * Phi_j(t; t_half_j, nu_j, m_j)
+#
+# where:
+#   mu_j(x) = exp(alpha_j + x_j * beta_j)  — phase-specific log-linear scale
+#   Phi_j(t) depends on phase type:
+#     "cdf"      → G(t)             bounded [0, 1]   (early risk)
+#     "hazard"   → -log(1 - G(t))   monotone incr.   (late risk)
+#     "constant" → t                flat rate         (background)
+#
+# Total hazard:
+#   h(t | x) = sum_j  mu_j(x) * phi_j(t)
+#
+# where phi_j = dPhi_j/dt.
+#
+# Survival:
+#   S(t | x) = exp(-H(t | x))
+#
+# THETA LAYOUT (internal / estimation scale)
+# ------------------------------------------
+# For each phase j, the sub-vector is:
+#   [log_mu_j, log_t_half_j, nu_j, m_j, beta_j_1, ..., beta_j_pj]
+#   (constant phases omit log_t_half, nu, m)
+#
+# The full theta is the concatenation of all phase sub-vectors.
+#
+# FUNCTIONS
+# ---------
+#   .hzr_logl_multiphase()     — log-likelihood
+#   .hzr_optim_multiphase()    — optimizer using .hzr_optim_generic()
+#   .hzr_multiphase_cumhaz()   — compute total H(t|x) from theta + phases
+#   .hzr_multiphase_hazard()   — compute total h(t|x) from theta + phases
+#   .hzr_split_theta()         — split theta into per-phase sub-vectors
+
+
+# ============================================================================
+# Theta vector manipulation
+# ============================================================================
+
+#' Split the full theta vector into per-phase sub-vectors
+#'
+#' @param theta Numeric vector — full parameter vector (internal scale).
+#' @param phases Named list of validated `hzr_phase` objects.
+#' @param covariate_counts Named integer vector — number of covariates per phase.
+#' @return Named list of numeric vectors, one per phase.
+#' @keywords internal
+.hzr_split_theta <- function(theta, phases, covariate_counts) {
+  result <- vector("list", length(phases))
+  names(result) <- names(phases)
+  pos <- 1L
+
+  for (nm in names(phases)) {
+    np <- .hzr_phase_n_params(phases[[nm]], n_covariates = covariate_counts[[nm]])
+    result[[nm]] <- theta[pos:(pos + np - 1L)]
+    pos <- pos + np
+  }
+
+  result
+}
+
+
+#' Extract parameters from a phase sub-vector (internal scale)
+#'
+#' @param theta_j Numeric sub-vector for one phase.
+#' @param phase An `hzr_phase` object.
+#' @return Named list with `log_mu`, `log_t_half`, `nu`, `m`, `beta`.
+#' @keywords internal
+.hzr_unpack_phase_theta <- function(theta_j, phase) {
+  pos <- 1L
+  log_mu <- theta_j[pos]; pos <- pos + 1L
+
+
+  if (phase$type != "constant") {
+    log_t_half <- theta_j[pos]; pos <- pos + 1L
+    nu <- theta_j[pos]; pos <- pos + 1L
+    m <- theta_j[pos]; pos <- pos + 1L
+  } else {
+    log_t_half <- NA_real_
+    nu <- NA_real_
+    m <- NA_real_
+  }
+
+  beta <- if (pos <= length(theta_j)) theta_j[pos:length(theta_j)] else numeric(0)
+
+  list(log_mu = log_mu, log_t_half = log_t_half, nu = nu, m = m, beta = beta)
+}
+
+
+# ============================================================================
+# Cumulative hazard and hazard computations
+# ============================================================================
+
+#' Compute total cumulative hazard H(t|x) for multiphase model
+#'
+#' @param time Numeric vector of times (n).
+#' @param theta Full parameter vector (internal scale).
+#' @param phases Named list of validated `hzr_phase` objects.
+#' @param covariate_counts Named integer vector of covariate counts per phase.
+#' @param x_list Named list of design matrices, one per phase. Each element is
+#'   an n x p_j matrix or NULL.
+#' @param per_phase Logical; if TRUE return a list with total and per-phase
+#'   contributions.
+#' @return If `per_phase = FALSE`: numeric vector of length n (total H(t|x)).
+#'   If `per_phase = TRUE`: named list with `$total` and one element per phase.
+#' @keywords internal
+.hzr_multiphase_cumhaz <- function(time, theta, phases, covariate_counts,
+                                    x_list, per_phase = FALSE) {
+  n <- length(time)
+  theta_split <- .hzr_split_theta(theta, phases, covariate_counts)
+  total <- rep(0, n)
+  phase_contributions <- if (per_phase) vector("list", length(phases)) else NULL
+
+  for (i in seq_along(phases)) {
+    nm <- names(phases)[i]
+    pars <- .hzr_unpack_phase_theta(theta_split[[nm]], phases[[nm]])
+
+    # mu_j(x) = exp(log_mu + x_j * beta_j)
+    if (length(pars$beta) > 0 && !is.null(x_list[[nm]])) {
+      eta_j <- pars$log_mu + as.numeric(x_list[[nm]] %*% pars$beta)
+    } else {
+      eta_j <- rep(pars$log_mu, n)
+    }
+    mu_j <- exp(eta_j)
+
+    # Phi_j(t)
+    if (phases[[nm]]$type == "constant") {
+      phi_j <- time
+    } else {
+      t_half_j <- exp(pars$log_t_half)
+      # Guard against invalid decomposition parameters
+      if (pars$m < 0 && pars$nu < 0) return(rep(Inf, n))
+      phi_j <- hzr_phase_cumhaz(time, t_half = t_half_j, nu = pars$nu,
+                                  m = pars$m, type = phases[[nm]]$type)
+    }
+
+    contrib <- mu_j * phi_j
+    total <- total + contrib
+
+    if (per_phase) phase_contributions[[i]] <- contrib
+  }
+
+  if (per_phase) {
+    names(phase_contributions) <- names(phases)
+    phase_contributions$total <- total
+    return(phase_contributions)
+  }
+
+  total
+}
+
+
+#' Compute total instantaneous hazard h(t|x) for multiphase model
+#'
+#' @inheritParams .hzr_multiphase_cumhaz
+#' @return Numeric vector of length n.
+#' @keywords internal
+.hzr_multiphase_hazard <- function(time, theta, phases, covariate_counts,
+                                    x_list) {
+  n <- length(time)
+  theta_split <- .hzr_split_theta(theta, phases, covariate_counts)
+  total <- rep(0, n)
+
+  for (i in seq_along(phases)) {
+    nm <- names(phases)[i]
+    pars <- .hzr_unpack_phase_theta(theta_split[[nm]], phases[[nm]])
+
+    if (length(pars$beta) > 0 && !is.null(x_list[[nm]])) {
+      eta_j <- pars$log_mu + as.numeric(x_list[[nm]] %*% pars$beta)
+    } else {
+      eta_j <- rep(pars$log_mu, n)
+    }
+    mu_j <- exp(eta_j)
+
+    if (phases[[nm]]$type == "constant") {
+      dphi_j <- rep(1, n)
+    } else {
+      t_half_j <- exp(pars$log_t_half)
+      if (pars$m < 0 && pars$nu < 0) return(rep(Inf, n))
+      dphi_j <- hzr_phase_hazard(time, t_half = t_half_j, nu = pars$nu,
+                                   m = pars$m, type = phases[[nm]]$type)
+    }
+
+    total <- total + mu_j * dphi_j
+  }
+
+  total
+}
+
+
+# ============================================================================
+# Log-likelihood
+# ============================================================================
+
+#' Log-likelihood for multiphase additive hazard model
+#'
+#' @param theta Full parameter vector (internal scale).
+#' @param time Numeric vector of follow-up times (n).
+#' @param status Numeric event indicator: 1 = event, 0 = right-censored,
+#'   -1 = left-censored, 2 = interval-censored.
+#' @param time_lower Optional lower bounds for interval censoring.
+#' @param time_upper Optional upper bounds for left/interval censoring.
+#' @param x Design matrix (unused directly; kept for interface compatibility).
+#' @param phases Named list of validated `hzr_phase` objects.
+#' @param covariate_counts Named integer vector of per-phase covariate counts.
+#' @param x_list Named list of per-phase design matrices.
+#' @param return_gradient Logical (ignored; gradient via separate function).
+#' @param return_hessian Logical (ignored).
+#' @param ... Ignored.
+#' @return Scalar log-likelihood. Returns -Inf for infeasible parameters.
+#' @keywords internal
+.hzr_logl_multiphase <- function(theta, time, status,
+                                  time_lower = NULL, time_upper = NULL,
+                                  x = NULL,
+                                  phases, covariate_counts, x_list,
+                                  return_gradient = FALSE,
+                                  return_hessian = FALSE, ...) {
+
+  n <- length(time)
+
+  # Feasibility: check that no phase has m < 0 && nu < 0
+  theta_split <- .hzr_split_theta(theta, phases, covariate_counts)
+  for (nm in names(phases)) {
+    if (phases[[nm]]$type != "constant") {
+      pars <- .hzr_unpack_phase_theta(theta_split[[nm]], phases[[nm]])
+      if (pars$m < 0 && pars$nu < 0) return(-Inf)
+    }
+  }
+
+  # Validate event times
+  if (any(status == 1 & time <= 0)) return(-Inf)
+
+  # Normalize censoring bounds
+  lower <- if (is.null(time_lower)) time else time_lower
+  upper <- if (is.null(time_upper)) time else time_upper
+
+  # Cumulative hazard at event/censoring times
+  cumhaz <- .hzr_multiphase_cumhaz(time, theta, phases, covariate_counts, x_list)
+  if (any(!is.finite(cumhaz))) return(-Inf)
+
+  # Instantaneous hazard at event times (only needed for exact events)
+  idx_event <- status == 1
+
+  logl <- 0
+
+  # Exact events: log h(t) - H(t)
+  if (any(idx_event)) {
+    haz <- .hzr_multiphase_hazard(time, theta, phases, covariate_counts, x_list)
+    if (any(!is.finite(haz[idx_event])) || any(haz[idx_event] <= 0)) return(-Inf)
+    logl <- logl + sum(log(haz[idx_event])) - sum(cumhaz[idx_event])
+  }
+
+  # Right-censored: -H(t)
+  idx_right <- status == 0
+  if (any(idx_right)) {
+    logl <- logl - sum(cumhaz[idx_right])
+  }
+
+  # Left-censored: log(1 - exp(-H(u)))
+  idx_left <- status == -1
+  if (any(idx_left)) {
+    cumhaz_upper <- .hzr_multiphase_cumhaz(upper, theta, phases,
+                                             covariate_counts, x_list)
+    logl <- logl + sum(hzr_log1mexp(cumhaz_upper[idx_left]))
+  }
+
+  # Interval-censored: log(S(l) - S(u)) = -H(l) + log(1 - exp(-(H(u) - H(l))))
+  idx_interval <- status == 2
+  if (any(idx_interval)) {
+    cumhaz_lower <- .hzr_multiphase_cumhaz(lower, theta, phases,
+                                             covariate_counts, x_list)
+    cumhaz_upper_iv <- .hzr_multiphase_cumhaz(upper, theta, phases,
+                                                covariate_counts, x_list)
+    delta_h <- cumhaz_upper_iv[idx_interval] - cumhaz_lower[idx_interval]
+    logl <- logl + sum(-cumhaz_lower[idx_interval] + hzr_log1mexp(delta_h))
+  }
+
+  if (!is.finite(logl)) return(-Inf)
+
+  logl
+}
+
+
+# ============================================================================
+# Optimizer
+# ============================================================================
+
+#' Fit a multiphase additive hazard model via maximum likelihood
+#'
+#' Assembles starting values from phase specifications, resolves per-phase
+#' design matrices, and delegates to `.hzr_optim_generic()`.
+#'
+#' @param time Numeric vector of follow-up times.
+#' @param status Numeric event indicator vector.
+#' @param time_lower Optional lower bounds for interval censoring.
+#' @param time_upper Optional upper bounds for left/interval censoring.
+#' @param x Global design matrix (n x p) or NULL.
+#' @param theta_start Starting parameter vector (full internal scale).
+#'   If NULL, assembled automatically from phase specs.
+#' @param control Named list of control options.
+#' @param phases Named list of validated `hzr_phase` objects.
+#' @param formula_global The global formula (used when phases have no
+#'   phase-specific formula).
+#' @param data Data frame containing covariates (needed for phase-specific
+#'   formula evaluation).
+#' @return List with par (internal scale), value, convergence, vcov, etc.
+#' @keywords internal
+.hzr_optim_multiphase <- function(time, status,
+                                   time_lower = NULL, time_upper = NULL,
+                                   x = NULL,
+                                   theta_start = NULL,
+                                   control = list(),
+                                   phases,
+                                   formula_global = NULL,
+                                   data = NULL) {
+
+  n <- length(time)
+  phases <- .hzr_validate_phases(phases)
+
+  # --- Resolve per-phase design matrices and covariate counts ----------------
+  x_list <- vector("list", length(phases))
+  names(x_list) <- names(phases)
+  covariate_counts <- setNames(integer(length(phases)), names(phases))
+
+  for (nm in names(phases)) {
+    ph <- phases[[nm]]
+    if (!is.null(ph$formula) && !is.null(data)) {
+      # Phase-specific formula: build design matrix from data
+      x_j <- stats::model.matrix(ph$formula, data = data)[, -1L, drop = FALSE]
+      x_list[[nm]] <- x_j
+      covariate_counts[[nm]] <- ncol(x_j)
+    } else if (!is.null(x)) {
+      # Inherit global design matrix
+      x_list[[nm]] <- x
+      covariate_counts[[nm]] <- ncol(x)
+    } else {
+      x_list[[nm]] <- NULL
+      covariate_counts[[nm]] <- 0L
+    }
+  }
+
+  # --- Assemble starting values if not provided ------------------------------
+  if (is.null(theta_start)) {
+    theta_start <- unlist(lapply(names(phases), function(nm) {
+      .hzr_phase_start(phases[[nm]], n_covariates = covariate_counts[[nm]])
+    }))
+  }
+
+  # Build parameter names for the full theta vector
+  theta_names <- unlist(lapply(names(phases), function(nm) {
+    cov_names <- if (covariate_counts[[nm]] > 0 && !is.null(x_list[[nm]])) {
+      colnames(x_list[[nm]])
+    } else {
+      character(0)
+    }
+    # Ensure we have names even if colnames are NULL
+    if (covariate_counts[[nm]] > 0 && length(cov_names) == 0) {
+      cov_names <- paste0("x", seq_len(covariate_counts[[nm]]))
+    }
+    .hzr_phase_theta_names(phases[[nm]], nm, cov_names)
+  }))
+
+  names(theta_start) <- theta_names
+
+  # --- Likelihood wrapper matching .hzr_optim_generic() signature -----------
+  logl_fn <- function(theta, time, status, time_lower, time_upper, x, ...) {
+    .hzr_logl_multiphase(
+      theta = theta, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x,
+      phases = phases, covariate_counts = covariate_counts,
+      x_list = x_list, ...
+    )
+  }
+
+  # --- Numerical gradient (analytical gradient deferred to later step) ------
+  # Use relative step size: eps_i = eps_rel * max(|theta_i|, 1) so that
+
+  # parameters at large absolute values (e.g. log_mu ≈ -20 for a late phase)
+  # get a meaningful perturbation.  Fixed absolute eps ≈ 1.5e-8 is too small
+  # when |theta_i| >> 1, producing near-zero gradients and stalling BFGS.
+  gradient_fn <- function(theta, time, status, time_lower, time_upper, x, ...) {
+    eps_rel <- sqrt(.Machine$double.eps)
+    p <- length(theta)
+    grad <- numeric(p)
+    ll0 <- logl_fn(theta, time, status, time_lower, time_upper, x, ...)
+
+    for (i in seq_len(p)) {
+      h_i <- eps_rel * max(abs(theta[i]), 1)
+      theta_plus <- theta
+      theta_plus[i] <- theta_plus[i] + h_i
+      ll_plus <- logl_fn(theta_plus, time, status, time_lower, time_upper, x, ...)
+      grad[i] <- (ll_plus - ll0) / h_i
+    }
+
+    grad
+  }
+
+  # --- Multi-start optimization -----------------------------------------------
+  n_starts <- if (!is.null(control$n_starts)) control$n_starts else 5L
+  control$n_starts <- NULL  # remove before passing to optim
+
+  best_result <- NULL
+  best_value <- -Inf
+
+  for (start_i in seq_len(n_starts)) {
+    if (start_i == 1L) {
+      theta_try <- theta_start
+    } else {
+      # Random perturbation of starting values
+      set.seed(NULL)  # ensure randomness
+      theta_try <- theta_start + stats::rnorm(length(theta_start), sd = 0.5)
+    }
+
+    result <- tryCatch(
+      .hzr_optim_generic(
+        logl_fn     = logl_fn,
+        gradient_fn = gradient_fn,
+        time        = time, status = status,
+        time_lower  = time_lower, time_upper = time_upper,
+        x           = x,
+        theta_start = theta_try,
+        control     = control,
+        use_bounds  = FALSE
+      ),
+      error = function(e) NULL
+    )
+
+    if (!is.null(result) && is.finite(result$value) && result$value > best_value) {
+      best_value <- result$value
+      best_result <- result
+    }
+  }
+
+  if (is.null(best_result)) {
+    stop("Multiphase optimization failed to converge on any start.", call. = FALSE)
+  }
+
+  # Restore parameter names
+  names(best_result$par) <- theta_names
+
+  # Store phase metadata for downstream use (predict, summary)
+  best_result$phases <- phases
+  best_result$covariate_counts <- covariate_counts
+  best_result$x_list <- x_list
+
+  best_result
+}
+
+
+# ============================================================================
+# Back-transformation helpers
+# ============================================================================
+
+#' Transform multiphase theta from internal to user-facing scale
+#'
+#' Converts log_mu -> mu, log_t_half -> t_half; nu, m, beta pass through.
+#'
+#' @param theta Full parameter vector (internal scale).
+#' @param phases Named list of validated `hzr_phase` objects.
+#' @param covariate_counts Named integer vector of per-phase covariate counts.
+#' @return Named numeric vector on the reporting scale.
+#' @keywords internal
+.hzr_multiphase_theta_user <- function(theta, phases, covariate_counts) {
+  theta_split <- .hzr_split_theta(theta, phases, covariate_counts)
+  values <- numeric(0)
+  nms    <- character(0)
+
+  for (nm in names(phases)) {
+    pars <- .hzr_unpack_phase_theta(theta_split[[nm]], phases[[nm]])
+
+    if (phases[[nm]]$type == "constant") {
+      values <- c(values, exp(pars$log_mu))
+      nms    <- c(nms, paste0(nm, ".mu"))
+    } else {
+      values <- c(values, exp(pars$log_mu), exp(pars$log_t_half),
+                  pars$nu, pars$m)
+      nms    <- c(nms, paste0(nm, ".mu"), paste0(nm, ".t_half"),
+                  paste0(nm, ".nu"), paste0(nm, ".m"))
+    }
+
+    if (length(pars$beta) > 0) {
+      values <- c(values, pars$beta)
+      # Try to derive covariate names from the theta_split names
+      n_skip <- if (phases[[nm]]$type == "constant") 1L else 4L
+      raw_names <- names(theta_split[[nm]])
+      if (!is.null(raw_names) && length(raw_names) > n_skip) {
+        beta_labels <- raw_names[(n_skip + 1L):length(raw_names)]
+        # Strip phase prefix if present
+        beta_labels <- sub(paste0("^", nm, "\\."), "", beta_labels)
+      } else {
+        beta_labels <- paste0("x", seq_len(length(pars$beta)))
+      }
+      nms <- c(nms, paste0(nm, ".", beta_labels))
+    }
+  }
+
+  names(values) <- nms
+  values
+}

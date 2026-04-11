@@ -58,6 +58,9 @@ NULL
 #'   coefficient.
 #' @param theta Optional numeric coefficient vector (starting values for optimization).
 #' @param dist Character baseline distribution label (default "weibull").
+#'   Use `"multiphase"` for N-phase additive hazard models (requires `phases`).
+#' @param phases Optional named list of [hzr_phase()] objects specifying the
+#'   phases for a multiphase model (`dist = "multiphase"`).  See Examples.
 #' @param fit Logical; if TRUE and theta is provided, fit the model via ML (default TRUE).
 #' @param control Named list of control options (see Details).
 #' @param ... Additional named arguments retained for parity with legacy calling
@@ -162,6 +165,69 @@ NULL
 #'     ggplot2::theme(legend.position = "bottom")
 #' }
 #' }
+#'
+#' \donttest{
+#' # ── Multiphase model (two phases) ─────────────────────────────────
+#' fit_mp <- hazard(
+#'   survival::Surv(time, status) ~ 1,
+#'   data   = dat,
+#'   dist   = "multiphase",
+#'   phases = list(
+#'     early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
+#'     late  = hzr_phase("hazard",   t_half = 5,   nu = 1, m = 0)
+#'   ),
+#'   fit     = TRUE,
+#'   control = list(n_starts = 3, maxit = 500)
+#' )
+#' summary(fit_mp)
+#'
+#' # ── Per-phase decomposed cumulative hazard ────────────────────────
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   t_grid <- seq(0.01, max(dat$time), length.out = 100)
+#'   decomp <- predict(fit_mp, newdata = data.frame(time = t_grid),
+#'                     type = "cumulative_hazard", decompose = TRUE)
+#'
+#'   df_long <- data.frame(
+#'     time = rep(decomp$time, 3),
+#'     cumhaz = c(decomp$total, decomp$early, decomp$late),
+#'     component = rep(c("Total", "Early (cdf)", "Late (hazard)"),
+#'                     each = nrow(decomp))
+#'   )
+#'   df_long$component <- factor(df_long$component,
+#'     levels = c("Total", "Early (cdf)", "Late (hazard)"))
+#'
+#'   ggplot2::ggplot(df_long,
+#'     ggplot2::aes(x = time, y = cumhaz, colour = component,
+#'                  linewidth = component)) +
+#'     ggplot2::geom_line() +
+#'     ggplot2::scale_colour_manual(values = c(
+#'       "Total" = "black", "Early (cdf)" = "#0072B2",
+#'       "Late (hazard)" = "#D55E00"
+#'     )) +
+#'     ggplot2::scale_linewidth_manual(values = c(
+#'       "Total" = 1.2, "Early (cdf)" = 0.6, "Late (hazard)" = 0.6
+#'     )) +
+#'     ggplot2::labs(
+#'       x = "Time", y = "Cumulative hazard H(t)",
+#'       colour = NULL, linewidth = NULL,
+#'       title = "Multiphase decomposition: early + late"
+#'     ) +
+#'     ggplot2::theme_minimal() +
+#'     ggplot2::theme(legend.position = "bottom")
+#' }
+#' }
+#'
+#' @references
+#' Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying
+#' hazard into phases, each incorporating a separate stream of concomitant
+#' information. *J Am Stat Assoc.* 1986;81(395):615--624.
+#' \doi{10.1080/01621459.1986.10478314}
+#'
+#' Rajeswaran J, Blackstone EH, Ehrlinger J, Li L, Ishwaran H, Parides MK.
+#' Probability of atrial fibrillation after ablation: Using a parametric
+#' nonlinear temporal decomposition mixed effects model. *Stat Methods Med Res.*
+#' 2018;27(1):126--141. \doi{10.1177/0962280215623583}
+#'
 #' @export
 hazard <- function(formula = NULL,
                    data = NULL,
@@ -173,6 +239,7 @@ hazard <- function(formula = NULL,
                    time_windows = NULL,
                    theta = NULL,
                    dist = "weibull",
+                   phases = NULL,
                    fit = FALSE,
                    control = list(),
                    ...) {
@@ -270,6 +337,18 @@ hazard <- function(formula = NULL,
     stop("'control' must be a list.", call. = FALSE)
   }
 
+  # Multiphase validation
+  if (dist == "multiphase") {
+    if (is.null(phases)) {
+      stop("'phases' is required when dist = 'multiphase'. ",
+           "Supply a list of hzr_phase() specifications.", call. = FALSE)
+    }
+    phases <- .hzr_validate_phases(phases)
+  } else if (!is.null(phases)) {
+    warning("'phases' is ignored when dist != 'multiphase'.")
+    phases <- NULL
+  }
+
   if (any(status %in% c(-1, 2))) {
     if (is.null(time_upper)) {
       warning("'time_upper' not provided; using 'time' as upper bound for left/interval-censored rows.")
@@ -323,7 +402,28 @@ hazard <- function(formula = NULL,
   }
 
   # Distribution dispatch — select the distribution-specific optimizer and fit.
-  if (fit && !is.null(theta)) {
+  if (fit && dist == "multiphase") {
+    # Multiphase: theta_start is optional (assembled from phase specs if NULL)
+    optim_result <- .hzr_run_fit_safely(.hzr_optim_multiphase(
+      time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x_fit, theta_start = theta, control = control,
+      phases = phases, formula_global = formula, data = data
+    ))
+
+    fit_state$theta <- optim_result$par
+    fit_state$objective <- optim_result$value
+    fit_state$converged <- (optim_result$convergence == 0)
+    fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
+    fit_state$vcov <- optim_result$vcov
+    fit_state$counts <- optim_result$counts
+    fit_state$message <- optim_result$message
+    # Store optimizer metadata for predict/summary
+    fit_state$phases <- optim_result$phases
+    fit_state$covariate_counts <- optim_result$covariate_counts
+    fit_state$x_list <- optim_result$x_list
+
+  } else if (fit && !is.null(theta)) {
     optim_fn <- switch(
       dist,
       weibull = .hzr_optim_weibull,
@@ -357,7 +457,8 @@ hazard <- function(formula = NULL,
   # $engine     — implementation tag ("native-r-m2")
   obj <- list(
     call = match.call(),
-    spec = list(dist = dist, control = control, time_windows = time_windows),
+    spec = list(dist = dist, control = control, time_windows = time_windows,
+                phases = phases),
     data = list(
       time = time,
       time_lower = time_lower,
@@ -384,10 +485,13 @@ hazard <- function(formula = NULL,
 #'   time (e.g., "survival", "cumulative_hazard"), newdata should include a `time`
 #'   column, or time will be taken from the fitted object's data.
 #' @param type Prediction type:
-#'   - `"linear_predictor"`: Linear predictor η = x·β
-#'   - `"hazard"`: Hazard scale exp(η) (not conditional on time for Weibull)
+#'   - `"linear_predictor"`: Linear predictor η = x·β (not available for multiphase)
+#'   - `"hazard"`: Hazard scale exp(η) (not available for multiphase)
 #'   - `"survival"`: Survival probability S(t|x) = exp(-H(t|x))
 #'   - `"cumulative_hazard"`: Cumulative hazard H(t|x) at event times
+#' @param decompose Logical; if `TRUE` and the model is multiphase, return a
+#'   data frame with per-phase cumulative hazard contributions alongside the
+#'   total.  Ignored for single-distribution models.  Default `FALSE`.
 #' @param ... Unused; included for S3 compatibility.
 #'
 #' @details
@@ -434,10 +538,11 @@ hazard <- function(formula = NULL,
 #'   nyha = c(1, 3, 4),
 #'   shock = c(0, 0, 1)
 #' )
-#' new_patients$survival        <- predict(fit2, newdata = new_patients,
-#'                                         type = "survival")
-#' new_patients$cumulative_hazard <- predict(fit2, newdata = new_patients,
-#'                                           type = "cumulative_hazard")
+#' # Compute predictions from the clean covariate frame before adding columns
+#' surv   <- predict(fit2, newdata = new_patients, type = "survival")
+#' cumhaz <- predict(fit2, newdata = new_patients, type = "cumulative_hazard")
+#' new_patients$survival          <- surv
+#' new_patients$cumulative_hazard <- cumhaz
 #' new_patients
 #'
 #' \donttest{
@@ -486,7 +591,10 @@ hazard <- function(formula = NULL,
 #' }
 #' }
 #' @export
-predict.hazard <- function(object, newdata = NULL, type = c("hazard", "linear_predictor", "survival", "cumulative_hazard"), ...) {
+predict.hazard <- function(object, newdata = NULL,
+                           type = c("hazard", "linear_predictor",
+                                    "survival", "cumulative_hazard"),
+                           decompose = FALSE, ...) {
   type <- match.arg(type)
   theta <- object$fit$theta
   time_windows <- object$spec$time_windows
@@ -503,6 +611,10 @@ predict.hazard <- function(object, newdata = NULL, type = c("hazard", "linear_pr
   # hazard returns exp(η), which is the relative-hazard multiplier (not the
   # baseline conditional hazard, which would require time + distribution).
   if (type %in% c("hazard", "linear_predictor")) {
+    if (object$spec$dist == "multiphase") {
+      stop("Prediction type '", type, "' is not supported for multiphase models. ",
+           "Use 'survival' or 'cumulative_hazard' instead.", call. = FALSE)
+    }
     n_pred <- NULL
     pred_time <- NULL
     if (is.null(newdata)) {
@@ -575,10 +687,78 @@ predict.hazard <- function(object, newdata = NULL, type = c("hazard", "linear_pr
   # is numerically better computed directly from the normal CDF rather than
   # via exp(−H).
   if (type %in% c("survival", "cumulative_hazard")) {
-    if (!object$spec$dist %in% c("weibull", "exponential", "loglogistic", "lognormal")) {
-      stop("Prediction type '", type, "' is only supported for Weibull, exponential, log-logistic, and log-normal models.", call. = FALSE)
+    supported <- c("weibull", "exponential", "loglogistic", "lognormal", "multiphase")
+    if (!object$spec$dist %in% supported) {
+      stop("Prediction type '", type, "' is only supported for ",
+           paste(supported, collapse = ", "), " models.", call. = FALSE)
     }
 
+    # --- Multiphase prediction (early return) ---------------------------------
+    if (object$spec$dist == "multiphase") {
+      # Extract time from newdata or fitted data
+      if (!is.null(newdata)) {
+        newdata <- as.data.frame(newdata)
+        if (!"time" %in% names(newdata)) {
+          stop("'newdata' must contain a 'time' column for '", type, "' predictions.",
+               call. = FALSE)
+        }
+        pred_time <- newdata$time
+      } else {
+        pred_time <- object$data$time
+      }
+
+      if (!is.numeric(pred_time) || any(!is.finite(pred_time)) || any(pred_time < 0)) {
+        stop("'time' must be a numeric vector of finite non-negative values.", call. = FALSE)
+      }
+
+      # Recover phase metadata from fit
+      phases <- object$fit$phases
+      if (is.null(phases)) phases <- object$spec$phases
+      cov_counts <- object$fit$covariate_counts
+      x_list <- object$fit$x_list
+
+      # If newdata has covariates, rebuild per-phase design matrices
+      if (!is.null(newdata)) {
+        nd_covs <- newdata[, names(newdata) != "time", drop = FALSE]
+        for (nm in names(phases)) {
+          ph <- phases[[nm]]
+          if (!is.null(ph$formula) && ncol(nd_covs) > 0) {
+            x_list[[nm]] <- stats::model.matrix(ph$formula, data = newdata)[, -1L, drop = FALSE]
+          } else if (cov_counts[[nm]] > 0 && ncol(nd_covs) > 0) {
+            x_list[[nm]] <- as.matrix(nd_covs)
+          } else {
+            x_list[[nm]] <- NULL
+          }
+        }
+      }
+
+      result <- .hzr_multiphase_cumhaz(
+        pred_time, theta, phases, cov_counts, x_list,
+        per_phase = decompose
+      )
+
+      if (decompose) {
+        # Return a data frame with time, total, and per-phase columns
+        out <- data.frame(time = pred_time, total = result$total)
+        for (nm in names(phases)) {
+          out[[nm]] <- result[[nm]]
+        }
+        if (type == "survival") {
+          out$total <- exp(-out$total)
+          for (nm in names(phases)) {
+            # Per-phase survival contribution is not additive; provide cumhaz
+            # columns as-is and only transform total.
+          }
+        }
+        return(out)
+      }
+
+      cumhaz <- result
+      if (type == "cumulative_hazard") return(cumhaz)
+      return(exp(-cumhaz))
+    }
+
+    # --- Standard single-distribution prediction ------------------------------
     # Extract time from newdata or use fitted data
     if (!is.null(newdata)) {
       newdata <- as.data.frame(newdata)
@@ -652,6 +832,13 @@ print.hazard <- function(x, ...) {
   cat("  observations:", n, "\n")
   cat("  predictors:  ", p, "\n")
   cat("  dist:        ", x$spec$dist, "\n")
+
+  if (x$spec$dist == "multiphase" && !is.null(x$spec$phases)) {
+    ph <- x$spec$phases
+    cat("  phases:      ", length(ph),
+        " (", paste(names(ph), collapse = ", "), ")\n", sep = "")
+  }
+
   cat("  engine:      ", x$engine, "\n")
   if (!anyNA(x$fit$objective)) {
     cat("  log-lik:     ", format(x$fit$objective, digits = 6), "\n")
@@ -681,7 +868,14 @@ summary.hazard <- function(object, ...) {
 
   coef_table <- NULL
   if (!is.null(theta)) {
-    coef_names <- .hzr_parameter_names(theta = theta, dist = object$spec$dist, p = p)
+    # For multiphase, use the theta names directly (they're already informative)
+    if (object$spec$dist == "multiphase") {
+      coef_names <- names(theta)
+      if (is.null(coef_names)) coef_names <- paste0("param_", seq_along(theta))
+    } else {
+      coef_names <- .hzr_parameter_names(theta = theta, dist = object$spec$dist, p = p)
+    }
+
     std_error <- rep(NA_real_, length(theta))
     z_stat <- rep(NA_real_, length(theta))
     p_value <- rep(NA_real_, length(theta))
@@ -714,7 +908,8 @@ summary.hazard <- function(object, ...) {
     counts = object$fit$counts,
     message = object$fit$message,
     coefficients = coef_table,
-    has_vcov = !is.null(vcov_mat) && is.matrix(vcov_mat) && !anyNA(vcov_mat)
+    has_vcov = !is.null(vcov_mat) && is.matrix(vcov_mat) && !anyNA(vcov_mat),
+    phases = object$spec$phases
   )
 
   class(out) <- "summary.hazard"
@@ -723,10 +918,26 @@ summary.hazard <- function(object, ...) {
 
 #' @export
 print.summary.hazard <- function(x, ...) {
-  cat("hazard model summary\n")
+  if (x$dist == "multiphase" && !is.null(x$phases)) {
+    cat("Multiphase hazard model (", length(x$phases), " phases)\n", sep = "")
+  } else {
+    cat("hazard model summary\n")
+  }
   cat("  observations:", x$n, "\n")
   cat("  predictors:  ", x$p, "\n")
   cat("  dist:        ", x$dist, "\n")
+
+  if (!is.null(x$phases)) {
+    for (i in seq_along(x$phases)) {
+      nm <- names(x$phases)[i]
+      ph <- x$phases[[i]]
+      label <- switch(ph$type,
+        cdf = "cdf (early risk)", hazard = "hazard (late risk)",
+        constant = "constant (flat rate)")
+      cat("  phase ", i, ":      ", nm, " - ", label, "\n", sep = "")
+    }
+  }
+
   cat("  engine:      ", x$engine, "\n")
 
   if (!is.null(x$converged) && !is.na(x$converged)) {
@@ -747,8 +958,27 @@ print.summary.hazard <- function(x, ...) {
   }
 
   if (!is.null(x$coefficients)) {
-    cat("\nCoefficients:\n")
-    print(x$coefficients)
+    if (!is.null(x$phases)) {
+      # Group coefficients by phase for readable output
+      cat("\nCoefficients (internal scale):\n")
+      for (nm in names(x$phases)) {
+        prefix <- paste0("^", nm, "\\.")
+        rows <- grep(prefix, rownames(x$coefficients))
+        if (length(rows) > 0) {
+          ph <- x$phases[[nm]]
+          label <- switch(ph$type,
+            cdf = "cdf", hazard = "hazard", constant = "constant")
+          cat("\n  Phase: ", nm, " (", label, ")\n", sep = "")
+          sub_table <- x$coefficients[rows, , drop = FALSE]
+          # Strip phase prefix from row names for cleaner display
+          rownames(sub_table) <- sub(prefix, "  ", rownames(sub_table))
+          print(sub_table)
+        }
+      }
+    } else {
+      cat("\nCoefficients:\n")
+      print(x$coefficients)
+    }
   }
 
   invisible(x)

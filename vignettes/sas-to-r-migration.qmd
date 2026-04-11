@@ -27,9 +27,9 @@ library(TemporalHazard)
 ## Overview
 
 The legacy HAZARD program is a SAS macro (`%HAZARD(...)`) that wraps a compiled
-C executable. It models event-time data using a parametric hazard function with
-multiple phases. This vignette is the canonical reference for translating a SAS
-HAZARD analysis into native R using `TemporalHazard`.
+C executable implementing the multiphase parametric hazard model of Blackstone,
+Naftel, and Turner (1986). This vignette is the canonical reference for
+translating a SAS HAZARD analysis into native R using `TemporalHazard`.
 
 The full formal argument mapping table is available programmatically:
 
@@ -336,3 +336,11 @@ mirror the `P` (predict/print) option in `PROC HAZARD`.
 reveals bottlenecks in the likelihood kernel or optimizer inner loop, those
 specific functions will be re-implemented with Rcpp. The public interface
 (`hazard()`, `predict.hazard()`, etc.) will not change.
+
+
+## References {.unnumbered}
+
+Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying
+hazard into phases, each incorporating a separate stream of concomitant
+information. *J Am Stat Assoc.* 1986;81(395):615–624.
+doi: [10.1080/01621459.1986.10478314](https://doi.org/10.1080/01621459.1986.10478314)

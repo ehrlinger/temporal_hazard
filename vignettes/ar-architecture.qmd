@@ -1,0 +1,508 @@
+---
+title: "Package Architecture"
+subtitle: "Design, golden fixtures, and dataset catalog for TemporalHazard"
+author: "John Ehrlinger"
+date: last-modified
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: true
+    code-summary: "Show code"
+vignette: >
+  %\VignetteIndexEntry{Package Architecture}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+library(TemporalHazard)
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, comment = "#>")
+```
+
+# Overview
+
+TemporalHazard is a pure-R reimplementation of the C/SAS HAZARD procedure
+originally developed at Cleveland Clinic for multi-phase parametric hazard
+modeling (Blackstone, Naftel, and Turner 1986). The package provides a
+unified framework for fitting additive hazard models with an arbitrary
+number of temporal phases, each governed by the three-parameter
+`decompos(t; t_half, nu, m)` family. The generalized temporal
+decomposition extends naturally to longitudinal mixed-effects settings
+(Rajeswaran et al. 2018).
+
+This vignette documents the internal architecture: how source files are
+organized, how functions compose into the fitting pipeline, how golden
+fixtures ensure regression-free development, and what reference datasets
+ship with the package.
+
+
+# Source file organization
+
+The R source lives in `R/` and follows a layered design. Lower layers
+know nothing about higher layers; control flows downward from the API
+through distribution-specific optimizers to shared numerical primitives.
+
+```{r file-layout, echo=FALSE}
+layout <- data.frame(
+  Layer = c(
+    rep("User API", 2),
+    rep("Multiphase engine", 3),
+    rep("Single-phase likelihoods", 4),
+    rep("Shared infrastructure", 5)
+  ),
+  File = c(
+    "hazard_api.R", "argument_mapping.R",
+    "likelihood-multiphase.R", "phase-spec.R", "decomposition.R",
+    "likelihood-weibull.R", "likelihood-exponential.R",
+    "likelihood-loglogistic.R", "likelihood-lognormal.R",
+    "optimizer.R", "math_primitives.R", "formula-helpers.R",
+    "golden_fixtures.R", "parity-helpers.R"
+  ),
+  Purpose = c(
+    "hazard(), predict.hazard(), print/summary/coef/vcov S3 methods",
+    "SAS HAZARD -> R parameter translation table",
+    "Additive N-phase likelihood, cumhaz/hazard evaluators, multi-start optimizer",
+    "hzr_phase() constructor, validators, starting-value assembly",
+    "Unified decompos(t; t_half, nu, m) parametric family",
+    "Weibull PH likelihood, gradient, optimizer",
+    "Exponential (constant hazard) likelihood",
+    "Log-logistic (proportional odds) likelihood",
+    "Log-normal (AFT) likelihood",
+    "Generic L-BFGS-B/BFGS optimizer with Hessian-based vcov",
+    "Numerically stable log1pexp, log1mexp, clamp_prob",
+    "Surv() formula parsing for right/left/interval censoring",
+    "Synthetic fixture generators (.rds reference outputs)",
+    "Stubs for cross-validating against C HAZARD binary"
+  )
+)
+knitr::kable(layout, caption = "R source files by architectural layer")
+```
+
+
+# Function call graph
+
+The primary user entry point is `hazard()`, which dispatches to
+distribution-specific optimizers. The diagram below shows the call flow
+for a multiphase fit.
+
+```{mermaid}
+%%| label: fig-callgraph
+%%| fig-cap: "Call graph for a multiphase hazard fit"
+flowchart TD
+    A["hazard(dist='multiphase')"] --> B[".hzr_optim_multiphase()"]
+    B --> C["Resolve per-phase design matrices"]
+    B --> D[".hzr_phase_start() per phase"]
+    B --> E[".hzr_optim_generic()"]
+    E --> F["stats::optim(method='BFGS')"]
+    F --> G[".hzr_logl_multiphase()"]
+    G --> H[".hzr_split_theta()"]
+    G --> I[".hzr_multiphase_cumhaz()"]
+    G --> J[".hzr_multiphase_hazard()"]
+    I --> K["hzr_phase_cumhaz()"]
+    J --> L["hzr_phase_hazard()"]
+    K --> M["hzr_decompos()"]
+    L --> M
+    A --> N["predict.hazard()"]
+    N --> I
+    N --> J
+```
+
+For single-phase distributions (Weibull, exponential, log-logistic,
+log-normal), `hazard()` dispatches to the corresponding
+`.hzr_optim_<dist>()` function, which calls `.hzr_optim_generic()` with
+the distribution-specific log-likelihood and gradient.
+
+
+## Key internal functions
+
+### Theta vector layout
+
+The multiphase model concatenates per-phase sub-vectors into a single
+flat `theta` on the **internal (estimation) scale**:
+
+```{r theta-layout, echo=FALSE}
+theta_layout <- data.frame(
+  `Phase type` = c("cdf / hazard", "constant"),
+  `Sub-vector` = c(
+    "[log_mu, log_t_half, nu, m, beta_1, ..., beta_p]",
+    "[log_mu, beta_1, ..., beta_p]"
+  ),
+  `Count` = c("4 + p", "1 + p")
+)
+knitr::kable(theta_layout, caption = "Internal theta layout per phase")
+```
+
+`.hzr_split_theta()` partitions the concatenated vector into a named
+list of per-phase sub-vectors. `.hzr_unpack_phase_theta()` extracts
+named parameters (`log_mu`, `log_t_half`, `nu`, `m`, `beta`) from each
+sub-vector.
+
+### Phase specification
+
+`hzr_phase(type, t_half, nu, m, formula)` creates a lightweight S3
+object that stores the phase type, initial shape parameters, and an
+optional phase-specific covariate formula. The constructor validates
+inputs and returns `NA` for shape parameters of constant phases.
+
+A list of `hzr_phase` objects is validated by `.hzr_validate_phases()`,
+which auto-names unnamed phases ("phase_1", "phase_2", ...) and catches
+the common mistake of passing a bare `hzr_phase` instead of a list.
+
+### Decomposition engine
+
+`hzr_decompos(time, t_half, nu, m)` is the mathematical core. It
+computes `G(t)` (CDF), `g(t)` (density), and `h(t)` (hazard) for the
+three-parameter family across six valid sign combinations of `nu` and
+`m`. The phase-level helpers `hzr_phase_cumhaz()` and
+`hzr_phase_hazard()` wrap `hzr_decompos()` and apply the phase type
+mapping:
+
+| Phase type | $\Phi(t)$ | $\phi(t)$ |
+|:-----------|:----------|:----------|
+| `"cdf"`    | $G(t)$    | $g(t)$    |
+| `"hazard"` | $-\log(1-G(t))$ | $h(t)$ |
+| `"constant"` | $t$     | $1$       |
+
+### Multi-start optimization
+
+`.hzr_optim_multiphase()` runs a multi-start strategy: the first start
+uses the assembled starting values (from `theta` or `hzr_phase` specs);
+subsequent starts perturb randomly (sd = 0.5). The best log-likelihood
+across all starts is kept. This helps escape shallow local optima common
+in multiphase models.
+
+The optimizer delegates to `.hzr_optim_generic()`, which wraps
+`stats::optim()` with method `"BFGS"` (unconstrained; all scale
+parameters are log-transformed). The Hessian is computed numerically
+at the converged point for variance-covariance estimation.
+
+
+# Golden fixture system
+
+Golden fixtures are pre-fitted model results saved as `.rds` files in
+`inst/fixtures/`. They serve as **regression anchors**: each test run
+refits the model on the same data and compares estimates to the stored
+values. This catches regressions when the likelihood, gradient, or
+optimizer changes.
+
+## Fixture format
+
+Every fixture is a named list with a consistent structure:
+
+```r
+list(
+  description = "Human-readable description",
+  data = list(time, status, [x], n, events),
+  seed = 42,
+  true_params = list(...),   # simulation truth (synthetic fixtures)
+  fit = list(
+    theta     = <named numeric>,  # converged parameter vector
+    logl      = <scalar>,         # log-likelihood at convergence
+    converged = <logical>,        # convergence flag
+    vcov      = <matrix>          # asymptotic variance-covariance
+  ),
+  timestamp = <POSIXct>
+)
+```
+
+For C-reference fixtures (e.g., `mp_c_reference_kul.rds`), the `fit`
+element is replaced by `c_reference` containing the C binary output:
+parameter estimates, standard errors, variance-covariance matrix, and
+the C log-likelihood.
+
+## Current fixtures
+
+```{r fixtures, echo=FALSE}
+fixtures <- data.frame(
+  File = c(
+    "hz_univariate.rds",
+    "hm_multivariate.rds",
+    "hm_edge_case.rds",
+    "hz_loglogistic.rds",
+    "hz_lognormal.rds",
+    "mp_synthetic_3phase.rds",
+    "mp_c_reference_kul.rds"
+  ),
+  Distribution = c(
+    "Weibull", "Weibull", "Weibull",
+    "Log-logistic", "Log-normal",
+    "Multiphase (3)", "Multiphase (3)"
+  ),
+  Description = c(
+    "Univariable shape estimation (n=100)",
+    "2 covariates (n=100)",
+    "Edge case: n=20, 3 covariates",
+    "Univariable (n=80)",
+    "Univariable (n=80)",
+    "Synthetic early CDF + constant + late hazard (n=500)",
+    "KUL CABG dataset + C HAZARD binary reference output (n=5880)"
+  ),
+  Source = c(
+    rep("Synthetic (seed=42)", 5),
+    "Synthetic (seed=42)",
+    "Clinical + C binary"
+  )
+)
+knitr::kable(fixtures, caption = "Golden fixture inventory")
+```
+
+## Regenerating fixtures
+
+Fixtures must be regenerated whenever the model parameterization changes.
+Run each generator interactively after `devtools::load_all()`:
+
+```r
+# Single-phase distributions
+.hzr_create_synthetic_golden_fixtures()    # Weibull variants
+.hzr_create_loglogistic_golden_fixture()   # Log-logistic
+.hzr_create_lognormal_golden_fixture()     # Log-normal
+
+# Multiphase
+.hzr_create_multiphase_golden_fixture()    # Synthetic 3-phase
+.hzr_create_c_reference_kul_fixture()      # C binary reference
+```
+
+All generators use `set.seed(42)` for reproducibility. Commit the
+updated `.rds` files alongside any code changes.
+
+
+# Testing strategy
+
+The test suite (`tests/testthat/`) is organized into four tiers:
+
+```{r test-tiers, echo=FALSE}
+tiers <- data.frame(
+  Tier = c(
+    "Unit tests",
+    "Distribution tests",
+    "Integration tests",
+    "Parity tests"
+  ),
+  Files = c(
+    "test-math-primitives, test-decomposition, test-phase-spec, test-argument-mapping",
+    "test-gradient-weibull, test-exponential-dist, test-loglogistic-dist, test-lognormal-dist",
+    "test-hazard-api, test-predict-types, test-interval-censoring-*, test-time-varying-*, test-multiphase-likelihood, test-multiphase-api",
+    "test-parity-core, test-parity-edge-cases, test-parity-c-binary, test-multiphase-parity"
+  ),
+  Purpose = c(
+    "Verify individual functions in isolation",
+    "Likelihood, gradient, and optimizer for each distribution",
+    "End-to-end: hazard() -> predict() -> summary() pipeline, censoring types, multiphase wiring",
+    "Golden fixture round-trip, C binary cross-validation"
+  )
+)
+knitr::kable(tiers, caption = "Test suite tiers")
+```
+
+### Multiphase parity tests
+
+The multiphase parity tests (`test-multiphase-parity.R`) validate
+against the C HAZARD binary output for the KUL CABG dataset:
+
+1. **Likelihood evaluation** — Evaluates the R log-likelihood at the C
+   converged parameters and asserts it matches the C output (-3740.52).
+
+2. **Decomposition consistency** — Verifies phase additivity and CDF
+   saturation at the C reference parameter values.
+
+3. **Conservation of events** — Checks that the model-implied expected
+   events ($\sum [1 - \exp(-H(t_i))]$) matches the observed event count
+   (545), as reported by the C binary (544.9993).
+
+4. **Profile standard errors** — Computes a numerical Hessian varying
+   only the 3 log(mu) parameters (shapes held fixed), matching the C
+   binary's estimation strategy, and compares standard errors.
+
+5. **Full fit convergence** — Fits the R multiphase optimizer on the
+   full dataset with informed starting values and checks that the
+   log-likelihood meets or exceeds the C reference.
+
+
+# Dataset catalog {#sec-datasets}
+
+TemporalHazard ships five clinical reference datasets in
+`inst/extdata/`, converted from the original C/SAS HAZARD test data.
+These datasets are used in vignette examples and parity testing.
+
+```{r datasets, echo=FALSE}
+datasets <- data.frame(
+  File = c("avc.csv", "cabgkul.csv", "omc.csv", "tga.csv", "valves.csv"),
+  Study = c(
+    "Atrioventricular canal repair",
+    "Coronary artery bypass grafting (KU Leuven)",
+    "Open mitral commissurotomy",
+    "Transposition of great arteries (arterial switch)",
+    "Primary valve replacement"
+  ),
+  n = c(310, 5880, 339, 470, 1533),
+  Events = c("70 deaths", "545 deaths", "thromboembolic events (repeated)", "deaths", "deaths, PVE, reoperation"),
+  Covariates = c(
+    "NYHA, age, anatomy, era",
+    "None (intercept only)",
+    "TE events (repeated measures)",
+    "anatomy, coronary pattern, era",
+    "age, NYHA, valve position, pathology, race"
+  ),
+  `SAS origin` = c(
+    "hz.death.AVC, hm.death.AVC",
+    "hz.deadp.KUL",
+    "hz.te123.OMC",
+    "hs.dthar.TGA",
+    "hm.deadp.VALVES"
+  )
+)
+knitr::kable(datasets, caption = "Reference datasets in inst/extdata/")
+```
+
+
+## Loading datasets
+
+```{r load-demo}
+# Helper: find extdata files whether package is installed or not
+find_extdata <- function(file) {
+  path <- system.file("extdata", file, package = "TemporalHazard")
+  if (nzchar(path)) return(path)
+  # Fall back to source tree (e.g., during quarto render before install)
+  src <- file.path("..", "inst", "extdata", file)
+  if (file.exists(src)) return(src)
+  stop("Cannot find ", file, " — run devtools::install() first")
+}
+
+# Load the KUL CABG dataset
+kul <- read.csv(find_extdata("cabgkul.csv"))
+str(kul)
+
+# Load the AVC dataset
+avc <- read.csv(find_extdata("avc.csv"))
+str(avc)
+```
+
+
+## Dataset details
+
+### AVC (atrioventricular canal repair)
+
+The AVC dataset contains 310 patients who underwent repair of
+atrioventricular septal defects. It is the primary example dataset used
+throughout the hazard modeling examples and has the richest set of
+covariates for multivariable analysis.
+
+```{r avc-detail, echo=FALSE}
+avc_vars <- data.frame(
+  Variable = c("study", "status", "inc_surg", "opmos", "age", "mal",
+               "com_iv", "orifice", "dead", "int_dead", "op_age"),
+  Label = c("Study number", "NYHA functional class (I-V)", "Surgical grade of AV valve incompetence",
+            "Date of operation (months since Jan 1967)", "Age (months) at repair",
+            "Important associated cardiac anomaly", "Interventricular communication",
+            "Accessory left AV valve orifice", "Death (event indicator)",
+            "Follow-up interval (months)", "Interaction: opmos x age"),
+  Type = c("character", rep("numeric", 10))
+)
+knitr::kable(avc_vars, caption = "AVC dataset variables")
+```
+
+### CABG/KUL (coronary artery bypass grafting)
+
+The KUL dataset is a large series of 5880 primary isolated CABG patients
+from KU Leuven (1971--July 1987). It serves as the primary benchmark for
+C binary parity testing because it has the simplest structure
+(intercept-only, right-censored) combined with a large sample size that
+exercises all three temporal phases.
+
+The original SAS analysis (`hz.deadp.KUL.sas`) also includes
+return-of-angina and reintervention endpoints (recorded in the original
+fixed-width file with 6 columns), but only the death endpoint
+(`int_dead`, `dead`) is extracted for parity testing.
+
+### OMC (open mitral commissurotomy)
+
+The OMC dataset contains 339 patients and is unique in the collection
+because it involves **repeated thromboembolic events** (up to 3 per
+patient) with **left censoring**. The SAS analysis transforms the
+dataset into a repeated-events format using STARTTME and CENSORED
+indicators, exercising the interval censoring likelihood.
+
+### TGA (transposition of great arteries)
+
+The TGA dataset contains 470 patients who underwent the arterial switch
+operation. It includes derived variables (logarithmic and inverse
+transforms of clinical measurements) and is primarily used for
+sensitivity analysis and internal validation examples.
+
+### Valves (primary valve replacement)
+
+The VALVES dataset is the largest multivariable example with 1533
+patients and multiple endpoints (death, prosthetic valve endocarditis,
+bioprosthesis degeneration, reoperation). The SAS analysis
+(`hm.deadp.VALVES.sas`) fits a multivariable 3-phase model with 10
+covariates across multiple event types.
+
+
+# SAS/C parameter mapping
+
+The original C/SAS HAZARD procedure uses a different parameterization
+than TemporalHazard. The `hzr_argument_mapping()` function documents
+the full translation.
+
+```{r mapping}
+mapping <- hzr_argument_mapping()
+knitr::kable(
+  mapping[, c("legacy_input", "r_parameter", "implementation_status", "notes")],
+  caption = "SAS HAZARD to R parameter mapping (excerpt)"
+)
+```
+
+
+## Early phase (G1) mapping
+
+The SAS early phase uses four parameters: DELTA, RHO (or THALF), NU, M.
+These collapse onto the three-parameter decompos family:
+
+- **DELTA** — Time transformation `B(t) = (exp(delta*t) - 1)/delta`.
+  When DELTA = 0 (the common case), `B(t) = t` and the transformation
+  is absorbed. Non-zero DELTA is not currently supported.
+- **RHO / THALF** — Scale parameter. `RHO = NU * THALF * ((2^M - 1)/M)^NU`.
+  Maps directly to `t_half` in `hzr_phase()`.
+- **NU** — Time exponent. Maps directly.
+- **M** — Shape exponent. Maps directly.
+
+## Late phase (G3) mapping
+
+The SAS late phase uses TAU, GAMMA, ALPHA, ETA:
+
+- **TAU** → `t_half` (late-phase characteristic time)
+- **ALPHA** → `m` (shape exponent)
+- **ETA** → `nu` (time exponent)
+- **GAMMA** — Jointly determines nu and m in the decompos family;
+  collapsed into the three-parameter representation. When the Weibull
+  flag is active (the common case for late phases), GAMMA controls the
+  power of the late-phase hazard rise.
+
+
+# Version history
+
+The package follows semantic versioning with a prerelease qualifier
+during active development:
+
+- **v0.1.0** — Single-phase engine: Weibull, exponential, log-logistic,
+  log-normal distributions with formula interface, predict, and golden
+  fixture testing.
+- **v0.9.0** (current) — Multiphase engine: N-phase additive cumulative
+  hazard, `hzr_phase()` specification, decomposition engine, C binary
+  parity tests, dataset catalog.
+
+
+# References {.unnumbered}
+
+Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying
+hazard into phases, each incorporating a separate stream of concomitant
+information. *J Am Stat Assoc.* 1986;81(395):615–624.
+doi: [10.1080/01621459.1986.10478314](https://doi.org/10.1080/01621459.1986.10478314)
+
+Rajeswaran J, Blackstone EH, Ehrlinger J, Li L, Ishwaran H, Parides MK.
+Probability of atrial fibrillation after ablation: Using a parametric
+nonlinear temporal decomposition mixed effects model. *Stat Methods Med Res.*
+2018;27(1):126–141.
+doi: [10.1177/0962280215623583](https://doi.org/10.1177/0962280215623583)

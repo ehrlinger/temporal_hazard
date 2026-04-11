@@ -1,6 +1,15 @@
 # Multiphase Hazard Model — Implementation Plan
 
-Status: DRAFT — ready for review before implementation begins.
+Status: COMPLETE — all 8 steps implemented and passing (540 tests, 0 failures).
+
+### Remaining work (post-plan)
+
+- **Analytic gradients** — numerical gradients work but limit optimizer
+  precision (~-3786 vs C's -3740.52) and make late-phase SEs unreliable.
+  See TODOs in `test-multiphase-parity.R`.
+- **R CMD check clean** — resolve any remaining NOTEs/WARNINGs.
+- **Regenerate golden fixtures** — run generators after any parameterization
+  changes.
 
 ## Design Principles
 

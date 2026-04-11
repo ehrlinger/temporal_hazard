@@ -1,17 +1,20 @@
 Package: TemporalHazard
 Title: Temporal Parametric Hazard Modeling in R
-Version: 0.1.0
+Version: 0.9.0
 Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@gmail.com", role = c("aut", "cre"))
 Author: John Ehrlinger [aut, cre]
 Maintainer: John Ehrlinger <john.ehrlinger@gmail.com>
 URL: https://ehrlinger.github.io/temporal_hazard
 BugReports: https://github.com/ehrlinger/temporal_hazard/issues
-Description: Provides native R implementations of core HAZARD model
-    components with a focus on behavioral parity, transparent numerics,
-    and reproducible validation against reference outputs. The package
-    is intentionally implemented in pure R first; performance-critical
-    paths may later be accelerated with Rcpp without changing the public
-    interface.
+Description: Provides native R implementations of the multiphase parametric
+    hazard model of Blackstone, Naftel, and Turner (1986)
+    <doi:10.1080/01621459.1986.10478314> with a focus on behavioral parity,
+    transparent numerics, and reproducible validation against reference
+    outputs from the original C/SAS HAZARD program. The generalized temporal
+    decomposition family extends to longitudinal mixed-effects settings
+    (Rajeswaran et al. 2018 <doi:10.1177/0962280215623583>). The package is
+    intentionally implemented in pure R first; performance-critical paths may
+    later be accelerated with Rcpp without changing the public interface.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -25,6 +28,7 @@ Suggests:
     ggplot2,
     hvtiPlotR,
     knitr,
+    mixhazard,
     numDeriv,
     pkgdown,
     quarto,
@@ -32,5 +36,6 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0)
 Remotes:
-    ehrlinger/hvtiPlotR
+    ehrlinger/hvtiPlotR,
+    ehrlinger/mixhazard
 Config/testthat/edition: 3
