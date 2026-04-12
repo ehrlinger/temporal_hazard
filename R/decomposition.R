@@ -193,6 +193,194 @@ hzr_decompos <- function(time, t_half, nu, m) {
 
 
 # ============================================================================
+# hzr_decompos_g3 — Late-phase (G3) engine
+# ============================================================================
+
+#' Late-phase (G3) temporal decomposition
+#'
+#' Computes the cumulative intensity \eqn{G_3(t)} and its derivative
+#' \eqn{g_3(t) = dG_3/dt} for the late-phase parametric family used in the
+#' original Blackstone C/SAS HAZARD code.  Unlike [hzr_decompos()] (which
+#' computes the early-phase G1 — a bounded CDF), this function can produce
+#' **unbounded** values, making it suitable for modelling increasing late risk.
+#'
+#' @section Mathematical form:
+#'
+#' When \eqn{\alpha > 0}:
+#' \deqn{G_3(t) = \bigl(\bigl((t/\tau)^\gamma + 1\bigr)^{1/\alpha}
+#'                       - 1\bigr)^\eta}
+#'
+#' When \eqn{\alpha = 0} (limiting exponential case):
+#' \deqn{G_3(t) = \bigl(\exp\bigl((t/\tau)^\gamma\bigr) - 1\bigr)^\eta}
+#'
+#' @section Parameter mapping from SAS/C HAZARD:
+#'
+#' | SAS name | R argument | Role |
+#' |----------|-----------|------|
+#' | TAU      | `tau`     | Scale (time at which \eqn{(t/\tau) = 1}) |
+#' | GAMMA    | `gamma`   | Power exponent on \eqn{t/\tau} |
+#' | ALPHA    | `alpha`   | Shape (0 = exponential limiting case) |
+#' | ETA      | `eta`     | Outer power exponent |
+#'
+#' @param time Numeric vector of times (must be > 0).
+#' @param tau Positive scalar scale parameter.
+#' @param gamma Positive scalar time exponent.
+#' @param alpha Non-negative scalar shape parameter (0 selects limiting case).
+#' @param eta Positive scalar outer exponent.
+#'
+#' @return A named list with two numeric vectors, each the same length
+#'   as `time`:
+#' \describe{
+#'   \item{G3}{Cumulative intensity \eqn{G_3(t) \ge 0} (may exceed 1).}
+#'   \item{g3}{Derivative \eqn{g_3(t) = dG_3/dt \ge 0}.}
+#' }
+#'
+#' @references
+#' Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying
+#' hazard into phases, each incorporating a separate stream of concomitant
+#' information. *J Am Stat Assoc.* 1986;81(395):615--624.
+#' \doi{10.1080/01621459.1986.10478314}
+#'
+#' @examples
+#' t_grid <- seq(0.1, 10, by = 0.1)
+#'
+#' # Weibull-like: alpha = 1 gives G3(t) = (t/tau)^(gamma*eta)
+#' d <- hzr_decompos_g3(t_grid, tau = 1, gamma = 3, alpha = 1, eta = 1)
+#' plot(t_grid, d$G3, type = "l", main = "G3: power law (gamma=3)")
+#'
+#' # General case with alpha > 0
+#' d2 <- hzr_decompos_g3(t_grid, tau = 2, gamma = 2, alpha = 0.5, eta = 1)
+#'
+#' @seealso [hzr_decompos()] for the early-phase (G1) decomposition,
+#'   [hzr_phase_cumhaz()] for phase-level cumulative hazard helpers.
+#'
+#' @export
+hzr_decompos_g3 <- function(time, tau, gamma, alpha, eta) {
+
+  # --- Input validation ------------------------------------------------------
+  # Soft checks: return Inf/0 for infeasible params (optimizer needs graceful
+
+  # failure) rather than hard stops.
+  if (!is.numeric(time)) stop("time must be numeric")
+  if (!is.numeric(tau) || length(tau) != 1L) stop("tau must be a scalar")
+  if (!is.numeric(gamma) || length(gamma) != 1L) stop("gamma must be a scalar")
+  if (!is.numeric(alpha) || length(alpha) != 1L) stop("alpha must be a scalar")
+
+  if (!is.numeric(eta) || length(eta) != 1L) stop("eta must be a scalar")
+
+  # Return Inf/NaN for infeasible parameters (optimizer will see -Inf logl)
+  if (tau <= 0 || gamma <= 0 || eta <= 0 || alpha < 0 || !is.finite(alpha)) {
+    return(list(G3 = rep(Inf, length(time)), g3 = rep(NaN, length(time))))
+  }
+
+  # Clamp time away from zero
+  time <- pmax(time, .Machine$double.xmin)
+
+  # --- Common terms ----------------------------------------------------------
+  # Work on log scale for numerical stability, mirroring the C implementation
+  ln_t_tau  <- log(time / tau)                    # ln(T/tau)
+  ln_t_tau_g <- gamma * ln_t_tau                   # gamma * ln(T/tau)
+
+  # --- Case dispatch: alpha > 0 vs alpha = 0 --------------------------------
+  if (alpha > 0) {
+    # G3(t) = (((t/tau)^gamma + 1)^(1/alpha) - 1)^eta
+    #
+    # On log scale:
+    #   tGamma = ln((t/tau)^gamma + 1) = ln(exp(ln_t_tau_g) + 1) = log1p(exp(ln_t_tau_g))
+    #   tEta   = ln(exp(tGamma/alpha) - 1) = ln(expm1(tGamma/alpha))
+    #   lnG3   = eta * tEta
+
+    tGamma <- .log1pexp(ln_t_tau_g)   # ln((t/tau)^gamma + 1)
+    inner  <- tGamma / alpha           # ln((t/tau)^gamma + 1) / alpha
+    tEta   <- .log_expm1(inner)        # ln(exp(inner) - 1)
+    lnG3   <- eta * tEta
+
+    G3 <- exp(lnG3)
+
+    # g3(t) = dG3/dt
+    # lnScale = ln(gamma) + ln(eta) - ln(tau) - ln(alpha)
+    # lnSG3 = lnScale + (eta-1)*tEta + ((1-alpha)/alpha)*tGamma + (gamma-1)*ln(t/tau)
+    lnScale <- log(gamma) + log(eta) - log(tau) - log(alpha)
+    lnSG3   <- lnScale + (eta - 1) * tEta +
+               ((1 - alpha) / alpha) * tGamma +
+               (gamma - 1) * ln_t_tau
+
+    g3 <- exp(lnSG3)
+
+  } else {
+    # alpha = 0 limiting case:
+    # G3(t) = (exp((t/tau)^gamma) - 1)^eta
+    #
+    # tGamma = ln(exp(exp(ln_t_tau_g)) - 1)
+    #        = ln(exp((t/tau)^gamma) - 1)
+    #        = log(expm1((t/tau)^gamma))
+    # lnG3 = eta * tGamma
+
+    t_tau_g <- exp(ln_t_tau_g)         # (t/tau)^gamma
+    tGamma  <- .log_expm1(t_tau_g)     # ln(exp((t/tau)^gamma) - 1)
+    lnG3    <- eta * tGamma
+
+    G3 <- exp(lnG3)
+
+    # lnScale = ln(gamma) + ln(eta) - ln(tau)
+    # lnSG3 = lnScale + (eta-1)*tGamma + (t/tau)^gamma + (gamma-1)*ln(t/tau)
+    lnScale <- log(gamma) + log(eta) - log(tau)
+    lnSG3   <- lnScale + (eta - 1) * tGamma +
+               t_tau_g +
+               (gamma - 1) * ln_t_tau
+
+    g3 <- exp(lnSG3)
+  }
+
+  list(G3 = G3, g3 = g3)
+}
+
+
+# --- Numerically stable helpers for G3 decomposition -----------------------
+
+#' Compute log(1 + exp(x)) with overflow/underflow protection
+#' @param x Numeric vector.
+#' @return Numeric vector: log(1 + exp(x)).
+#' @keywords internal
+.log1pexp <- function(x) {
+  # For large x: log(1+exp(x)) ≈ x
+  # For moderate x: use log1p(exp(x))
+  # For very negative x: log(1+exp(x)) ≈ exp(x)
+  out <- x
+  big  <- x > 35
+  mid  <- !big & x > -35
+  small <- x <= -35
+
+  out[big]   <- x[big]
+  out[mid]   <- log1p(exp(x[mid]))
+  out[small] <- exp(x[small])
+
+  out
+}
+
+
+#' Compute log(exp(x) - 1) with numerical stability
+#' @param x Numeric vector (must be > 0 for exp(x) > 1).
+#' @return Numeric vector: log(exp(x) - 1).
+#' @keywords internal
+.log_expm1 <- function(x) {
+  # For large x: log(exp(x) - 1) ≈ x
+  # For small positive x: use log(expm1(x)) for accuracy
+  out <- x
+  big <- x > 35
+  ok  <- !big & x > 1e-10
+  tiny <- x <= 1e-10
+
+  out[big] <- x[big]
+  out[ok]  <- log(expm1(x[ok]))
+  # For very small x: expm1(x) ≈ x, so log(expm1(x)) ≈ log(x)
+  out[tiny] <- log(pmax(x[tiny], .Machine$double.xmin))
+
+  out
+}
+
+
+# ============================================================================
 # Phase-level helpers for the additive cumulative hazard model
 # ============================================================================
 
@@ -251,6 +439,169 @@ hzr_phase_cumhaz <- function(time, t_half = 1, nu = 1, m = 0,
       one_minus_G <- pmax(1 - d$G, .Machine$double.xmin)
       -log(one_minus_G)
     }
+  )
+}
+
+
+# ============================================================================
+# Phase-level derivatives for analytic gradient
+# ============================================================================
+
+#' Derivatives of phase cumulative and instantaneous hazard w.r.t. shape params
+#'
+#' Computes \eqn{\Phi_j(t)}, \eqn{\phi_j(t)}, and their derivatives with
+#' respect to `t_half`, `nu`, and `m` using central finite differences on
+#' [hzr_decompos()].  The `log_t_half` derivative is obtained via the chain
+#' rule: \eqn{d\Phi/d(\log t_{1/2}) = t_{1/2} \cdot d\Phi/dt_{1/2}}.
+#'
+#' @param time Numeric vector of positive times.
+#' @param t_half Positive scalar half-life.
+#' @param nu Numeric scalar time exponent.
+#' @param m Numeric scalar shape exponent.
+#' @param type Phase type: `"cdf"`, `"hazard"`, or `"constant"`.
+#'
+#' @return Named list:
+#' \describe{
+#'   \item{Phi}{Cumulative hazard contribution \eqn{\Phi(t)}.}
+#'   \item{phi}{Instantaneous hazard contribution \eqn{\phi(t) = d\Phi/dt}.}
+#'   \item{dPhi_dlog_thalf}{\eqn{d\Phi / d(\log t_{1/2})}.}
+#'   \item{dPhi_dnu}{\eqn{d\Phi / d\nu}.}
+#'   \item{dPhi_dm}{\eqn{d\Phi / dm}.}
+#'   \item{dphi_dlog_thalf}{\eqn{d\phi / d(\log t_{1/2})}.}
+#'   \item{dphi_dnu}{\eqn{d\phi / d\nu}.}
+#'   \item{dphi_dm}{\eqn{d\phi / dm}.}
+#' }
+#' @keywords internal
+.hzr_phase_derivatives <- function(time, t_half, nu, m,
+                                    type = c("cdf", "hazard", "constant")) {
+  type <- match.arg(type)
+  n <- length(time)
+
+  # Constant phases: Phi = t, phi = 1, no shape dependence
+
+  if (type == "constant") {
+    zeros <- rep(0, n)
+    return(list(
+      Phi = time,
+      phi = rep(1, n),
+      dPhi_dlog_thalf = zeros,
+      dPhi_dnu        = zeros,
+      dPhi_dm         = zeros,
+      dphi_dlog_thalf = zeros,
+      dphi_dnu        = zeros,
+      dphi_dm         = zeros
+    ))
+  }
+
+  # Base evaluation
+  d0 <- hzr_decompos(time, t_half = t_half, nu = nu, m = m)
+
+  # Extract Phi and phi from decomposition for the given phase type
+  extract <- function(d, tp) {
+    if (tp == "cdf") {
+      Phi <- d$G
+      phi <- d$g
+    } else {
+      # "hazard": Phi = -log(1 - G), phi = h
+      one_minus_G <- pmax(1 - d$G, .Machine$double.xmin)
+      Phi <- -log(one_minus_G)
+      phi <- d$h
+    }
+    list(Phi = Phi, phi = phi)
+  }
+
+  base <- extract(d0, type)
+
+  # Central-difference derivatives w.r.t. shape parameters
+  eps_rel <- (.Machine$double.eps)^(1/3)  # optimal for central diff
+
+  # Helper: perturbed decomposition (returns NULL if invalid params)
+  perturb_decompos <- function(th, n_val, m_val) {
+    if (m_val < 0 && n_val < 0) return(NULL)
+    if (th <= 0) return(NULL)
+    tryCatch(
+      hzr_decompos(time, t_half = th, nu = n_val, m = m_val),
+      error = function(e) NULL
+    )
+  }
+
+  # Derivative w.r.t. t_half (then multiply by t_half for log_t_half chain rule)
+  h_th <- eps_rel * max(abs(t_half), 1e-4)
+  d_plus  <- perturb_decompos(t_half + h_th, nu, m)
+  d_minus <- perturb_decompos(t_half - h_th, nu, m)
+  if (!is.null(d_plus) && !is.null(d_minus)) {
+    e_plus  <- extract(d_plus, type)
+    e_minus <- extract(d_minus, type)
+    dPhi_dt_half <- (e_plus$Phi - e_minus$Phi) / (2 * h_th)
+    dphi_dt_half <- (e_plus$phi - e_minus$phi) / (2 * h_th)
+  } else {
+    # One-sided fallback
+    if (!is.null(d_plus)) {
+      e_plus <- extract(d_plus, type)
+      dPhi_dt_half <- (e_plus$Phi - base$Phi) / h_th
+      dphi_dt_half <- (e_plus$phi - base$phi) / h_th
+    } else {
+      dPhi_dt_half <- rep(0, n)
+      dphi_dt_half <- rep(0, n)
+    }
+  }
+  # Chain rule: d/d(log_t_half) = t_half * d/d(t_half)
+  dPhi_dlog_thalf <- t_half * dPhi_dt_half
+  dphi_dlog_thalf <- t_half * dphi_dt_half
+
+  # Derivative w.r.t. nu
+  h_nu <- eps_rel * max(abs(nu), 1)
+  d_plus  <- perturb_decompos(t_half, nu + h_nu, m)
+  d_minus <- perturb_decompos(t_half, nu - h_nu, m)
+  if (!is.null(d_plus) && !is.null(d_minus)) {
+    e_plus  <- extract(d_plus, type)
+    e_minus <- extract(d_minus, type)
+    dPhi_dnu <- (e_plus$Phi - e_minus$Phi) / (2 * h_nu)
+    dphi_dnu <- (e_plus$phi - e_minus$phi) / (2 * h_nu)
+  } else if (!is.null(d_plus)) {
+    e_plus <- extract(d_plus, type)
+    dPhi_dnu <- (e_plus$Phi - base$Phi) / h_nu
+    dphi_dnu <- (e_plus$phi - base$phi) / h_nu
+  } else if (!is.null(d_minus)) {
+    e_minus <- extract(d_minus, type)
+    dPhi_dnu <- (base$Phi - e_minus$Phi) / h_nu
+    dphi_dnu <- (base$phi - e_minus$phi) / h_nu
+  } else {
+    dPhi_dnu <- rep(0, n)
+    dphi_dnu <- rep(0, n)
+  }
+
+  # Derivative w.r.t. m
+  h_m <- eps_rel * max(abs(m), 1)
+  d_plus  <- perturb_decompos(t_half, nu, m + h_m)
+  d_minus <- perturb_decompos(t_half, nu, m - h_m)
+  if (!is.null(d_plus) && !is.null(d_minus)) {
+    e_plus  <- extract(d_plus, type)
+    e_minus <- extract(d_minus, type)
+    dPhi_dm <- (e_plus$Phi - e_minus$Phi) / (2 * h_m)
+    dphi_dm <- (e_plus$phi - e_minus$phi) / (2 * h_m)
+  } else if (!is.null(d_plus)) {
+    e_plus <- extract(d_plus, type)
+    dPhi_dm <- (e_plus$Phi - base$Phi) / h_m
+    dphi_dm <- (e_plus$phi - base$phi) / h_m
+  } else if (!is.null(d_minus)) {
+    e_minus <- extract(d_minus, type)
+    dPhi_dm <- (base$Phi - e_minus$Phi) / h_m
+    dphi_dm <- (base$phi - e_minus$phi) / h_m
+  } else {
+    dPhi_dm <- rep(0, n)
+    dphi_dm <- rep(0, n)
+  }
+
+  list(
+    Phi             = base$Phi,
+    phi             = base$phi,
+    dPhi_dlog_thalf = dPhi_dlog_thalf,
+    dPhi_dnu        = dPhi_dnu,
+    dPhi_dm         = dPhi_dm,
+    dphi_dlog_thalf = dphi_dlog_thalf,
+    dphi_dnu        = dphi_dnu,
+    dphi_dm         = dphi_dm
   )
 }
 

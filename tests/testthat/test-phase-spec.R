@@ -321,3 +321,72 @@ test_that("start values and theta names have matching length", {
                                "ncov=", cc$ncov))
   }
 })
+
+
+# ============================================================================
+# Fixed parameter support
+# ============================================================================
+
+test_that("hzr_phase stores fixed parameter names", {
+  ph <- hzr_phase("cdf", t_half = 1, nu = 2, m = 0, fixed = "shapes")
+  expect_equal(sort(ph$fixed), c("m", "nu", "t_half"))
+
+  ph2 <- hzr_phase("hazard", t_half = 5, nu = 1, m = 0, fixed = c("nu", "m"))
+  expect_equal(sort(ph2$fixed), c("m", "nu"))
+
+  ph3 <- hzr_phase("cdf", t_half = 1, nu = 1, m = 0)
+  expect_equal(ph3$fixed, character(0))
+})
+
+test_that("hzr_phase rejects invalid fixed names", {
+  expect_error(
+    hzr_phase("cdf", t_half = 1, nu = 1, m = 0, fixed = "mu"),
+    "Invalid fixed"
+  )
+  expect_error(
+    hzr_phase("cdf", t_half = 1, nu = 1, m = 0, fixed = "log_mu"),
+    "Invalid fixed"
+  )
+})
+
+test_that("fixed is ignored for constant phases with warning", {
+  expect_warning(
+    ph <- hzr_phase("constant", fixed = "shapes"),
+    "ignored for constant"
+  )
+  expect_equal(ph$fixed, character(0))
+})
+
+test_that(".hzr_phase_free_mask works correctly", {
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 1, nu = 1, m = 0,
+                          fixed = "shapes"),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("hazard", t_half = 5, nu = 1, m = 0,
+                          fixed = c("nu", "m"))
+  )
+  cov_counts <- c(early = 0L, constant = 0L, late = 2L)
+
+  mask <- .hzr_phase_free_mask(phases, cov_counts)
+
+  # early: log_mu=T, log_t_half=F, nu=F, m=F
+  # constant: log_mu=T
+  # late: log_mu=T, log_t_half=T, nu=F, m=F, beta1=T, beta2=T
+  expected <- c(TRUE, FALSE, FALSE, FALSE,   # early
+                TRUE,                          # constant
+                TRUE, TRUE, FALSE, FALSE, TRUE, TRUE)  # late
+  expect_equal(mask, expected)
+  expect_equal(sum(mask), 6)  # 6 free params
+  expect_equal(sum(!mask), 5) # 5 fixed params
+})
+
+test_that(".hzr_phase_free_mask is all TRUE when nothing fixed", {
+  phases <- list(
+    early = hzr_phase("cdf", t_half = 1, nu = 1, m = 0),
+    const = hzr_phase("constant")
+  )
+  cov_counts <- c(early = 0L, const = 0L)
+  mask <- .hzr_phase_free_mask(phases, cov_counts)
+  expect_true(all(mask))
+  expect_equal(length(mask), 5)  # 4 early + 1 const
+})

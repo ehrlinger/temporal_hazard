@@ -62,7 +62,7 @@ hzr_argument_mapping <- function(include_planned = TRUE) {
     "3-phase Early/Const/Late", "per-phase scale factors",
     "early half-life", "early time exponent", "early shape", "early time transform",
     "constant hazard rate phase",
-    "late half-life", "late shape/exponent", "late shape", "late time exponent"
+    "late G3 scale", "late G3 time exponent", "late G3 shape", "late G3 outer exponent"
   ),
   r_parameter = c(
     "time", "status", "x", "theta", "dist", "control", "...",
@@ -71,7 +71,7 @@ hzr_argument_mapping <- function(include_planned = TRUE) {
     "phases (list of hzr_phase())", "mu (via exp(log_mu) in theta)",
     "hzr_phase(t_half=)", "hzr_phase(nu=)", "hzr_phase(m=)", "(absorbed by decompos)",
     "hzr_phase('constant')",
-    "hzr_phase(t_half=)", "hzr_phase(nu=, m=)", "hzr_phase(m=)", "hzr_phase(nu=)"
+    "hzr_phase('g3', tau=)", "hzr_phase('g3', gamma=)", "hzr_phase('g3', alpha=)", "hzr_phase('g3', eta=)"
   ),
   required = c(
     TRUE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE, FALSE,
@@ -97,17 +97,17 @@ hzr_argument_mapping <- function(include_planned = TRUE) {
     "stored in spec$control", "stored in legacy_args for parity",
     "pass through", "coerce to numeric", "map PARMS/INITIAL to theta", "map DIST= to dist",
     # Multiphase
-    "list(early=hzr_phase('cdf',...), constant=hzr_phase('constant'), late=hzr_phase('hazard',...))",
+    "list(early=hzr_phase('cdf',...), constant=hzr_phase('constant'), late=hzr_phase('g3',...))",
     "exp(alpha_j) in internal parameterization; estimated on log scale",
     "maps directly to hzr_phase(t_half=) starting value",
     "maps directly to hzr_phase(nu=) starting value",
     "maps directly to hzr_phase(m=) starting value",
     "time transform B(t) = (exp(delta*t)-1)/delta absorbed into decompos shape",
     "hzr_phase('constant') with no shape parameters",
-    "maps to hzr_phase(t_half=) for late phase",
-    "GAMMA collapses onto nu and m in decompos parameterization",
-    "maps to hzr_phase(m=) for late phase",
-    "maps to hzr_phase(nu=) for late phase"
+    "maps directly to hzr_phase('g3', tau=) for late phase",
+    "maps directly to hzr_phase('g3', gamma=) for late phase",
+    "maps directly to hzr_phase('g3', alpha=) for late phase",
+    "maps directly to hzr_phase('g3', eta=) for late phase"
   ),
   implementation_status = c(
     "implemented", "implemented", "implemented", "implemented", "implemented",
@@ -138,10 +138,10 @@ hzr_argument_mapping <- function(include_planned = TRUE) {
     "Shape exponent controlling distributional form. Same parameter name as SAS early M.",
     "The C DELTA controlled B(t) = (exp(delta*t)-1)/delta. This transform is absorbed by decompos().",
     "Flat background rate. No shape parameters estimated. SAS G2 equivalent.",
-    "Late-phase half-life. TAU maps to the t_half concept via the decompos parameterization.",
-    "GAMMA jointly determines nu and m for the late phase through the decompos reparameterization.",
-    "ALPHA maps to the shape exponent m in the late-phase decompos parameterization.",
-    "ETA maps to the time exponent nu in the late-phase decompos parameterization.")
+    "Late-phase G3 scale parameter. Maps directly to hzr_phase('g3', tau=).",
+    "Late-phase G3 time exponent. Maps directly to hzr_phase('g3', gamma=).",
+    "Late-phase G3 shape parameter. alpha=0 gives exponential case. Maps directly to hzr_phase('g3', alpha=).",
+    "Late-phase G3 outer exponent. Maps directly to hzr_phase('g3', eta=).")
   ,
   stringsAsFactors = FALSE
 )

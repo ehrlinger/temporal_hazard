@@ -35,9 +35,10 @@ load_synthetic_fixture <- function() {
 }
 
 # Starting theta on internal scale, matching SAS PARMS from hz.deadp.KUL.sas:
-#   MUE=0.02, THALF=0.2, NU=1, M=1, MUC=0.0008, MUL=1E-9, TAU=1, ALPHA=1, ETA=1
+#   MUE=0.02, THALF=0.2, NU=1, M=1, MUC=0.0008, MUL=1E-9, TAU=1, GAMMA=3, ALPHA=1, ETA=1
 # Internal layout: [log_mu, log_t_half, nu, m] per cdf/hazard phase,
-#                  [log_mu] for constant
+#                  [log_mu] for constant,
+#                  [log_mu, log_tau, gamma, alpha, eta] for g3 phase
 kul_theta_start <- c(
   log(0.02),     # early.log_mu
   log(0.2),      # early.log_t_half
@@ -45,16 +46,17 @@ kul_theta_start <- c(
   1,             # early.m
   log(0.0008),   # constant.log_mu
   log(1e-9),     # late.log_mu
-  log(1),        # late.log_t_half
-  1,             # late.nu
-  1              # late.m
+  log(1),        # late.log_tau
+  3,             # late.gamma
+  1,             # late.alpha
+  1              # late.eta
 )
 
 kul_phases <- function() {
   list(
-    early    = hzr_phase("cdf",      t_half = 0.2, nu = 1, m = 1),
+    early    = hzr_phase("cdf",  t_half = 0.2, nu = 1, m = 1),
     constant = hzr_phase("constant"),
-    late     = hzr_phase("hazard",   t_half = 1,   nu = 1, m = 1)
+    late     = hzr_phase("g3",   tau = 1, gamma = 3, alpha = 1, eta = 1)
   )
 }
 
@@ -84,9 +86,10 @@ test_that("R log-likelihood at C reference parameters matches C output", {
     1,            # early.m
     -7.2258,      # constant.log_mu (C0)
     -16.6578,     # late.log_mu (L0)
-    log(1),       # late.log_t_half
-    1,            # late.nu
-    1             # late.m
+    log(1),       # late.log_tau
+    3,            # late.gamma
+    1,            # late.alpha
+    1             # late.eta
   )
 
   logl_r <- .hzr_logl_multiphase(
@@ -101,7 +104,9 @@ test_that("R log-likelihood at C reference parameters matches C output", {
   expect_true(is.finite(logl_r))
 
   # C reference log-likelihood: -3740.52
-  expect_equal(logl_r, -3740.52, tolerance = 0.5)
+  # R now uses G3 decomposition for the late phase, matching C.
+  expect_equal(logl_r, -3740.52, tolerance = 0.01,
+               label = "R logl at C params matches C reference")
 })
 
 
@@ -117,7 +122,7 @@ test_that("R cumulative hazard decomposition is consistent at C parameters", {
 
   theta_c <- c(-3.77955, log(0.2), 1, 1,
                -7.2258,
-               -16.6578, log(1), 1, 1)
+               -16.6578, log(1), 3, 1, 1)
 
   t_grid <- c(0.1, 0.5, 1, 2, 5, 10, 20, 50, 100, 200)
 
@@ -165,7 +170,7 @@ test_that("Conservation of events at C reference parameters", {
 
   theta_c <- c(-3.77955, log(0.2), 1, 1,
                -7.2258,
-               -16.6578, log(1), 1, 1)
+               -16.6578, log(1), 3, 1, 1)
 
   cumhaz <- .hzr_multiphase_cumhaz(
     time = time, theta = theta_c,
@@ -200,25 +205,95 @@ test_that("Full multiphase fit on KUL data converges", {
     theta  = kul_theta_start,
     phases = kul_phases(),
     fit = TRUE,
-    control = list(n_starts = 3, maxit = 1000, reltol = 1e-8)
+    control = list(n_starts = 10, maxit = 2000, reltol = 1e-10)
   )
 
   expect_s3_class(fit, "hazard")
   expect_true(is.finite(fit$fit$objective))
 
-  # R optimizer uses numerical gradients on 9 free parameters vs the C binary's
-  # 3 (shapes fixed) with analytic derivatives.  Multi-start with random
-  # perturbation yields log-likelihoods in [-3790, -3750] across runs.
-  # TODO: tighten to >= -3742 once analytic gradients are implemented.
-  # C log-likelihood: -3740.52 (shapes fixed)
-  expect_true(fit$fit$objective >= -3800,
+  # With 10 free parameters (shapes free), the optimizer can improve
+  # beyond the shapes-fixed solution.  Should reach at least C's -3740.52.
+  expect_true(fit$fit$objective >= -3745,
               label = paste("R logl", round(fit$fit$objective, 2),
-                            ">= -3800 (numerical gradient limit)"))
+                            ">= -3745"))
 
   # Phase names should be preserved
   expect_equal(names(fit$spec$phases), c("early", "constant", "late"))
-  expect_equal(length(fit$fit$theta), 9)  # 4 + 1 + 4
+  expect_equal(length(fit$fit$theta), 10)  # 4 + 1 + 5
 })
+
+# ============================================================================
+# Shape-fixed fit: matches C binary workflow (only mu estimated)
+# ============================================================================
+
+test_that("KUL fit with fixed shapes: mechanism works correctly", {
+  skip_on_cran()
+
+  dat <- load_kul_csv()
+  skip_if(is.null(dat), "KUL dataset not available")
+
+  # C binary fixes all shapes and only estimates 3 mu parameters.
+  # Replicate this by using fixed = "shapes" on each non-constant phase.
+  phases_fixed <- list(
+    early    = hzr_phase("cdf",  t_half = 0.2, nu = 1, m = 1,
+                          fixed = "shapes"),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("g3",   tau = 1, gamma = 3, alpha = 1, eta = 1,
+                          fixed = "shapes")
+  )
+
+  # --- Verify phases carry fixed attribute ---
+  expect_equal(phases_fixed$early$fixed, c("t_half", "nu", "m"))
+  expect_equal(phases_fixed$late$fixed, c("tau", "gamma", "alpha", "eta"))
+
+  # Verify free_mask: 10 params total, 3 free (the 3 log_mu)
+  cov_cnt <- c(early = 0L, constant = 0L, late = 0L)
+  direct_mask <- .hzr_phase_free_mask(phases_fixed, cov_cnt)
+  expect_equal(sum(direct_mask), 3L)
+  expect_equal(direct_mask,
+               c(TRUE, FALSE, FALSE, FALSE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE))
+
+  # Starting values
+  theta_start <- c(
+    log(0.02),  log(0.2), 1, 1,
+    log(0.0008),
+    log(1e-7),  log(1),   3, 1, 1
+  )
+
+  fit <- hazard(
+    time   = dat$int_dead,
+    status = dat$dead,
+    dist   = "multiphase",
+    theta  = theta_start,
+    phases = phases_fixed,
+    fit    = TRUE,
+    control = list(n_starts = 5, maxit = 2000, reltol = 1e-12)
+  )
+
+  expect_s3_class(fit, "hazard")
+  expect_true(is.finite(fit$fit$objective))
+
+  # Verify the optimizer used fixed-parameter masking
+  expect_true(!is.null(fit$fit$fixed_mask),
+              label = "fixed_mask should be set when shapes are fixed")
+
+  # Shape-fixed fit with G3 late phase should match C's -3740.52
+  expect_equal(fit$fit$objective, -3740.52, tolerance = 0.05,
+               label = "R logl (shapes fixed) matches C reference")
+
+  # Fixed shape parameters MUST stay at their starting values
+  expect_equal(unname(fit$fit$theta[2]), log(0.2))   # early.log_t_half
+  expect_equal(unname(fit$fit$theta[3]), 1)           # early.nu
+  expect_equal(unname(fit$fit$theta[4]), 1)           # early.m
+  expect_equal(unname(fit$fit$theta[7]), log(1))      # late.log_tau
+  expect_equal(unname(fit$fit$theta[8]), 3)           # late.gamma
+  expect_equal(unname(fit$fit$theta[9]), 1)           # late.alpha
+  expect_equal(unname(fit$fit$theta[10]), 1)          # late.eta
+
+  # Full theta should still be length 10 (shapes present but fixed)
+  expect_equal(length(fit$fit$theta), 10)
+})
+
 
 test_that("KUL fit mu estimates are in neighborhood of C reference", {
   skip_on_cran()
@@ -233,13 +308,13 @@ test_that("KUL fit mu estimates are in neighborhood of C reference", {
     theta  = kul_theta_start,
     phases = kul_phases(),
     fit = TRUE,
-    control = list(n_starts = 3, maxit = 1000, reltol = 1e-8)
+    control = list(n_starts = 10, maxit = 2000, reltol = 1e-10)
   )
 
   theta <- fit$fit$theta
 
   # Internal layout: early=[log_mu, log_t_half, nu, m], constant=[log_mu],
-  #                  late=[log_mu, log_t_half, nu, m]
+  #                  late=[log_mu, log_tau, gamma, alpha, eta]
   log_mu_early <- theta[1]
   log_mu_const <- theta[5]
   log_mu_late  <- theta[6]
@@ -271,7 +346,7 @@ test_that("predict works on KUL multiphase fit", {
     theta  = kul_theta_start,
     phases = kul_phases(),
     fit = TRUE,
-    control = list(n_starts = 2, maxit = 500)
+    control = list(n_starts = 10, maxit = 2000, reltol = 1e-10)
   )
 
   # Predict at landmark times (months)
@@ -417,7 +492,7 @@ test_that("R standard errors at C params are consistent with C reference", {
   # C reference converged theta (shapes fixed at exact values)
   theta_c <- c(-3.77955, log(0.2), 1, 1,
                -7.2258,
-               -16.6578, log(1), 1, 1)
+               -16.6578, log(1), 3, 1, 1)
 
   # Profile likelihood: only vary the 3 log_mu parameters (indices 1, 5, 6)
   # holding shapes fixed — matches what the C binary did.

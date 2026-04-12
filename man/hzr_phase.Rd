@@ -5,38 +5,71 @@
 \title{Specify a single hazard phase}
 \usage{
 hzr_phase(
-  type = c("cdf", "hazard", "constant"),
+  type = c("cdf", "hazard", "constant", "g3"),
   t_half = 1,
   nu = 1,
   m = 0,
-  formula = NULL
+  tau = 1,
+  gamma = 1,
+  alpha = 1,
+  eta = 1,
+  formula = NULL,
+  fixed = character(0)
 )
 }
 \arguments{
-\item{type}{Character; phase type: \code{"cdf"}, \code{"hazard"}, or \code{"constant"}.}
+\item{type}{Character; phase type: \code{"cdf"}, \code{"hazard"}, \code{"g3"}, or
+\code{"constant"}.}
 
 \item{t_half}{Positive scalar; initial half-life (time at which
-\eqn{G(t_{1/2}) = 0.5}).  Ignored for \code{"constant"} phases.
-SAS early: \code{THALF}/\code{RHO}.  SAS late: relates to \code{TAU}.}
+\eqn{G(t_{1/2}) = 0.5}).  Used for \code{"cdf"} and \code{"hazard"} phases.
+SAS early: \code{THALF}/\code{RHO}.}
 
-\item{nu}{Numeric scalar; initial time exponent.  Ignored for \code{"constant"}.
-SAS early: \code{NU}.  SAS late: relates to \code{GAMMA}/\code{ETA}.}
+\item{nu}{Numeric scalar; initial time exponent.  Used for \code{"cdf"} and
+\code{"hazard"} phases.  SAS early: \code{NU}.}
 
-\item{m}{Numeric scalar; initial shape exponent.  Ignored for \code{"constant"}.
-SAS early: \code{M}.  SAS late: relates to \code{GAMMA}/\code{ALPHA}.}
+\item{m}{Numeric scalar; initial shape exponent.  Used for \code{"cdf"} and
+\code{"hazard"} phases.  SAS early: \code{M}.}
+
+\item{tau}{Positive scalar; scale parameter for \code{"g3"} phases.
+SAS late: \code{TAU}.}
+
+\item{gamma}{Positive scalar; time exponent for \code{"g3"} phases.
+SAS late: \code{GAMMA}.}
+
+\item{alpha}{Non-negative scalar; shape parameter for \code{"g3"} phases.
+When \code{alpha > 0}, the generic G3 formula is used; \code{alpha = 0} gives the
+exponential limiting case.  SAS late: \code{ALPHA}.}
+
+\item{eta}{Positive scalar; outer exponent for \code{"g3"} phases.
+SAS late: \code{ETA}.}
 
 \item{formula}{Optional one-sided formula (e.g. \code{~ age + nyha}) for
 phase-specific covariates.  When \code{NULL} (default), the phase inherits
 the global formula from \code{\link[=hazard]{hazard()}}.}
+
+\item{fixed}{Character vector naming shape parameters to hold fixed during
+optimization.  Valid names for \code{"cdf"}/\code{"hazard"}: \code{"t_half"}, \code{"nu"},
+\code{"m"}, or \code{"shapes"} (shorthand for all three).  Valid names for \code{"g3"}:
+\code{"tau"}, \code{"gamma"}, \code{"alpha"}, \code{"eta"}, or \code{"shapes"} (shorthand for all
+four).  Fixed parameters are held at their starting values; only \code{mu}
+(and covariates) are estimated.  Ignored for \code{"constant"} phases.
+This mirrors the SAS/C HAZARD workflow where shapes are typically fixed
+and only scale parameters are estimated.}
 }
 \value{
 An S3 object of class \code{"hzr_phase"} with elements:
 \describe{
 \item{type}{Phase type string.}
-\item{t_half}{Initial half-life.}
-\item{nu}{Initial time exponent.}
-\item{m}{Initial shape exponent.}
+\item{t_half}{Initial half-life (cdf/hazard phases).}
+\item{nu}{Initial time exponent (cdf/hazard phases).}
+\item{m}{Initial shape exponent (cdf/hazard phases).}
+\item{tau}{Scale parameter (g3 phases).}
+\item{gamma}{Time exponent (g3 phases).}
+\item{alpha}{Shape parameter (g3 phases).}
+\item{eta}{Outer exponent (g3 phases).}
 \item{formula}{Phase-specific formula or \code{NULL}.}
+\item{fixed}{Character vector of fixed parameter names (may be empty).}
 }
 }
 \description{
@@ -61,10 +94,20 @@ SAS equivalent: Constant / G2 phase.}
 }
 
 \examples{
-# Classic 3-phase HAZARD pattern
+# Classic 3-phase Blackstone pattern
 early <- hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0)
 const <- hzr_phase("constant")
-late  <- hzr_phase("hazard",   t_half = 5,   nu = 1, m = 0)
+late  <- hzr_phase("g3", tau = 1, gamma = 3, alpha = 1, eta = 1)
+
+# Fix all shapes (C/SAS-style: only estimate mu)
+early_fixed <- hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
+                          fixed = "shapes")
+late_fixed  <- hzr_phase("g3", tau = 1, gamma = 3, alpha = 1, eta = 1,
+                          fixed = "shapes")
+
+# Fix only some parameters
+early_partial <- hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
+                            fixed = c("nu", "m"))
 
 # Phase with specific covariates
 early_cov <- hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
