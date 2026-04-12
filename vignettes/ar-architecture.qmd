@@ -17,8 +17,10 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-library(TemporalHazard)
-knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, comment = "#>")
+has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE)
+if (has_pkg) library(TemporalHazard)
+knitr::opts_chunk$set(echo = TRUE, collapse = TRUE, comment = "#>",
+                      eval = has_pkg)
 ```
 
 # Overview
