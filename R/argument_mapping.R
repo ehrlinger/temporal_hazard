@@ -138,10 +138,10 @@ hzr_argument_mapping <- function(include_planned = TRUE) {
     "Shape exponent controlling distributional form. Same parameter name as SAS early M.",
     "The C DELTA controlled B(t) = (exp(delta*t)-1)/delta. This transform is absorbed by decompos().",
     "Flat background rate. No shape parameters estimated. SAS G2 equivalent.",
-    "Late-phase half-life. TAU maps to the t_half concept via the decompos parameterization.",
-    "GAMMA jointly determines nu and m for the late phase through the decompos reparameterization.",
-    "ALPHA maps to the shape exponent m in the late-phase decompos parameterization.",
-    "ETA maps to the time exponent nu in the late-phase decompos parameterization.")
+    "Late-phase G3 scale parameter. Maps directly to hzr_phase('g3', tau=).",
+    "Late-phase G3 time exponent. Maps directly to hzr_phase('g3', gamma=).",
+    "Late-phase G3 shape parameter. alpha=0 gives exponential case. Maps directly to hzr_phase('g3', alpha=).",
+    "Late-phase G3 outer exponent. Maps directly to hzr_phase('g3', eta=).")
   ,
   stringsAsFactors = FALSE
 )
