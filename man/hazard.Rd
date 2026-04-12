@@ -180,7 +180,7 @@ fit_mp <- hazard(
   dist   = "multiphase",
   phases = list(
     early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
-    late  = hzr_phase("hazard",   t_half = 5,   nu = 1, m = 0)
+    late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
   ),
   fit     = TRUE,
   control = list(n_starts = 3, maxit = 500)

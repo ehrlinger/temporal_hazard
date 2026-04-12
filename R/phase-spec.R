@@ -22,7 +22,12 @@
 # hzr_phase() constructor maps directly:
 #   SAS Early (G1) -> hzr_phase("cdf",    t_half, nu, m)
 #   SAS Const (G2) -> hzr_phase("constant")
-#   SAS Late  (G3) -> hzr_phase("hazard", t_half, nu, m)
+#   SAS Late  (G3) -> hzr_phase("cdf",    t_half, nu, m)
+#
+# NOTE: The original Blackstone model uses G(t) directly (CDF) as cumulative
+# hazard for ALL non-constant phases, including the late phase.  The "hazard"
+# type (-log(1-G(t))) is available for alternative models but does NOT match
+# the original C/SAS implementation.
 
 # ============================================================================
 # Constructor
@@ -48,32 +53,65 @@
 #'     SAS equivalent: Constant / G2 phase.}
 #' }
 #'
-#' @param type Character; phase type: `"cdf"`, `"hazard"`, or `"constant"`.
+#' @param type Character; phase type: `"cdf"`, `"hazard"`, `"g3"`, or
+#'   `"constant"`.
 #' @param t_half Positive scalar; initial half-life (time at which
-#'   \eqn{G(t_{1/2}) = 0.5}).  Ignored for `"constant"` phases.
-#'   SAS early: `THALF`/`RHO`.  SAS late: relates to `TAU`.
-#' @param nu Numeric scalar; initial time exponent.  Ignored for `"constant"`.
-#'   SAS early: `NU`.  SAS late: relates to `GAMMA`/`ETA`.
-#' @param m Numeric scalar; initial shape exponent.  Ignored for `"constant"`.
-#'   SAS early: `M`.  SAS late: relates to `GAMMA`/`ALPHA`.
+#'   \eqn{G(t_{1/2}) = 0.5}).  Used for `"cdf"` and `"hazard"` phases.
+#'   SAS early: `THALF`/`RHO`.
+#' @param nu Numeric scalar; initial time exponent.  Used for `"cdf"` and
+#'   `"hazard"` phases.  SAS early: `NU`.
+#' @param m Numeric scalar; initial shape exponent.  Used for `"cdf"` and
+#'   `"hazard"` phases.  SAS early: `M`.
+#' @param tau Positive scalar; scale parameter for `"g3"` phases.
+#'   SAS late: `TAU`.
+#' @param gamma Positive scalar; time exponent for `"g3"` phases.
+#'   SAS late: `GAMMA`.
+#' @param alpha Non-negative scalar; shape parameter for `"g3"` phases.
+#'   When `alpha > 0`, the generic G3 formula is used; `alpha = 0` gives the
+#'   exponential limiting case.  SAS late: `ALPHA`.
+#' @param eta Positive scalar; outer exponent for `"g3"` phases.
+#'   SAS late: `ETA`.
 #' @param formula Optional one-sided formula (e.g. `~ age + nyha`) for
 #'   phase-specific covariates.  When `NULL` (default), the phase inherits
 #'   the global formula from [hazard()].
+#' @param fixed Character vector naming shape parameters to hold fixed during
+#'   optimization.  Valid names for `"cdf"`/`"hazard"`: `"t_half"`, `"nu"`,
+#'   `"m"`, or `"shapes"` (shorthand for all three).  Valid names for `"g3"`:
+#'   `"tau"`, `"gamma"`, `"alpha"`, `"eta"`, or `"shapes"` (shorthand for all
+#'   four).  Fixed parameters are held at their starting values; only `mu`
+#'   (and covariates) are estimated.  Ignored for `"constant"` phases.
+#'   This mirrors the SAS/C HAZARD workflow where shapes are typically fixed
+#'   and only scale parameters are estimated.
 #'
 #' @return An S3 object of class `"hzr_phase"` with elements:
 #' \describe{
 #'   \item{type}{Phase type string.}
-#'   \item{t_half}{Initial half-life.}
-#'   \item{nu}{Initial time exponent.}
-#'   \item{m}{Initial shape exponent.}
+#'   \item{t_half}{Initial half-life (cdf/hazard phases).}
+#'   \item{nu}{Initial time exponent (cdf/hazard phases).}
+#'   \item{m}{Initial shape exponent (cdf/hazard phases).}
+#'   \item{tau}{Scale parameter (g3 phases).}
+#'   \item{gamma}{Time exponent (g3 phases).}
+#'   \item{alpha}{Shape parameter (g3 phases).}
+#'   \item{eta}{Outer exponent (g3 phases).}
 #'   \item{formula}{Phase-specific formula or `NULL`.}
+#'   \item{fixed}{Character vector of fixed parameter names (may be empty).}
 #' }
 #'
 #' @examples
-#' # Classic 3-phase HAZARD pattern
+#' # Classic 3-phase Blackstone pattern
 #' early <- hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0)
 #' const <- hzr_phase("constant")
-#' late  <- hzr_phase("hazard",   t_half = 5,   nu = 1, m = 0)
+#' late  <- hzr_phase("g3", tau = 1, gamma = 3, alpha = 1, eta = 1)
+#'
+#' # Fix all shapes (C/SAS-style: only estimate mu)
+#' early_fixed <- hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
+#'                           fixed = "shapes")
+#' late_fixed  <- hzr_phase("g3", tau = 1, gamma = 3, alpha = 1, eta = 1,
+#'                           fixed = "shapes")
+#'
+#' # Fix only some parameters
+#' early_partial <- hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
+#'                             fixed = c("nu", "m"))
 #'
 #' # Phase with specific covariates
 #' early_cov <- hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
@@ -89,14 +127,29 @@
 #'   \eqn{\Phi(t)} and \eqn{\phi(t)} from these specifications.
 #'
 #' @export
-hzr_phase <- function(type = c("cdf", "hazard", "constant"),
+hzr_phase <- function(type = c("cdf", "hazard", "constant", "g3"),
                       t_half = 1, nu = 1, m = 0,
-                      formula = NULL) {
+                      tau = 1, gamma = 1, alpha = 1, eta = 1,
+                      formula = NULL,
+                      fixed = character(0)) {
 
   type <- match.arg(type)
 
-  # --- Validate shape parameters (non-constant phases only) -----------------
-  if (type != "constant") {
+  # --- Validate shape parameters based on type ------------------------------
+  if (type == "g3") {
+    # G3 late-phase decomposition: 4 parameters (tau, gamma, alpha, eta)
+    stopifnot(
+      "tau must be a positive scalar" =
+        is.numeric(tau) && length(tau) == 1L && tau > 0,
+      "gamma must be a positive scalar" =
+        is.numeric(gamma) && length(gamma) == 1L && gamma > 0,
+      "alpha must be a non-negative scalar" =
+        is.numeric(alpha) && length(alpha) == 1L && alpha >= 0 && is.finite(alpha),
+      "eta must be a positive scalar" =
+        is.numeric(eta) && length(eta) == 1L && eta > 0
+    )
+  } else if (type != "constant") {
+    # G1 early-phase decomposition: 3 parameters (t_half, nu, m)
     stopifnot(
       "t_half must be a positive scalar" =
         is.numeric(t_half) && length(t_half) == 1L &&
@@ -127,16 +180,57 @@ hzr_phase <- function(type = c("cdf", "hazard", "constant"),
     }
   }
 
-  structure(
-    list(
+  # --- Validate and normalize fixed parameters ------------------------------
+  if (length(fixed) > 0 && type == "constant") {
+    warning("fixed is ignored for constant phases.", call. = FALSE)
+    fixed <- character(0)
+  }
+  if (length(fixed) > 0) {
+    if (type == "g3") {
+      # G3: expand "shapes" to tau, gamma, alpha, eta
+      if ("shapes" %in% fixed) {
+        fixed <- union(setdiff(fixed, "shapes"), c("tau", "gamma", "alpha", "eta"))
+      }
+      valid_fixed <- c("tau", "gamma", "alpha", "eta")
+    } else {
+      # G1: expand "shapes" to t_half, nu, m
+      if ("shapes" %in% fixed) {
+        fixed <- union(setdiff(fixed, "shapes"), c("t_half", "nu", "m"))
+      }
+      valid_fixed <- c("t_half", "nu", "m")
+    }
+    bad <- setdiff(fixed, valid_fixed)
+    if (length(bad) > 0) {
+      stop("Invalid fixed parameter names: ",
+           paste(bad, collapse = ", "),
+           ". Valid names: ", paste(valid_fixed, collapse = ", "),
+           ", or 'shapes' for all.", call. = FALSE)
+    }
+    fixed <- unique(fixed)
+  }
+
+  if (type == "g3") {
+    obj <- list(
+      type    = type,
+      tau     = tau,
+      gamma   = gamma,
+      alpha   = alpha,
+      eta     = eta,
+      formula = formula,
+      fixed   = fixed
+    )
+  } else {
+    obj <- list(
       type    = type,
       t_half  = if (type == "constant") NA_real_ else t_half,
       nu      = if (type == "constant") NA_real_ else nu,
       m       = if (type == "constant") NA_real_ else m,
-      formula = formula
-    ),
-    class = "hzr_phase"
-  )
+      formula = formula,
+      fixed   = fixed
+    )
+  }
+
+  structure(obj, class = "hzr_phase")
 }
 
 
@@ -149,14 +243,23 @@ print.hzr_phase <- function(x, ...) {
   label <- switch(x$type,
     cdf      = "cdf (early risk)",
     hazard   = "hazard (late risk)",
-    constant = "constant (flat rate)"
+    constant = "constant (flat rate)",
+    g3       = "g3 (late phase)"
   )
   cat("<hzr_phase>", label, "\n")
 
-  if (x$type != "constant") {
+  if (x$type == "g3") {
+    cat("  tau =", format(x$tau, digits = 4),
+        " gamma =", format(x$gamma, digits = 4),
+        " alpha =", format(x$alpha, digits = 4),
+        " eta =", format(x$eta, digits = 4), "\n")
+  } else if (x$type != "constant") {
     cat("  t_half =", format(x$t_half, digits = 4),
         " nu =", format(x$nu, digits = 4),
         " m =", format(x$m, digits = 4), "\n")
+    if (length(x$fixed) > 0) {
+      cat("  fixed:", paste(x$fixed, collapse = ", "), "\n")
+    }
   }
 
   if (!is.null(x$formula)) {
@@ -200,7 +303,11 @@ is_hzr_phase <- function(x) {
 #' @keywords internal
 .hzr_phase_n_shape <- function(phase) {
   stopifnot(is_hzr_phase(phase))
-  if (phase$type == "constant") 0L else 3L
+  switch(phase$type,
+    constant = 0L,
+    g3       = 4L,
+    3L  # cdf, hazard
+  )
 }
 
 
@@ -226,8 +333,15 @@ is_hzr_phase <- function(x) {
   # Intercept (always present)
   names_out <- paste0(phase_name, ".log_mu")
 
-  # Shape parameters (cdf/hazard only)
-  if (phase$type != "constant") {
+  # Shape parameters
+  if (phase$type == "g3") {
+    names_out <- c(names_out,
+      paste0(phase_name, ".log_tau"),
+      paste0(phase_name, ".gamma"),
+      paste0(phase_name, ".alpha"),
+      paste0(phase_name, ".eta")
+    )
+  } else if (phase$type != "constant") {
     names_out <- c(names_out,
       paste0(phase_name, ".log_t_half"),
       paste0(phase_name, ".nu"),
@@ -280,7 +394,9 @@ is_hzr_phase <- function(x) {
 
   vals <- log(mu_start)  # log_mu
 
-  if (phase$type != "constant") {
+  if (phase$type == "g3") {
+    vals <- c(vals, log(phase$tau), phase$gamma, phase$alpha, phase$eta)
+  } else if (phase$type != "constant") {
     vals <- c(vals, log(phase$t_half), phase$nu, phase$m)
   }
 
@@ -290,6 +406,54 @@ is_hzr_phase <- function(x) {
   }
 
   vals
+}
+
+
+#' Build a logical mask of free (non-fixed) parameters in the full theta vector
+#'
+#' Returns a logical vector the same length as the full theta where `TRUE`
+#' means the parameter is free (to be optimized) and `FALSE` means it is
+#' held fixed at its starting value.
+#'
+#' @param phases Named list of validated `hzr_phase` objects.
+#' @param covariate_counts Named integer vector of per-phase covariate counts.
+#' @return Logical vector of length `sum(.hzr_phase_n_params(...))`.
+#' @keywords internal
+.hzr_phase_free_mask <- function(phases, covariate_counts) {
+  mask <- logical(0)
+
+  for (nm in names(phases)) {
+    ph <- phases[[nm]]
+    n_cov <- covariate_counts[[nm]]
+
+    # log_mu is always free
+    mask <- c(mask, TRUE)
+
+    # Shape parameters
+    if (ph$type == "g3") {
+      fixed <- if (is.null(ph$fixed)) character(0) else ph$fixed
+      mask <- c(mask,
+        !("tau"   %in% fixed),  # log_tau
+        !("gamma" %in% fixed),  # gamma
+        !("alpha" %in% fixed),  # alpha
+        !("eta"   %in% fixed)   # eta
+      )
+    } else if (ph$type != "constant") {
+      fixed <- if (is.null(ph$fixed)) character(0) else ph$fixed
+      mask <- c(mask,
+        !("t_half" %in% fixed),  # log_t_half
+        !("nu"     %in% fixed),  # nu
+        !("m"      %in% fixed)   # m
+      )
+    }
+
+    # Covariate betas are always free
+    if (n_cov > 0L) {
+      mask <- c(mask, rep(TRUE, n_cov))
+    }
+  }
+
+  mask
 }
 
 

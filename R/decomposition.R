@@ -193,6 +193,194 @@ hzr_decompos <- function(time, t_half, nu, m) {
 
 
 # ============================================================================
+# hzr_decompos_g3 — Late-phase (G3) engine
+# ============================================================================
+
+#' Late-phase (G3) temporal decomposition
+#'
+#' Computes the cumulative intensity \eqn{G_3(t)} and its derivative
+#' \eqn{g_3(t) = dG_3/dt} for the late-phase parametric family used in the
+#' original Blackstone C/SAS HAZARD code.  Unlike [hzr_decompos()] (which
+#' computes the early-phase G1 — a bounded CDF), this function can produce
+#' **unbounded** values, making it suitable for modelling increasing late risk.
+#'
+#' @section Mathematical form:
+#'
+#' When \eqn{\alpha > 0}:
+#' \deqn{G_3(t) = \bigl(\bigl((t/\tau)^\gamma + 1\bigr)^{1/\alpha}
+#'                       - 1\bigr)^\eta}
+#'
+#' When \eqn{\alpha = 0} (limiting exponential case):
+#' \deqn{G_3(t) = \bigl(\exp\bigl((t/\tau)^\gamma\bigr) - 1\bigr)^\eta}
+#'
+#' @section Parameter mapping from SAS/C HAZARD:
+#'
+#' | SAS name | R argument | Role |
+#' |----------|-----------|------|
+#' | TAU      | `tau`     | Scale (time at which \eqn{(t/\tau) = 1}) |
+#' | GAMMA    | `gamma`   | Power exponent on \eqn{t/\tau} |
+#' | ALPHA    | `alpha`   | Shape (0 = exponential limiting case) |
+#' | ETA      | `eta`     | Outer power exponent |
+#'
+#' @param time Numeric vector of times (must be > 0).
+#' @param tau Positive scalar scale parameter.
+#' @param gamma Positive scalar time exponent.
+#' @param alpha Non-negative scalar shape parameter (0 selects limiting case).
+#' @param eta Positive scalar outer exponent.
+#'
+#' @return A named list with two numeric vectors, each the same length
+#'   as `time`:
+#' \describe{
+#'   \item{G3}{Cumulative intensity \eqn{G_3(t) \ge 0} (may exceed 1).}
+#'   \item{g3}{Derivative \eqn{g_3(t) = dG_3/dt \ge 0}.}
+#' }
+#'
+#' @references
+#' Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying
+#' hazard into phases, each incorporating a separate stream of concomitant
+#' information. *J Am Stat Assoc.* 1986;81(395):615--624.
+#' \doi{10.1080/01621459.1986.10478314}
+#'
+#' @examples
+#' t_grid <- seq(0.1, 10, by = 0.1)
+#'
+#' # Weibull-like: alpha = 1 gives G3(t) = (t/tau)^(gamma*eta)
+#' d <- hzr_decompos_g3(t_grid, tau = 1, gamma = 3, alpha = 1, eta = 1)
+#' plot(t_grid, d$G3, type = "l", main = "G3: power law (gamma=3)")
+#'
+#' # General case with alpha > 0
+#' d2 <- hzr_decompos_g3(t_grid, tau = 2, gamma = 2, alpha = 0.5, eta = 1)
+#'
+#' @seealso [hzr_decompos()] for the early-phase (G1) decomposition,
+#'   [hzr_phase_cumhaz()] for phase-level cumulative hazard helpers.
+#'
+#' @export
+hzr_decompos_g3 <- function(time, tau, gamma, alpha, eta) {
+
+  # --- Input validation ------------------------------------------------------
+  # Soft checks: return Inf/0 for infeasible params (optimizer needs graceful
+
+  # failure) rather than hard stops.
+  if (!is.numeric(time)) stop("time must be numeric")
+  if (!is.numeric(tau) || length(tau) != 1L) stop("tau must be a scalar")
+  if (!is.numeric(gamma) || length(gamma) != 1L) stop("gamma must be a scalar")
+  if (!is.numeric(alpha) || length(alpha) != 1L) stop("alpha must be a scalar")
+
+  if (!is.numeric(eta) || length(eta) != 1L) stop("eta must be a scalar")
+
+  # Return Inf/NaN for infeasible parameters (optimizer will see -Inf logl)
+  if (tau <= 0 || gamma <= 0 || eta <= 0 || alpha < 0 || !is.finite(alpha)) {
+    return(list(G3 = rep(Inf, length(time)), g3 = rep(NaN, length(time))))
+  }
+
+  # Clamp time away from zero
+  time <- pmax(time, .Machine$double.xmin)
+
+  # --- Common terms ----------------------------------------------------------
+  # Work on log scale for numerical stability, mirroring the C implementation
+  ln_t_tau  <- log(time / tau)                    # ln(T/tau)
+  ln_t_tau_g <- gamma * ln_t_tau                   # gamma * ln(T/tau)
+
+  # --- Case dispatch: alpha > 0 vs alpha = 0 --------------------------------
+  if (alpha > 0) {
+    # G3(t) = (((t/tau)^gamma + 1)^(1/alpha) - 1)^eta
+    #
+    # On log scale:
+    #   tGamma = ln((t/tau)^gamma + 1) = ln(exp(ln_t_tau_g) + 1) = log1p(exp(ln_t_tau_g))
+    #   tEta   = ln(exp(tGamma/alpha) - 1) = ln(expm1(tGamma/alpha))
+    #   lnG3   = eta * tEta
+
+    tGamma <- .log1pexp(ln_t_tau_g)   # ln((t/tau)^gamma + 1)
+    inner  <- tGamma / alpha           # ln((t/tau)^gamma + 1) / alpha
+    tEta   <- .log_expm1(inner)        # ln(exp(inner) - 1)
+    lnG3   <- eta * tEta
+
+    G3 <- exp(lnG3)
+
+    # g3(t) = dG3/dt
+    # lnScale = ln(gamma) + ln(eta) - ln(tau) - ln(alpha)
+    # lnSG3 = lnScale + (eta-1)*tEta + ((1-alpha)/alpha)*tGamma + (gamma-1)*ln(t/tau)
+    lnScale <- log(gamma) + log(eta) - log(tau) - log(alpha)
+    lnSG3   <- lnScale + (eta - 1) * tEta +
+               ((1 - alpha) / alpha) * tGamma +
+               (gamma - 1) * ln_t_tau
+
+    g3 <- exp(lnSG3)
+
+  } else {
+    # alpha = 0 limiting case:
+    # G3(t) = (exp((t/tau)^gamma) - 1)^eta
+    #
+    # tGamma = ln(exp(exp(ln_t_tau_g)) - 1)
+    #        = ln(exp((t/tau)^gamma) - 1)
+    #        = log(expm1((t/tau)^gamma))
+    # lnG3 = eta * tGamma
+
+    t_tau_g <- exp(ln_t_tau_g)         # (t/tau)^gamma
+    tGamma  <- .log_expm1(t_tau_g)     # ln(exp((t/tau)^gamma) - 1)
+    lnG3    <- eta * tGamma
+
+    G3 <- exp(lnG3)
+
+    # lnScale = ln(gamma) + ln(eta) - ln(tau)
+    # lnSG3 = lnScale + (eta-1)*tGamma + (t/tau)^gamma + (gamma-1)*ln(t/tau)
+    lnScale <- log(gamma) + log(eta) - log(tau)
+    lnSG3   <- lnScale + (eta - 1) * tGamma +
+               t_tau_g +
+               (gamma - 1) * ln_t_tau
+
+    g3 <- exp(lnSG3)
+  }
+
+  list(G3 = G3, g3 = g3)
+}
+
+
+# --- Numerically stable helpers for G3 decomposition -----------------------
+
+#' Compute log(1 + exp(x)) with overflow/underflow protection
+#' @param x Numeric vector.
+#' @return Numeric vector: log(1 + exp(x)).
+#' @keywords internal
+.log1pexp <- function(x) {
+  # For large x: log(1+exp(x)) ≈ x
+  # For moderate x: use log1p(exp(x))
+  # For very negative x: log(1+exp(x)) ≈ exp(x)
+  out <- x
+  big  <- x > 35
+  mid  <- !big & x > -35
+  small <- x <= -35
+
+  out[big]   <- x[big]
+  out[mid]   <- log1p(exp(x[mid]))
+  out[small] <- exp(x[small])
+
+  out
+}
+
+
+#' Compute log(exp(x) - 1) with numerical stability
+#' @param x Numeric vector (must be > 0 for exp(x) > 1).
+#' @return Numeric vector: log(exp(x) - 1).
+#' @keywords internal
+.log_expm1 <- function(x) {
+  # For large x: log(exp(x) - 1) ≈ x
+  # For small positive x: use log(expm1(x)) for accuracy
+  out <- x
+  big <- x > 35
+  ok  <- !big & x > 1e-10
+  tiny <- x <= 1e-10
+
+  out[big] <- x[big]
+  out[ok]  <- log(expm1(x[ok]))
+  # For very small x: expm1(x) ≈ x, so log(expm1(x)) ≈ log(x)
+  out[tiny] <- log(pmax(x[tiny], .Machine$double.xmin))
+
+  out
+}
+
+
+# ============================================================================
 # Phase-level helpers for the additive cumulative hazard model
 # ============================================================================
 

@@ -97,7 +97,7 @@ hzr_argument_mapping <- function(include_planned = TRUE) {
     "stored in spec$control", "stored in legacy_args for parity",
     "pass through", "coerce to numeric", "map PARMS/INITIAL to theta", "map DIST= to dist",
     # Multiphase
-    "list(early=hzr_phase('cdf',...), constant=hzr_phase('constant'), late=hzr_phase('hazard',...))",
+    "list(early=hzr_phase('cdf',...), constant=hzr_phase('constant'), late=hzr_phase('cdf',...))",
     "exp(alpha_j) in internal parameterization; estimated on log scale",
     "maps directly to hzr_phase(t_half=) starting value",
     "maps directly to hzr_phase(nu=) starting value",

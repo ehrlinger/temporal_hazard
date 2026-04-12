@@ -174,7 +174,7 @@ NULL
 #'   dist   = "multiphase",
 #'   phases = list(
 #'     early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
-#'     late  = hzr_phase("hazard",   t_half = 5,   nu = 1, m = 0)
+#'     late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
 #'   ),
 #'   fit     = TRUE,
 #'   control = list(n_starts = 3, maxit = 500)
@@ -422,6 +422,7 @@ hazard <- function(formula = NULL,
     fit_state$phases <- optim_result$phases
     fit_state$covariate_counts <- optim_result$covariate_counts
     fit_state$x_list <- optim_result$x_list
+    fit_state$fixed_mask <- optim_result$fixed_mask
 
   } else if (fit && !is.null(theta)) {
     optim_fn <- switch(
