@@ -15,6 +15,11 @@ articles:
     navbar: Getting started
     contents:
       - getting-started
+  - title: Technical reference
+    navbar: Technical reference
+    contents:
+      - ar-architecture
+      - mf-mathematical-foundations
   - title: Migration guides
     navbar: Migration guides
     contents:
@@ -38,6 +43,16 @@ reference:
       - predict.hazard
       - coef.hazard
       - vcov.hazard
+  - title: Multiphase phases
+    contents:
+      - hzr_phase
+      - is_hzr_phase
+      - hzr_phase_cumhaz
+      - hzr_phase_hazard
+  - title: Decomposition
+    contents:
+      - hzr_decompos
+      - hzr_decompos_g3
   - title: Migration tools
     contents:
       - hzr_argument_mapping

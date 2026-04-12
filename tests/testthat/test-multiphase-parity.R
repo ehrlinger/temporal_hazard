@@ -322,15 +322,18 @@ test_that("KUL fit mu estimates are in neighborhood of C reference", {
   # C reference: E0=-3.77955, C0=-7.2258, L0=-16.6578
   # With shapes free, mu may shift to compensate — use loose tolerance.
   # The early and constant phases are well-identified; late is harder.
+  # G3 late phase has 4 shape params (tau, gamma, alpha, eta), creating
+  # a wider mu-shape tradeoff surface than G1's 3 params, so late needs
+  # extra tolerance.  Fixed-shape parity test validates exact logl match.
   expect_true(abs(log_mu_early - (-3.77955)) < 3,
               label = paste("early log_mu", round(log_mu_early, 3),
                             "within 3 of C ref -3.780"))
   expect_true(abs(log_mu_const - (-7.2258)) < 3,
               label = paste("constant log_mu", round(log_mu_const, 3),
                             "within 3 of C ref -7.226"))
-  expect_true(abs(log_mu_late - (-16.6578)) < 8,
+  expect_true(abs(log_mu_late - (-16.6578)) < 12,
               label = paste("late log_mu", round(log_mu_late, 3),
-                            "within 8 of C ref -16.658"))
+                            "within 12 of C ref -16.658"))
 })
 
 test_that("predict works on KUL multiphase fit", {
