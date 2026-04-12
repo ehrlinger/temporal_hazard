@@ -87,26 +87,25 @@ The primary user entry point is `hazard()`, which dispatches to
 distribution-specific optimizers. The diagram below shows the call flow
 for a multiphase fit.
 
-```{mermaid}
-%%| label: fig-callgraph
-%%| fig-cap: "Call graph for a multiphase hazard fit"
-flowchart TD
-    A["hazard(dist='multiphase')"] --> B[".hzr_optim_multiphase()"]
-    B --> C["Resolve per-phase design matrices"]
-    B --> D[".hzr_phase_start() per phase"]
-    B --> E[".hzr_optim_generic()"]
-    E --> F["stats::optim(method='BFGS')"]
-    F --> G[".hzr_logl_multiphase()"]
-    G --> H[".hzr_split_theta()"]
-    G --> I[".hzr_multiphase_cumhaz()"]
-    G --> J[".hzr_multiphase_hazard()"]
-    I --> K["hzr_phase_cumhaz()"]
-    J --> L["hzr_phase_hazard()"]
-    K --> M["hzr_decompos()"]
-    L --> M
-    A --> N["predict.hazard()"]
-    N --> I
-    N --> J
+```
+Call graph for a multiphase hazard fit
+──────────────────────────────────────
+
+hazard(dist='multiphase')
+├── .hzr_optim_multiphase()
+│   ├── Resolve per-phase design matrices
+│   ├── .hzr_phase_start() per phase
+│   └── .hzr_optim_generic()
+│       └── stats::optim(method='BFGS')
+│           └── .hzr_logl_multiphase()
+│               ├── .hzr_split_theta()
+│               ├── .hzr_multiphase_cumhaz()
+│               │   └── hzr_phase_cumhaz() / hzr_decompos_g3()
+│               └── .hzr_multiphase_hazard()
+│                   └── hzr_phase_hazard() / hzr_decompos_g3()
+└── predict.hazard()
+    ├── .hzr_multiphase_cumhaz()
+    └── .hzr_multiphase_hazard()
 ```
 
 For single-phase distributions (Weibull, exponential, log-logistic,
@@ -124,12 +123,13 @@ flat `theta` on the **internal (estimation) scale**:
 
 ```{r theta-layout, echo=FALSE}
 theta_layout <- data.frame(
-  `Phase type` = c("cdf / hazard", "constant"),
+  `Phase type` = c("cdf / hazard", "g3", "constant"),
   `Sub-vector` = c(
     "[log_mu, log_t_half, nu, m, beta_1, ..., beta_p]",
+    "[log_mu, log_tau, gamma, alpha, eta, beta_1, ..., beta_p]",
     "[log_mu, beta_1, ..., beta_p]"
   ),
-  `Count` = c("4 + p", "1 + p")
+  `Count` = c("4 + p", "5 + p", "1 + p")
 )
 knitr::kable(theta_layout, caption = "Internal theta layout per phase")
 ```
@@ -161,8 +161,9 @@ mapping:
 
 | Phase type | $\Phi(t)$ | $\phi(t)$ |
 |:-----------|:----------|:----------|
-| `"cdf"`    | $G(t)$    | $g(t)$    |
-| `"hazard"` | $-\log(1-G(t))$ | $h(t)$ |
+| `"cdf"`    | $G_1(t)$    | $g_1(t)$    |
+| `"hazard"` | $-\log(1-G_1(t))$ | $h_1(t)$ |
+| `"g3"`     | $G_3(t; \tau, \gamma, \alpha, \eta)$ | $g_3(t)$ |
 | `"constant"` | $t$     | $1$       |
 
 ### Multi-start optimization
@@ -470,15 +471,20 @@ These collapse onto the three-parameter decompos family:
 
 ## Late phase (G3) mapping
 
-The SAS late phase uses TAU, GAMMA, ALPHA, ETA:
+The SAS late phase uses the G3 decomposition with four parameters, now
+directly supported via `hzr_phase("g3", ...)`:
 
-- **TAU** → `t_half` (late-phase characteristic time)
-- **ALPHA** → `m` (shape exponent)
-- **ETA** → `nu` (time exponent)
-- **GAMMA** — Jointly determines nu and m in the decompos family;
-  collapsed into the three-parameter representation. When the Weibull
-  flag is active (the common case for late phases), GAMMA controls the
-  power of the late-phase hazard rise.
+- **TAU** → `tau` (scale parameter)
+- **GAMMA** → `gamma` (time exponent)
+- **ALPHA** → `alpha` (shape parameter; `alpha = 0` gives exponential case)
+- **ETA** → `eta` (outer exponent)
+
+The G3 formula (for `alpha > 0`) is:
+$G_3(t) = \left(\left((t/\tau)^\gamma + 1\right)^{1/\alpha} - 1\right)^\eta$
+
+Unlike G1, G3 is unbounded — it can grow without limit, making it
+suitable for late-phase rising hazards. For the KUL benchmark with
+`gamma = 3, alpha = 1, eta = 1`, this simplifies to $G_3(t) = t^3$.
 
 
 # Version history
