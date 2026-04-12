@@ -515,11 +515,23 @@
     if (phases[[nm]]$type %in% c("cdf", "hazard")) {
       pd <- phase_deriv[[j]]
 
+      # Compute shape derivatives at upper[idx_left] for left-censoring
+      pd_upper <- NULL
+      if (has_left) {
+        t_half_j <- exp(pars$log_t_half)
+        pd_upper <- .hzr_phase_derivatives(upper[idx_left],
+          t_half = t_half_j, nu = pars$nu, m = pars$m,
+          type = phases[[nm]]$type)
+      }
+
       # For each shape param s in {log_t_half, nu, m}:
       shape_derivs <- list(
-        list(dPhi = pd$dPhi_dlog_thalf, dphi = pd$dphi_dlog_thalf),
-        list(dPhi = pd$dPhi_dnu,        dphi = pd$dphi_dnu),
-        list(dPhi = pd$dPhi_dm,         dphi = pd$dphi_dm)
+        list(dPhi = pd$dPhi_dlog_thalf, dphi = pd$dphi_dlog_thalf,
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dlog_thalf),
+        list(dPhi = pd$dPhi_dnu,        dphi = pd$dphi_dnu,
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dnu),
+        list(dPhi = pd$dPhi_dm,         dphi = pd$dphi_dm,
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dm)
       )
 
       for (s in seq_along(shape_derivs)) {
@@ -528,6 +540,13 @@
 
         dlogl_ds <- sum(w_H * mu_j * dPhi_ds) +
                     sum(inv_h[idx_event] * mu_j[idx_event] * dphi_ds[idx_event])
+
+        # Left-censoring correction: swap dPhi at time for dPhi at upper
+        if (has_left && !is.null(shape_derivs[[s]]$dPhi_upper)) {
+          dlogl_ds <- dlogl_ds +
+            sum(w_H[idx_left] * mu_j[idx_left] * shape_derivs[[s]]$dPhi_upper) -
+            sum(w_H[idx_left] * mu_j[idx_left] * dPhi_ds[idx_left])
+        }
 
         grad[pos] <- dlogl_ds
         pos <- pos + 1L
@@ -535,12 +554,25 @@
     } else if (phases[[nm]]$type == "g3") {
       pd <- phase_deriv[[j]]
 
+      # Compute shape derivatives at upper[idx_left] for left-censoring
+      pd_upper <- NULL
+      if (has_left) {
+        tau_j <- exp(pars$log_tau)
+        pd_upper <- .hzr_g3_phase_derivatives(upper[idx_left],
+          tau = tau_j, gamma = pars$gamma,
+          alpha = pars$alpha, eta = pars$eta)
+      }
+
       # For each shape param s in {log_tau, gamma, alpha, eta}:
       shape_derivs <- list(
-        list(dPhi = pd$dPhi_dlog_tau, dphi = pd$dphi_dlog_tau),
-        list(dPhi = pd$dPhi_dgamma,   dphi = pd$dphi_dgamma),
-        list(dPhi = pd$dPhi_dalpha,   dphi = pd$dphi_dalpha),
-        list(dPhi = pd$dPhi_deta,     dphi = pd$dphi_deta)
+        list(dPhi = pd$dPhi_dlog_tau, dphi = pd$dphi_dlog_tau,
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dlog_tau),
+        list(dPhi = pd$dPhi_dgamma,   dphi = pd$dphi_dgamma,
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dgamma),
+        list(dPhi = pd$dPhi_dalpha,   dphi = pd$dphi_dalpha,
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dalpha),
+        list(dPhi = pd$dPhi_deta,     dphi = pd$dphi_deta,
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_deta)
       )
 
       for (s in seq_along(shape_derivs)) {
@@ -549,6 +581,13 @@
 
         dlogl_ds <- sum(w_H * mu_j * dPhi_ds) +
                     sum(inv_h[idx_event] * mu_j[idx_event] * dphi_ds[idx_event])
+
+        # Left-censoring correction: swap dPhi at time for dPhi at upper
+        if (has_left && !is.null(shape_derivs[[s]]$dPhi_upper)) {
+          dlogl_ds <- dlogl_ds +
+            sum(w_H[idx_left] * mu_j[idx_left] * shape_derivs[[s]]$dPhi_upper) -
+            sum(w_H[idx_left] * mu_j[idx_left] * dPhi_ds[idx_left])
+        }
 
         grad[pos] <- dlogl_ds
         pos <- pos + 1L
@@ -852,10 +891,10 @@
     theta_full[free_idx] <- best_result$par
     best_result$par <- theta_full
 
-    # Expand vcov to full dimension (zeros for fixed params)
+    # Expand vcov to full dimension (NA for fixed params — not estimated)
     if (!is.null(best_result$vcov) && is.matrix(best_result$vcov)) {
       p_full <- length(theta_fixed)
-      vcov_full <- matrix(0, p_full, p_full)
+      vcov_full <- matrix(NA_real_, p_full, p_full)
       vcov_full[free_idx, free_idx] <- best_result$vcov
       best_result$vcov <- vcov_full
     }

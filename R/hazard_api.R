@@ -190,11 +190,11 @@ NULL
 #'   df_long <- data.frame(
 #'     time = rep(decomp$time, 3),
 #'     cumhaz = c(decomp$total, decomp$early, decomp$late),
-#'     component = rep(c("Total", "Early (cdf)", "Late (hazard)"),
+#'     component = rep(c("Total", "Early (cdf)", "Late (cdf)"),
 #'                     each = nrow(decomp))
 #'   )
 #'   df_long$component <- factor(df_long$component,
-#'     levels = c("Total", "Early (cdf)", "Late (hazard)"))
+#'     levels = c("Total", "Early (cdf)", "Late (cdf)"))
 #'
 #'   ggplot2::ggplot(df_long,
 #'     ggplot2::aes(x = time, y = cumhaz, colour = component,
@@ -202,10 +202,10 @@ NULL
 #'     ggplot2::geom_line() +
 #'     ggplot2::scale_colour_manual(values = c(
 #'       "Total" = "black", "Early (cdf)" = "#0072B2",
-#'       "Late (hazard)" = "#D55E00"
+#'       "Late (cdf)" = "#D55E00"
 #'     )) +
 #'     ggplot2::scale_linewidth_manual(values = c(
-#'       "Total" = 1.2, "Early (cdf)" = 0.6, "Late (hazard)" = 0.6
+#'       "Total" = 1.2, "Early (cdf)" = 0.6, "Late (cdf)" = 0.6
 #'     )) +
 #'     ggplot2::labs(
 #'       x = "Time", y = "Cumulative hazard H(t)",

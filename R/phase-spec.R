@@ -20,14 +20,14 @@
 # ------------
 # SAS users specify Early/Constant/Late phases via DIST keywords.  The
 # hzr_phase() constructor maps directly:
-#   SAS Early (G1) -> hzr_phase("cdf",    t_half, nu, m)
+#   SAS Early (G1) -> hzr_phase("cdf",      t_half, nu, m)
 #   SAS Const (G2) -> hzr_phase("constant")
-#   SAS Late  (G3) -> hzr_phase("cdf",    t_half, nu, m)
+#   SAS Late  (G3) -> hzr_phase("g3",       tau, gamma, alpha, eta)
 #
-# NOTE: The original Blackstone model uses G(t) directly (CDF) as cumulative
-# hazard for ALL non-constant phases, including the late phase.  The "hazard"
-# type (-log(1-G(t))) is available for alternative models but does NOT match
-# the original C/SAS implementation.
+# The "cdf" and "hazard" types use the G1 decomposition (bounded [0,1]).
+# The "g3" type uses the G3 decomposition (unbounded power-law), matching
+# the C/SAS HAZARD implementation for late-phase rising hazards.
+# The "hazard" type (-log(1-G(t))) is available for alternative models.
 
 # ============================================================================
 # Constructor
@@ -257,9 +257,10 @@ print.hzr_phase <- function(x, ...) {
     cat("  t_half =", format(x$t_half, digits = 4),
         " nu =", format(x$nu, digits = 4),
         " m =", format(x$m, digits = 4), "\n")
-    if (length(x$fixed) > 0) {
-      cat("  fixed:", paste(x$fixed, collapse = ", "), "\n")
-    }
+  }
+
+  if (x$type != "constant" && length(x$fixed) > 0) {
+    cat("  fixed:", paste(x$fixed, collapse = ", "), "\n")
   }
 
   if (!is.null(x$formula)) {

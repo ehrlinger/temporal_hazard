@@ -304,7 +304,7 @@ test_that("coef returns named theta for multiphase", {
 # Three-phase classic pattern
 # ============================================================================
 
-test_that("three-phase (cdf + constant + hazard) constructs and fits", {
+test_that("three-phase (cdf + constant + cdf) constructs and fits", {
   skip_on_cran()
 
   dat <- make_multiphase_data(n = 200)
