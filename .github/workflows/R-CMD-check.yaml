@@ -19,6 +19,9 @@ jobs:
           - {os: macos-latest, r: 'release', check_roxygen: false}
           - {os: windows-latest, r: 'release', check_roxygen: false}
 
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
       - uses: actions/checkout@v4
 
