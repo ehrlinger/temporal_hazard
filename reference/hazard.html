@@ -299,7 +299,6 @@ nonlinear temporal decomposition mixed effects model. <em>Stat Methods Med Res.<
 <span class="r-in"><span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">3</span>, maxit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_mp</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>NaNs produced</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Multiphase hazard model (2 phases)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   observations: 180 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   predictors:   0 </span>
@@ -308,24 +307,24 @@ nonlinear temporal decomposition mixed effects model. <em>Stat Methods Med Res.<
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phase 2:      late - cdf (late risk)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -293.54 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=51, gr=18</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -292.801 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=84, gr=34</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (internal scale):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: early (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 estimate std_error z_stat p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -1.35525079       NaN     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  0.51499302       NaN     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          1.62479296       NaN     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -0.04234978       NaN     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  estimate std_error      z_stat   p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -1.126709174 1.5333812 -0.73478738 0.4624690</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  0.212416592 1.9841670  0.10705580 0.9147447</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          1.369429729 0.9778907  1.40039136 0.1613962</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -0.009595662 0.2489654 -0.03854215 0.9692554</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: late (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate  std_error      z_stat      p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu      4.1471854        NaN          NA           NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  2.9167551        NaN          NA           NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu         -0.6987465 0.03759895 -18.5842060 4.313365e-77</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m           0.1030004 0.24083596   0.4276787 6.688850e-01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate std_error     z_stat   p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu      2.6759727 2.0218890  1.3235013 0.1856687</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  3.9890045 3.2822853  1.2153132 0.2242467</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          1.5331785 2.8042937  0.5467254 0.5845674</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -0.3759883 0.4857653 -0.7740123 0.4389235</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># ── Per-phase decomposed cumulative hazard ────────────────────────</span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"ggplot2"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>

@@ -273,7 +273,6 @@ fit_mp <- hazard(
   control = list(n_starts = 3, maxit = 500)
 )
 summary(fit_mp)
-#> Warning: NaNs produced
 #> Multiphase hazard model (2 phases)
 #>   observations: 180 
 #>   predictors:   0 
@@ -282,24 +281,24 @@ summary(fit_mp)
 #>   phase 2:      late - cdf (late risk)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -293.54 
-#>   evaluations: fn=51, gr=18
+#>   log-lik:      -292.801 
+#>   evaluations: fn=84, gr=34
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                 estimate std_error z_stat p_value
-#>   log_mu     -1.35525079       NaN     NA      NA
-#>   log_t_half  0.51499302       NaN     NA      NA
-#>   nu          1.62479296       NaN     NA      NA
-#>   m          -0.04234978       NaN     NA      NA
+#>                  estimate std_error      z_stat   p_value
+#>   log_mu     -1.126709174 1.5333812 -0.73478738 0.4624690
+#>   log_t_half  0.212416592 1.9841670  0.10705580 0.9147447
+#>   nu          1.369429729 0.9778907  1.40039136 0.1613962
+#>   m          -0.009595662 0.2489654 -0.03854215 0.9692554
 #> 
 #>   Phase: late (cdf)
-#>                estimate  std_error      z_stat      p_value
-#>   log_mu      4.1471854        NaN          NA           NA
-#>   log_t_half  2.9167551        NaN          NA           NA
-#>   nu         -0.6987465 0.03759895 -18.5842060 4.313365e-77
-#>   m           0.1030004 0.24083596   0.4276787 6.688850e-01
+#>                estimate std_error     z_stat   p_value
+#>   log_mu      2.6759727 2.0218890  1.3235013 0.1856687
+#>   log_t_half  3.9890045 3.2822853  1.2153132 0.2242467
+#>   nu          1.5331785 2.8042937  0.5467254 0.5845674
+#>   m          -0.3759883 0.4857653 -0.7740123 0.4389235
 
 # ── Per-phase decomposed cumulative hazard ────────────────────────
 if (requireNamespace("ggplot2", quietly = TRUE)) {

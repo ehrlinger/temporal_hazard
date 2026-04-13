@@ -109,19 +109,19 @@ summary(fit)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
 #>   log-lik:      -216.059 
-#>   evaluations: fn=38, gr=21
+#>   evaluations: fn=40, gr=21
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
 #>                estimate std_error z_stat p_value
-#>   log_mu     -0.8598349        NA     NA      NA
-#>   log_t_half  1.4791525        NA     NA      NA
-#>   nu          9.8576629        NA     NA      NA
-#>   m          -1.3421669        NA     NA      NA
+#>   log_mu     -0.8552706        NA     NA      NA
+#>   log_t_half  1.5199466        NA     NA      NA
+#>   nu          9.9304802        NA     NA      NA
+#>   m          -1.3380166        NA     NA      NA
 #> 
 #>   Phase: constant (constant)
 #>           estimate std_error z_stat p_value
-#>   log_mu -286.5166        NA     NA      NA
+#>   log_mu -243.5473        NA     NA      NA
 # }
 ```
