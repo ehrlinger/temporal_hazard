@@ -1,4 +1,4 @@
-#' @importFrom utils write.csv read.table
+#' @importFrom utils write.csv read.table data
 #' @keywords internal
 NULL
 
