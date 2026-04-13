@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,13 +47,9 @@
     <li><a class="dropdown-item" href="articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
-    <li><a class="dropdown-item" href="articles/lg-exploratory-example.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
-    <li><a class="dropdown-item" href="articles/ac-actuarial-example.html">Example: Actuarial Estimates (ac.*)</a></li>
-    <li><a class="dropdown-item" href="articles/hz-estimate-hazard-example.html">Example: Estimate Hazard Function (hz.*)</a></li>
-    <li><a class="dropdown-item" href="articles/hm-multivariable-example.html">Example: Multivariable Hazard Model (hm.*)</a></li>
-    <li><a class="dropdown-item" href="articles/hp-prediction-example.html">Example: Hazard Prediction (hp.*)</a></li>
-    <li><a class="dropdown-item" href="articles/bs-bootstrap-example.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
-    <li><a class="dropdown-item" href="articles/hs-sensitivity-example.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
+    <li><a class="dropdown-item" href="articles/fitting-hazard-models.html">Fitting Hazard Models</a></li>
+    <li><a class="dropdown-item" href="articles/prediction-visualization.html">Prediction &amp; Visualization</a></li>
+    <li><a class="dropdown-item" href="articles/inference-diagnostics.html">Inference &amp; Diagnostics</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -68,57 +64,102 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="temporal_hazard">temporal_hazard<a class="anchor" aria-label="anchor" href="#temporal_hazard"></a>
+<div class="page-header"><h1 id="temporalhazard">TemporalHazard<a class="anchor" aria-label="anchor" href="#temporalhazard"></a>
 </h1></div>
 <!-- badges: start -->
 
-<p><code>temporal_hazard</code> is a native R implementation of parametric temporal hazard modeling components.</p>
+<p><strong>TemporalHazard</strong> is a pure-R implementation of the multiphase parametric hazard model of Blackstone, Naftel, and Turner (1986). It decomposes the overall hazard of an event into additive temporal phases — early, constant, and late — each governed by the generalized temporal decomposition family. This structure captures real clinical risk patterns that standard single-distribution models (Weibull, log-normal) cannot represent.</p>
 <div class="section level2">
-<h2 id="current-status">Current status<a class="anchor" aria-label="anchor" href="#current-status"></a>
+<h2 id="why-multiphase">Why multiphase?<a class="anchor" aria-label="anchor" href="#why-multiphase"></a>
 </h2>
-<ul>
-<li>Migration status is tracked in <code>MIGRATION-STATUS.md</code>.</li>
-<li>Core modeling is implemented through M3, with major M4 API stabilization now in place.</li>
-<li>Current package validation is clean: tests pass and <code>R CMD check --no-manual</code> is OK.</li>
-</ul>
+<p>After cardiac surgery, the risk of death is not constant. It starts high in the immediate post-operative period (early phase), settles to a low background rate (constant phase), and eventually rises again as patients age (late phase). A single Weibull curve forces a monotone shape; a multiphase model captures all three regimes simultaneously.</p>
+<p><img src="reference/figures/readme-hazard-phases.png" width="100%" alt="Additive phase decomposition showing early, constant, and late hazard components summing to the total hazard curve (CABGKUL, n=5,880)"></p>
+<p>The resulting survival curve closely tracks the nonparametric Kaplan-Meier estimate while providing a smooth, parametric representation that supports covariate adjustment, prediction, and extrapolation.</p>
+<p><img src="reference/figures/readme-survival.png" width="100%" alt="Multiphase parametric survival curve overlaid on the Kaplan-Meier estimate from the CABGKUL dataset (n=5,880)"></p>
 </div>
 <div class="section level2">
-<h2 id="development-goals">Development goals<a class="anchor" aria-label="anchor" href="#development-goals"></a>
-</h2>
-<ul>
-<li>Preserve numerical behavior where feasible.</li>
-<li>Validate parity against reference HAZARD outputs.</li>
-<li>Keep implementation readable and testable in pure R.</li>
-</ul>
-</div>
-<div class="section level2">
-<h2 id="documentation-entry-points">Documentation entry points<a class="anchor" aria-label="anchor" href="#documentation-entry-points"></a>
-</h2>
-<ul>
-<li>Start with <code>vignettes/getting-started.qmd</code> for a minimal fit-predict workflow.</li>
-<li>Use <code>vignettes/sas-to-r-migration.qmd</code> for SAS/HAZARD to R translation guidance.</li>
-<li>Browse the analysis-family examples under <code>vignettes/</code> for exploratory, multivariable, prediction, bootstrap, and sensitivity workflows.</li>
-</ul>
-</div>
-<div class="section level2">
-<h2 id="development-setup">Development setup<a class="anchor" aria-label="anchor" href="#development-setup"></a>
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"devtools"</span>, <span class="st">"roxygen2"</span>, <span class="st">"pkgdown"</span>, <span class="st">"testthat"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_deps</span><span class="op">(</span>dependencies <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu">roxygen2</span><span class="fu">::</span><span class="fu"><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygenise</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">test</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu">pkgdown</span><span class="fu">::</span><span class="fu"><a href="https://pkgdown.r-lib.org/reference/build_site.html" class="external-link">build_site</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Install from GitHub (requires remotes or devtools)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"ehrlinger/temporal_hazard"</span><span class="op">)</span></span></code></pre></div>
+<p>TemporalHazard requires R &gt;= 4.1.0 and depends on the <a href="https://CRAN.R-project.org/package=survival" class="external-link">survival</a> package. Optional packages for visualization and vignettes include ggplot2, numDeriv, and quarto.</p>
 </div>
 <div class="section level2">
-<h2 id="ci-and-docs">CI and docs<a class="anchor" aria-label="anchor" href="#ci-and-docs"></a>
+<h2 id="quick-start">Quick start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
+</h2>
+<div class="section level3">
+<h3 id="single-phase-model">Single-phase model<a class="anchor" aria-label="anchor" href="#single-phase-model"></a>
+</h3>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ehrlinger.github.io/temporal_hazard">TemporalHazard</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">cabgkul</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Intercept-only Weibull on 5,880 CABG patients</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/hazard.html">hazard</a></span><span class="op">(</span></span>
+<span>  <span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">int_dead</span>, <span class="va">dead</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>,</span>
+<span>  data  <span class="op">=</span> <span class="va">cabgkul</span>,</span>
+<span>  dist  <span class="op">=</span> <span class="st">"weibull"</span>,</span>
+<span>  theta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="fl">0.10</span>, nu <span class="op">=</span> <span class="fl">1.0</span><span class="op">)</span>,</span>
+<span>  fit   <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="multiphase-model">Multiphase model<a class="anchor" aria-label="anchor" href="#multiphase-model"></a>
+</h3>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Three-phase additive hazard decomposition</span></span>
+<span><span class="va">fit_mp</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/hazard.html">hazard</a></span><span class="op">(</span></span>
+<span>  <span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">int_dead</span>, <span class="va">dead</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>,</span>
+<span>  data   <span class="op">=</span> <span class="va">cabgkul</span>,</span>
+<span>  dist   <span class="op">=</span> <span class="st">"multiphase"</span>,</span>
+<span>  phases <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    early    <span class="op">=</span> <span class="fu"><a href="reference/hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>,      t_half <span class="op">=</span> <span class="fl">0.5</span>, nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>    constant <span class="op">=</span> <span class="fu"><a href="reference/hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"constant"</span><span class="op">)</span>,</span>
+<span>    late     <span class="op">=</span> <span class="fu"><a href="reference/hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>,      t_half <span class="op">=</span> <span class="fl">10</span>,  nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  fit <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_mp</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Per-phase decomposition of cumulative hazard</span></span>
+<span><span class="va">t_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">cabgkul</span><span class="op">$</span><span class="va">int_dead</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0.9</span>, length.out <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit_mp</span>, newdata <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="va">t_grid</span><span class="op">)</span>,</span>
+<span>        type <span class="op">=</span> <span class="st">"cumulative_hazard"</span>, decompose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>Each phase is specified with <code><a href="reference/hzr_phase.html">hzr_phase()</a></code>, which sets the temporal shape type and starting values. The optimizer estimates both the phase-specific scale parameters and shape parameters jointly. Covariates are supported via the formula interface (see <code><a href="articles/fitting-hazard-models.html">vignette("fitting-hazard-models")</a></code>).</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
 <ul>
-<li>GitHub Actions runs multi-platform <code>R CMD check</code> on push and pull request.</li>
-<li>CI enforces that roxygen-generated files are current.</li>
-<li>Coverage is published to Codecov.</li>
-<li>pkgdown site is built and deployed from <code>main</code> with GitHub Pages.</li>
+<li>
+<strong><a href="https://ehrlinger.github.io/temporal_hazard/articles/getting-started.html">Getting Started</a></strong> — first fit-predict workflow with visualizations.</li>
+<li>
+<strong><a href="https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.html">Fitting Hazard Models</a></strong> — intercept-only through multiphase and multi-endpoint models.</li>
+<li>
+<strong><a href="https://ehrlinger.github.io/temporal_hazard/articles/prediction-visualization.html">Prediction &amp; Visualization</a></strong> — survival curves, decomposed hazard, patient-specific risk profiles.</li>
+<li>
+<strong><a href="https://ehrlinger.github.io/temporal_hazard/articles/inference-diagnostics.html">Inference &amp; Diagnostics</a></strong> — bootstrap CIs, decile-of-risk validation, sensitivity analysis.</li>
+<li>
+<strong><a href="https://ehrlinger.github.io/temporal_hazard/articles/mf-mathematical-foundations.html">Mathematical Foundations</a></strong> — the generalized decomposition, additive hazard model, censoring likelihood, and time-varying covariates.</li>
+<li>
+<strong><a href="https://ehrlinger.github.io/temporal_hazard/articles/ar-architecture.html">Package Architecture</a></strong> — internal design, golden fixtures, and dataset catalog.</li>
+<li>
+<strong><a href="https://ehrlinger.github.io/temporal_hazard/articles/sas-to-r-migration.html">SAS-to-R Migration</a></strong> — statement-by-statement mapping from SAS HAZARD syntax.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="development">Development<a class="anchor" aria-label="anchor" href="#development"></a>
+</h2>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"devtools"</span>, <span class="st">"roxygen2"</span>, <span class="st">"pkgdown"</span>, <span class="st">"testthat"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_deps</span><span class="op">(</span>dependencies <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">test</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">check</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>GitHub Actions runs multi-platform <code>R CMD check</code> on every push and pull request. Coverage is published to Codecov and the pkgdown site deploys automatically from <code>main</code>.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
@@ -157,7 +198,7 @@
 <div class="dev-status">
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
-<li><a href="https://github.com/ehrlinger/temporal_hazard" class="external-link"><img src="https://img.shields.io/badge/version-0.9.0-blue.svg" alt="version"></a></li>
+<li><a href="https://github.com/ehrlinger/temporal_hazard" class="external-link"><img src="https://img.shields.io/badge/version-0.9.1-blue.svg" alt="version"></a></li>
 <li><a href="https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
 <li><a href="https://app.codecov.io/gh/ehrlinger/temporal_hazard?branch=main" class="external-link"><img src="https://codecov.io/gh/ehrlinger/temporal_hazard/branch/main/graph/badge.svg" alt="Codecov test coverage"></a></li>
 <li><a href="https://ehrlinger.github.io/temporal_hazard/"><img src="https://img.shields.io/badge/docs-pkgdown-blue" alt="pkgdown site"></a></li>

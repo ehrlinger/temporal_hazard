@@ -90,7 +90,14 @@ Res.* 2018;27(1):126–141.
 [`hzr_phase_cumhaz()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase_cumhaz.md)
 for the phase-level cumulative hazard contribution,
 [`hzr_argument_mapping()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_argument_mapping.md)
-for SAS/C parameter mapping.
+for SAS/C parameter mapping,
+[`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
+for specifying phases in
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+models.
+
+[`vignette("mf-mathematical-foundations")`](https://ehrlinger.github.io/temporal_hazard/articles/mf-mathematical-foundations.md)
+for the full derivation.
 
 ## Examples
 

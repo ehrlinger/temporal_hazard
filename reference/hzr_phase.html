@@ -11,7 +11,7 @@ hazard() when dist = "multiphase".'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,13 +34,9 @@ hazard() when dist = "multiphase".'></head><body>
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
-    <li><a class="dropdown-item" href="../articles/lg-exploratory-example.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/ac-actuarial-example.html">Example: Actuarial Estimates (ac.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hz-estimate-hazard-example.html">Example: Estimate Hazard Function (hz.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hm-multivariable-example.html">Example: Multivariable Hazard Model (hm.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hp-prediction-example.html">Example: Hazard Prediction (hp.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/bs-bootstrap-example.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hs-sensitivity-example.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/fitting-hazard-models.html">Fitting Hazard Models</a></li>
+    <li><a class="dropdown-item" href="../articles/prediction-visualization.html">Prediction &amp; Visualization</a></li>
+    <li><a class="dropdown-item" href="../articles/inference-diagnostics.html">Inference &amp; Diagnostics</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/ehrlinger/temporal_hazard/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -200,9 +196,12 @@ SAS equivalent: Constant / G2 phase.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="hzr_decompos.html">hzr_decompos()</a></code> for the underlying parametric family,
+    <div class="dont-index"><p><code><a href="hazard.html">hazard()</a></code> for fitting multiphase models,
+<code><a href="hzr_decompos.html">hzr_decompos()</a></code> for the underlying parametric family,
 <code><a href="hzr_phase_cumhaz.html">hzr_phase_cumhaz()</a></code> and <code><a href="hzr_phase_hazard.html">hzr_phase_hazard()</a></code> for computing
-\(\Phi(t)\) and \(\phi(t)\) from these specifications.</p></div>
+\(\Phi(t)\) and \(\phi(t)\) from these specifications.</p>
+<p><code><a href="../articles/fitting-hazard-models.html">vignette("fitting-hazard-models")</a></code> for multiphase fitting examples,
+<code><a href="../articles/mf-mathematical-foundations.html">vignette("mf-mathematical-foundations")</a></code> for the mathematical framework.</p></div>
     </div>
 
     <div class="section level2">

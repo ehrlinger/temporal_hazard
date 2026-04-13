@@ -147,6 +147,23 @@ nonlinear temporal decomposition mixed effects model. *Stat Methods Med
 Res.* 2018;27(1):126–141.
 [doi:10.1177/0962280215623583](https://doi.org/10.1177/0962280215623583)
 
+## See also
+
+[`predict.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/predict.hazard.md)
+for survival/cumulative-hazard predictions,
+[`summary.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/summary.hazard.md)
+for model summaries,
+[`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
+for specifying multiphase temporal shapes.
+
+Vignettes with worked examples:
+[`vignette("fitting-hazard-models")`](https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.md)
+— single-phase through multiphase fitting,
+[`vignette("prediction-visualization")`](https://ehrlinger.github.io/temporal_hazard/articles/prediction-visualization.md)
+— prediction types and decomposed hazard plots,
+[`vignette("inference-diagnostics")`](https://ehrlinger.github.io/temporal_hazard/articles/inference-diagnostics.md)
+— bootstrap CIs and model diagnostics.
+
 ## Examples
 
 ``` r
@@ -209,51 +226,35 @@ summary(fit2)
 #> beta3 0.017352702 0.362918437  0.04781433 9.618642e-01
 
 # \donttest{
-# ── Parametric survival with Kaplan-Meier overlay (requires hvtiPlotR)
-if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
-    requireNamespace("ggplot2", quietly = TRUE)) {
-  library(hvtiPlotR)
+# ── Parametric survival with Kaplan-Meier overlay ─────────────────
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  library(ggplot2)
 
   # Parametric curve on a fine grid at median covariate profile
   t_grid   <- seq(0.05, max(dat$time), length.out = 80)
   curve_df <- data.frame(
     time = t_grid, age = median(dat$age), nyha = 2, shock = 0
   )
-  curve_df$survival <- predict(fit2, newdata = curve_df, type = "survival")
+  curve_df$survival <- predict(fit2, newdata = curve_df,
+                               type = "survival") * 100
 
   # Kaplan-Meier empirical overlay
   km    <- survival::survfit(survival::Surv(time, status) ~ 1, data = dat)
-  km_df <- data.frame(time = km$time, estimate = km$surv * 100,
-                       source = "Kaplan-Meier")
+  km_df <- data.frame(time = km$time, survival = km$surv * 100)
 
-  curve_plot <- transform(curve_df, survival = survival * 100,
-                          source = "Parametric (Weibull)")
-
-  hz_obj <- hv_hazard(
-    curve_data       = curve_plot,
-    x_col            = "time",
-    estimate_col     = "survival",
-    group_col        = "source",
-    empirical        = km_df,
-    emp_x_col        = "time",
-    emp_estimate_col = "estimate",
-    emp_group_col    = "source",
-    emp_geom         = "step"
-  )
-
-  plot(hz_obj) +
-    ggplot2::scale_colour_manual(
+  ggplot() +
+    geom_step(data = km_df, aes(time, survival, colour = "Kaplan-Meier")) +
+    geom_line(data = curve_df, aes(time, survival,
+                                   colour = "Parametric (Weibull)")) +
+    scale_colour_manual(
       values = c("Parametric (Weibull)" = "#0072B2",
                  "Kaplan-Meier"         = "#D55E00")
     ) +
-    ggplot2::scale_y_continuous(limits = c(0, 100)) +
-    ggplot2::labs(
-      x      = "Years after surgery",
-      y      = "Freedom from death (%)",
-      colour = NULL
-    ) +
-    hv_theme_manuscript() +
-    ggplot2::theme(legend.position = "bottom")
+    scale_y_continuous(limits = c(0, 100)) +
+    labs(x = "Months after surgery", y = "Freedom from death (%)",
+         colour = NULL) +
+    theme_minimal() +
+    theme(legend.position = "bottom")
 }
 
 # }
@@ -281,24 +282,24 @@ summary(fit_mp)
 #>   phase 2:      late - cdf (early risk)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -293.221 
-#>   evaluations: fn=41, gr=14
+#>   log-lik:      -292.802 
+#>   evaluations: fn=74, gr=25
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                estimate std_error    z_stat      p_value
-#>   log_mu     -2.1626127 0.4688656 -4.612436 3.979766e-06
-#>   log_t_half -0.7892648 0.2699635 -2.923598 3.460111e-03
-#>   nu          0.2591900       NaN        NA           NA
-#>   m          -0.3031480       NaN        NA           NA
+#>                 estimate std_error       z_stat    p_value
+#>   log_mu     -1.28537702 1.0080211 -1.275148985 0.20225651
+#>   log_t_half -0.01321577 1.3977228 -0.009455214 0.99245594
+#>   nu          1.25528098 0.6952187  1.805591385 0.07098219
+#>   m          -0.01155003 0.7672332 -0.015054130 0.98798900
 #> 
 #>   Phase: late (cdf)
-#>                 estimate std_error    z_stat      p_value
-#>   log_mu      1.88566320 1.0847774  1.738295 8.215882e-02
-#>   log_t_half  1.12055212       NaN        NA           NA
-#>   nu         -0.65502414 0.1273162 -5.144862 2.677168e-07
-#>   m           0.08664595       NaN        NA           NA
+#>               estimate std_error  z_stat      p_value
+#>   log_mu     2.8532962 0.8505142 3.35479 0.0007942535
+#>   log_t_half 4.1752727       NaN      NA           NA
+#>   nu         1.3655055       NaN      NA           NA
+#>   m          0.2565997       NaN      NA           NA
 
 # ── Per-phase decomposed cumulative hazard ────────────────────────
 if (requireNamespace("ggplot2", quietly = TRUE)) {

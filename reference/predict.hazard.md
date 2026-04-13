@@ -71,6 +71,19 @@ object is used. For models fit with `time_windows`, predictions for
 `newdata$time` or fitted-time fallback) so window-specific coefficients
 can be selected.
 
+## See also
+
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+for model fitting,
+[`summary.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/summary.hazard.md)
+for model summaries,
+[`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
+for multiphase temporal shapes.
+
+[`vignette("prediction-visualization")`](https://ehrlinger.github.io/temporal_hazard/articles/prediction-visualization.md)
+for detailed prediction workflows including decomposed hazard plots and
+patient-specific curves.
+
 ## Examples
 
 ``` r
@@ -127,10 +140,9 @@ new_patients
 #> 3  3.0  75    4     1 0.5046535        0.68388317
 
 # \donttest{
-# ── Grouped survival curves (requires hvtiPlotR) ─────────────────────
-if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
-    requireNamespace("ggplot2", quietly = TRUE)) {
-  library(hvtiPlotR)
+# ── Grouped survival curves ───────────────────────────────────────
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  library(ggplot2)
 
   t_grid <- seq(0.05, max(dat$time), length.out = 80)
   profiles <- data.frame(
@@ -154,22 +166,88 @@ if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
   })
   curve_df <- do.call(rbind, curve_list)
 
-  hz_obj <- hv_hazard(
-    curve_data   = curve_df,
-    x_col        = "time",
-    estimate_col = "survival",
-    group_col    = "profile"
-  )
-
-  plot(hz_obj) +
-    ggplot2::scale_y_continuous(limits = c(0, 100)) +
-    ggplot2::labs(
-      x     = "Years after surgery",
-      y     = "Freedom from death (%)",
-      title = "Predicted survival by risk profile"
-    ) +
-    hv_theme_manuscript()
+  ggplot(curve_df, aes(time, survival, colour = profile)) +
+    geom_line() +
+    scale_y_continuous(limits = c(0, 100)) +
+    labs(x = "Months after surgery",
+         y = "Freedom from death (%)",
+         title = "Predicted survival by risk profile",
+         colour = NULL) +
+    theme_minimal()
 }
 
+# }
+
+# \donttest{
+# ── Multiphase predictions with decomposition ────────────────────
+set.seed(42)
+n   <- 200
+dat <- data.frame(
+  time   = rexp(n, rate = 0.25) + 0.01,
+  status = rbinom(n, size = 1, prob = 0.65)
+)
+fit_mp <- hazard(
+  survival::Surv(time, status) ~ 1,
+  data   = dat,
+  dist   = "multiphase",
+  phases = list(
+    early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
+    late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 3, maxit = 500)
+)
+
+t_grid <- seq(0.01, max(dat$time) * 0.9, length.out = 100)
+nd     <- data.frame(time = t_grid)
+
+# Overall survival
+predict(fit_mp, newdata = nd, type = "survival")
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.99963159   0.97022789   0.93193549   0.89108549   0.84973756   0.80894020 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.76928444   0.73110930   0.69460102   0.65984848   0.62687690   0.59566952 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.56618210   0.53835279   0.51210901   0.48737225   0.46406139   0.44209506 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.42139326   0.40187840   0.38347603   0.36611526   0.34972900   0.33425403 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.31963102   0.30580442   0.29272234   0.28033640   0.26860153   0.25747584 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.24692035   0.23689886   0.22737774   0.21832577   0.20971395   0.20151535 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.19370496   0.18625955   0.17915752   0.17237880   0.16590473   0.15971792 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.15380223   0.14814257   0.14272492   0.13753619   0.13256417   0.12779745 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.12322538   0.11883799   0.11462597   0.11058058   0.10669366   0.10295753 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.09936500   0.09590930   0.09258410   0.08938341   0.08630162   0.08333343 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.08047384   0.07771813   0.07506188   0.07250085   0.07003109   0.06764883 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.06535049   0.06313271   0.06099227   0.05892612   0.05693138   0.05500530 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.05314524   0.05134873   0.04961338   0.04793693   0.04631722   0.04475217 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.04323981   0.04177827   0.04036572   0.03900044   0.03768078   0.03640514 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.03517200   0.03397989   0.03282742   0.03171323   0.03063603   0.02959457 
+#> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.02858765   0.02761411   0.02667285   0.02576278   0.02488289   0.02403216 
+#> early.log_mu early.log_mu early.log_mu early.log_mu 
+#>   0.02320965   0.02241442   0.02164559   0.02090229 
+
+# Per-phase decomposed cumulative hazard
+decomp <- predict(fit_mp, newdata = nd,
+                  type = "cumulative_hazard", decompose = TRUE)
+head(decomp)
+#>        time        total        early         late
+#> 1 0.0100000 0.0003684827 0.0003042602 6.422247e-05
+#> 2 0.3177112 0.0302242973 0.0238913236 6.332974e-03
+#> 3 0.6254224 0.0704916794 0.0549308704 1.556081e-02
+#> 4 0.9331336 0.1153149089 0.0888509069 2.646400e-02
+#> 5 1.2408448 0.1628277280 0.1241998078 3.862792e-02
+#> 6 1.5485560 0.2120302841 0.1602039971 5.182629e-02
 # }
 ```

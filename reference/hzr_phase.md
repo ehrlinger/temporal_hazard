@@ -144,12 +144,19 @@ An S3 object of class `"hzr_phase"` with elements:
 
 ## See also
 
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+for fitting multiphase models,
 [`hzr_decompos()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos.md)
 for the underlying parametric family,
 [`hzr_phase_cumhaz()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase_cumhaz.md)
 and
 [`hzr_phase_hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase_hazard.md)
 for computing \\\Phi(t)\\ and \\\phi(t)\\ from these specifications.
+
+[`vignette("fitting-hazard-models")`](https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.md)
+for multiphase fitting examples,
+[`vignette("mf-mathematical-foundations")`](https://ehrlinger.github.io/temporal_hazard/articles/mf-mathematical-foundations.md)
+for the mathematical framework.
 
 ## Examples
 

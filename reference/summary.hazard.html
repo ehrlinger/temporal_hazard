@@ -9,7 +9,7 @@ fit diagnostics, and coefficient-level statistics when available."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,13 +32,9 @@ fit diagnostics, and coefficient-level statistics when available."></head><body>
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
-    <li><a class="dropdown-item" href="../articles/lg-exploratory-example.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/ac-actuarial-example.html">Example: Actuarial Estimates (ac.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hz-estimate-hazard-example.html">Example: Estimate Hazard Function (hz.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hm-multivariable-example.html">Example: Multivariable Hazard Model (hm.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hp-prediction-example.html">Example: Hazard Prediction (hp.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/bs-bootstrap-example.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hs-sensitivity-example.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/fitting-hazard-models.html">Fitting Hazard Models</a></li>
+    <li><a class="dropdown-item" href="../articles/prediction-visualization.html">Prediction &amp; Visualization</a></li>
+    <li><a class="dropdown-item" href="../articles/inference-diagnostics.html">Inference &amp; Diagnostics</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/ehrlinger/temporal_hazard/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -82,10 +78,17 @@ fit diagnostics, and coefficient-level statistics when available.</p>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>summary.hazard</code>.</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="hazard.html">hazard()</a></code> for model fitting, <code><a href="predict.hazard.html">predict.hazard()</a></code> for predictions.</p>
+<p><code><a href="../articles/fitting-hazard-models.html">vignette("fitting-hazard-models")</a></code> for fitting workflows,
+<code><a href="../articles/inference-diagnostics.html">vignette("inference-diagnostics")</a></code> for bootstrap CIs and diagnostics.</p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="hazard.html">hazard</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">0.5</span><span class="op">)</span>, status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">30</span><span class="op">)</span>,</span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># ── Single-phase Weibull summary ────────────────────────────────────</span></span></span>
+<span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="hazard.html">hazard</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">0.5</span><span class="op">)</span>, status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">30</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>              theta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">1.0</span><span class="op">)</span>, dist <span class="op">=</span> <span class="st">"weibull"</span>, fit <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> hazard model summary</span>
@@ -94,13 +97,62 @@ fit diagnostics, and coefficient-level statistics when available.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   dist:         weibull </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -45.5527 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=34, gr=9</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -53.9889 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=18, gr=5</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     estimate  std_error   z_stat      p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> mu 0.5586338 0.09245866 6.041985 1.522301e-09</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> nu 1.1575846 0.17065867 6.783040 1.176732e-11</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu 0.4490094 0.08664337 5.182271 2.192003e-07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> nu 1.0022854 0.13850336 7.236542 4.602695e-13</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="co"># ── Multiphase model summary ────────────────────────────────────────</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">n</span>   <span class="op">&lt;-</span> <span class="fl">200</span></span></span>
+<span class="r-in"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  time   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="va">n</span>, rate <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.01</span>,</span></span>
+<span class="r-in"><span>  status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">n</span>, size <span class="op">=</span> <span class="fl">1</span>, prob <span class="op">=</span> <span class="fl">0.65</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit_mp</span> <span class="op">&lt;-</span> <span class="fu"><a href="hazard.html">hazard</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>,</span></span>
+<span class="r-in"><span>  data   <span class="op">=</span> <span class="va">dat</span>,</span></span>
+<span class="r-in"><span>  dist   <span class="op">=</span> <span class="st">"multiphase"</span>,</span></span>
+<span class="r-in"><span>  phases <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    early <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>,      t_half <span class="op">=</span> <span class="fl">0.5</span>, nu <span class="op">=</span> <span class="fl">2</span>, m <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    late  <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>,      t_half <span class="op">=</span> <span class="fl">5</span>,   nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span>,</span></span>
+<span class="r-in"><span>  fit     <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">3</span>, maxit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_mp</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multiphase hazard model (2 phases)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   observations: 200 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   predictors:   0 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   dist:         multiphase </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   phase 1:      early - cdf (early risk)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   phase 2:      late - cdf (early risk)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -392.666 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=83, gr=35</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (internal scale):</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: early (cdf)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate std_error      z_stat   p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -0.8392255 10.016157 -0.08378718 0.9332256</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  1.0149845 14.579562  0.06961694 0.9444986</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          1.6897930  8.365820  0.20198772 0.8399263</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -0.1753914  1.087213 -0.16132203 0.8718398</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: late (cdf)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate std_error     z_stat   p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     2.86567863 2.2399311 1.27936015 0.2007703</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half 5.41924041 3.6513364 1.48417999 0.1377612</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu         2.27025536 1.5995548 1.41930456 0.1558102</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m          0.02566328 0.6731866 0.03812208 0.9695903</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
+<span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

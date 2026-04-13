@@ -9,7 +9,7 @@ types including linear predictor, hazard, survival probability, and cumulative h
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,13 +32,9 @@ types including linear predictor, hazard, survival probability, and cumulative h
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
-    <li><a class="dropdown-item" href="../articles/lg-exploratory-example.html">Example: Logistic/Gompertz Exploratory Plots (lg.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/ac-actuarial-example.html">Example: Actuarial Estimates (ac.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hz-estimate-hazard-example.html">Example: Estimate Hazard Function (hz.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hm-multivariable-example.html">Example: Multivariable Hazard Model (hm.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hp-prediction-example.html">Example: Hazard Prediction (hp.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/bs-bootstrap-example.html">Example: Bootstrap Confidence Intervals (bs.*)</a></li>
-    <li><a class="dropdown-item" href="../articles/hs-sensitivity-example.html">Example: Hazard Sensitivity &amp; Scenarios (hs.*)</a></li>
+    <li><a class="dropdown-item" href="../articles/fitting-hazard-models.html">Fitting Hazard Models</a></li>
+    <li><a class="dropdown-item" href="../articles/prediction-visualization.html">Prediction &amp; Visualization</a></li>
+    <li><a class="dropdown-item" href="../articles/inference-diagnostics.html">Inference &amp; Diagnostics</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/ehrlinger/temporal_hazard/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -118,6 +114,14 @@ For models fit with <code>time_windows</code>, predictions for <code>type = "lin
 or <code>"hazard"</code> also require time values (via <code>newdata$time</code> or fitted-time fallback)
 so window-specific coefficients can be selected.</p>
     </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="hazard.html">hazard()</a></code> for model fitting,
+<code><a href="summary.hazard.html">summary.hazard()</a></code> for model summaries,
+<code><a href="hzr_phase.html">hzr_phase()</a></code> for multiphase temporal shapes.</p>
+<p><code><a href="../articles/prediction-visualization.html">vignette("prediction-visualization")</a></code> for detailed prediction
+workflows including decomposed hazard plots and patient-specific curves.</p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -174,10 +178,9 @@ so window-specific coefficients can be selected.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3  3.0  75    4     1 0.5046535        0.68388317</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="co"># ── Grouped survival curves (requires hvtiPlotR) ─────────────────────</span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"hvtiPlotR"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">&amp;&amp;</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"ggplot2"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ehrlinger/hvtiPlotR" class="external-link">hvtiPlotR</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># ── Grouped survival curves ───────────────────────────────────────</span></span></span>
+<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"ggplot2"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span>  <span class="va">t_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">time</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="fl">80</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">profiles</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
@@ -201,24 +204,91 @@ so window-specific coefficients can be selected.</p>
 <span class="r-in"><span>  <span class="op">}</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="va">curve_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">curve_list</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span>  <span class="va">hz_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ehrlinger.github.io/hvtiPlotR/reference/hv_hazard.html" class="external-link">hv_hazard</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    curve_data   <span class="op">=</span> <span class="va">curve_df</span>,</span></span>
-<span class="r-in"><span>    x_col        <span class="op">=</span> <span class="st">"time"</span>,</span></span>
-<span class="r-in"><span>    estimate_col <span class="op">=</span> <span class="st">"survival"</span>,</span></span>
-<span class="r-in"><span>    group_col    <span class="op">=</span> <span class="st">"profile"</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">hz_obj</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>      x     <span class="op">=</span> <span class="st">"Years after surgery"</span>,</span></span>
-<span class="r-in"><span>      y     <span class="op">=</span> <span class="st">"Freedom from death (%)"</span>,</span></span>
-<span class="r-in"><span>      title <span class="op">=</span> <span class="st">"Predicted survival by risk profile"</span></span></span>
-<span class="r-in"><span>    <span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://ehrlinger.github.io/hvtiPlotR/reference/hv_theme_manuscript.html" class="external-link">hv_theme_manuscript</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">curve_df</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">survival</span>, colour <span class="op">=</span> <span class="va">profile</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>limits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Months after surgery"</span>,</span></span>
+<span class="r-in"><span>         y <span class="op">=</span> <span class="st">"Freedom from death (%)"</span>,</span></span>
+<span class="r-in"><span>         title <span class="op">=</span> <span class="st">"Predicted survival by risk profile"</span>,</span></span>
+<span class="r-in"><span>         colour <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
 <span class="r-plt img"><img src="predict.hazard-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="co"># ── Multiphase predictions with decomposition ────────────────────</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">n</span>   <span class="op">&lt;-</span> <span class="fl">200</span></span></span>
+<span class="r-in"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  time   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="va">n</span>, rate <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.01</span>,</span></span>
+<span class="r-in"><span>  status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Binomial.html" class="external-link">rbinom</a></span><span class="op">(</span><span class="va">n</span>, size <span class="op">=</span> <span class="fl">1</span>, prob <span class="op">=</span> <span class="fl">0.65</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">fit_mp</span> <span class="op">&lt;-</span> <span class="fu"><a href="hazard.html">hazard</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>,</span></span>
+<span class="r-in"><span>  data   <span class="op">=</span> <span class="va">dat</span>,</span></span>
+<span class="r-in"><span>  dist   <span class="op">=</span> <span class="st">"multiphase"</span>,</span></span>
+<span class="r-in"><span>  phases <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>    early <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>,      t_half <span class="op">=</span> <span class="fl">0.5</span>, nu <span class="op">=</span> <span class="fl">2</span>, m <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    late  <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>,      t_half <span class="op">=</span> <span class="fl">5</span>,   nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span>,</span></span>
+<span class="r-in"><span>  fit     <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">3</span>, maxit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">t_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">time</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0.9</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">nd</span>     <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="va">t_grid</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Overall survival</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit_mp</span>, newdata <span class="op">=</span> <span class="va">nd</span>, type <span class="op">=</span> <span class="st">"survival"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.99963159   0.97022789   0.93193549   0.89108549   0.84973756   0.80894020 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.76928444   0.73110930   0.69460102   0.65984848   0.62687690   0.59566952 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.56618210   0.53835279   0.51210901   0.48737225   0.46406139   0.44209506 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.42139326   0.40187840   0.38347603   0.36611526   0.34972900   0.33425403 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.31963102   0.30580442   0.29272234   0.28033640   0.26860153   0.25747584 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.24692035   0.23689886   0.22737774   0.21832577   0.20971395   0.20151535 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.19370496   0.18625955   0.17915752   0.17237880   0.16590473   0.15971792 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.15380223   0.14814257   0.14272492   0.13753619   0.13256417   0.12779745 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.12322538   0.11883799   0.11462597   0.11058058   0.10669366   0.10295753 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.09936500   0.09590930   0.09258410   0.08938341   0.08630162   0.08333343 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.08047384   0.07771813   0.07506188   0.07250085   0.07003109   0.06764883 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.06535049   0.06313271   0.06099227   0.05892612   0.05693138   0.05500530 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.05314524   0.05134873   0.04961338   0.04793693   0.04631722   0.04475217 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.04323981   0.04177827   0.04036572   0.03900044   0.03768078   0.03640514 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.03517200   0.03397989   0.03282742   0.03171323   0.03063603   0.02959457 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.02858765   0.02761411   0.02667285   0.02576278   0.02488289   0.02403216 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> early.log_mu early.log_mu early.log_mu early.log_mu </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   0.02320965   0.02241442   0.02164559   0.02090229 </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Per-phase decomposed cumulative hazard</span></span></span>
+<span class="r-in"><span><span class="va">decomp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit_mp</span>, newdata <span class="op">=</span> <span class="va">nd</span>,</span></span>
+<span class="r-in"><span>                  type <span class="op">=</span> <span class="st">"cumulative_hazard"</span>, decompose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">decomp</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        time        total        early         late</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.0100000 0.0003684827 0.0003042602 6.422247e-05</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 0.3177112 0.0302242973 0.0238913236 6.332974e-03</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.6254224 0.0704916794 0.0549308704 1.556081e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 0.9331336 0.1153149089 0.0888509069 2.646400e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5 1.2408448 0.1628277280 0.1241998078 3.862792e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6 1.5485560 0.2120302841 0.1602039971 5.182629e-02</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
+<span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

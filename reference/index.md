@@ -31,10 +31,24 @@
 - [`hzr_decompos_g3()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos_g3.md)
   : Late-phase (G3) temporal decomposition
 
+## Datasets
+
+- [`avc`](https://ehrlinger.github.io/temporal_hazard/reference/avc.md)
+  : AVC: Atrioventricular Canal Repair
+- [`cabgkul`](https://ehrlinger.github.io/temporal_hazard/reference/cabgkul.md)
+  : CABGKUL: Primary Isolated Coronary Artery Bypass Grafting (KU
+  Leuven)
+- [`omc`](https://ehrlinger.github.io/temporal_hazard/reference/omc.md)
+  : OMC: Open Mitral Commissurotomy
+- [`tga`](https://ehrlinger.github.io/temporal_hazard/reference/tga.md)
+  : TGA: Transposition of the Great Arteries
+- [`valves`](https://ehrlinger.github.io/temporal_hazard/reference/valves.md)
+  : Valves: Primary Heart Valve Replacement
+
 ## Migration tools
 
 - [`hzr_argument_mapping()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_argument_mapping.md)
-  : Legacy HAZARD to hvtiRhazard argument mapping
+  : Legacy HAZARD to TemporalHazard argument mapping
 
 ## Numerical Primitives
 

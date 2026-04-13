@@ -258,37 +258,30 @@ These datasets are used in vignette examples and parity testing.
 | tga.csv     | Transposition of great arteries (arterial switch) |  470 | deaths                           | anatomy, coronary pattern, era             | hs.dthar.TGA               |
 | valves.csv  | Primary valve replacement                         | 1533 | deaths, PVE, reoperation         | age, NYHA, valve position, pathology, race | hm.deadp.VALVES            |
 
-Reference datasets in inst/extdata/
+Reference datasets (lazy-loaded via
+[`data()`](https://rdrr.io/r/utils/data.html))
 
 ### 6.1 Loading datasets
 
 Show code
 
 ``` r
-# Helper: find extdata files whether package is installed or not
-find_extdata <- function(file) {
-  path <- system.file("extdata", file, package = "TemporalHazard")
-  if (nzchar(path)) return(path)
-  # Fall back to source tree (e.g., during quarto render before install)
-  src <- file.path("..", "inst", "extdata", file)
-  if (file.exists(src)) return(src)
-  stop("Cannot find ", file, " -- run devtools::install() first")
-}
+# Datasets are lazy-loaded with the package — just reference them directly.
+# Raw CSVs are also available in inst/extdata/ for advanced use:
+#   read.csv(system.file("extdata", "cabgkul.csv", package = "TemporalHazard"))
 
-# Load the KUL CABG dataset
-kul <- read.csv(find_extdata("cabgkul.csv"))
-str(kul)
+data(cabgkul)
+str(cabgkul)
 #> 'data.frame':    5880 obs. of  2 variables:
 #>  $ int_dead: num  201.83 195.06 7.13 126.36 187.57 ...
 #>  $ dead    : int  0 0 1 1 0 0 1 1 0 1 ...
 
-# Load the AVC dataset
-avc <- read.csv(find_extdata("avc.csv"))
+data(avc)
 str(avc)
 #> 'data.frame':    310 obs. of  11 variables:
 #>  $ study   : chr  "001C" "002C" "004C" "005C" ...
 #>  $ status  : int  3 3 1 2 2 3 1 1 3 3 ...
-#>  $ inc_surg: chr  "4" "3" "2" "3" ...
+#>  $ inc_surg: int  4 3 2 3 1 2 3 2 3 3 ...
 #>  $ opmos   : num  9.46 34.07 51.58 55 60.65 ...
 #>  $ age     : num  69.2 53.7 286.1 154.6 48.4 ...
 #>  $ mal     : int  0 0 0 1 0 0 0 0 0 0 ...
