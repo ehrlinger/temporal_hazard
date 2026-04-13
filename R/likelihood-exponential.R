@@ -72,7 +72,7 @@ NULL
 #'
 #' The log-likelihood for right-censored data is:
 #'
-#' \deqn{\ell(\theta) = \sum_{i: \delta_i = 1} [\log\lambda + \eta_i] 
+#' \deqn{\ell(\theta) = \sum_{i: \delta_i = 1} [\log\lambda + \eta_i]
 #'   - \lambda \sum_i t_i \exp(\eta_i)}
 #'
 #' Reparameterization: \u03b8\[1\] = log(\u03bb) avoids constrained optimization.
@@ -92,13 +92,13 @@ NULL
   time_upper = NULL,
     x = NULL,
     return_gradient = FALSE) {
-  
+
   n <- length(time)
-  
+
   # Extract parameters
   log_lambda <- theta[1]
   lambda <- exp(log_lambda)  # Always positive
-  
+
   # Covariate coefficients (if any)
   if (!is.null(x)) {
     if (is.null(attr(x, "dimnames")[[2]])) {
@@ -109,7 +109,7 @@ NULL
   } else {
     eta <- rep(0, n)
   }
-  
+
   # Resolve censoring bounds once so each likelihood term can reference
   # a consistent lower/upper representation regardless of user input style.
   lower <- if (is.null(time_lower)) time else time_lower
@@ -163,11 +163,11 @@ NULL
   }
 
   logl <- ll_event + ll_right + ll_left + ll_interval
-  
+
   if (!is.finite(logl)) {
     return(Inf)
   }
-  
+
   # If gradient requested, compute score vector
   if (return_gradient) {
     grad <- .hzr_gradient_exponential(
@@ -175,7 +175,7 @@ NULL
     )
     attr(logl, "gradient") <- grad
   }
-  
+
   logl
 }
 
@@ -202,7 +202,7 @@ NULL
     cumhaz = NULL,
     lambda = NULL,
     log_lambda = NULL) {
-  
+
   n <- length(time)
   p <- length(theta)
   grad <- numeric(p)
@@ -212,33 +212,33 @@ NULL
   if (any(status %in% c(-1, 2))) {
     return(.hzr_numeric_grad_exponential(theta, time, status, time_lower, time_upper, x))
   }
-  
+
   # Recompute if not provided
   if (is.null(eta) || is.null(cumhaz) || is.null(lambda)) {
     log_lambda <- theta[1]
     lambda <- exp(log_lambda)
-    
+
     if (!is.null(x)) {
       beta <- theta[2:length(theta)]
       eta <- as.numeric(x %*% beta)
     } else {
       eta <- rep(0, n)
     }
-    
+
     cumhaz <- lambda * time * exp(eta)
   }
-  
+
   # ===== Gradient w.r.t. log(lambda) =====
   # dL/d(log λ) = sum(δ) - sum(H) = sum(δ) - sum(λ * t * exp(η))
   grad[1] <- sum(status) - sum(cumhaz)
-  
+
   # ===== Gradient w.r.t. beta (covariate coefficients) =====
   if (p > 1 && !is.null(x)) {
     # dL/dβ = t(X) %*% (δ - H)
     residual <- status - cumhaz
     grad[2:p] <- as.numeric(crossprod(x, residual))
   }
-  
+
   grad
 }
 

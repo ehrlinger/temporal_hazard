@@ -69,19 +69,19 @@ NULL
         call. = FALSE
       )
     }
-    return(external_path)
-  }
-
-  # Fallback to package-local binary in inst/bin.
-  # Return NA if not available (allows graceful skipping in tests)
-  local_candidates <- c(binary, paste0(binary, ".exe"))
-  for (candidate in local_candidates) {
-    bin_path <- system.file("bin", candidate, package = "TemporalHazard")
-    if (nzchar(bin_path) && file.exists(bin_path)) {
-      return(bin_path)
+    external_path
+  } else {
+    # Fallback to package-local binary in inst/bin.
+    # Return NA if not available (allows graceful skipping in tests)
+    local_candidates <- c(binary, paste0(binary, ".exe"))
+    for (candidate in local_candidates) {
+      bin_path <- system.file("bin", candidate, package = "TemporalHazard")
+      if (nzchar(bin_path) && file.exists(bin_path)) {
+        return(bin_path)
+      }
     }
+    NA
   }
-  return(NA)
 }
 
 #' Sanitise variable names for legacy SAS control files
@@ -93,12 +93,12 @@ NULL
 #' @noRd
 .hzr_as_legacy_names <- function(x) {
   if (length(x) == 0L) {
-    return(character())
+    character()
+  } else {
+    x <- toupper(gsub("[^A-Za-z0-9_]", "_", x))
+    x <- gsub("^[^A-Za-z_]+", "X", x)
+    make.unique(x, sep = "_")
   }
-
-  x <- toupper(gsub("[^A-Za-z0-9_]", "_", x))
-  x <- gsub("^[^A-Za-z_]+", "X", x)
-  make.unique(x, sep = "_")
 }
 
 #' Infer how many leading theta elements are baseline shape parameters
@@ -111,17 +111,17 @@ NULL
 #' @noRd
 .hzr_shape_parameter_count <- function(dist, control = list()) {
   if (!is.null(control$shape_param_count)) {
-    return(as.integer(control$shape_param_count))
+    as.integer(control$shape_param_count)
+  } else {
+    switch(
+      dist,
+      weibull = 2L,
+      exponential = 1L,
+      loglogistic = 2L,
+      lognormal = 2L,
+      0L
+    )
   }
-
-  switch(
-    dist,
-    weibull = 2L,
-    exponential = 1L,
-    loglogistic = 2L,
-    lognormal = 2L,
-    0L
-  )
 }
 
 #' Split theta into baseline and covariate components for legacy output
@@ -136,41 +136,47 @@ NULL
 #' @noRd
 .hzr_split_theta_for_legacy <- function(theta, x_names, dist, control = list()) {
   if (is.null(theta) || !length(theta)) {
-    return(list(baseline = numeric(), covariates = numeric()))
-  }
-
-  theta_names <- names(theta)
-  if (is.null(theta_names)) {
-    theta_names <- rep("", length(theta))
-  }
-  theta_names_upper <- .hzr_as_legacy_names(ifelse(nzchar(theta_names), theta_names, paste0("TH", seq_along(theta))))
-  x_names_upper <- .hzr_as_legacy_names(x_names)
-
-  matched_covariates <- theta_names_upper %in% x_names_upper
-  if (any(matched_covariates)) {
-    baseline <- theta[!matched_covariates]
-    covariates <- theta[matched_covariates]
-    names(baseline) <- theta_names_upper[!matched_covariates]
-    names(covariates) <- theta_names_upper[matched_covariates]
-    return(list(baseline = baseline, covariates = covariates))
-  }
-
-  shape_count <- .hzr_shape_parameter_count(dist = dist, control = control)
-  shape_count <- min(shape_count, length(theta))
-  baseline <- theta[seq_len(shape_count)]
-  covariates <- if (length(theta) > shape_count) theta[seq.int(shape_count + 1L, length(theta))] else numeric()
-
-  names(baseline) <- theta_names_upper[seq_len(shape_count)]
-  if (length(covariates)) {
-    covariate_names <- if (length(x_names_upper) >= length(covariates)) {
-      x_names_upper[seq_along(covariates)]
-    } else {
-      theta_names_upper[seq.int(shape_count + 1L, length(theta))]
+    list(baseline = numeric(), covariates = numeric())
+  } else {
+    theta_names <- names(theta)
+    if (is.null(theta_names)) {
+      theta_names <- rep("", length(theta))
     }
-    names(covariates) <- covariate_names
-  }
+    theta_names_upper <- .hzr_as_legacy_names(
+      ifelse(nzchar(theta_names), theta_names, paste0("TH", seq_along(theta)))
+    )
+    x_names_upper <- .hzr_as_legacy_names(x_names)
 
-  list(baseline = baseline, covariates = covariates)
+    matched_covariates <- theta_names_upper %in% x_names_upper
+    if (any(matched_covariates)) {
+      baseline <- theta[!matched_covariates]
+      covariates <- theta[matched_covariates]
+      names(baseline) <- theta_names_upper[!matched_covariates]
+      names(covariates) <- theta_names_upper[matched_covariates]
+      list(baseline = baseline, covariates = covariates)
+    } else {
+      shape_count <- .hzr_shape_parameter_count(dist = dist, control = control)
+      shape_count <- min(shape_count, length(theta))
+      baseline <- theta[seq_len(shape_count)]
+      covariates <- if (length(theta) > shape_count) {
+        theta[seq.int(shape_count + 1L, length(theta))]
+      } else {
+        numeric()
+      }
+
+      names(baseline) <- theta_names_upper[seq_len(shape_count)]
+      if (length(covariates)) {
+        covariate_names <- if (length(x_names_upper) >= length(covariates)) {
+          x_names_upper[seq_along(covariates)]
+        } else {
+          theta_names_upper[seq.int(shape_count + 1L, length(theta))]
+        }
+        names(covariates) <- covariate_names
+      }
+
+      list(baseline = baseline, covariates = covariates)
+    }
+  }
 }
 
 #' Format a named numeric vector as SAS assignments
@@ -182,11 +188,14 @@ NULL
 #' @noRd
 .hzr_format_legacy_assignments <- function(values) {
   if (!length(values)) {
-    return("")
+    ""
+  } else {
+    parts <- paste0(
+      names(values), "=",
+      format(unname(values), digits = 10, scientific = TRUE, trim = TRUE)
+    )
+    paste(parts, collapse = ", ")
   }
-
-  parts <- paste0(names(values), "=", format(unname(values), digits = 10, scientific = TRUE, trim = TRUE))
-  paste(parts, collapse = ", ")
 }
 
 #' Build PROC HAZARD option tokens from control settings
@@ -457,7 +466,7 @@ NULL
     as.integer(status)
   )
   names(df) <- c(time_var, status_var)
-  
+
   if (!is.null(x)) {
     if (is.vector(x)) {
       x_names <- .hzr_as_legacy_names(colnames(as.matrix(x)) %||% "X1")
@@ -471,7 +480,7 @@ NULL
   } else {
     x_names <- character()
   }
-  
+
   # Persist a simple flat data extract alongside the control program.
   write.csv(df, data_file, row.names = FALSE)
 
@@ -523,7 +532,7 @@ NULL
       parse_status = "binary_failed"
     )
   }
-  
+
   list(
     call_string = exec_result$call_string,
     stdout = exec_result$stdout,
@@ -570,18 +579,18 @@ NULL
       parse_status = "empty"
     ))
   }
-  
+
   # Join text into single string and parse as table
   text <- paste(output_text, collapse = "\n")
   text_trimmed <- trimws(text)
-  
+
   # Try to read as whitespace-separated table (skip comment lines)
   tryCatch(
     {
       lines <- strsplit(text_trimmed, "\n")[[1]]
       # Find header line (contains keywords like 'Parameter', 'Estimate', etc.)
       header_idx <- grep("(?i)(parameter|estimate|std|err|z[-_]?stat|p[-_]?val)", lines, perl = TRUE)[1]
-      
+
       if (is.na(header_idx)) {
         warning("Could not identify header line in hazard output", call. = FALSE)
         return(structure(
@@ -597,12 +606,12 @@ NULL
           parse_status = "no_header"
         ))
       }
-      
+
       # Read the table from R data (skip header line)
       data_start <- header_idx + 1
       data_lines <- lines[data_start:length(lines)]
       data_text <- paste(data_lines, collapse = "\n")
-      
+
       # Parse as fixed-format or space-separated table
       df <- read.table(
         text = data_text,
@@ -612,7 +621,7 @@ NULL
         na.strings = c("NA", ".", "NaN", "Inf"),
         stringsAsFactors = FALSE
       )
-      
+
       if (nrow(df) == 0) {
         return(structure(
           data.frame(
@@ -627,18 +636,18 @@ NULL
           parse_status = "empty_table"
         ))
       }
-      
+
       # Map columns based on position and header keywords
       # Standard format: Parameter, Estimate, StdErr, Z, P
       # This is flexible and should handle variations
-      
+
       # Assume first column is parameter names, next 4 are numeric
       param_col <- df[[1]]
       est_col <- suppressWarnings(as.numeric(df[[2]]))
       se_col <- suppressWarnings(as.numeric(df[[3]]))
       z_col <- suppressWarnings(as.numeric(df[[4]]))
       p_col <- suppressWarnings(as.numeric(df[[5]]))
-      
+
       result <- data.frame(
         parameter = as.character(param_col),
         estimate = est_col,
@@ -647,7 +656,7 @@ NULL
         p_value = p_col,
         stringsAsFactors = FALSE
       )
-      
+
       structure(
         result,
         output_text = text,
@@ -695,7 +704,7 @@ NULL
     theta = NULL,
     control = list(),
     output_dir = NULL) {
-  
+
   if (is.null(output_dir)) {
     output_dir <- system.file("fixtures", package = "TemporalHazard")
     if (!nzchar(output_dir)) {
@@ -703,7 +712,7 @@ NULL
     }
     dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
   }
-  
+
   # Run binary
   result <- .hzr_run_hazard_binary(
     time = time,
@@ -713,12 +722,12 @@ NULL
     control = control,
     data_name = fixture_name
   )
-  
+
   # Save fixture as RDS for reproducible testing
   fixture_file <- file.path(output_dir, paste0(fixture_name, ".rds"))
   saveRDS(result, fixture_file)
-  
+
   message("Generated golden fixture: ", fixture_file)
-  
+
   invisible(result$parsed)
 }

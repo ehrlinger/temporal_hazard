@@ -1,0 +1,44 @@
+bibentry(
+  bibtype  = "Manual",
+  title    = "TemporalHazard: Temporal Parametric Hazard Modeling in R",
+  author   = person("John", "Ehrlinger"),
+  year     = "2026",
+  note     = "R package version 0.9.1",
+  url      = "https://ehrlinger.github.io/temporal_hazard"
+)
+
+bibentry(
+  bibtype  = "Article",
+  title    = "The decomposition of time-varying hazard into phases, each incorporating a separate stream of concomitant information",
+  author   = c(
+    person("Eugene H.", "Blackstone"),
+    person("David C.", "Naftel"),
+    person("Malcolm E.", "Turner Jr.")
+  ),
+  journal  = "Journal of the American Statistical Association",
+  year     = "1986",
+
+  volume   = "81",
+  number   = "395",
+  pages    = "615--624",
+  doi      = "10.1080/01621459.1986.10478314"
+)
+
+bibentry(
+  bibtype  = "Article",
+  title    = "Probability of atrial fibrillation after ablation: Using a parametric nonlinear temporal decomposition mixed effects model",
+  author   = c(
+    person("Jeevanantham", "Rajeswaran"),
+    person("Eugene H.", "Blackstone"),
+    person("John", "Ehrlinger"),
+    person("Liang", "Li"),
+    person("Hemant", "Ishwaran"),
+    person("Michael K.", "Parides")
+  ),
+  journal  = "Statistical Methods in Medical Research",
+  year     = "2018",
+  volume   = "27",
+  number   = "1",
+  pages    = "126--141",
+  doi      = "10.1177/0962280215623583"
+)

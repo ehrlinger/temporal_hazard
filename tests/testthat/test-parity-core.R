@@ -2,10 +2,10 @@ test_that("Univariable model recovers estimated parameters reproducibly", {
   # Load the golden fixture
   fixture_file <- system.file("fixtures", "hz_univariate.rds", package = "TemporalHazard")
   fixture <- readRDS(fixture_file)
-  
+
   # Skip if fixture doesn't exist
   skip_if_not(file.exists(fixture_file))
-  
+
   # Re-fit the same model
   refit <- hazard(
     time = fixture$data$time,
@@ -16,15 +16,15 @@ test_that("Univariable model recovers estimated parameters reproducibly", {
     fit = TRUE,
     control = list(maxit = 500, reltol = 1e-6)
   )
-  
+
   # Model should have fit results
   expect_true(!is.null(refit$fit))
   expect_true("theta" %in% names(refit$fit))
-  
+
   # Parameter estimates should match fixture closely (within tolerance)
   # Allow slightly higher tolerance due to optimization variations
   expect_equal(refit$fit$theta, fixture$fit$theta, tolerance = 1e-3)
-  
+
   # Log-likelihood should be close
   expect_equal(refit$fit$objective, fixture$fit$logl, tolerance = 1e-2)
 })
@@ -32,9 +32,9 @@ test_that("Univariable model recovers estimated parameters reproducibly", {
 test_that("Multivariable model with covariates recovers parameters", {
   fixture_file <- system.file("fixtures", "hm_multivariate.rds", package = "TemporalHazard")
   fixture <- readRDS(fixture_file)
-  
+
   skip_if_not(file.exists(fixture_file))
-  
+
   # Re-fit
   refit <- hazard(
     time = fixture$data$time,
@@ -45,14 +45,14 @@ test_that("Multivariable model with covariates recovers parameters", {
     fit = TRUE,
     control = list(maxit = 500, reltol = 1e-6)
   )
-  
+
   # Model should have fit results
   expect_true(!is.null(refit$fit))
   expect_true("theta" %in% names(refit$fit))
-  
+
   # Parameter estimates within tolerance
   expect_equal(refit$fit$theta, fixture$fit$theta, tolerance = 1e-3)
-  
+
   # Log-likelihood should be close
   expect_equal(refit$fit$objective, fixture$fit$logl, tolerance = 1e-2)
 })
@@ -60,9 +60,9 @@ test_that("Multivariable model with covariates recovers parameters", {
 test_that("Edge case: small sample with many covariates", {
   fixture_file <- system.file("fixtures", "hm_edge_case.rds", package = "TemporalHazard")
   fixture <- readRDS(fixture_file)
-  
+
   skip_if_not(file.exists(fixture_file))
-  
+
   # Re-fit
   refit <- hazard(
     time = fixture$data$time,
@@ -73,13 +73,13 @@ test_that("Edge case: small sample with many covariates", {
     fit = TRUE,
     control = list(maxit = 300, reltol = 1e-5)
   )
-  
+
   # Check convergence flag (may not always converge in 300 iters)
   expect_type(refit$fit, "list")
   expect_true("theta" %in% names(refit$fit))
   expect_true(all(is.finite(refit$fit$theta)))
   expect_true(is.finite(refit$fit$objective))
-  
+
   # This fixture is intentionally ill-conditioned (small n, high leverage),
   # so assert objective parity rather than exact parameter recovery.
   expect_equal(refit$fit$objective, fixture$fit$logl, tolerance = 5)
@@ -88,9 +88,9 @@ test_that("Edge case: small sample with many covariates", {
 test_that("Univariable predictions are computable", {
   fixture_file <- system.file("fixtures", "hz_univariate.rds", package = "TemporalHazard")
   fixture <- readRDS(fixture_file)
-  
+
   skip_if_not(file.exists(fixture_file))
-  
+
   # Refit model
   refit <- hazard(
     time = fixture$data$time,
@@ -101,13 +101,13 @@ test_that("Univariable predictions are computable", {
     fit = TRUE,
     control = list(maxit = 500, reltol = 1e-6)
   )
-  
+
   # Predictions should be computable with time data
-  pred1 <- predict(refit, type = "linear_predictor", 
+  pred1 <- predict(refit, type = "linear_predictor",
                    newdata = data.frame(time = fixture$data$time[1:5]))
   pred2 <- predict(refit, type = "hazard",
                    newdata = data.frame(time = fixture$data$time[1:5]))
-  
+
   # Should return numeric vectors
   expect_true(is.numeric(pred1))
   expect_true(is.numeric(pred2))
@@ -118,9 +118,9 @@ test_that("Univariable predictions are computable", {
 test_that("Convergence codes are reasonable", {
   fixture_file <- system.file("fixtures", "hz_univariate.rds", package = "TemporalHazard")
   fixture <- readRDS(fixture_file)
-  
+
   skip_if_not(file.exists(fixture_file))
-  
+
   # Refit
   refit <- hazard(
     time = fixture$data$time,
@@ -131,9 +131,7 @@ test_that("Convergence codes are reasonable", {
     fit = TRUE,
     control = list(maxit = 500, reltol = 1e-6)
   )
-  
+
   # Convergence code should be logical or integer (TRUE or FALSE for success)
   expect_true(is.logical(refit$fit$converged) || is.integer(refit$fit$converged))
 })
-
-

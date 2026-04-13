@@ -130,8 +130,6 @@ hzr_decompos <- function(time, t_half, nu, m) {
 
   time <- pmax(time, .Machine$double.xmin)
 
-  n <- length(time)
-
   # Pre-compute recurring exponent terms
   if (m != 0) mm1 <- -(1 / m) - 1
   if (nu != 0) num1 <- -(1 / nu) - 1
@@ -516,7 +514,7 @@ hzr_phase_cumhaz <- function(time, t_half = 1, nu = 1, m = 0,
   base <- extract(d0, type)
 
   # Central-difference derivatives w.r.t. shape parameters
-  eps_rel <- (.Machine$double.eps)^(1/3)  # optimal for central diff
+  eps_rel <- (.Machine$double.eps) ^ (1 / 3)  # optimal for central diff
 
   # Helper: perturbed decomposition (returns NULL if invalid params)
   perturb_decompos <- function(th, n_val, m_val) {

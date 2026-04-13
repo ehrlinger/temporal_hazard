@@ -1,0 +1,11 @@
+linters: linters_with_defaults(
+    line_length_linter(120),
+    object_name_linter = NULL,
+    object_length_linter(40),
+    commented_code_linter = NULL,
+    indentation_linter = NULL
+  )
+exclusions: list(
+    "inst/dev/generate-readme-figures.R",
+    "data-raw/make_data.R"
+  )

@@ -20,7 +20,7 @@ test_that("legacy command uses stdin/stdout redirection", {
     .Platform$OS.type != "unix",
     "Unix shell tools not available (Windows)"
   )
-  
+
   temp_dir <- tempdir()
   sas_file <- file.path(temp_dir, "test-prefix.sas")
   lst_file <- file.path(temp_dir, "test-prefix.lst")
@@ -125,7 +125,7 @@ test_that("run_hazard_binary integration test (if binary available)", {
   expect_match(result$call_string, ">")
   expect_match(result$call_string, "\\.sas")
   expect_match(result$call_string, "\\.lst")
-  
+
   parsed <- result$parsed
   expect_s3_class(parsed, "data.frame")
   expect_named(parsed, c("parameter", "estimate", "std_err", "z_stat", "p_value"))

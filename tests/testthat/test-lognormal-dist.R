@@ -70,15 +70,24 @@ test_that("log-normal gradient matches numerical derivative (univariate)", {
   theta  <- c(mu = 0.3, log_sigma = -0.2)
   eps    <- 1e-5
 
-  logl_with_grad <- .hzr_logl_lognormal(theta, time, status, return_gradient = TRUE)
+  logl_with_grad <- .hzr_logl_lognormal(
+    theta,
+    time,
+    status,
+    return_gradient = TRUE
+  )
   grad_analytical <- attr(logl_with_grad, "gradient")
 
   grad_numerical <- numeric(length(theta))
   for (i in seq_along(theta)) {
-    tp <- theta; tp[i] <- tp[i] + eps
-    tm <- theta; tm[i] <- tm[i] - eps
-    grad_numerical[i] <- (.hzr_logl_lognormal(tp, time, status) -
-                          .hzr_logl_lognormal(tm, time, status)) / (2 * eps)
+    tp <- theta
+    tp[i] <- tp[i] + eps
+    tm <- theta
+    tm[i] <- tm[i] - eps
+    grad_numerical[i] <- (
+      .hzr_logl_lognormal(tp, time, status) -
+      .hzr_logl_lognormal(tm, time, status)
+    ) / (2 * eps)
   }
 
   expect_equal(grad_analytical, grad_numerical, tolerance = 1e-4)
@@ -93,16 +102,25 @@ test_that("log-normal gradient matches numerical derivative (multivariate)", {
   theta  <- c(mu = 0.5, log_sigma = -0.1, beta1 = 0.3, beta2 = -0.2)
   eps    <- 1e-5
 
-  logl_with_grad <- .hzr_logl_lognormal(theta, time, status, x = x,
-                                         return_gradient = TRUE)
+  logl_with_grad <- .hzr_logl_lognormal(
+    theta,
+    time,
+    status,
+    x = x,
+    return_gradient = TRUE
+  )
   grad_analytical <- attr(logl_with_grad, "gradient")
 
   grad_numerical <- numeric(length(theta))
   for (i in seq_along(theta)) {
-    tp <- theta; tp[i] <- tp[i] + eps
-    tm <- theta; tm[i] <- tm[i] - eps
-    grad_numerical[i] <- (.hzr_logl_lognormal(tp, time, status, x = x) -
-                          .hzr_logl_lognormal(tm, time, status, x = x)) / (2 * eps)
+    tp <- theta
+    tp[i] <- tp[i] + eps
+    tm <- theta
+    tm[i] <- tm[i] - eps
+    grad_numerical[i] <- (
+      .hzr_logl_lognormal(tp, time, status, x = x) -
+      .hzr_logl_lognormal(tm, time, status, x = x)
+    ) / (2 * eps)
   }
 
   expect_equal(grad_analytical, grad_numerical, tolerance = 1e-4)
@@ -219,9 +237,16 @@ test_that("predict() cumulative_hazard is monotone increasing", {
 test_that("predict() survival = exp(-cumhaz) identity holds", {
   fit_obj <- .make_ln_obj(c(mu = 0.8, log_sigma = log(0.7)))
   time    <- c(0.5, 1.0, 1.5, 2.0, 3.0, 4.0)
-  surv    <- predict(fit_obj, newdata = data.frame(time = time), type = "survival")
-  cumhaz  <- predict(fit_obj, newdata = data.frame(time = time),
-                     type = "cumulative_hazard")
+  surv    <- predict(
+    fit_obj,
+    newdata = data.frame(time = time),
+    type = "survival"
+  )
+  cumhaz  <- predict(
+    fit_obj,
+    newdata = data.frame(time = time),
+    type = "cumulative_hazard"
+  )
 
   expect_equal(surv, exp(-cumhaz), tolerance = 1e-10)
 })

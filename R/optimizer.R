@@ -83,7 +83,11 @@ NULL
   # Negative score vector for minimization
   gradient <- function(theta) {
     if (!all(is.finite(theta))) return(rep(0, length(theta)))
-    if (use_bounds && any(theta[is.finite(lower_bounds)] <= lower_bounds[is.finite(lower_bounds)])) return(rep(0, length(theta)))
+    if (use_bounds && any(
+      theta[is.finite(lower_bounds)] <= lower_bounds[is.finite(lower_bounds)]
+    )) {
+      return(rep(0, length(theta)))
+    }
 
     grad <- tryCatch(
       gradient_fn(
