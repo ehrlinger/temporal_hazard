@@ -32,7 +32,7 @@ numerical_gradient <- function(theta, time, status, phases,
                                 time_lower = NULL, time_upper = NULL) {
   p <- length(theta)
   grad <- numeric(p)
-  eps_rel <- (.Machine$double.eps)^(1/3)
+  eps_rel <- (.Machine$double.eps)^(1 / 3)
 
   for (i in seq_len(p)) {
     h_i <- eps_rel * max(abs(theta[i]), 1)
@@ -76,10 +76,20 @@ numerical_gradient <- function(theta, time, status, phases,
 test_that(".hzr_phase_derivatives returns correct structure", {
   t_grid <- seq(0.5, 10, by = 0.5)
 
-  pd <- .hzr_phase_derivatives(t_grid, t_half = 2, nu = 1.5, m = 0.8,
-                                type = "cdf")
-  expect_named(pd, c("Phi", "phi", "dPhi_dlog_thalf", "dPhi_dnu", "dPhi_dm",
-                      "dphi_dlog_thalf", "dphi_dnu", "dphi_dm"))
+  pd <- .hzr_phase_derivatives(
+    t_grid,
+    t_half = 2,
+    nu = 1.5,
+    m = 0.8,
+    type = "cdf"
+  )
+  expect_named(
+    pd,
+    c(
+      "Phi", "phi", "dPhi_dlog_thalf", "dPhi_dnu", "dPhi_dm",
+      "dphi_dlog_thalf", "dphi_dnu", "dphi_dm"
+    )
+  )
   expect_length(pd$Phi, length(t_grid))
   expect_true(all(is.finite(pd$Phi)))
   expect_true(all(is.finite(pd$dPhi_dlog_thalf)))
@@ -98,41 +108,85 @@ test_that(".hzr_phase_derivatives for constant phase returns zeros", {
 
 test_that(".hzr_phase_derivatives matches numerical for cdf phase (case 1)", {
   t_grid <- seq(0.5, 8, by = 0.5)
-  t_half <- 3; nu <- 2; m <- 1
+  t_half <- 3
+  nu <- 2
+  m <- 1
 
-  pd <- .hzr_phase_derivatives(t_grid, t_half = t_half, nu = nu, m = m,
-                                type = "cdf")
+  pd <- .hzr_phase_derivatives(
+    t_grid,
+    t_half = t_half,
+    nu = nu,
+    m = m,
+    type = "cdf"
+  )
 
   # Numerical check for dPhi/d(log_t_half)
   h <- 1e-5
-  Phi_plus  <- hzr_phase_cumhaz(t_grid, t_half = t_half * exp(h), nu = nu,
-                                 m = m, type = "cdf")
-  Phi_minus <- hzr_phase_cumhaz(t_grid, t_half = t_half * exp(-h), nu = nu,
-                                 m = m, type = "cdf")
+  Phi_plus  <- hzr_phase_cumhaz(
+    t_grid,
+    t_half = t_half * exp(h),
+    nu = nu,
+    m = m,
+    type = "cdf"
+  )
+  Phi_minus <- hzr_phase_cumhaz(
+    t_grid,
+    t_half = t_half * exp(-h),
+    nu = nu,
+    m = m,
+    type = "cdf"
+  )
   num_dPhi_dlog_thalf <- (Phi_plus - Phi_minus) / (2 * h)
   expect_equal(pd$dPhi_dlog_thalf, num_dPhi_dlog_thalf, tolerance = 1e-4)
 
   # Numerical check for dPhi/d(nu)
-  Phi_plus  <- hzr_phase_cumhaz(t_grid, t_half = t_half, nu = nu + h,
-                                 m = m, type = "cdf")
-  Phi_minus <- hzr_phase_cumhaz(t_grid, t_half = t_half, nu = nu - h,
-                                 m = m, type = "cdf")
+  Phi_plus  <- hzr_phase_cumhaz(
+    t_grid,
+    t_half = t_half,
+    nu = nu + h,
+    m = m,
+    type = "cdf"
+  )
+  Phi_minus <- hzr_phase_cumhaz(
+    t_grid,
+    t_half = t_half,
+    nu = nu - h,
+    m = m,
+    type = "cdf"
+  )
   num_dPhi_dnu <- (Phi_plus - Phi_minus) / (2 * h)
   expect_equal(pd$dPhi_dnu, num_dPhi_dnu, tolerance = 1e-4)
 })
 
 test_that(".hzr_phase_derivatives matches numerical for hazard phase", {
   t_grid <- seq(0.5, 8, by = 0.5)
-  t_half <- 5; nu <- 1; m <- 0
+  t_half <- 5
+  nu <- 1
+  m <- 0
 
-  pd <- .hzr_phase_derivatives(t_grid, t_half = t_half, nu = nu, m = m,
-                                type = "hazard")
+  pd <- .hzr_phase_derivatives(
+    t_grid,
+    t_half = t_half,
+    nu = nu,
+    m = m,
+    type = "hazard"
+  )
 
   h <- 1e-5
-  Phi_plus  <- hzr_phase_cumhaz(t_grid, t_half = t_half * exp(h), nu = nu,
-                                 m = m, type = "hazard")
-  Phi_minus <- hzr_phase_cumhaz(t_grid, t_half = t_half * exp(-h), nu = nu,
-                                 m = m, type = "hazard")
+  Phi_plus  <- hzr_phase_cumhaz(
+    t_grid,
+    t_half = t_half * exp(h),
+    nu = nu,
+    m = m,
+    type = "hazard"
+  )
+  Phi_minus <- hzr_phase_cumhaz(
+    t_grid,
+    t_half = t_half * exp(-h),
+    nu = nu,
+    m = m,
+    type = "hazard"
+  )
   num_dPhi_dlog_thalf <- (Phi_plus - Phi_minus) / (2 * h)
   expect_equal(pd$dPhi_dlog_thalf, num_dPhi_dlog_thalf, tolerance = 1e-4)
 })
@@ -151,16 +205,29 @@ test_that(".hzr_phase_derivatives works for all 6 decomposition cases", {
   for (i in seq_along(cases)) {
     cc <- cases[[i]]
     for (type in c("cdf", "hazard")) {
-      pd <- .hzr_phase_derivatives(t_grid, t_half = cc$t_half,
-                                    nu = cc$nu, m = cc$m, type = type)
-      expect_true(all(is.finite(pd$Phi)),
-                  label = paste("Case", i, type, "Phi finite"))
-      expect_true(all(is.finite(pd$dPhi_dlog_thalf)),
-                  label = paste("Case", i, type, "dPhi/dlog_thalf finite"))
-      expect_true(all(is.finite(pd$dPhi_dnu)),
-                  label = paste("Case", i, type, "dPhi/dnu finite"))
-      expect_true(all(is.finite(pd$dPhi_dm)),
-                  label = paste("Case", i, type, "dPhi/dm finite"))
+      pd <- .hzr_phase_derivatives(
+        t_grid,
+        t_half = cc$t_half,
+        nu = cc$nu,
+        m = cc$m,
+        type = type
+      )
+      expect_true(
+        all(is.finite(pd$Phi)),
+        label = paste("Case", i, type, "Phi finite")
+      )
+      expect_true(
+        all(is.finite(pd$dPhi_dlog_thalf)),
+        label = paste("Case", i, type, "dPhi/dlog_thalf finite")
+      )
+      expect_true(
+        all(is.finite(pd$dPhi_dnu)),
+        label = paste("Case", i, type, "dPhi/dnu finite")
+      )
+      expect_true(
+        all(is.finite(pd$dPhi_dm)),
+        label = paste("Case", i, type, "dPhi/dm finite")
+      )
     }
   }
 })

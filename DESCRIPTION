@@ -4,7 +4,7 @@ Version: 0.9.1
 Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@gmail.com", role = c("aut", "cre"))
 Author: John Ehrlinger [aut, cre]
 Maintainer: John Ehrlinger <john.ehrlinger@gmail.com>
-URL: https://ehrlinger.github.io/temporal_hazard
+URL: https://ehrlinger.github.io/temporal_hazard/
 BugReports: https://github.com/ehrlinger/temporal_hazard/issues
 Description: Provides native R implementations of the multiphase parametric
     hazard model of Blackstone, Naftel, and Turner (1986)
@@ -27,6 +27,7 @@ Suggests:
     covr,
     ggplot2,
     knitr,
+    lintr,
     numDeriv,
     pkgdown,
     quarto,

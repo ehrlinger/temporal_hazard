@@ -10,16 +10,26 @@ t_grid <- seq(0.1, 10, by = 0.1)
 # ============================================================================
 
 test_that("hzr_decompos rejects invalid inputs", {
-  expect_error(hzr_decompos("a", t_half = 1, nu = 1, m = 0),
-               "time must be numeric")
-  expect_error(hzr_decompos(1:5, t_half = -1, nu = 1, m = 0),
-               "t_half must be a positive scalar")
-  expect_error(hzr_decompos(1:5, t_half = 0, nu = 1, m = 0),
-               "t_half must be a positive scalar")
-  expect_error(hzr_decompos(1:5, t_half = 1, nu = NA, m = 0),
-               "nu must be a numeric scalar")
-  expect_error(hzr_decompos(1:5, t_half = 1, nu = 1, m = Inf),
-               "m must be a numeric scalar")
+  expect_error(
+    hzr_decompos("a", t_half = 1, nu = 1, m = 0),
+    "time must be numeric"
+  )
+  expect_error(
+    hzr_decompos(1:5, t_half = -1, nu = 1, m = 0),
+    "t_half must be a positive scalar"
+  )
+  expect_error(
+    hzr_decompos(1:5, t_half = 0, nu = 1, m = 0),
+    "t_half must be a positive scalar"
+  )
+  expect_error(
+    hzr_decompos(1:5, t_half = 1, nu = NA, m = 0),
+    "nu must be a numeric scalar"
+  )
+  expect_error(
+    hzr_decompos(1:5, t_half = 1, nu = 1, m = Inf),
+    "m must be a numeric scalar"
+  )
 })
 
 test_that("hzr_decompos rejects m < 0 AND nu < 0", {
@@ -144,15 +154,23 @@ test_that("h(t) = g(t) / (1 - G(t)) identity holds across all cases", {
   )
 
   for (pars in cases) {
-    d <- hzr_decompos(t_grid, t_half = pars$t_half,
-                      nu = pars$nu, m = pars$m)
+    d <- hzr_decompos(
+      t_grid,
+      t_half = pars$t_half,
+      nu = pars$nu,
+      m = pars$m
+    )
     # Only check where G(t) < 1 - eps (hazard blows up as G -> 1)
     valid <- d$G < 0.999
     if (sum(valid) > 0) {
       h_manual <- d$g[valid] / (1 - d$G[valid])
-      expect_equal(d$h[valid], h_manual, tolerance = 1e-10,
-                   label = paste0("h = g/(1-G) for m=", pars$m,
-                                  ", nu=", pars$nu))
+      expect_equal(
+        d$h[valid],
+        h_manual,
+        tolerance = 1e-10,
+        label = paste0("h = g/(1-G) for m=", pars$m,
+                       ", nu=", pars$nu)
+      )
     }
   }
 })
@@ -166,8 +184,10 @@ test_that("G(t) integrates consistently with g(t) via numerical check", {
   ratio <- dG / (g_mid * dt)
   # Should be approximately 1 everywhere
 
-  expect_true(all(abs(ratio - 1) < 0.05),
-              label = "dG/dt approximately equals g(t)")
+  expect_true(
+    all(abs(ratio - 1) < 0.05),
+    label = "dG/dt approximately equals g(t)"
+  )
 })
 
 
@@ -276,15 +296,31 @@ test_that("hzr_decompos matches golden reference values across all 6 cases", {
   )
 
   for (ref in golden) {
-    ours <- hzr_decompos(snap_times, t_half = ref$t_half,
-                         nu = ref$nu, m = ref$m)
+    ours <- hzr_decompos(
+      snap_times,
+      t_half = ref$t_half,
+      nu = ref$nu,
+      m = ref$m
+    )
     lbl <- paste0("m=", ref$m, ", nu=", ref$nu)
-    expect_equal(ours$G, ref$G, tolerance = 1e-12,
-                 label = paste0("G for ", lbl))
-    expect_equal(ours$g, ref$g, tolerance = 1e-12,
-                 label = paste0("g for ", lbl))
-    expect_equal(ours$h, ref$h, tolerance = 1e-12,
-                 label = paste0("h for ", lbl))
+    expect_equal(
+      ours$G,
+      ref$G,
+      tolerance = 1e-12,
+      label = paste0("G for ", lbl)
+    )
+    expect_equal(
+      ours$g,
+      ref$g,
+      tolerance = 1e-12,
+      label = paste0("g for ", lbl)
+    )
+    expect_equal(
+      ours$h,
+      ref$h,
+      tolerance = 1e-12,
+      label = paste0("h for ", lbl)
+    )
   }
 })
 

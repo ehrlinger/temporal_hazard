@@ -113,14 +113,14 @@ NULL
   time_upper = NULL,
     x = NULL,
     return_gradient = FALSE) {
-  
+
   n <- length(time)
-  
+
   # Extract parameters
   mu <- theta[1]          # Location (unrestricted)
   log_sigma <- theta[2]   # Log-scale (unrestricted)
   sigma <- exp(log_sigma) # Always positive
-  
+
   # Covariate coefficients (if any) — AFT parameterization: add to location
   if (!is.null(x)) {
     if (is.null(attr(x, "dimnames")[[2]])) {
@@ -131,7 +131,7 @@ NULL
   } else {
     eta <- rep(mu, n)
   }
-  
+
   # Normalize censoring bounds to lower/upper vectors for unified formulas.
   lower <- if (is.null(time_lower)) time else time_lower
   upper <- if (is.null(time_upper)) time else time_upper
@@ -188,18 +188,18 @@ NULL
   }
 
   logl <- ll_event + ll_right + ll_left + ll_interval
-  
+
   if (!is.finite(logl)) {
     return(Inf)
   }
-  
+
   if (return_gradient) {
     grad <- .hzr_gradient_lognormal(
       theta, time, status, time_lower, time_upper, x, eta, sigma, log_sigma, z, log_phi_z, log_surv
     )
     attr(logl, "gradient") <- grad
   }
-  
+
   logl
 }
 
@@ -229,7 +229,7 @@ NULL
     z = NULL,
     log_phi_z = NULL,
     log_surv = NULL) {
-  
+
   n <- length(time)
   p <- length(theta)
   grad <- numeric(p)
@@ -238,26 +238,26 @@ NULL
   if (any(status %in% c(-1, 2))) {
     return(.hzr_numeric_grad_lognormal(theta, time, status, time_lower, time_upper, x))
   }
-  
+
   # Recompute if not provided
   if (is.null(z) || is.null(sigma)) {
     mu <- theta[1]
     log_sigma <- theta[2]
     sigma <- exp(log_sigma)
-    
+
     if (!is.null(x)) {
       beta_coef <- theta[3:length(theta)]
       eta <- mu + as.numeric(x %*% beta_coef)
     } else {
       eta <- rep(mu, n)
     }
-    
+
     log_t <- log(time)
     z <- (log_t - eta) / sigma
     log_phi_z <- dnorm(z, log = TRUE)
     log_surv <- pnorm(-z, log.p = TRUE)
   }
-  
+
   # Inverse Mills ratio: w_i = φ(z_i) / Φ(-z_i)
   # Computed in log scale for numerical stability, then exponentiating
   log_w <- log_phi_z - log_surv
@@ -266,24 +266,24 @@ NULL
   # But this only matters for censored obs. For events, w is not used in dL/dμ.
   # Clamp to prevent Inf * 0 issues.
   w <- pmin(w, 1e6)
-  
+
   censored <- 1 - status  # (1 - δ_i)
-  
+
   # ===== Gradient w.r.t. μ =====
   # dL/dμ = (1/σ) * [sum(δ_i * z_i) + sum((1-δ_i) * w_i)]
   grad[1] <- (sum(status * z) + sum(censored * w)) / sigma
-  
+
   # ===== Gradient w.r.t. log(σ) =====
   # dL/d(log σ) = sum(δ_i * (z_i² - 1)) + sum((1-δ_i) * w_i * z_i)
   grad[2] <- sum(status * (z^2 - 1)) + sum(censored * w * z)
-  
+
   # ===== Gradient w.r.t. covariate β =====
   # dL/dβ_j = (1/σ) * sum([δ_i * z_i + (1-δ_i) * w_i] * x_ij)
   if (p > 2 && !is.null(x)) {
     score_i <- (status * z + censored * w) / sigma
     grad[3:p] <- as.numeric(crossprod(x, score_i))
   }
-  
+
   grad
 }
 

@@ -1,5 +1,69 @@
-# Version 0.0.0.9000
+# TemporalHazard 0.9.1
 
-- Initial package scaffold.
-- Added numerically stable helper primitives.
-- Added baseline unit tests and CI workflow.
+## New features
+
+* G3 late-phase decomposition (`hzr_phase("g3", ...)`) now fully integrated
+  into the multiphase optimizer, Hessian, and prediction pipeline.
+* `fixed = "shapes"` parameter in `hzr_phase()` allows fixing shape parameters
+  during estimation (matching C/SAS HAZARD workflow of estimating only log-mu
+  scale parameters).
+
+## Bug fixes
+
+* `summary.hazard()` now correctly reports standard errors when some
+  parameters are fixed. Previously, `anyNA(vcov)` rejected the entire
+  variance-covariance matrix when fixed parameters had NA entries.
+* `print.summary.hazard()` coefficient table now shows the correct label
+  for G3 phases (was printing empty parentheses).
+* `print.summary.hazard()` phase listing now uses the phase name in
+  CDF labels (e.g., "cdf (late risk)") instead of hardcoded "early risk".
+* SAS missing value markers (`.`) in CSV datasets are now handled via
+  `na.strings = c("NA", ".")` in `data-raw/make_data.R`, preventing
+  numeric columns from being read as character.
+
+## Documentation
+
+* Seven Quarto vignettes: getting-started, fitting-hazard-models,
+  prediction-visualization, inference-diagnostics, mathematical-foundations,
+  package-architecture, and sas-to-r-migration.
+* Roxygen examples now include both single-phase and multiphase models.
+* README switched to self-contained CABGKUL examples with G3 late phase.
+* Dataset axis labels corrected to "Months" (not "Years").
+
+## Infrastructure
+
+* CI workflows updated to use `roxygen2::load_pkgload` for lazy data
+  compatibility.
+* Added lintr CI workflow with `.lintr` configuration.
+* pkgdown action bumped to `peaceiris/actions-gh-pages@v4`.
+* Added `use-public-rspm: true` to all CI workflows.
+* Added `lintr` to Suggests.
+
+# TemporalHazard 0.9.0
+
+## New features
+
+* Multiphase engine: N-phase additive cumulative hazard models via
+ `dist = "multiphase"` with `hzr_phase()` specification.
+* `hzr_decompos()` parametric family implementing the three-parameter
+  temporal decomposition of Blackstone, Naftel, and Turner (1986).
+* Multi-start optimizer with Hessian-based variance-covariance estimation.
+* C binary parity tests against the KUL CABG reference dataset.
+* Five clinical reference datasets: `avc`, `cabgkul`, `omc`, `tga`, `valves`.
+
+# TemporalHazard 0.1.0
+
+## New features
+
+* Single-phase engine: Weibull, exponential, log-logistic, and log-normal
+  distributions with formula interface.
+* `hazard()` API with `predict()`, `summary()`, `coef()`, `vcov()` S3 methods.
+* Golden fixture regression testing system.
+* Numerically stable helper primitives (`hzr_log1pexp`, `hzr_log1mexp`,
+  `hzr_clamp_prob`).
+
+# TemporalHazard 0.0.0.9000
+
+* Initial package scaffold.
+* Added numerically stable helper primitives.
+* Added baseline unit tests and CI workflow.

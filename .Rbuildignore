@@ -20,3 +20,5 @@
 ^HANDOFF\.md$
 ^MULTIPHASE_PLAN\.md$
 ^data-raw$
+^cran-comments\.md$
+^\.lintr$

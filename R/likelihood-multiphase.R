@@ -83,22 +83,40 @@
 #' @keywords internal
 .hzr_unpack_phase_theta <- function(theta_j, phase) {
   pos <- 1L
-  log_mu <- theta_j[pos]; pos <- pos + 1L
+  log_mu <- theta_j[pos]
+  pos <- pos + 1L
 
   if (phase$type == "g3") {
-    log_tau <- theta_j[pos]; pos <- pos + 1L
-    gamma_  <- theta_j[pos]; pos <- pos + 1L
-    alpha_  <- theta_j[pos]; pos <- pos + 1L
-    eta_    <- theta_j[pos]; pos <- pos + 1L
-    log_t_half <- NA_real_; nu <- NA_real_; m <- NA_real_
+    log_tau <- theta_j[pos]
+    pos <- pos + 1L
+    gamma_  <- theta_j[pos]
+    pos <- pos + 1L
+    alpha_  <- theta_j[pos]
+    pos <- pos + 1L
+    eta_    <- theta_j[pos]
+    pos <- pos + 1L
+    log_t_half <- NA_real_
+    nu <- NA_real_
+    m <- NA_real_
   } else if (phase$type != "constant") {
-    log_t_half <- theta_j[pos]; pos <- pos + 1L
-    nu <- theta_j[pos]; pos <- pos + 1L
-    m <- theta_j[pos]; pos <- pos + 1L
-    log_tau <- NA_real_; gamma_ <- NA_real_; alpha_ <- NA_real_; eta_ <- NA_real_
+    log_t_half <- theta_j[pos]
+    pos <- pos + 1L
+    nu <- theta_j[pos]
+    pos <- pos + 1L
+    m <- theta_j[pos]
+    pos <- pos + 1L
+    log_tau <- NA_real_
+    gamma_ <- NA_real_
+    alpha_ <- NA_real_
+    eta_ <- NA_real_
   } else {
-    log_t_half <- NA_real_; nu <- NA_real_; m <- NA_real_
-    log_tau <- NA_real_; gamma_ <- NA_real_; alpha_ <- NA_real_; eta_ <- NA_real_
+    log_t_half <- NA_real_
+    nu <- NA_real_
+    m <- NA_real_
+    log_tau <- NA_real_
+    gamma_ <- NA_real_
+    alpha_ <- NA_real_
+    eta_ <- NA_real_
   }
 
   beta <- if (pos <= length(theta_j)) theta_j[pos:length(theta_j)] else numeric(0)
@@ -247,8 +265,6 @@
                                   phases, covariate_counts, x_list,
                                   return_gradient = FALSE,
                                   return_hessian = FALSE, ...) {
-
-  n <- length(time)
 
   # Feasibility: check parameter constraints
 
@@ -684,7 +700,6 @@
                                    formula_global = NULL,
                                    data = NULL) {
 
-  n <- length(time)
   phases <- .hzr_validate_phases(phases)
 
   # --- Resolve per-phase design matrices and covariate counts ----------------
@@ -783,7 +798,6 @@
   # reduced (free-only) parameter vector.
   if (any_fixed) {
     free_idx <- which(free_mask)
-    fixed_idx <- which(!free_mask)
 
     # Expand reduced theta to full theta
     expand_theta <- function(theta_free) {
@@ -934,7 +948,6 @@
 #' @keywords internal
 .hzr_g3_phase_derivatives <- function(time, tau, gamma, alpha, eta,
                                        h = 1e-5) {
-  n <- length(time)
 
   # Base evaluation
   d0 <- hzr_decompos_g3(time, tau = tau, gamma = gamma,
@@ -1072,7 +1085,7 @@
         # Strip phase prefix if present
         beta_labels <- sub(paste0("^", nm, "\\."), "", beta_labels)
       } else {
-        beta_labels <- paste0("x", seq_len(length(pars$beta)))
+        beta_labels <- paste0("x", seq_along(pars$beta))
       }
       nms <- c(nms, paste0(nm, ".", beta_labels))
     }

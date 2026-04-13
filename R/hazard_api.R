@@ -667,12 +667,17 @@ predict.hazard <- function(object, newdata = NULL,
         stop("Time-varying coefficients require predictors for '", type, "' predictions.", call. = FALSE)
       }
       if (is.null(pred_time)) {
-        stop("Time-varying coefficients require a 'time' column in newdata for '", type, "' predictions.", call. = FALSE)
+        stop(
+          "Time-varying coefficients require a 'time' column in newdata for '",
+          type,
+          "' predictions.",
+          call. = FALSE
+        )
       }
       # Apply the same piecewise expansion used at fit time.
       x <- .hzr_expand_time_varying_design(x = x, time = pred_time, time_windows = time_windows)
     }
-    
+
     # Extract covariate coefficients by stripping shape parameters from theta.
     n_shape <- .hzr_shape_parameter_count(object$spec$dist)
 
@@ -693,7 +698,7 @@ predict.hazard <- function(object, newdata = NULL,
       }
       eta <- as.numeric(x %*% beta)
     }
-    
+
     if (type == "linear_predictor") {
       return(eta)
     }
@@ -825,17 +830,20 @@ predict.hazard <- function(object, newdata = NULL,
     # Dispatch cumulative hazard computation by distribution.
     # Log-normal is an AFT model and returns survival/cumhaz directly.
     if (object$spec$dist == "weibull") {
-      mu <- theta[1]; nu <- theta[2]
+      mu <- theta[1]
+      nu <- theta[2]
       if (mu <= 0 || nu <= 0) stop("Weibull shape parameters (mu, nu) must be positive.", call. = FALSE)
       cumhaz <- (mu * time) ^ nu * exp(eta)
     } else if (object$spec$dist == "exponential") {
       lambda <- exp(theta[1])
       cumhaz <- lambda * time * exp(eta)
     } else if (object$spec$dist == "loglogistic") {
-      alpha <- exp(theta[1]); beta_shape <- exp(theta[2])
+      alpha <- exp(theta[1])
+      beta_shape <- exp(theta[2])
       cumhaz <- log(1 + alpha * (time ^ beta_shape) * exp(eta))
     } else if (object$spec$dist == "lognormal") {
-      mu <- theta[1]; sigma <- exp(theta[2])
+      mu <- theta[1]
+      sigma <- exp(theta[2])
       # AFT: covariates shift the location
       eta_aft <- if (!is.null(x) && ncol(x) > 0) mu + as.numeric(x %*% beta_coef) else rep(mu, length(time))
       z <- (log(time) - eta_aft) / sigma

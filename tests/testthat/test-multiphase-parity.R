@@ -93,8 +93,8 @@ test_that("R log-likelihood at C reference parameters matches C output", {
   )
 
   logl_r <- .hzr_logl_multiphase(
-    theta  = theta_c,
-    time   = time,
+    theta = theta_c,
+    time = time,
     status = status,
     phases = phases,
     covariate_counts = covariate_counts,
@@ -105,8 +105,12 @@ test_that("R log-likelihood at C reference parameters matches C output", {
 
   # C reference log-likelihood: -3740.52
   # R now uses G3 decomposition for the late phase, matching C.
-  expect_equal(logl_r, -3740.52, tolerance = 0.01,
-               label = "R logl at C params matches C reference")
+  expect_equal(
+    logl_r,
+    -3740.52,
+    tolerance = 0.01,
+    label = "R logl at C params matches C reference"
+  )
 })
 
 
@@ -120,16 +124,21 @@ test_that("R cumulative hazard decomposition is consistent at C parameters", {
   covariate_counts <- c(early = 0L, constant = 0L, late = 0L)
   x_list <- list(early = NULL, constant = NULL, late = NULL)
 
-  theta_c <- c(-3.77955, log(0.2), 1, 1,
-               -7.2258,
-               -16.6578, log(1), 3, 1, 1)
+  theta_c <- c(
+    -3.77955, log(0.2), 1, 1,
+    -7.2258,
+    -16.6578, log(1), 3, 1, 1
+  )
 
   t_grid <- c(0.1, 0.5, 1, 2, 5, 10, 20, 50, 100, 200)
 
   decomp <- .hzr_multiphase_cumhaz(
-    time = t_grid, theta = theta_c,
-    phases = phases, covariate_counts = covariate_counts,
-    x_list = x_list, per_phase = TRUE
+    time = t_grid,
+    theta = theta_c,
+    phases = phases,
+    covariate_counts = covariate_counts,
+    x_list = x_list,
+    per_phase = TRUE
   )
 
   # All contributions should be non-negative
@@ -138,8 +147,11 @@ test_that("R cumulative hazard decomposition is consistent at C parameters", {
   expect_true(all(decomp$late >= 0))
 
   # Total should equal sum of components
-  expect_equal(decomp$total, decomp$early + decomp$constant + decomp$late,
-               tolerance = 1e-12)
+  expect_equal(
+    decomp$total,
+    decomp$early + decomp$constant + decomp$late,
+    tolerance = 1e-12
+  )
 
   # Survival = exp(-H) should be in [0, 1]
   surv <- exp(-decomp$total)
@@ -168,13 +180,17 @@ test_that("Conservation of events at C reference parameters", {
   covariate_counts <- c(early = 0L, constant = 0L, late = 0L)
   x_list <- list(early = NULL, constant = NULL, late = NULL)
 
-  theta_c <- c(-3.77955, log(0.2), 1, 1,
-               -7.2258,
-               -16.6578, log(1), 3, 1, 1)
+  theta_c <- c(
+    -3.77955, log(0.2), 1, 1,
+    -7.2258,
+    -16.6578, log(1), 3, 1, 1
+  )
 
   cumhaz <- .hzr_multiphase_cumhaz(
-    time = time, theta = theta_c,
-    phases = phases, covariate_counts = covariate_counts,
+    time = time,
+    theta = theta_c,
+    phases = phases,
+    covariate_counts = covariate_counts,
     x_list = x_list
   )
 
@@ -302,10 +318,10 @@ test_that("KUL fit mu estimates are in neighborhood of C reference", {
   skip_if(is.null(dat), "KUL dataset not available")
 
   fit <- hazard(
-    time   = dat$int_dead,
+    time = dat$int_dead,
     status = dat$dead,
-    dist   = "multiphase",
-    theta  = kul_theta_start,
+    dist = "multiphase",
+    theta = kul_theta_start,
     phases = kul_phases(),
     fit = TRUE,
     control = list(n_starts = 10, maxit = 2000, reltol = 1e-10)
@@ -325,15 +341,27 @@ test_that("KUL fit mu estimates are in neighborhood of C reference", {
   # G3 late phase has 4 shape params (tau, gamma, alpha, eta), creating
   # a wider mu-shape tradeoff surface than G1's 3 params, so late needs
   # extra tolerance.  Fixed-shape parity test validates exact logl match.
-  expect_true(abs(log_mu_early - (-3.77955)) < 3,
-              label = paste("early log_mu", round(log_mu_early, 3),
-                            "within 3 of C ref -3.780"))
-  expect_true(abs(log_mu_const - (-7.2258)) < 3,
-              label = paste("constant log_mu", round(log_mu_const, 3),
-                            "within 3 of C ref -7.226"))
-  expect_true(abs(log_mu_late - (-16.6578)) < 12,
-              label = paste("late log_mu", round(log_mu_late, 3),
-                            "within 12 of C ref -16.658"))
+  expect_true(
+    abs(log_mu_early - (-3.77955)) < 3,
+    label = paste(
+      "early log_mu", round(log_mu_early, 3),
+      "within 3 of C ref -3.780"
+    )
+  )
+  expect_true(
+    abs(log_mu_const - (-7.2258)) < 3,
+    label = paste(
+      "constant log_mu", round(log_mu_const, 3),
+      "within 3 of C ref -7.226"
+    )
+  )
+  expect_true(
+    abs(log_mu_late - (-16.6578)) < 12,
+    label = paste(
+      "late log_mu", round(log_mu_late, 3),
+      "within 12 of C ref -16.658"
+    )
+  )
 })
 
 test_that("predict works on KUL multiphase fit", {
@@ -429,7 +457,10 @@ test_that("Two-phase (cdf + constant) round-trip on simulated data", {
   n <- 300
 
   # True model: early CDF + constant
-  mu_e <- 0.1; t_half_e <- 1; nu_e <- 1.5; m_e <- 0
+  mu_e <- 0.1
+  t_half_e <- 1
+  nu_e <- 1.5
+  m_e <- 0
   mu_c <- 0.005
 
   t_grid <- seq(0.01, 30, length.out = 2000)
@@ -442,7 +473,9 @@ test_that("Two-phase (cdf + constant) round-trip on simulated data", {
   cens_time <- runif(n, 0, quantile(time, 0.75))
   status <- as.integer(time <= cens_time)
   time <- pmin(time, cens_time)
-  keep <- time > 0; time <- time[keep]; status <- status[keep]
+  keep <- time > 0
+  time <- time[keep]
+  status <- status[keep]
 
   # Provide reasonable starting theta:
   #   early: [log(mu_e), log(t_half_e), nu_e, m_e] = [log(0.1), log(1), 1.5, 0]
@@ -450,12 +483,13 @@ test_that("Two-phase (cdf + constant) round-trip on simulated data", {
   theta_start <- c(log(mu_e), log(t_half_e), nu_e, m_e, log(mu_c))
 
   fit <- hazard(
-    time = time, status = status,
+    time = time,
+    status = status,
     dist = "multiphase",
     theta = theta_start,
     phases = list(
       early = hzr_phase("cdf", t_half = t_half_e, nu = nu_e, m = m_e),
-      bg    = hzr_phase("constant")
+      bg = hzr_phase("constant")
     ),
     fit = TRUE,
     control = list(n_starts = 3, maxit = 500)
@@ -465,9 +499,13 @@ test_that("Two-phase (cdf + constant) round-trip on simulated data", {
 
   # Recovered mu_early should be in the right ballpark
   mu_early_hat <- exp(fit$fit$theta[1])
-  expect_true(abs(log(mu_early_hat / mu_e)) < 1.5,
-              label = paste("early mu_hat", round(mu_early_hat, 4),
-                            "within 1.5 log-units of truth", mu_e))
+  expect_true(
+    abs(log(mu_early_hat / mu_e)) < 1.5,
+    label = paste(
+      "early mu_hat", round(mu_early_hat, 4),
+      "within 1.5 log-units of truth", mu_e
+    )
+  )
 
   # Predictions should be valid
   nd <- data.frame(time = c(0.5, 2, 10))
@@ -505,8 +543,11 @@ test_that("R standard errors at C params are consistent with C reference", {
     theta_full <- theta_c
     theta_full[mu_idx] <- mu_theta
     .hzr_logl_multiphase(
-      theta = theta_full, time = dat$int_dead, status = dat$dead,
-      phases = phases, covariate_counts = covariate_counts,
+      theta = theta_full,
+      time = dat$int_dead,
+      status = dat$dead,
+      phases = phases,
+      covariate_counts = covariate_counts,
       x_list = x_list
     )
   }
@@ -523,8 +564,11 @@ test_that("R standard errors at C params are consistent with C reference", {
     theta_full <- theta_c
     theta_full[1] <- log_mu_e
     .hzr_logl_multiphase(
-      theta = theta_full, time = dat$int_dead, status = dat$dead,
-      phases = phases, covariate_counts = covariate_counts,
+      theta = theta_full,
+      time = dat$int_dead,
+      status = dat$dead,
+      phases = phases,
+      covariate_counts = covariate_counts,
       x_list = x_list
     )
   }
@@ -535,11 +579,18 @@ test_that("R standard errors at C params are consistent with C reference", {
   ll_0 <- early_logl(theta_c[1])
   d2 <- (ll_p + ll_m - 2 * ll_0) / h^2
 
-  skip_if(!is.finite(d2) || d2 >= 0, "Early-phase Hessian not negative definite")
+  skip_if(
+    !is.finite(d2) || d2 >= 0,
+    "Early-phase Hessian not negative definite"
+  )
 
   se_early <- sqrt(1 / (-d2))
 
   # C reference: SE(E0) = 0.09381214
-  expect_equal(se_early, 0.09381214, tolerance = 0.01,
-               label = "Early phase SE matches C reference")
+  expect_equal(
+    se_early,
+    0.09381214,
+    tolerance = 0.01,
+    label = "Early phase SE matches C reference"
+  )
 })

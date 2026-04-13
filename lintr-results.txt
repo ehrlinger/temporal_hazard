@@ -1,0 +1,92 @@
+[1m]8;line = 339:col = 17;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/R/likelihood-weibull.R[34mR/likelihood-weibull.R:339:17[39m]8;;: [22m[34mstyle: [39m[brace_linter] [1mEither both or neither branch in `if`/`else` should use curly braces.[22m
+    ll_event <- if (any(idx_event)) {
+                ^~
+
+[1m]8;line = 263:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:263:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         G = c(1.543870887948849e-01, 3.660254037844386e-01, 5.000000000000000e-01, 5.635083268962916e-01, 6.461106321354770e-01),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 264:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:264:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         g = c(6.527585780416260e-01, 1.160254037844386e-01, 4.166666666666666e-02, 2.459666924148338e-02, 1.143258415884856e-02),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 265:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:265:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 131 characters.[22m
+         h = c(7.719354439744243e-01, 1.830127018922192e-01, 8.333333333333333e-02, 5.635083268962916e-02, 3.230553160677384e-02)),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+
+[1m]8;line = 269:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:269:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         G = c(2.244867998231077e-02, 3.010237439309285e-01, 5.000000000000000e-01, 5.845520232324418e-01, 6.840991973811010e-01),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 270:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:270:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         g = c(4.261347015149480e-01, 1.806994562245466e-01, 5.776226504666210e-02, 3.138515329720806e-02, 1.298599327498647e-02),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 271:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:271:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 131 characters.[22m
+         h = c(4.359205422659926e-01, 2.585201638189699e-01, 1.155245300933242e-01, 7.554532709824208e-02, 4.110781981979546e-02)),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+
+[1m]8;line = 275:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:275:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         G = c(4.653741075440776e-02, 2.928932188134524e-01, 5.000000000000000e-01, 5.917517095361370e-01, 6.984886554222364e-01),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 276:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:276:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         g = c(4.333920860207237e-01, 1.767766952966369e-01, 6.250000000000000e-02, 3.402069087198858e-02, 1.370506111717107e-02),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 277:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:277:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 131 characters.[22m
+         h = c(4.545454545454545e-01, 2.500000000000000e-01, 1.250000000000000e-01, 8.333333333333333e-02, 4.545454545454546e-02)),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+
+[1m]8;line = 281:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:281:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         G = c(2.284003156575409e-02, 2.062994740159002e-01, 5.000000000000000e-01, 6.850197375262816e-01, 9.007874342519875e-01),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 282:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:282:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         g = c(2.257718923587476e-01, 1.833837605982748e-01, 1.155245300933242e-01, 7.277589362189646e-02, 2.292297007478435e-02),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 283:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:283:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 131 characters.[22m
+         h = c(2.310490601866484e-01, 2.310490601866484e-01, 2.310490601866484e-01, 2.310490601866484e-01, 2.310490601866483e-01)),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+
+[1m]8;line = 287:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:287:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         G = c(1.543870887948848e-01, 3.660254037844386e-01, 5.000000000000000e-01, 5.635083268962915e-01, 6.461106321354770e-01),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 288:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:288:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         g = c(6.527585780416260e-01, 1.160254037844387e-01, 4.166666666666666e-02, 2.459666924148339e-02, 1.143258415884856e-02),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 289:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:289:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 131 characters.[22m
+         h = c(7.719354439744243e-01, 1.830127018922193e-01, 8.333333333333333e-02, 5.635083268962917e-02, 3.230553160677384e-02)),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+
+[1m]8;line = 293:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:293:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         G = c(1.188705972421941e-01, 3.298064389861991e-01, 5.000000000000000e-01, 5.913307632637709e-01, 7.179039946690142e-01),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 294:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:294:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         g = c(5.575380754920625e-01, 1.341019487465793e-01, 5.776226504666211e-02, 3.656973241347520e-02, 1.784973505866168e-02),
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 295:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-decomposition.R[34mtests/testthat/test-decomposition.R:295:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 130 characters.[22m
+         h = c(6.327539107729806e-01, 2.000943556421572e-01, 1.155245300933242e-01, 8.948491622597644e-02, 6.327539107729806e-02))
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~
+
+[1m]8;line = 142:col = 3;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/tests/testthat/test-parity-c-binary.R[34mtests/testthat/test-parity-c-binary.R:142:3[39m]8;;: [22m[34mstyle: [39m[trailing_blank_lines_linter] [1mAdd a terminal newline.[22m
+})
+  ^
+
+[1m]8;line = 288:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/vignettes/ar-architecture.qmd[34mvignettes/ar-architecture.qmd:288:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 121 characters.[22m
+    "test-gradient-weibull, test-exponential-dist, test-loglogistic-dist, test-lognormal-dist, test-multiphase-gradient",
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+
+[1m]8;line = 289:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/vignettes/ar-architecture.qmd[34mvignettes/ar-architecture.qmd:289:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 139 characters.[22m
+    "test-hazard-api, test-predict-types, test-interval-censoring-*, test-time-varying-*, test-multiphase-likelihood, test-multiphase-api",
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+
+[1m]8;line = 161:col = 121;file:///Users/ehrlinj/Documents/GitHub/temporal_hazard/vignettes/getting-started.qmd[34mvignettes/getting-started.qmd:161:121[39m]8;;: [22m[34mstyle: [39m[line_length_linter] [1mLines should not be more than 120 characters. This line is 128 characters.[22m
+#| fig-cap: "Additive phase decomposition: the total hazard (solid) is the sum of early, constant, and late components (dashed)"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~
+

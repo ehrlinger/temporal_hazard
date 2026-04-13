@@ -93,8 +93,9 @@ NULL
 #'
 #' The log-likelihood for right-censored data is:
 #'
-#' \deqn{\ell(\theta) = \sum_{\delta_i = 1} [\log(\alpha \beta) + (\beta - 1) \log(t_i) - \log(1 + \alpha t_i^{\beta} \exp(\eta_i))]
-#'   + \sum_{i} \log(1 + \alpha t_i^{\beta} \exp(\eta_i))}
+#' \deqn{\ell(\theta) = \sum_{\delta_i = 1} [\log(\alpha \beta) + (\beta - 1)
+#'   \log(t_i) - \log(1 + \alpha t_i^{\beta} \exp(\eta_i))] + \sum_{i}
+#'   \log(1 + \alpha t_i^{\beta} \exp(\eta_i))}
 #'
 #' Reparameterization: \u03b8\[1\] = log(\u03b1), \u03b8\[2\] = log(\u03b2) avoids constrained optimization.
 #'
@@ -113,15 +114,15 @@ NULL
   time_upper = NULL,
     x = NULL,
     return_gradient = FALSE) {
-  
+
   n <- length(time)
-  
+
   # Extract parameters
   log_alpha <- theta[1]
   log_beta <- theta[2]
   alpha <- exp(log_alpha)  # Always positive
   beta <- exp(log_beta)    # Always positive
-  
+
   # Covariate coefficients (if any)
   if (!is.null(x)) {
     if (is.null(attr(x, "dimnames")[[2]])) {
@@ -132,7 +133,7 @@ NULL
   } else {
     eta <- rep(0, n)
   }
-  
+
   lower <- if (is.null(time_lower)) time else time_lower
   upper <- if (is.null(time_upper)) time else time_upper
 
@@ -151,7 +152,7 @@ NULL
   log_term <- log_alpha + beta * log(time) + eta
   log_term_l <- log_alpha + beta * log(lower) + eta
   log_term_u <- log_alpha + beta * log(upper) + eta
-  
+
   # Check for numerical overflow
   max_log_term <- max(c(log_term, log_term_l, log_term_u), na.rm = TRUE)
   if (max_log_term > 100) {
@@ -206,11 +207,11 @@ NULL
   }
 
   logl <- ll_event + ll_right + ll_left + ll_interval
-  
+
   if (!is.finite(logl)) {
     return(Inf)
   }
-  
+
   # If gradient requested, compute score vector
   if (return_gradient) {
     grad <- .hzr_gradient_loglogistic(
@@ -218,7 +219,7 @@ NULL
     )
     attr(logl, "gradient") <- grad
   }
-  
+
   logl
 }
 
@@ -227,7 +228,8 @@ NULL
 #' Computes the score vector of the log-logistic log-likelihood w.r.t. all parameters.
 #'
 #' The log-likelihood is:
-#'   \eqn{L = \sum(\delta_i * [\log(\alpha) + \log(\beta) + (\beta-1)*\log(t_i)]) - \sum(\log(1 + \alpha*t_i^\beta*\exp(\eta_i)))}
+#'   \eqn{L = \sum(\delta_i * [\log(\alpha) + \log(\beta) + (\beta-1)
+#'   *\log(t_i)]) - \sum(\log(1 + \alpha*t_i^\beta*\exp(\eta_i)))}
 #'
 #' Let p_i = α·t_i^β·exp(η_i) / (1 + α·t_i^β·exp(η_i)) = probability of event at t_i
 #'

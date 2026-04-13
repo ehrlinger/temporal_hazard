@@ -74,7 +74,7 @@ NULL
 #'
 #' The log-likelihood for right-censored data is:
 #'
-#' \deqn{\ell(\theta) = \sum_{i: \delta_i = 1} \log h(t_i | x_i) 
+#' \deqn{\ell(\theta) = \sum_{i: \delta_i = 1} \log h(t_i | x_i)
 #'   - \sum_i S(t_i | x_i)}
 #'
 #' where S is the survival function (1 - CDF).
@@ -96,15 +96,15 @@ NULL
     dist_name = "weibull",
     return_gradient = FALSE,
     return_hessian = FALSE) {
-  
+
   # Shape parameter count for Weibull
   n_shape <- 2  # mu, nu (scale, shape)
   n <- length(time)
-  
+
   # Extract parameters
   mu <- theta[1]    # scale > 0
   nu <- theta[2]    # shape > 0
-  
+
   # Covariate coefficients (if any)
   if (!is.null(x)) {
     if (is.null(attr(x, "dimnames")[[2]])) {
@@ -115,12 +115,12 @@ NULL
   } else {
     eta <- rep(0, n)
   }
-  
+
   # Stability checks
   if (mu <= 0 || nu <= 0) {
     return(Inf)  # Infeasible: return large penalty
   }
-  
+
   # Normalize censoring bounds to lower/upper vectors for unified formulas.
   lower <- if (is.null(time_lower)) time else time_lower
   upper <- if (is.null(time_upper)) time else time_upper
@@ -180,11 +180,11 @@ NULL
   }
 
   logl <- ll_event + ll_right + ll_left + ll_interval
-  
+
   if (!is.finite(logl)) {
     return(Inf)
   }
-  
+
   # If gradient requested, compute score vector.
   if (return_gradient) {
     grad <- .hzr_gradient_weibull(
@@ -193,12 +193,12 @@ NULL
     )
     attr(logl, "gradient") <- grad
   }
-  
+
   # If Hessian requested (stub for M2)
   if (return_hessian) {
     attr(logl, "hessian") <- matrix(NA, length(theta), length(theta))
   }
-  
+
   logl
 }
 
@@ -232,7 +232,7 @@ NULL
     mu = NULL,
     nu = NULL,
     n_shape = 2) {
-  
+
   n <- length(time)
   p <- length(theta)
   grad <- numeric(p)
@@ -242,41 +242,41 @@ NULL
   if (any(status %in% c(-1, 2))) {
     return(.hzr_numeric_grad_weibull(theta, time, status, time_lower, time_upper, x))
   }
-  
+
   # Sanity check: if eta, cumhaz, haz not provided, compute them
   if (is.null(eta) || is.null(cumhaz) || is.null(haz)) {
     # Need to recompute from theta
     mu <- theta[1]
     nu <- theta[2]
-    
+
     if (!is.null(x)) {
       beta <- theta[3:length(theta)]
       eta <- as.numeric(x %*% beta)
     } else {
       eta <- rep(0, n)
     }
-    
+
     haz <- mu * nu * (time ^ (nu - 1)) * exp(eta)
     cumhaz <- (mu * time) ^ nu * exp(eta)
   }
-  
+
   # ===== Gradient w.r.t. mu (scale parameter) =====
   # dL/dmu = sum(delta / mu) - (nu / mu) * sum(H)
   grad[1] <- sum(status) / mu - (nu / mu) * sum(cumhaz)
-  
+
   # ===== Gradient w.r.t. nu (shape parameter) =====
   # dL/dnu = sum(delta / nu) + sum(delta * log(t)) - sum(log(mu*t) * H)
   grad[2] <- sum(status) / nu + sum(status * log(time)) - sum(log(mu * time) * cumhaz)
-  
+
   # ===== Gradient w.r.t. beta (covariate coefficients) =====
   if (n_shape < p && !is.null(x)) {
     # Compute residual: delta - cumulative hazard
     residual <- status - cumhaz
-    
+
     # dL/dbeta = t(X) %*% (delta - H)
     grad[3:p] <- as.numeric(crossprod(x, residual))
   }
-  
+
   grad
 }
 
@@ -364,7 +364,9 @@ NULL
       eps <- 1e-6
       grd <- numeric(p)
       for (i in seq_along(theta)) {
-        tp <- tm <- theta; tp[i] <- tp[i] + eps; tm[i] <- tm[i] - eps
+        tp <- tm <- theta
+        tp[i] <- tp[i] + eps
+        tm[i] <- tm[i] - eps
         grd[i] <- (obj(tp) - obj(tm)) / (2 * eps)
       }
       return(grd)
