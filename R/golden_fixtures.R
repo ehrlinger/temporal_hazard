@@ -1,5 +1,7 @@
 #' @importFrom stats runif quantile rnorm rexp rbinom rlnorm approx
+#' @importFrom utils data
 #' @keywords internal
+utils::globalVariables("cabgkul")
 NULL
 
 # golden_fixtures.R - Synthetic golden fixture generation for parity testing
