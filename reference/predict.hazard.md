@@ -12,6 +12,7 @@ predict(
   object,
   newdata = NULL,
   type = c("hazard", "linear_predictor", "survival", "cumulative_hazard"),
+  decompose = FALSE,
   ...
 )
 ```
@@ -32,14 +33,20 @@ predict(
 
   Prediction type:
 
-  - `"linear_predictor"`: Linear predictor η = x·β
+  - `"linear_predictor"`: Linear predictor η = x·β (not available for
+    multiphase)
 
-  - `"hazard"`: Hazard scale exp(η) (not conditional on time for
-    Weibull)
+  - `"hazard"`: Hazard scale exp(η) (not available for multiphase)
 
   - `"survival"`: Survival probability S(t\|x) = exp(-H(t\|x))
 
   - `"cumulative_hazard"`: Cumulative hazard H(t\|x) at event times
+
+- decompose:
+
+  Logical; if `TRUE` and the model is multiphase, return a data frame
+  with per-phase cumulative hazard contributions alongside the total.
+  Ignored for single-distribution models. Default `FALSE`.
 
 - ...:
 
@@ -108,16 +115,16 @@ new_patients <- data.frame(
   nyha = c(1, 3, 4),
   shock = c(0, 0, 1)
 )
-new_patients$survival        <- predict(fit2, newdata = new_patients,
-                                        type = "survival")
-new_patients$cumulative_hazard <- predict(fit2, newdata = new_patients,
-                                          type = "cumulative_hazard")
-#> Error: Number of parameters insufficient for predictor columns.
+# Compute predictions from the clean covariate frame before adding columns
+surv   <- predict(fit2, newdata = new_patients, type = "survival")
+cumhaz <- predict(fit2, newdata = new_patients, type = "cumulative_hazard")
+new_patients$survival          <- surv
+new_patients$cumulative_hazard <- cumhaz
 new_patients
-#>   time age nyha shock  survival
-#> 1  0.5  50    1     0 0.9494097
-#> 2  1.5  65    3     0 0.7743185
-#> 3  3.0  75    4     1 0.5046535
+#>   time age nyha shock  survival cumulative_hazard
+#> 1  0.5  50    1     0 0.9494097        0.05191482
+#> 2  1.5  65    3     0 0.7743185        0.25577202
+#> 3  3.0  75    4     1 0.5046535        0.68388317
 
 # \donttest{
 # ── Grouped survival curves (requires hvtiPlotR) ─────────────────────

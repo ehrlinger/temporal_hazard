@@ -7,10 +7,10 @@ library(TemporalHazard)
 ## Overview
 
 The legacy HAZARD program is a SAS macro (`%HAZARD(...)`) that wraps a
-compiled C executable. It models event-time data using a parametric
-hazard function with multiple phases. This vignette is the canonical
-reference for translating a SAS HAZARD analysis into native R using
-`TemporalHazard`.
+compiled C executable implementing the multiphase parametric hazard
+model of Blackstone, Naftel, and Turner (1986). This vignette is the
+canonical reference for translating a SAS HAZARD analysis into native R
+using `TemporalHazard`.
 
 The full formal argument mapping table is available programmatically:
 
@@ -26,19 +26,30 @@ knitr::kable(
 )
 ```
 
-| SAS Statement | Legacy Input              | C Concept                   | R Parameter | Required | Expected Type                | Transform Rule                              | Status      | Notes                                                                |
-|:--------------|:--------------------------|:----------------------------|:------------|:---------|:-----------------------------|:--------------------------------------------|:------------|:---------------------------------------------------------------------|
-| HAZARD        | TIME variable             | obs time array              | time        | TRUE     | numeric vector               | pass through as numeric                     | implemented | Core observation time input.                                         |
-| HAZARD        | EVENT/censor variable     | event indicator array       | status      | TRUE     | numeric/logical vector       | coerce to numeric 0/1                       | implemented | Event indicator currently retained as numeric in object$data$status. |
-| HAZARD        | X covariate block         | design matrix               | x           | FALSE    | numeric matrix or data.frame | data.frame -\> data.matrix                  | implemented | Future versions will support richer design encoding helpers.         |
-| HAZARD        | initial parameters        | parameter vector            | theta       | FALSE    | numeric vector               | length must equal ncol(x) when x is present | implemented | Used by predict.hazard as coefficient vector.                        |
-| HAZARD        | baseline distribution     | phase distribution selector | dist        | FALSE    | character scalar             | normalized lower-case label                 | implemented | Current default is ‘weibull’; more options planned.                  |
-| HAZARD        | control options           | optimizer/control struct    | control     | FALSE    | named list                   | stored in spec\$control                     | implemented | Control list is stored and reserved for optimizer parity.            |
-| HAZARD        | additional legacy options | misc legacy switches        | …           | FALSE    | named arguments              | stored in legacy_args for parity            | implemented | Supports legacy-style pass-through options during migration.         |
-| TIME          | t                         | time vector                 | time        | TRUE     | numeric vector               | pass through                                | implemented | Canonical SAS migration uses TIME= mapping.                          |
-| EVENT         | status                    | event vector                | status      | TRUE     | numeric/logical vector       | coerce to numeric                           | implemented | Canonical SAS migration uses EVENT= mapping.                         |
-| PARMS         | theta0                    | starting coef               | theta       | FALSE    | numeric vector               | map PARMS/INITIAL to theta                  | planned     | SAS PARMS syntax parser not yet implemented.                         |
-| DIST          | dist                      | dist selector               | dist        | FALSE    | character scalar             | map DIST= to dist                           | implemented | SAS DIST keyword maps directly to dist.                              |
+| SAS Statement | Legacy Input               | C Concept                   | R Parameter                   | Required | Expected Type                | Transform Rule                                                                         | Status      | Notes                                                                                                    |
+|:--------------|:---------------------------|:----------------------------|:------------------------------|:---------|:-----------------------------|:---------------------------------------------------------------------------------------|:------------|:---------------------------------------------------------------------------------------------------------|
+| HAZARD        | TIME variable              | obs time array              | time                          | TRUE     | numeric vector               | pass through as numeric                                                                | implemented | Core observation time input.                                                                             |
+| HAZARD        | EVENT/censor variable      | event indicator array       | status                        | TRUE     | numeric/logical vector       | coerce to numeric 0/1                                                                  | implemented | Event indicator currently retained as numeric in object$data$status.                                     |
+| HAZARD        | X covariate block          | design matrix               | x                             | FALSE    | numeric matrix or data.frame | data.frame -\> data.matrix                                                             | implemented | Future versions will support richer design encoding helpers.                                             |
+| HAZARD        | initial parameters         | parameter vector            | theta                         | FALSE    | numeric vector               | length must equal ncol(x) when x is present                                            | implemented | Used by predict.hazard as coefficient vector.                                                            |
+| HAZARD        | baseline distribution      | phase distribution selector | dist                          | FALSE    | character scalar             | normalized lower-case label                                                            | implemented | Current default is ‘weibull’; more options planned.                                                      |
+| HAZARD        | control options            | optimizer/control struct    | control                       | FALSE    | named list                   | stored in spec\$control                                                                | implemented | Control list is stored and reserved for optimizer parity.                                                |
+| HAZARD        | additional legacy options  | misc legacy switches        | …                             | FALSE    | named arguments              | stored in legacy_args for parity                                                       | implemented | Supports legacy-style pass-through options during migration.                                             |
+| TIME          | t                          | time vector                 | time                          | TRUE     | numeric vector               | pass through                                                                           | implemented | Canonical SAS migration uses TIME= mapping.                                                              |
+| EVENT         | status                     | event vector                | status                        | TRUE     | numeric/logical vector       | coerce to numeric                                                                      | implemented | Canonical SAS migration uses EVENT= mapping.                                                             |
+| PARMS         | theta0                     | starting coef               | theta                         | FALSE    | numeric vector               | map PARMS/INITIAL to theta                                                             | planned     | SAS PARMS syntax parser not yet implemented.                                                             |
+| DIST          | dist                       | dist selector               | dist                          | FALSE    | character scalar             | map DIST= to dist                                                                      | implemented | SAS DIST keyword maps directly to dist.                                                                  |
+| HAZARD        | phases (3-phase structure) | 3-phase Early/Const/Late    | phases (list of hzr_phase())  | FALSE    | list of hzr_phase objects    | list(early=hzr_phase(‘cdf’,…), constant=hzr_phase(‘constant’), late=hzr_phase(‘g3’,…)) | implemented | Use dist=‘multiphase’ with phases argument. N-phase generalization of legacy 3-phase model.              |
+| HAZARD        | MU_1, MU_2, MU_3           | per-phase scale factors     | mu (via exp(log_mu) in theta) | FALSE    | numeric (per-phase)          | exp(alpha_j) in internal parameterization; estimated on log scale                      | implemented | Each phase has its own scale mu_j(x) = exp(alpha_j + x\*beta_j). Starting value via hzr_phase().         |
+| G1            | THALF / RHO (early)        | early half-life             | hzr_phase(t_half=)            | FALSE    | positive scalar              | maps directly to hzr_phase(t_half=) starting value                                     | implemented | Half-life: time at which G(t_half) = 0.5. Same concept as SAS RHO/THALF.                                 |
+| G1            | NU (early)                 | early time exponent         | hzr_phase(nu=)                | FALSE    | numeric scalar               | maps directly to hzr_phase(nu=) starting value                                         | implemented | Time exponent controlling rate dynamics. Same parameter name as SAS early NU.                            |
+| G1            | M (early)                  | early shape                 | hzr_phase(m=)                 | FALSE    | numeric scalar               | maps directly to hzr_phase(m=) starting value                                          | implemented | Shape exponent controlling distributional form. Same parameter name as SAS early M.                      |
+| G1            | DELTA (early)              | early time transform        | (absorbed by decompos)        | FALSE    | numeric scalar               | time transform B(t) = (exp(delta\*t)-1)/delta absorbed into decompos shape             | implemented | The C DELTA controlled B(t) = (exp(delta\*t)-1)/delta. This transform is absorbed by decompos().         |
+| G2            | G2 constant phase          | constant hazard rate phase  | hzr_phase(‘constant’)         | FALSE    | hzr_phase(‘constant’)        | hzr_phase(‘constant’) with no shape parameters                                         | implemented | Flat background rate. No shape parameters estimated. SAS G2 equivalent.                                  |
+| G3            | TAU (late)                 | late G3 scale               | hzr_phase(‘g3’, tau=)         | FALSE    | positive scalar              | maps directly to hzr_phase(‘g3’, tau=) for late phase                                  | implemented | Late-phase G3 scale parameter. Maps directly to hzr_phase(‘g3’, tau=).                                   |
+| G3            | GAMMA (late)               | late G3 time exponent       | hzr_phase(‘g3’, gamma=)       | FALSE    | numeric scalar               | maps directly to hzr_phase(‘g3’, gamma=) for late phase                                | implemented | Late-phase G3 time exponent. Maps directly to hzr_phase(‘g3’, gamma=).                                   |
+| G3            | ALPHA (late)               | late G3 shape               | hzr_phase(‘g3’, alpha=)       | FALSE    | numeric scalar               | maps directly to hzr_phase(‘g3’, alpha=) for late phase                                | implemented | Late-phase G3 shape parameter. alpha=0 gives exponential case. Maps directly to hzr_phase(‘g3’, alpha=). |
+| G3            | ETA (late)                 | late G3 outer exponent      | hzr_phase(‘g3’, eta=)         | FALSE    | numeric scalar               | maps directly to hzr_phase(‘g3’, eta=) for late phase                                  | implemented | Late-phase G3 outer exponent. Maps directly to hzr_phase(‘g3’, eta=).                                    |
 
 Formal argument map: SAS HAZARD/C → hazard()
 
@@ -334,3 +345,10 @@ public interface
 ([`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md),
 [`predict.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/predict.hazard.md),
 etc.) will not change.
+
+## References
+
+Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of
+time-varying hazard into phases, each incorporating a separate stream of
+concomitant information. *J Am Stat Assoc.* 1986;81(395):615–624. doi:
+[10.1080/01621459.1986.10478314](https://doi.org/10.1080/01621459.1986.10478314)

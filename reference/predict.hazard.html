@@ -9,7 +9,7 @@ types including linear predictor, hazard, survival probability, and cumulative h
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,6 +23,10 @@ types including linear predictor, hazard, survival probability, and cumulative h
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Getting started</h6></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with TemporalHazard</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Technical reference</h6></li>
+    <li><a class="dropdown-item" href="../articles/ar-architecture.html">Package Architecture</a></li>
+    <li><a class="dropdown-item" href="../articles/mf-mathematical-foundations.html">Mathematical Foundations of TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Migration guides</h6></li>
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
@@ -63,6 +67,7 @@ types including linear predictor, hazard, survival probability, and cumulative h
 <span>  <span class="va">object</span>,</span>
 <span>  newdata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"hazard"</span>, <span class="st">"linear_predictor"</span>, <span class="st">"survival"</span>, <span class="st">"cumulative_hazard"</span><span class="op">)</span>,</span>
+<span>  decompose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -82,11 +87,17 @@ column, or time will be taken from the fitted object's data.</p></dd>
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
-<dd><p>Prediction type:</p><ul><li><p><code>"linear_predictor"</code>: Linear predictor η = x·β</p></li>
-<li><p><code>"hazard"</code>: Hazard scale exp(η) (not conditional on time for Weibull)</p></li>
+<dd><p>Prediction type:</p><ul><li><p><code>"linear_predictor"</code>: Linear predictor η = x·β (not available for multiphase)</p></li>
+<li><p><code>"hazard"</code>: Hazard scale exp(η) (not available for multiphase)</p></li>
 <li><p><code>"survival"</code>: Survival probability S(t|x) = exp(-H(t|x))</p></li>
 <li><p><code>"cumulative_hazard"</code>: Cumulative hazard H(t|x) at event times</p></li>
 </ul></dd>
+
+
+<dt id="arg-decompose">decompose<a class="anchor" aria-label="anchor" href="#arg-decompose"></a></dt>
+<dd><p>Logical; if <code>TRUE</code> and the model is multiphase, return a
+data frame with per-phase cumulative hazard contributions alongside the
+total.  Ignored for single-distribution models.  Default <code>FALSE</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -151,16 +162,16 @@ so window-specific coefficients can be selected.</p>
 <span class="r-in"><span>  nyha <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">4</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  shock <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">new_patients</span><span class="op">$</span><span class="va">survival</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit2</span>, newdata <span class="op">=</span> <span class="va">new_patients</span>,</span></span>
-<span class="r-in"><span>                                        type <span class="op">=</span> <span class="st">"survival"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">new_patients</span><span class="op">$</span><span class="va">cumulative_hazard</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit2</span>, newdata <span class="op">=</span> <span class="va">new_patients</span>,</span></span>
-<span class="r-in"><span>                                          type <span class="op">=</span> <span class="st">"cumulative_hazard"</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> Number of parameters insufficient for predictor columns.</span>
+<span class="r-in"><span><span class="co"># Compute predictions from the clean covariate frame before adding columns</span></span></span>
+<span class="r-in"><span><span class="va">surv</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit2</span>, newdata <span class="op">=</span> <span class="va">new_patients</span>, type <span class="op">=</span> <span class="st">"survival"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">cumhaz</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit2</span>, newdata <span class="op">=</span> <span class="va">new_patients</span>, type <span class="op">=</span> <span class="st">"cumulative_hazard"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">new_patients</span><span class="op">$</span><span class="va">survival</span>          <span class="op">&lt;-</span> <span class="va">surv</span></span></span>
+<span class="r-in"><span><span class="va">new_patients</span><span class="op">$</span><span class="va">cumulative_hazard</span> <span class="op">&lt;-</span> <span class="va">cumhaz</span></span></span>
 <span class="r-in"><span><span class="va">new_patients</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   time age nyha shock  survival</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1  0.5  50    1     0 0.9494097</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2  1.5  65    3     0 0.7743185</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3  3.0  75    4     1 0.5046535</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   time age nyha shock  survival cumulative_hazard</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  0.5  50    1     0 0.9494097        0.05191482</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2  1.5  65    3     0 0.7743185        0.25577202</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  3.0  75    4     1 0.5046535        0.68388317</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># ── Grouped survival curves (requires hvtiPlotR) ─────────────────────</span></span></span>

@@ -73,25 +73,37 @@ head(pred_grid)
 km_avc <- survival::survfit(
   survival::Surv(INT_DEAD, DEAD) ~ 1, data = avcs
 )
-km_df <- data.frame(time = km_avc$time, estimate = km_avc$surv * 100)
+km_df <- data.frame(time = km_avc$time, estimate = km_avc$surv * 100,
+                    source = "Kaplan-Meier")
+
+pred_plot <- transform(pred_grid, survival = survival * 100,
+                       source = "Parametric (Weibull)")
 
 hz_obj <- hv_hazard(
-  curve_data   = transform(pred_grid, survival = survival * 100),
-  x_col        = "time",
-  estimate_col = "survival",
-  empirical    = km_df,
-  emp_x_col    = "time",
-  emp_estimate_col = "estimate"
+  curve_data       = pred_plot,
+  x_col            = "time",
+  estimate_col     = "survival",
+  group_col        = "source",
+  empirical        = km_df,
+  emp_x_col        = "time",
+  emp_estimate_col = "estimate",
+  emp_group_col    = "source",
+  emp_geom         = "step"
 )
 
 plot(hz_obj) +
+  ggplot2::scale_colour_manual(
+    values = c("Parametric (Weibull)" = "#0072B2",
+               "Kaplan-Meier"         = "#D55E00")
+  ) +
   ggplot2::scale_y_continuous(limits = c(0, 100)) +
   ggplot2::labs(
-    x = "Years after repair",
-    y = "Freedom from death (%)",
-    title = "Predicted survival — median-profile AVC patient"
+    x      = "Years after repair",
+    y      = "Freedom from death (%)",
+    colour = NULL
   ) +
-  hv_theme_manuscript()
+  hv_theme_manuscript() +
+  ggplot2::theme(legend.position = "bottom")
 ```
 
 ------------------------------------------------------------------------

@@ -19,6 +19,7 @@ hazard(
   time_windows = NULL,
   theta = NULL,
   dist = "weibull",
+  phases = NULL,
   fit = FALSE,
   control = list(),
   ...
@@ -74,7 +75,15 @@ hazard(
 
 - dist:
 
-  Character baseline distribution label (default "weibull").
+  Character baseline distribution label (default "weibull"). Use
+  `"multiphase"` for N-phase additive hazard models (requires `phases`).
+
+- phases:
+
+  Optional named list of
+  [`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
+  objects specifying the phases for a multiphase model
+  (`dist = "multiphase"`). See Examples.
 
 - fit:
 
@@ -124,6 +133,19 @@ Time-varying coefficients:
 
 - This is implemented as design-matrix expansion, so the existing
   likelihood engines remain unchanged.
+
+## References
+
+Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of
+time-varying hazard into phases, each incorporating a separate stream of
+concomitant information. *J Am Stat Assoc.* 1986;81(395):615–624.
+[doi:10.1080/01621459.1986.10478314](https://doi.org/10.1080/01621459.1986.10478314)
+
+Rajeswaran J, Blackstone EH, Ehrlinger J, Li L, Ishwaran H, Parides MK.
+Probability of atrial fibrillation after ablation: Using a parametric
+nonlinear temporal decomposition mixed effects model. *Stat Methods Med
+Res.* 2018;27(1):126–141.
+[doi:10.1177/0962280215623583](https://doi.org/10.1177/0962280215623583)
 
 ## Examples
 
@@ -201,25 +223,116 @@ if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
 
   # Kaplan-Meier empirical overlay
   km    <- survival::survfit(survival::Surv(time, status) ~ 1, data = dat)
-  km_df <- data.frame(time = km$time, estimate = km$surv * 100)
+  km_df <- data.frame(time = km$time, estimate = km$surv * 100,
+                       source = "Kaplan-Meier")
+
+  curve_plot <- transform(curve_df, survival = survival * 100,
+                          source = "Parametric (Weibull)")
 
   hz_obj <- hv_hazard(
-    curve_data       = transform(curve_df, survival = survival * 100),
+    curve_data       = curve_plot,
     x_col            = "time",
     estimate_col     = "survival",
+    group_col        = "source",
     empirical        = km_df,
     emp_x_col        = "time",
-    emp_estimate_col = "estimate"
+    emp_estimate_col = "estimate",
+    emp_group_col    = "source",
+    emp_geom         = "step"
   )
 
   plot(hz_obj) +
+    ggplot2::scale_colour_manual(
+      values = c("Parametric (Weibull)" = "#0072B2",
+                 "Kaplan-Meier"         = "#D55E00")
+    ) +
     ggplot2::scale_y_continuous(limits = c(0, 100)) +
     ggplot2::labs(
-      x     = "Years after surgery",
-      y     = "Freedom from death (%)",
-      title = "Parametric survival vs Kaplan-Meier"
+      x      = "Years after surgery",
+      y      = "Freedom from death (%)",
+      colour = NULL
     ) +
-    hv_theme_manuscript()
+    hv_theme_manuscript() +
+    ggplot2::theme(legend.position = "bottom")
+}
+
+# }
+
+# \donttest{
+# ── Multiphase model (two phases) ─────────────────────────────────
+fit_mp <- hazard(
+  survival::Surv(time, status) ~ 1,
+  data   = dat,
+  dist   = "multiphase",
+  phases = list(
+    early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
+    late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 3, maxit = 500)
+)
+summary(fit_mp)
+#> Warning: NaNs produced
+#> Multiphase hazard model (2 phases)
+#>   observations: 180 
+#>   predictors:   0 
+#>   dist:         multiphase 
+#>   phase 1:      early - cdf (early risk)
+#>   phase 2:      late - cdf (early risk)
+#>   engine:       native-r-m2 
+#>   converged:    TRUE 
+#>   log-lik:      -293.221 
+#>   evaluations: fn=41, gr=14
+#> 
+#> Coefficients (internal scale):
+#> 
+#>   Phase: early (cdf)
+#>                estimate std_error    z_stat      p_value
+#>   log_mu     -2.1626127 0.4688656 -4.612436 3.979766e-06
+#>   log_t_half -0.7892648 0.2699635 -2.923598 3.460111e-03
+#>   nu          0.2591900       NaN        NA           NA
+#>   m          -0.3031480       NaN        NA           NA
+#> 
+#>   Phase: late (cdf)
+#>                 estimate std_error    z_stat      p_value
+#>   log_mu      1.88566320 1.0847774  1.738295 8.215882e-02
+#>   log_t_half  1.12055212       NaN        NA           NA
+#>   nu         -0.65502414 0.1273162 -5.144862 2.677168e-07
+#>   m           0.08664595       NaN        NA           NA
+
+# ── Per-phase decomposed cumulative hazard ────────────────────────
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  t_grid <- seq(0.01, max(dat$time), length.out = 100)
+  decomp <- predict(fit_mp, newdata = data.frame(time = t_grid),
+                    type = "cumulative_hazard", decompose = TRUE)
+
+  df_long <- data.frame(
+    time = rep(decomp$time, 3),
+    cumhaz = c(decomp$total, decomp$early, decomp$late),
+    component = rep(c("Total", "Early (cdf)", "Late (cdf)"),
+                    each = nrow(decomp))
+  )
+  df_long$component <- factor(df_long$component,
+    levels = c("Total", "Early (cdf)", "Late (cdf)"))
+
+  ggplot2::ggplot(df_long,
+    ggplot2::aes(x = time, y = cumhaz, colour = component,
+                 linewidth = component)) +
+    ggplot2::geom_line() +
+    ggplot2::scale_colour_manual(values = c(
+      "Total" = "black", "Early (cdf)" = "#0072B2",
+      "Late (cdf)" = "#D55E00"
+    )) +
+    ggplot2::scale_linewidth_manual(values = c(
+      "Total" = 1.2, "Early (cdf)" = 0.6, "Late (cdf)" = 0.6
+    )) +
+    ggplot2::labs(
+      x = "Time", y = "Cumulative hazard H(t)",
+      colour = NULL, linewidth = NULL,
+      title = "Multiphase decomposition: early + late"
+    ) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(legend.position = "bottom")
 }
 
 # }

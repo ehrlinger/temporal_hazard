@@ -60,25 +60,37 @@ hz_grid$survival <- predict(fit_hz, newdata = hz_grid, type = "survival")
 
 # Kaplan-Meier overlay
 km_avc <- survival::survfit(survival::Surv(INT_DEAD, DEAD) ~ 1, data = avcs)
-km_df <- data.frame(time = km_avc$time, estimate = km_avc$surv * 100)
+km_df <- data.frame(time = km_avc$time, estimate = km_avc$surv * 100,
+                    source = "Kaplan-Meier")
+
+curve_plot <- transform(hz_grid, survival = survival * 100,
+                        source = "Parametric (Weibull)")
 
 hz_obj <- hv_hazard(
-  curve_data   = transform(hz_grid, survival = survival * 100),
-  x_col        = "time",
-  estimate_col = "survival",
-  empirical    = km_df,
-  emp_x_col    = "time",
-  emp_estimate_col = "estimate"
+  curve_data       = curve_plot,
+  x_col            = "time",
+  estimate_col     = "survival",
+  group_col        = "source",
+  empirical        = km_df,
+  emp_x_col        = "time",
+  emp_estimate_col = "estimate",
+  emp_group_col    = "source",
+  emp_geom         = "step"
 )
 
 plot(hz_obj) +
+  ggplot2::scale_colour_manual(
+    values = c("Parametric (Weibull)" = "#0072B2",
+               "Kaplan-Meier"         = "#D55E00")
+  ) +
   ggplot2::scale_y_continuous(limits = c(0, 100)) +
   ggplot2::labs(
-    x = "Years after repair",
-    y = "Freedom from death (%)",
-    title = "Weibull parametric survival — AVC death"
+    x      = "Years after repair",
+    y      = "Freedom from death (%)",
+    colour = NULL
   ) +
-  hv_theme_manuscript()
+  hv_theme_manuscript() +
+  ggplot2::theme(legend.position = "bottom")
 ```
 
 ------------------------------------------------------------------------
@@ -119,25 +131,37 @@ kul_grid$survival <- predict(fit_kul, newdata = kul_grid, type = "survival")
 km_kul <- survival::survfit(
   survival::Surv(follow_time, dead) ~ 1, data = kul
 )
-km_kul_df <- data.frame(time = km_kul$time, estimate = km_kul$surv * 100)
+km_kul_df <- data.frame(time = km_kul$time, estimate = km_kul$surv * 100,
+                        source = "Kaplan-Meier")
+
+kul_plot <- transform(kul_grid, survival = survival * 100,
+                      source = "Parametric (Exponential)")
 
 hz_kul <- hv_hazard(
-  curve_data   = transform(kul_grid, survival = survival * 100),
-  x_col        = "time",
-  estimate_col = "survival",
-  empirical    = km_kul_df,
-  emp_x_col    = "time",
-  emp_estimate_col = "estimate"
+  curve_data       = kul_plot,
+  x_col            = "time",
+  estimate_col     = "survival",
+  group_col        = "source",
+  empirical        = km_kul_df,
+  emp_x_col        = "time",
+  emp_estimate_col = "estimate",
+  emp_group_col    = "source",
+  emp_geom         = "step"
 )
 
 plot(hz_kul) +
+  ggplot2::scale_colour_manual(
+    values = c("Parametric (Exponential)" = "#0072B2",
+               "Kaplan-Meier"             = "#D55E00")
+  ) +
   ggplot2::scale_y_continuous(limits = c(0, 100)) +
   ggplot2::labs(
-    x = "Years of follow-up",
-    y = "Freedom from death (%)",
-    title = "Exponential parametric survival — KUL procedures"
+    x      = "Years of follow-up",
+    y      = "Freedom from death (%)",
+    colour = NULL
   ) +
-  hv_theme_manuscript()
+  hv_theme_manuscript() +
+  ggplot2::theme(legend.position = "bottom")
 ```
 
 ------------------------------------------------------------------------

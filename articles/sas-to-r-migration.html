@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,10 @@
 <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Getting started</h6></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with TemporalHazard</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Technical reference</h6></li>
+    <li><a class="dropdown-item" href="../articles/ar-architecture.html">Package Architecture</a></li>
+    <li><a class="dropdown-item" href="../articles/mf-mathematical-foundations.html">Mathematical Foundations of TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Migration guides</h6></li>
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
@@ -89,7 +93,7 @@
 </div>
 <section class="level2"><h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>The legacy HAZARD program is a SAS macro (<code>%HAZARD(...)</code>) that wraps a compiled C executable. It models event-time data using a parametric hazard function with multiple phases. This vignette is the canonical reference for translating a SAS HAZARD analysis into native R using <code>TemporalHazard</code>.</p>
+<p>The legacy HAZARD program is a SAS macro (<code>%HAZARD(...)</code>) that wraps a compiled C executable implementing the multiphase parametric hazard model of Blackstone, Naftel, and Turner (1986). This vignette is the canonical reference for translating a SAS HAZARD analysis into native R using <code>TemporalHazard</code>.</p>
 <p>The full formal argument mapping table is available programmatically:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
@@ -106,15 +110,15 @@
 <table class="table caption-top">
 <caption>Formal argument map: SAS HAZARD/C → hazard()</caption>
 <colgroup>
-<col style="width: 5%">
-<col style="width: 10%">
-<col style="width: 11%">
 <col style="width: 4%">
+<col style="width: 7%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 2%">
+<col style="width: 8%">
+<col style="width: 26%">
 <col style="width: 3%">
-<col style="width: 11%">
-<col style="width: 18%">
-<col style="width: 4%">
-<col style="width: 28%">
+<col style="width: 30%">
 </colgroup>
 <thead><tr class="header">
 <th style="text-align: left;">SAS Statement</th>
@@ -248,6 +252,127 @@
 <td style="text-align: left;">map DIST= to dist</td>
 <td style="text-align: left;">implemented</td>
 <td style="text-align: left;">SAS DIST keyword maps directly to dist.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">HAZARD</td>
+<td style="text-align: left;">phases (3-phase structure)</td>
+<td style="text-align: left;">3-phase Early/Const/Late</td>
+<td style="text-align: left;">phases (list of hzr_phase())</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: left;">list of hzr_phase objects</td>
+<td style="text-align: left;">list(early=hzr_phase(‘cdf’,…), constant=hzr_phase(‘constant’), late=hzr_phase(‘g3’,…))</td>
+<td style="text-align: left;">implemented</td>
+<td style="text-align: left;">Use dist=‘multiphase’ with phases argument. N-phase generalization of legacy 3-phase model.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">HAZARD</td>
+<td style="text-align: left;">MU_1, MU_2, MU_3</td>
+<td style="text-align: left;">per-phase scale factors</td>
+<td style="text-align: left;">mu (via exp(log_mu) in theta)</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: left;">numeric (per-phase)</td>
+<td style="text-align: left;">exp(alpha_j) in internal parameterization; estimated on log scale</td>
+<td style="text-align: left;">implemented</td>
+<td style="text-align: left;">Each phase has its own scale mu_j(x) = exp(alpha_j + x*beta_j). Starting value via hzr_phase().</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">G1</td>
+<td style="text-align: left;">THALF / RHO (early)</td>
+<td style="text-align: left;">early half-life</td>
+<td style="text-align: left;">hzr_phase(t_half=)</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: left;">positive scalar</td>
+<td style="text-align: left;">maps directly to hzr_phase(t_half=) starting value</td>
+<td style="text-align: left;">implemented</td>
+<td style="text-align: left;">Half-life: time at which G(t_half) = 0.5. Same concept as SAS RHO/THALF.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">G1</td>
+<td style="text-align: left;">NU (early)</td>
+<td style="text-align: left;">early time exponent</td>
+<td style="text-align: left;">hzr_phase(nu=)</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: left;">numeric scalar</td>
+<td style="text-align: left;">maps directly to hzr_phase(nu=) starting value</td>
+<td style="text-align: left;">implemented</td>
+<td style="text-align: left;">Time exponent controlling rate dynamics. Same parameter name as SAS early NU.</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">G1</td>
+<td style="text-align: left;">M (early)</td>
+<td style="text-align: left;">early shape</td>
+<td style="text-align: left;">hzr_phase(m=)</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: left;">numeric scalar</td>
+<td style="text-align: left;">maps directly to hzr_phase(m=) starting value</td>
+<td style="text-align: left;">implemented</td>
+<td style="text-align: left;">Shape exponent controlling distributional form. Same parameter name as SAS early M.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">G1</td>
+<td style="text-align: left;">DELTA (early)</td>
+<td style="text-align: left;">early time transform</td>
+<td style="text-align: left;">(absorbed by decompos)</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: left;">numeric scalar</td>
+<td style="text-align: left;">time transform B(t) = (exp(delta*t)-1)/delta absorbed into decompos shape</td>
+<td style="text-align: left;">implemented</td>
+<td style="text-align: left;">The C DELTA controlled B(t) = (exp(delta*t)-1)/delta. This transform is absorbed by decompos().</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">G2</td>
+<td style="text-align: left;">G2 constant phase</td>
+<td style="text-align: left;">constant hazard rate phase</td>
+<td style="text-align: left;">hzr_phase(‘constant’)</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: left;">hzr_phase(‘constant’)</td>
+<td style="text-align: left;">hzr_phase(‘constant’) with no shape parameters</td>
+<td style="text-align: left;">implemented</td>
+<td style="text-align: left;">Flat background rate. No shape parameters estimated. SAS G2 equivalent.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">G3</td>
+<td style="text-align: left;">TAU (late)</td>
+<td style="text-align: left;">late G3 scale</td>
+<td style="text-align: left;">hzr_phase(‘g3’, tau=)</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: left;">positive scalar</td>
+<td style="text-align: left;">maps directly to hzr_phase(‘g3’, tau=) for late phase</td>
+<td style="text-align: left;">implemented</td>
+<td style="text-align: left;">Late-phase G3 scale parameter. Maps directly to hzr_phase(‘g3’, tau=).</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">G3</td>
+<td style="text-align: left;">GAMMA (late)</td>
+<td style="text-align: left;">late G3 time exponent</td>
+<td style="text-align: left;">hzr_phase(‘g3’, gamma=)</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: left;">numeric scalar</td>
+<td style="text-align: left;">maps directly to hzr_phase(‘g3’, gamma=) for late phase</td>
+<td style="text-align: left;">implemented</td>
+<td style="text-align: left;">Late-phase G3 time exponent. Maps directly to hzr_phase(‘g3’, gamma=).</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">G3</td>
+<td style="text-align: left;">ALPHA (late)</td>
+<td style="text-align: left;">late G3 shape</td>
+<td style="text-align: left;">hzr_phase(‘g3’, alpha=)</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: left;">numeric scalar</td>
+<td style="text-align: left;">maps directly to hzr_phase(‘g3’, alpha=) for late phase</td>
+<td style="text-align: left;">implemented</td>
+<td style="text-align: left;">Late-phase G3 shape parameter. alpha=0 gives exponential case. Maps directly to hzr_phase(‘g3’, alpha=).</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">G3</td>
+<td style="text-align: left;">ETA (late)</td>
+<td style="text-align: left;">late G3 outer exponent</td>
+<td style="text-align: left;">hzr_phase(‘g3’, eta=)</td>
+<td style="text-align: left;">FALSE</td>
+<td style="text-align: left;">numeric scalar</td>
+<td style="text-align: left;">maps directly to hzr_phase(‘g3’, eta=) for late phase</td>
+<td style="text-align: left;">implemented</td>
+<td style="text-align: left;">Late-phase G3 outer exponent. Maps directly to hzr_phase(‘g3’, eta=).</td>
 </tr>
 </tbody>
 </table>
@@ -545,6 +670,9 @@ PROC HAZARD DATA=AVCS P CONSERVE OUTHAZ=OUTEST CONDITION=14 QUASI;
 <hr></section><section class="level2"><h2 id="rcpp-acceleration-note">Rcpp acceleration note<a class="anchor" aria-label="anchor" href="#rcpp-acceleration-note"></a>
 </h2>
 <p><code>TemporalHazard</code> is currently pure R. If profiling against large real datasets reveals bottlenecks in the likelihood kernel or optimizer inner loop, those specific functions will be re-implemented with Rcpp. The public interface (<code><a href="../reference/hazard.html">hazard()</a></code>, <code><a href="../reference/predict.hazard.html">predict.hazard()</a></code>, etc.) will not change.</p>
+</section><section class="level2 unnumbered"><h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<p>Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying hazard into phases, each incorporating a separate stream of concomitant information. <em>J Am Stat Assoc.</em> 1986;81(395):615–624. doi: <a href="https://doi.org/10.1080/01621459.1986.10478314" class="external-link">10.1080/01621459.1986.10478314</a></p>
 </section><script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);

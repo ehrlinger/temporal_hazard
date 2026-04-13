@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -21,6 +21,10 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Getting started</h6></li>
     <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started with TemporalHazard</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Technical reference</h6></li>
+    <li><a class="dropdown-item" href="../articles/ar-architecture.html">Package Architecture</a></li>
+    <li><a class="dropdown-item" href="../articles/mf-mathematical-foundations.html">Mathematical Foundations of TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Migration guides</h6></li>
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
@@ -91,6 +95,66 @@
 
         </dt>
         <dd>Extract variance-covariance matrix from hazard model</dd>
+      </dl></div><div class="section level2">
+      <h2 id="multiphase-phases">Multiphase phases<a class="anchor" aria-label="anchor" href="#multiphase-phases"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hzr_phase.html">hzr_phase()</a></code>
+
+        </dt>
+        <dd>Specify a single hazard phase</dd>
+
+        <dt>
+
+          <code><a href="is_hzr_phase.html">is_hzr_phase()</a></code>
+
+        </dt>
+        <dd>Test if an object is an hzr_phase</dd>
+
+        <dt>
+
+          <code><a href="hzr_phase_cumhaz.html">hzr_phase_cumhaz()</a></code>
+
+        </dt>
+        <dd>Cumulative hazard contribution from a single phase</dd>
+
+        <dt>
+
+          <code><a href="hzr_phase_hazard.html">hzr_phase_hazard()</a></code>
+
+        </dt>
+        <dd>Instantaneous hazard contribution from a single phase</dd>
+      </dl></div><div class="section level2">
+      <h2 id="decomposition">Decomposition<a class="anchor" aria-label="anchor" href="#decomposition"></a></h2>
+
+
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="hzr_decompos.html">hzr_decompos()</a></code>
+
+        </dt>
+        <dd>Generalized temporal decomposition</dd>
+
+        <dt>
+
+          <code><a href="hzr_decompos_g3.html">hzr_decompos_g3()</a></code>
+
+        </dt>
+        <dd>Late-phase (G3) temporal decomposition</dd>
       </dl></div><div class="section level2">
       <h2 id="migration-tools">Migration tools<a class="anchor" aria-label="anchor" href="#migration-tools"></a></h2>
 
