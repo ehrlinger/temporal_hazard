@@ -357,11 +357,12 @@ test_that("KUL fit mu estimates are in neighborhood of C reference", {
   )
   # Late log_mu has wide mu-shape tradeoff with 4 free G3 params.
   # Validate via log-likelihood rather than point estimate.
+  # Free shapes should match or improve on C reference (which fixed shapes).
   expect_true(
-    fit$fit$objective <= -3700,
+    fit$fit$objective >= -3750,
     label = paste(
       "free-shape log-lik", round(fit$fit$objective, 2),
-      "should be <= -3700 (C ref: -3740.52)"
+      "should be >= -3750 (C ref with fixed shapes: -3740.52)"
     )
   )
 })
