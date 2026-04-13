@@ -158,7 +158,7 @@ instantaneous hazard rate for each phase.
 
 ```{r}
 #| label: fig-hazard-phases
-#| fig-cap: "Additive phase decomposition: the total hazard (solid) is the sum of early, constant, and late components (dashed)"
+#| fig-cap: "Additive phase decomposition: total hazard (solid) = early + constant + late (dashed)"
 #| fig-width: 7
 #| fig-height: 4.5
 t_grid <- seq(0.01, max(cabgkul$int_dead) * 0.95, length.out = 200)

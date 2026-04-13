@@ -285,8 +285,10 @@ tiers <- data.frame(
   ),
   Files = c(
     "test-math-primitives, test-decomposition, test-phase-spec, test-argument-mapping",
-    "test-gradient-weibull, test-exponential-dist, test-loglogistic-dist, test-lognormal-dist, test-multiphase-gradient",
-    "test-hazard-api, test-predict-types, test-interval-censoring-*, test-time-varying-*, test-multiphase-likelihood, test-multiphase-api",
+    paste("test-gradient-weibull, test-exponential-dist,",
+          "test-loglogistic-dist, test-lognormal-dist, test-multiphase-gradient"),
+    paste("test-hazard-api, test-predict-types, test-interval-censoring-*,",
+          "test-time-varying-*, test-multiphase-likelihood, test-multiphase-api"),
     "test-parity-core, test-parity-edge-cases, test-parity-c-binary, test-multiphase-parity"
   ),
   Purpose = c(

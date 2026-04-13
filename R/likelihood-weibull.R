@@ -339,9 +339,15 @@ NULL
     ll_event <- if (any(idx_event)) {
       sum(alpha + eta[idx_event] + theta[2] +
           (g - 1) * log_t[idx_event] - H[idx_event])
-    } else 0
+    } else {
+      0
+    }
 
-    ll_right <- if (any(idx_right)) -sum(H[idx_right]) else 0
+    ll_right <- if (any(idx_right)) {
+      -sum(H[idx_right])
+    } else {
+      0
+    }
 
     logl <- ll_event + ll_right
     if (!is.finite(logl)) return(Inf)
