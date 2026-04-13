@@ -122,7 +122,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
   ggplot(curve_df, aes(time, survival, colour = profile)) +
     geom_line() +
     scale_y_continuous(limits = c(0, 100)) +
-    labs(x = "Years after surgery",
+    labs(x = "Months after surgery",
          y = "Freedom from death (\%)",
          title = "Predicted survival by risk profile",
          colour = NULL) +

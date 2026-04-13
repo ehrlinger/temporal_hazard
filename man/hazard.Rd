@@ -149,7 +149,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
                  "Kaplan-Meier"         = "#D55E00")
     ) +
     scale_y_continuous(limits = c(0, 100)) +
-    labs(x = "Years after surgery", y = "Freedom from death (\%)",
+    labs(x = "Months after surgery", y = "Freedom from death (\%)",
          colour = NULL) +
     theme_minimal() +
     theme(legend.position = "bottom")
