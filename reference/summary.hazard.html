@@ -97,13 +97,13 @@ fit diagnostics, and coefficient-level statistics when available.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   dist:         weibull </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -51.3802 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=14, gr=6</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -48.3228 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=15, gr=6</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     estimate  std_error   z_stat      p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> mu 0.4751371 0.08497102 5.591755 2.247861e-08</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> nu 1.0748592 0.15491372 6.938438 3.964594e-12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu 0.5201972 0.09124047 5.701386 1.188371e-08</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> nu 1.0961938 0.16189266 6.771115 1.277937e-11</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># ── Multiphase model summary ────────────────────────────────────────</span></span></span>
@@ -125,6 +125,7 @@ fit diagnostics, and coefficient-level statistics when available.</p>
 <span class="r-in"><span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">3</span>, maxit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_mp</span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>NaNs produced</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Multiphase hazard model (2 phases)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   observations: 200 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   predictors:   0 </span>
@@ -133,24 +134,24 @@ fit diagnostics, and coefficient-level statistics when available.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phase 2:      late - cdf (late risk)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -389.632 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=234, gr=40</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -388.918 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=100, gr=32</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (internal scale):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: early (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                   estimate std_error z_stat p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -4.432043e+00        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half -7.237202e-01        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          1.913460e-03        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m           8.278897e-06        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                  estimate   std_error      z_stat      p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -3.979438679 0.569883164   -6.982903 2.891427e-12</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half -0.943134742 0.007166541 -131.602509 0.000000e+00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          0.003751501         NaN          NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m           4.152983242         NaN          NA           NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: late (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate std_error z_stat p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu      2.4487765        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  4.2496498        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          1.6407281        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -0.7935705        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate std_error     z_stat      p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu      2.7627013 1.1630799  2.3753324 1.753315e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  5.0259890 2.8740152  1.7487691 8.033094e-02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          2.6355015 3.4025002  0.7745779 4.385891e-01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -0.7663702 0.1108225 -6.9152967 4.668851e-12</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

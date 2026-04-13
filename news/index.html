@@ -49,12 +49,70 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.0.0.9000" id="version-0009000">Version 0.0.0.9000<a class="anchor" aria-label="anchor" href="#version-0009000"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.9.1" id="temporalhazard-091">TemporalHazard 0.9.1<a class="anchor" aria-label="anchor" href="#temporalhazard-091"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-9-1">New features<a class="anchor" aria-label="anchor" href="#new-features-0-9-1"></a></h3>
+<ul><li>G3 late-phase decomposition (<code>hzr_phase("g3", ...)</code>) now fully integrated into the multiphase optimizer, Hessian, and prediction pipeline.</li>
+<li>
+<code>fixed = "shapes"</code> parameter in <code><a href="../reference/hzr_phase.html">hzr_phase()</a></code> allows fixing shape parameters during estimation (matching C/SAS HAZARD workflow of estimating only log-mu scale parameters).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-9-1">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-1"></a></h3>
+<ul><li>
+<code><a href="../reference/summary.hazard.html">summary.hazard()</a></code> now correctly reports standard errors when some parameters are fixed. Previously, <code>anyNA(vcov)</code> rejected the entire variance-covariance matrix when fixed parameters had NA entries.</li>
+<li>
+<code>print.summary.hazard()</code> coefficient table now shows the correct label for G3 phases (was printing empty parentheses).</li>
+<li>
+<code>print.summary.hazard()</code> phase listing now uses the phase name in CDF labels (e.g., “cdf (late risk)”) instead of hardcoded “early risk”.</li>
+<li>SAS missing value markers (<code>.</code>) in CSV datasets are now handled via <code>na.strings = c("NA", ".")</code> in <code>data-raw/make_data.R</code>, preventing numeric columns from being read as character.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-9-1">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-9-1"></a></h3>
+<ul><li>Seven Quarto vignettes: getting-started, fitting-hazard-models, prediction-visualization, inference-diagnostics, mathematical-foundations, package-architecture, and sas-to-r-migration.</li>
+<li>Roxygen examples now include both single-phase and multiphase models.</li>
+<li>README switched to self-contained CABGKUL examples with G3 late phase.</li>
+<li>Dataset axis labels corrected to “Months” (not “Years”).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="infrastructure-0-9-1">Infrastructure<a class="anchor" aria-label="anchor" href="#infrastructure-0-9-1"></a></h3>
+<ul><li>CI workflows updated to use <code><a href="https://roxygen2.r-lib.org/reference/load.html" class="external-link">roxygen2::load_pkgload</a></code> for lazy data compatibility.</li>
+<li>Added lintr CI workflow with <code>.lintr</code> configuration.</li>
+<li>pkgdown action bumped to <code>peaceiris/actions-gh-pages@v4</code>.</li>
+<li>Added <code>use-public-rspm: true</code> to all CI workflows.</li>
+<li>Added <code>lintr</code> to Suggests.</li>
+</ul></div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.0" id="temporalhazard-090">TemporalHazard 0.9.0<a class="anchor" aria-label="anchor" href="#temporalhazard-090"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-9-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-9-0"></a></h3>
+<ul><li>Multiphase engine: N-phase additive cumulative hazard models via <code>dist = "multiphase"</code> with <code><a href="../reference/hzr_phase.html">hzr_phase()</a></code> specification.</li>
+<li>
+<code><a href="../reference/hzr_decompos.html">hzr_decompos()</a></code> parametric family implementing the three-parameter temporal decomposition of Blackstone, Naftel, and Turner (1986).</li>
+<li>Multi-start optimizer with Hessian-based variance-covariance estimation.</li>
+<li>C binary parity tests against the KUL CABG reference dataset.</li>
+<li>Five clinical reference datasets: <code>avc</code>, <code>cabgkul</code>, <code>omc</code>, <code>tga</code>, <code>valves</code>.</li>
+</ul></div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.1.0" id="temporalhazard-010">TemporalHazard 0.1.0<a class="anchor" aria-label="anchor" href="#temporalhazard-010"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-1-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-1-0"></a></h3>
+<ul><li>Single-phase engine: Weibull, exponential, log-logistic, and log-normal distributions with formula interface.</li>
+<li>
+<code><a href="../reference/hazard.html">hazard()</a></code> API with <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>, <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code> S3 methods.</li>
+<li>Golden fixture regression testing system.</li>
+<li>Numerically stable helper primitives (<code>hzr_log1pexp</code>, <code>hzr_log1mexp</code>, <code>hzr_clamp_prob</code>).</li>
+</ul></div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.0.0.9000" id="temporalhazard-0009000">TemporalHazard 0.0.0.9000<a class="anchor" aria-label="anchor" href="#temporalhazard-0009000"></a></h2>
 <ul><li>Initial package scaffold.</li>
 <li>Added numerically stable helper primitives.</li>
 <li>Added baseline unit tests and CI workflow.</li>
 </ul></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">

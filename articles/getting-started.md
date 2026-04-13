@@ -237,8 +237,8 @@ ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase)) +
 
 ![](getting-started_files/figure-html/fig-hazard-phases-1.png)
 
-Figure 2: Additive phase decomposition: the total hazard (solid) is the
-sum of early, constant, and late components (dashed)
+Figure 2: Additive phase decomposition: total hazard (solid) = early +
+constant + late (dashed)
 
 ### Multiphase survival with Kaplan-Meier overlay
 

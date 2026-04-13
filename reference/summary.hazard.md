@@ -50,13 +50,13 @@ summary(fit)
 #>   dist:         weibull 
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -51.3802 
-#>   evaluations: fn=14, gr=6
+#>   log-lik:      -48.3228 
+#>   evaluations: fn=15, gr=6
 #> 
 #> Coefficients:
 #>     estimate  std_error   z_stat      p_value
-#> mu 0.4751371 0.08497102 5.591755 2.247861e-08
-#> nu 1.0748592 0.15491372 6.938438 3.964594e-12
+#> mu 0.5201972 0.09124047 5.701386 1.188371e-08
+#> nu 1.0961938 0.16189266 6.771115 1.277937e-11
 
 # \donttest{
 # ── Multiphase model summary ────────────────────────────────────────
@@ -78,6 +78,7 @@ fit_mp <- hazard(
   control = list(n_starts = 3, maxit = 500)
 )
 summary(fit_mp)
+#> Warning: NaNs produced
 #> Multiphase hazard model (2 phases)
 #>   observations: 200 
 #>   predictors:   0 
@@ -86,23 +87,23 @@ summary(fit_mp)
 #>   phase 2:      late - cdf (late risk)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -389.632 
-#>   evaluations: fn=234, gr=40
+#>   log-lik:      -388.918 
+#>   evaluations: fn=100, gr=32
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                   estimate std_error z_stat p_value
-#>   log_mu     -4.432043e+00        NA     NA      NA
-#>   log_t_half -7.237202e-01        NA     NA      NA
-#>   nu          1.913460e-03        NA     NA      NA
-#>   m           8.278897e-06        NA     NA      NA
+#>                  estimate   std_error      z_stat      p_value
+#>   log_mu     -3.979438679 0.569883164   -6.982903 2.891427e-12
+#>   log_t_half -0.943134742 0.007166541 -131.602509 0.000000e+00
+#>   nu          0.003751501         NaN          NA           NA
+#>   m           4.152983242         NaN          NA           NA
 #> 
 #>   Phase: late (cdf)
-#>                estimate std_error z_stat p_value
-#>   log_mu      2.4487765        NA     NA      NA
-#>   log_t_half  4.2496498        NA     NA      NA
-#>   nu          1.6407281        NA     NA      NA
-#>   m          -0.7935705        NA     NA      NA
+#>                estimate std_error     z_stat      p_value
+#>   log_mu      2.7627013 1.1630799  2.3753324 1.753315e-02
+#>   log_t_half  5.0259890 2.8740152  1.7487691 8.033094e-02
+#>   nu          2.6355015 3.4025002  0.7745779 4.385891e-01
+#>   m          -0.7663702 0.1108225 -6.9152967 4.668851e-12
 # }
 ```
