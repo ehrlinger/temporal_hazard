@@ -14,7 +14,7 @@ dir.create("data", showWarnings = FALSE)
   read.csv(path, stringsAsFactors = FALSE, na.strings = c("NA", "."), ...)
 }
 
-# ── AVC: Aortic Valve Replacement (Cleveland Clinic, 1977–1993) ─────────────
+# ── AVC: Atrioventricular Canal Repair (Cleveland Clinic, 1977–1993) ─────────
 avc <- .read_sas_csv("inst/extdata/avc.csv")
 stopifnot(nrow(avc) == 310)
 usethis::use_data(avc, overwrite = TRUE, compress = "xz")

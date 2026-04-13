@@ -17,7 +17,8 @@ format:
 
 ```{r}
 #| include: false
-has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE)
+has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE) &&
+  requireNamespace("ggplot2", quietly = TRUE)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment  = "#>",
@@ -29,7 +30,7 @@ knitr::opts_chunk$set(
 #| label: setup
 library(TemporalHazard)
 library(survival)
-if (requireNamespace("ggplot2", quietly = TRUE)) library(ggplot2)
+library(ggplot2)
 ```
 
 This vignette covers the diagnostic and inferential tools surrounding hazard
@@ -179,7 +180,7 @@ ggplot() +
   scale_colour_manual(values = c("Parametric" = "#0072B2",
                                  "Kaplan-Meier" = "#D55E00")) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Years after AVC repair", y = "Freedom from death (%)",
+  labs(x = "Months after AVC repair", y = "Freedom from death (%)",
        colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -270,7 +271,7 @@ ggplot(sens_curves, aes(time, survival, colour = Profile)) +
   scale_colour_manual(values = c("Reference" = "#009E73",
                                  "High risk" = "#D55E00")) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Years after AVC repair", y = "Freedom from death (%)",
+  labs(x = "Months after AVC repair", y = "Freedom from death (%)",
        colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")

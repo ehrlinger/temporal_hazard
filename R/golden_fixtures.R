@@ -466,7 +466,8 @@ NULL
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
   # Load KUL dataset (lazy-loaded with the package)
-  dat <- TemporalHazard::cabgkul
+  data("cabgkul", package = "TemporalHazard", envir = environment())
+  dat <- cabgkul
   stopifnot(nrow(dat) == 5880, sum(dat$dead) == 545)
 
   # C binary reference output from hz.deadp.KUL.lst

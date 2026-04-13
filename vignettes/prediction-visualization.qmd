@@ -17,7 +17,8 @@ format:
 
 ```{r}
 #| include: false
-has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE)
+has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE) &&
+  requireNamespace("ggplot2", quietly = TRUE)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment  = "#>",
@@ -29,7 +30,7 @@ knitr::opts_chunk$set(
 #| label: setup
 library(TemporalHazard)
 library(survival)
-if (requireNamespace("ggplot2", quietly = TRUE)) library(ggplot2)
+library(ggplot2)
 ```
 
 This vignette covers prediction from fitted hazard models: generating survival
@@ -60,7 +61,7 @@ km_df <- data.frame(time = km$time, survival = km$surv * 100)
 ggplot(km_df, aes(time, survival)) +
   geom_step(linewidth = 0.6) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Years after repair", y = "Freedom from death (%)") +
+  labs(x = "Months after repair", y = "Freedom from death (%)") +
   theme_minimal()
 ```
 
@@ -125,7 +126,7 @@ ggplot() +
                "Kaplan-Meier"         = "#D55E00")
   ) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Years after repair", y = "Freedom from death (%)",
+  labs(x = "Months after repair", y = "Freedom from death (%)",
        colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -192,7 +193,7 @@ ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase)) +
                                    Constant = "dashed", Late = "dashed")) +
   scale_linewidth_manual(values = c(Total = 1.3, Early = 0.7,
                                     Constant = 0.7, Late = 0.7)) +
-  labs(x = "Years after surgery", y = "Hazard rate",
+  labs(x = "Months after surgery", y = "Hazard rate",
        colour = "Phase", linetype = "Phase", linewidth = "Phase") +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -223,7 +224,7 @@ ggplot() +
                "Kaplan-Meier"         = "#D55E00")
   ) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Years after AVC repair", y = "Freedom from death (%)",
+  labs(x = "Months after AVC repair", y = "Freedom from death (%)",
        colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -265,7 +266,7 @@ ggplot(curves, aes(time, survival, colour = Profile)) +
                                  "Median"   = "#0072B2",
                                  "High risk" = "#D55E00")) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Years after AVC repair", y = "Freedom from death (%)",
+  labs(x = "Months after AVC repair", y = "Freedom from death (%)",
        colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -301,7 +302,7 @@ ggplot(ep_df, aes(time, survival, colour = Endpoint)) +
   geom_step(linewidth = 0.7) +
   scale_y_continuous(limits = c(0, 100)) +
   scale_colour_manual(values = c("Death" = "#D55E00", "PVE" = "#0072B2")) +
-  labs(x = "Years after valve replacement",
+  labs(x = "Months after valve replacement",
        y = "Freedom from event (%)", colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")

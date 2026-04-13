@@ -14,6 +14,7 @@
 # Vignettes and logs
 vignettes/*.html
 vignettes/*.pdf
+vignettes/*_files/
 *.log
 
 # OS/editor

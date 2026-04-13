@@ -107,7 +107,7 @@ ggplot() +
                "Kaplan-Meier"         = "#D55E00")
   ) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Years after surgery", y = "Freedom from death (%)",
+  labs(x = "Months after surgery", y = "Freedom from death (%)",
        colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -197,7 +197,7 @@ ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase)) +
                                    Constant = "dashed", Late = "dashed")) +
   scale_linewidth_manual(values = c(Total = 1.3, Early = 0.7,
                                     Constant = 0.7, Late = 0.7)) +
-  labs(x = "Years after surgery", y = "Hazard rate",
+  labs(x = "Months after surgery", y = "Hazard rate",
        colour = "Phase", linetype = "Phase", linewidth = "Phase") +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -228,7 +228,7 @@ ggplot() +
     values = c("Multiphase model" = "#0072B2", "Kaplan-Meier" = "#D55E00")
   ) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Years after surgery", y = "Freedom from death (%)",
+  labs(x = "Months after surgery", y = "Freedom from death (%)",
        colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")

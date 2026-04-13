@@ -31,12 +31,20 @@ adjustment, prediction, and extrapolation.
 
 <img src="man/figures/readme-survival.png" width="100%" alt="Multiphase parametric survival curve overlaid on the Kaplan-Meier estimate from the CABGKUL dataset (n=5,880)" />
 
-## Quick start
+## Installation
 
 ```r
+# Install from GitHub (requires remotes or devtools)
 install.packages("remotes")
 remotes::install_github("ehrlinger/temporal_hazard")
 ```
+
+TemporalHazard requires R >= 4.1.0 and depends on the
+[survival](https://CRAN.R-project.org/package=survival) package.
+Optional packages for visualization and vignettes include ggplot2, numDeriv,
+and quarto.
+
+## Quick start
 
 ### Single-phase model
 

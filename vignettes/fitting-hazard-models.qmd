@@ -17,7 +17,8 @@ format:
 
 ```{r}
 #| include: false
-has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE)
+has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE) &&
+  requireNamespace("ggplot2", quietly = TRUE)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment  = "#>",
@@ -29,7 +30,7 @@ knitr::opts_chunk$set(
 #| label: setup
 library(TemporalHazard)
 library(survival)
-if (requireNamespace("ggplot2", quietly = TRUE)) library(ggplot2)
+library(ggplot2)
 ```
 
 This vignette demonstrates the core model-fitting workflow, progressing from
@@ -88,7 +89,7 @@ ggplot() +
   scale_colour_manual(values = c("Weibull" = "#0072B2",
                                  "Kaplan-Meier" = "#D55E00")) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Years after CABG", y = "Freedom from death (%)",
+  labs(x = "Months after CABG", y = "Freedom from death (%)",
        colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -194,7 +195,7 @@ ggplot() +
   scale_y_continuous(limits = c(0, 100)) +
   annotate("text", x = max(t_grid) * 0.6, y = 95, label = "KM (grey)",
            size = 3, colour = "grey50") +
-  labs(x = "Years after AVC repair", y = "Freedom from death (%)",
+  labs(x = "Months after AVC repair", y = "Freedom from death (%)",
        colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")

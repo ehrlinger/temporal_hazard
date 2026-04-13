@@ -143,7 +143,7 @@ NULL
 #'                  "Kaplan-Meier"         = "#D55E00")
 #'     ) +
 #'     scale_y_continuous(limits = c(0, 100)) +
-#'     labs(x = "Years after surgery", y = "Freedom from death (%)",
+#'     labs(x = "Months after surgery", y = "Freedom from death (%)",
 #'          colour = NULL) +
 #'     theme_minimal() +
 #'     theme(legend.position = "bottom")
@@ -570,7 +570,7 @@ hazard <- function(formula = NULL,
 #'   ggplot(curve_df, aes(time, survival, colour = profile)) +
 #'     geom_line() +
 #'     scale_y_continuous(limits = c(0, 100)) +
-#'     labs(x = "Years after surgery",
+#'     labs(x = "Months after surgery",
 #'          y = "Freedom from death (%)",
 #'          title = "Predicted survival by risk profile",
 #'          colour = NULL) +
