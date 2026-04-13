@@ -89,48 +89,39 @@ plot(km, xlab = "Months after AVC repair", ylab = "Survival",
 
 
 # \donttest{
-# Multiphase hazard fit
+# Two-phase hazard fit (early CDF + constant — what AVC supports)
 fit <- hazard(
   survival::Surv(int_dead, dead) ~ 1, data = avc,
   dist = "multiphase",
   phases = list(
     early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1),
-    constant = hzr_phase("constant"),
-    late     = hzr_phase("cdf", t_half = 10, nu = 1, m = 1)
+    constant = hzr_phase("constant")
   ),
   fit = TRUE, control = list(n_starts = 5, maxit = 1000)
 )
 summary(fit)
-#> Multiphase hazard model (3 phases)
+#> Multiphase hazard model (2 phases)
 #>   observations: 305 
 #>   predictors:   0 
 #>   dist:         multiphase 
 #>   phase 1:      early - cdf (early risk)
 #>   phase 2:      constant - constant (flat rate)
-#>   phase 3:      late - cdf (early risk)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -207.8 
-#>   evaluations: fn=82, gr=40
+#>   log-lik:      -216.059 
+#>   evaluations: fn=38, gr=21
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>               estimate std_error z_stat p_value
-#>   log_mu     -1.372627        NA     NA      NA
-#>   log_t_half -1.551123        NA     NA      NA
-#>   nu          2.422749        NA     NA      NA
-#>   m          -1.505713        NA     NA      NA
+#>                estimate std_error z_stat p_value
+#>   log_mu     -0.8598349        NA     NA      NA
+#>   log_t_half  1.4791525        NA     NA      NA
+#>   nu          9.8576629        NA     NA      NA
+#>   m          -1.3421669        NA     NA      NA
 #> 
 #>   Phase: constant (constant)
-#>          estimate std_error z_stat p_value
-#>   log_mu -187.104        NA     NA      NA
-#> 
-#>   Phase: late (cdf)
-#>               estimate std_error z_stat p_value
-#>   log_mu     1.8501322        NA     NA      NA
-#>   log_t_half 5.6935750        NA     NA      NA
-#>   nu         0.1040371        NA     NA      NA
-#>   m          2.2769714        NA     NA      NA
+#>           estimate std_error z_stat p_value
+#>   log_mu -286.5166        NA     NA      NA
 # }
 ```

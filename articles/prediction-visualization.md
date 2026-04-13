@@ -115,14 +115,18 @@ contributions. Using `decompose = TRUE` with
 phase.
 
 ``` r
+data(cabgkul)
+
 fit_mp <- hazard(
   Surv(int_dead, dead) ~ 1,
-  data   = avc,
+  data   = cabgkul,
   dist   = "multiphase",
   phases = list(
-    early    = hzr_phase("cdf",      t_half = 0.5, nu = 1, m = 1),
+    early    = hzr_phase("cdf", t_half = 0.2, nu = 1, m = 1,
+                          fixed = "shapes"),
     constant = hzr_phase("constant"),
-    late     = hzr_phase("cdf",      t_half = 10,  nu = 1, m = 1)
+    late     = hzr_phase("g3",  tau = 1, gamma = 3, alpha = 1, eta = 1,
+                          fixed = "shapes")
   ),
   fit     = TRUE,
   control = list(n_starts = 5, maxit = 1000)
@@ -130,7 +134,8 @@ fit_mp <- hazard(
 ```
 
 ``` r
-nd <- data.frame(time = t_grid)
+t_mp <- seq(0.01, max(cabgkul$int_dead) * 0.95, length.out = 200)
+nd   <- data.frame(time = t_mp)
 
 decomp <- predict(fit_mp, newdata = nd, type = "cumulative_hazard",
                   decompose = TRUE)
@@ -143,13 +148,13 @@ num_hazard <- function(cumhaz, time) {
 }
 
 h_long <- rbind(
-  data.frame(time = t_grid, hazard = num_hazard(decomp$early, t_grid),
+  data.frame(time = t_mp, hazard = num_hazard(decomp$early, t_mp),
              Phase = "Early"),
-  data.frame(time = t_grid, hazard = num_hazard(decomp$constant, t_grid),
+  data.frame(time = t_mp, hazard = num_hazard(decomp$constant, t_mp),
              Phase = "Constant"),
-  data.frame(time = t_grid, hazard = num_hazard(decomp$late, t_grid),
+  data.frame(time = t_mp, hazard = num_hazard(decomp$late, t_mp),
              Phase = "Late"),
-  data.frame(time = t_grid, hazard = num_hazard(decomp$total, t_grid),
+  data.frame(time = t_mp, hazard = num_hazard(decomp$total, t_mp),
              Phase = "Total")
 )
 h_long$Phase <- factor(h_long$Phase,
@@ -163,7 +168,7 @@ ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase)) +
                                    Constant = "dashed", Late = "dashed")) +
   scale_linewidth_manual(values = c(Total = 1.3, Early = 0.7,
                                     Constant = 0.7, Late = 0.7)) +
-  labs(x = "Months after surgery", y = "Hazard rate",
+  labs(x = "Months after CABG", y = "Hazard rate",
        colour = "Phase", linetype = "Phase", linewidth = "Phase") +
   theme_minimal() +
   theme(legend.position = "bottom")

@@ -215,7 +215,7 @@ The test suite (`tests/testthat/`) is organized into four tiers:
 | Tier               | Files                                                                                                                                | Purpose                                                                                       |
 |:-------------------|:-------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------|
 | Unit tests         | test-math-primitives, test-decomposition, test-phase-spec, test-argument-mapping                                                     | Verify individual functions in isolation                                                      |
-| Distribution tests | test-gradient-weibull, test-exponential-dist, test-loglogistic-dist, test-lognormal-dist                                             | Likelihood, gradient, and optimizer for each distribution                                     |
+| Distribution tests | test-gradient-weibull, test-exponential-dist, test-loglogistic-dist, test-lognormal-dist, test-multiphase-gradient                   | Likelihood, gradient, and optimizer for each distribution                                     |
 | Integration tests  | test-hazard-api, test-predict-types, test-interval-censoring-*, test-time-varying-*, test-multiphase-likelihood, test-multiphase-api | End-to-end: hazard() -\> predict() -\> summary() pipeline, censoring types, multiphase wiring |
 | Parity tests       | test-parity-core, test-parity-edge-cases, test-parity-c-binary, test-multiphase-parity                                               | Golden fixture round-trip, C binary cross-validation                                          |
 
@@ -437,11 +437,13 @@ during active development:
 - **v0.1.0** —Single-phase engine: Weibull, exponential, log-logistic,
   log-normal distributions with formula interface, predict, and golden
   fixture testing.
-- **v0.9.0** (current) —Multiphase engine: N-phase additive cumulative
-  hazard,
+- **v0.9.0** —Multiphase engine: N-phase additive cumulative hazard,
   [`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
   specification, decomposition engine, C binary parity tests, dataset
   catalog.
+- **v0.9.1** (current) —Vignette suite, roxygen multiphase examples, CI
+  workflow fixes (load_pkgload), SAS missing-value handling
+  (`na.strings`), print.hazard phase labels, and README refresh.
 
 ## References
 

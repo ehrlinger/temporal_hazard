@@ -116,9 +116,11 @@
 <span>  data   <span class="op">=</span> <span class="va">cabgkul</span>,</span>
 <span>  dist   <span class="op">=</span> <span class="st">"multiphase"</span>,</span>
 <span>  phases <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    early    <span class="op">=</span> <span class="fu"><a href="reference/hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>,      t_half <span class="op">=</span> <span class="fl">0.5</span>, nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>    early    <span class="op">=</span> <span class="fu"><a href="reference/hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>, t_half <span class="op">=</span> <span class="fl">0.2</span>, nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>                          fixed <span class="op">=</span> <span class="st">"shapes"</span><span class="op">)</span>,</span>
 <span>    constant <span class="op">=</span> <span class="fu"><a href="reference/hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"constant"</span><span class="op">)</span>,</span>
-<span>    late     <span class="op">=</span> <span class="fu"><a href="reference/hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>,      t_half <span class="op">=</span> <span class="fl">10</span>,  nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span>    late     <span class="op">=</span> <span class="fu"><a href="reference/hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"g3"</span>,  tau <span class="op">=</span> <span class="fl">1</span>, gamma <span class="op">=</span> <span class="fl">3</span>, alpha <span class="op">=</span> <span class="fl">1</span>, eta <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>                          fixed <span class="op">=</span> <span class="st">"shapes"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  fit <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>

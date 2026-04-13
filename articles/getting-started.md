@@ -85,9 +85,9 @@ library(ggplot2)
 # Parametric curve on a fine grid
 t_grid <- seq(0.05, max(dat$time), length.out = 80)
 curve_df <- data.frame(
-  time = t_grid,
-  AGE = median(dat$age),
-  nyha = 2,
+  time  = t_grid,
+  age   = median(dat$age),
+  nyha  = 2,
   shock = 0
 )
 curve_df$survival <- predict(fit, newdata = curve_df, type = "survival") * 100
@@ -134,17 +134,19 @@ which sets the temporal shape type and starting values for the
 optimizer.
 
 ``` r
-# AVC dataset is lazy-loaded with the package
-data(avc)
+# CABGKUL is the benchmark dataset for 3-phase decomposition (n = 5,880)
+data(cabgkul)
 
 fit_mp <- hazard(
   Surv(int_dead, dead) ~ 1,
-  data   = avc,
+  data   = cabgkul,
   dist   = "multiphase",
   phases = list(
-    early    = hzr_phase("cdf",      t_half = 0.5, nu = 1, m = 1),
+    early    = hzr_phase("cdf", t_half = 0.2, nu = 1, m = 1,
+                          fixed = "shapes"),
     constant = hzr_phase("constant"),
-    late     = hzr_phase("cdf",      t_half = 10,  nu = 1, m = 1)
+    late     = hzr_phase("g3",  tau = 1, gamma = 3, alpha = 1, eta = 1,
+                          fixed = "shapes")
   ),
   fit     = TRUE,
   control = list(n_starts = 5, maxit = 1000)
@@ -152,36 +154,37 @@ fit_mp <- hazard(
 
 summary(fit_mp)
 #> Multiphase hazard model (3 phases)
-#>   observations: 310 
+#>   observations: 5880 
 #>   predictors:   0 
 #>   dist:         multiphase 
 #>   phase 1:      early - cdf (early risk)
 #>   phase 2:      constant - constant (flat rate)
-#>   phase 3:      late - cdf (early risk)
+#>   phase 3:      late - g3 (late risk)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -206.879 
-#>   evaluations: fn=154, gr=44
+#>   log-lik:      -3740.52 
+#>   evaluations: fn=5, gr=1
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>               estimate std_error z_stat p_value
-#>   log_mu     -1.347253        NA     NA      NA
-#>   log_t_half -1.628733        NA     NA      NA
-#>   nu          2.562907        NA     NA      NA
-#>   m          -1.535898        NA     NA      NA
+#>               estimate  std_error    z_stat p_value
+#>   log_mu     -3.779643 0.09381473 -40.28837       0
+#>   log_t_half -1.609438         NA        NA      NA
+#>   nu          1.000000         NA        NA      NA
+#>   m           1.000000         NA        NA      NA
 #> 
 #>   Phase: constant (constant)
-#>           estimate std_error z_stat p_value
-#>   log_mu -90.76792        NA     NA      NA
+#>           estimate  std_error    z_stat p_value
+#>   log_mu -7.224008 0.09299137 -77.68471       0
 #> 
-#>   Phase: late (cdf)
-#>                estimate std_error z_stat p_value
-#>   log_mu      3.1488688        NA     NA      NA
-#>   log_t_half  5.7280092        NA     NA      NA
-#>   nu         -0.2394388        NA     NA      NA
-#>   m           0.2215294        NA     NA      NA
+#>   Phase: late (g3)
+#>            estimate std_error    z_stat p_value
+#>   log_mu  -16.65919 0.1158934 -143.7458       0
+#>   log_tau   0.00000        NA        NA      NA
+#>   gamma     3.00000        NA        NA      NA
+#>   alpha     1.00000        NA        NA      NA
+#>   eta       1.00000        NA        NA      NA
 ```
 
 ### Decomposed hazard visualization
@@ -191,7 +194,7 @@ contributions. We numerically differentiate these to visualize the
 instantaneous hazard rate for each phase.
 
 ``` r
-t_grid <- seq(0.01, max(avc$int_dead) * 0.95, length.out = 200)
+t_grid <- seq(0.01, max(cabgkul$int_dead) * 0.95, length.out = 200)
 nd     <- data.frame(time = t_grid)
 
 # decompose = TRUE returns per-phase cumulative hazard columns
@@ -226,7 +229,7 @@ ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase)) +
                                    Constant = "dashed", Late = "dashed")) +
   scale_linewidth_manual(values = c(Total = 1.3, Early = 0.7,
                                     Constant = 0.7, Late = 0.7)) +
-  labs(x = "Months after surgery", y = "Hazard rate",
+  labs(x = "Months after CABG", y = "Hazard rate",
        colour = "Phase", linetype = "Phase", linewidth = "Phase") +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -245,7 +248,7 @@ surv_df <- data.frame(
   survival = predict(fit_mp, newdata = nd, type = "survival") * 100
 )
 
-km    <- survfit(Surv(int_dead, dead) ~ 1, data = avc)
+km    <- survfit(Surv(int_dead, dead) ~ 1, data = cabgkul)
 km_df <- data.frame(time = km$time, survival = km$surv * 100)
 
 ggplot() +
@@ -257,7 +260,7 @@ ggplot() +
     values = c("Multiphase model" = "#0072B2", "Kaplan-Meier" = "#D55E00")
   ) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Months after surgery", y = "Freedom from death (%)",
+  labs(x = "Months after CABG", y = "Freedom from death (%)",
        colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")

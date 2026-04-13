@@ -412,7 +412,7 @@ hazard(dist='multiphase')
 </tr>
 <tr class="even">
 <td style="text-align: left;">Distribution tests</td>
-<td style="text-align: left;">test-gradient-weibull, test-exponential-dist, test-loglogistic-dist, test-lognormal-dist</td>
+<td style="text-align: left;">test-gradient-weibull, test-exponential-dist, test-loglogistic-dist, test-lognormal-dist, test-multiphase-gradient</td>
 <td style="text-align: left;">Likelihood, gradient, and optimizer for each distribution</td>
 </tr>
 <tr class="odd">
@@ -832,7 +832,9 @@ hazard(dist='multiphase')
 <li>
 <strong>v0.1.0</strong> —Single-phase engine: Weibull, exponential, log-logistic, log-normal distributions with formula interface, predict, and golden fixture testing.</li>
 <li>
-<strong>v0.9.0</strong> (current) —Multiphase engine: N-phase additive cumulative hazard, <code><a href="../reference/hzr_phase.html">hzr_phase()</a></code> specification, decomposition engine, C binary parity tests, dataset catalog.</li>
+<strong>v0.9.0</strong> —Multiphase engine: N-phase additive cumulative hazard, <code><a href="../reference/hzr_phase.html">hzr_phase()</a></code> specification, decomposition engine, C binary parity tests, dataset catalog.</li>
+<li>
+<strong>v0.9.1</strong> (current) —Vignette suite, roxygen multiphase examples, CI workflow fixes (load_pkgload), SAS missing-value handling (<code>na.strings</code>), print.hazard phase labels, and README refresh.</li>
 </ul></section><section class="section level2"><h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <p>Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying hazard into phases, each incorporating a separate stream of concomitant information. <em>J Am Stat Assoc.</em> 1986;81(395):615-624. doi: <a href="https://doi.org/10.1080/01621459.1986.10478314" class="external-link">10.1080/01621459.1986.10478314</a></p>

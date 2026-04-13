@@ -133,49 +133,40 @@ post-operative risk and a constant late phase.</p>
 <span class="r-plt img"><img src="avc-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="co"># Multiphase hazard fit</span></span></span>
+<span class="r-in"><span><span class="co"># Two-phase hazard fit (early CDF + constant — what AVC supports)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="hazard.html">hazard</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">int_dead</span>, <span class="va">dead</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, data <span class="op">=</span> <span class="va">avc</span>,</span></span>
 <span class="r-in"><span>  dist <span class="op">=</span> <span class="st">"multiphase"</span>,</span></span>
 <span class="r-in"><span>  phases <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    early    <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>, t_half <span class="op">=</span> <span class="fl">0.5</span>, nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    constant <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"constant"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    late     <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>, t_half <span class="op">=</span> <span class="fl">10</span>, nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    constant <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"constant"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  fit <span class="op">=</span> <span class="cn">TRUE</span>, control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">5</span>, maxit <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Multiphase hazard model (3 phases)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Multiphase hazard model (2 phases)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   observations: 305 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   predictors:   0 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   dist:         multiphase </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phase 1:      early - cdf (early risk)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phase 2:      constant - constant (flat rate)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   phase 3:      late - cdf (early risk)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -207.8 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=82, gr=40</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -216.059 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=38, gr=21</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (internal scale):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: early (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               estimate std_error z_stat p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -1.372627        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half -1.551123        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          2.422749        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -1.505713        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate std_error z_stat p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -0.8598349        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  1.4791525        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          9.8576629        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -1.3421669        NA     NA      NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: constant (constant)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          estimate std_error z_stat p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu -187.104        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: late (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               estimate std_error z_stat p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     1.8501322        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half 5.6935750        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu         0.1040371        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m          2.2769714        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           estimate std_error z_stat p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu -286.5166        NA     NA      NA</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

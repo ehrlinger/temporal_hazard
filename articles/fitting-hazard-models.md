@@ -146,45 +146,36 @@ fit_mp <- hazard(
   dist   = "multiphase",
   phases = list(
     early    = hzr_phase("cdf",      t_half = 0.5, nu = 1, m = 1),
-    constant = hzr_phase("constant"),
-    late     = hzr_phase("cdf",      t_half = 10,  nu = 1, m = 1)
+    constant = hzr_phase("constant")
   ),
   fit     = TRUE,
   control = list(n_starts = 5, maxit = 1000)
 )
 
 summary(fit_mp)
-#> Multiphase hazard model (3 phases)
+#> Multiphase hazard model (2 phases)
 #>   observations: 305 
 #>   predictors:   0 
 #>   dist:         multiphase 
 #>   phase 1:      early - cdf (early risk)
 #>   phase 2:      constant - constant (flat rate)
-#>   phase 3:      late - cdf (early risk)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -207.537 
-#>   evaluations: fn=74, gr=35
+#>   log-lik:      -216.059 
+#>   evaluations: fn=56, gr=21
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
 #>                estimate std_error z_stat p_value
-#>   log_mu     -1.3952340        NA     NA      NA
-#>   log_t_half -1.6048835        NA     NA      NA
-#>   nu          1.7238540        NA     NA      NA
-#>   m           0.6950927        NA     NA      NA
+#>   log_mu     -0.8549198        NA     NA      NA
+#>   log_t_half  1.5253459        NA     NA      NA
+#>   nu          9.9645061        NA     NA      NA
+#>   m          -1.3398557        NA     NA      NA
 #> 
 #>   Phase: constant (constant)
 #>           estimate std_error z_stat p_value
-#>   log_mu -125.6494        NA     NA      NA
-#> 
-#>   Phase: late (cdf)
-#>               estimate std_error z_stat p_value
-#>   log_mu     1.1324480        NA     NA      NA
-#>   log_t_half 5.5253488        NA     NA      NA
-#>   nu         0.1027964        NA     NA      NA
-#>   m          2.3401672        NA     NA      NA
+#>   log_mu -180.4301        NA     NA      NA
 ```
 
 Comparing the single-phase Weibull to the multiphase fit:
@@ -206,7 +197,7 @@ surv_mp <- predict(fit_mp, newdata = nd, type = "survival") * 100
 
 plot_df <- rbind(
   data.frame(time = t_grid, survival = surv_wb, Model = "Single Weibull"),
-  data.frame(time = t_grid, survival = surv_mp, Model = "Multiphase (3-phase)")
+  data.frame(time = t_grid, survival = surv_mp, Model = "Multiphase (2-phase)")
 )
 
 ggplot() +
@@ -215,7 +206,7 @@ ggplot() +
   geom_line(data = plot_df, aes(time, survival, colour = Model),
             linewidth = 1) +
   scale_colour_manual(values = c("Single Weibull" = "#E69F00",
-                                 "Multiphase (3-phase)" = "#0072B2")) +
+                                 "Multiphase (2-phase)" = "#0072B2")) +
   scale_y_continuous(limits = c(0, 100)) +
   annotate("text", x = max(t_grid) * 0.6, y = 95, label = "KM (grey)",
            size = 3, colour = "grey50") +
