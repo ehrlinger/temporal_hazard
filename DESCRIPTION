@@ -26,16 +26,12 @@ Imports:
 Suggests:
     covr,
     ggplot2,
-    hvtiPlotR,
     knitr,
-    mixhazard,
     numDeriv,
     pkgdown,
     quarto,
     roxygen2,
     rmarkdown,
     testthat (>= 3.0.0)
-Remotes:
-    ehrlinger/hvtiPlotR,
-    ehrlinger/mixhazard
+LazyData: true
 Config/testthat/edition: 3

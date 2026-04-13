@@ -2,7 +2,7 @@
 % Please edit documentation in R/argument_mapping.R
 \name{hzr_argument_mapping}
 \alias{hzr_argument_mapping}
-\title{Legacy HAZARD to hvtiRhazard argument mapping}
+\title{Legacy HAZARD to TemporalHazard argument mapping}
 \usage{
 hzr_argument_mapping(include_planned = TRUE)
 }

@@ -5,7 +5,7 @@
 ^inst/extdata/\.gitkeep$
 ^inst/fixtures/\.gitkeep$
 ^TODO\.md$
-^MIGRATION-STATUS\.md$
+^inst/dev$
 ^.*\.Rproj$
 ^_pkgdown\.yml$
 ^M2-STATUS\.md$
@@ -18,3 +18,4 @@
 ^vignettes/\.quarto$
 ^HANDOFF\.md$
 ^MULTIPHASE_PLAN\.md$
+^data-raw$

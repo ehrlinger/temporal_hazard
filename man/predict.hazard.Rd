@@ -93,10 +93,9 @@ new_patients$cumulative_hazard <- cumhaz
 new_patients
 
 \donttest{
-# ── Grouped survival curves (requires hvtiPlotR) ─────────────────────
-if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
-    requireNamespace("ggplot2", quietly = TRUE)) {
-  library(hvtiPlotR)
+# ── Grouped survival curves ───────────────────────────────────────
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  library(ggplot2)
 
   t_grid <- seq(0.05, max(dat$time), length.out = 80)
   profiles <- data.frame(
@@ -120,21 +119,14 @@ if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
   })
   curve_df <- do.call(rbind, curve_list)
 
-  hz_obj <- hv_hazard(
-    curve_data   = curve_df,
-    x_col        = "time",
-    estimate_col = "survival",
-    group_col    = "profile"
-  )
-
-  plot(hz_obj) +
-    ggplot2::scale_y_continuous(limits = c(0, 100)) +
-    ggplot2::labs(
-      x     = "Years after surgery",
-      y     = "Freedom from death (\%)",
-      title = "Predicted survival by risk profile"
-    ) +
-    hv_theme_manuscript()
+  ggplot(curve_df, aes(time, survival, colour = profile)) +
+    geom_line() +
+    scale_y_continuous(limits = c(0, 100)) +
+    labs(x = "Years after surgery",
+         y = "Freedom from death (\%)",
+         title = "Predicted survival by risk profile",
+         colour = NULL) +
+    theme_minimal()
 }
 }
 }

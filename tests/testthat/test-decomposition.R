@@ -1,7 +1,7 @@
 # test-decomposition.R — Tests for hzr_decompos() and phase helpers
 #
-# Validates all 6 parameter cases, mathematical identities, and parity
-# with the mixhazard package's decompos() function.
+# Validates all 6 parameter cases, mathematical identities, and golden
+# reference values derived from the closed-form decomposition equations.
 
 t_grid <- seq(0.1, 10, by = 0.1)
 
@@ -227,36 +227,64 @@ test_that("hzr_phase_hazard('constant') returns vector of 1s", {
 
 
 # ============================================================================
-# Parity with mixhazard::decompos()
+# Golden reference values (originally validated against mixhazard::decompos())
 # ============================================================================
+# These golden values were generated from the closed-form decomposition
+# equations and cross-validated against the mixhazard package's decompos()
+# function at 1e-12 tolerance.  They are now hardcoded so the test suite
+# has no external dependency.
 
-test_that("hzr_decompos matches mixhazard::decompos() across all cases", {
-  skip_if_not_installed("mixhazard")
+test_that("hzr_decompos matches golden reference values across all 6 cases", {
+  snap_times <- c(0.1, 1.0, 3.0, 5.0, 10.0)
 
-  cases <- list(
-    list(t_half = 3, nu =  2, m =  1),   # Case 1
-    list(t_half = 3, nu =  2, m =  0),   # Case 1L
-    list(t_half = 3, nu =  2, m = -1),   # Case 2
-    list(t_half = 3, nu =  0, m = -1),   # Case 2L
-    list(t_half = 3, nu = -2, m =  1),   # Case 3
-    list(t_half = 3, nu = -2, m =  0)    # Case 3L
+  golden <- list(
+    # Case 1: m>0, nu>0 (standard sigmoidal)
+    list(t_half = 3, nu =  2, m =  1,
+         G = c(1.543870887948849e-01, 3.660254037844386e-01, 5.000000000000000e-01, 5.635083268962916e-01, 6.461106321354770e-01),
+         g = c(6.527585780416260e-01, 1.160254037844386e-01, 4.166666666666666e-02, 2.459666924148338e-02, 1.143258415884856e-02),
+         h = c(7.719354439744243e-01, 1.830127018922192e-01, 8.333333333333333e-02, 5.635083268962916e-02, 3.230553160677384e-02)),
+
+    # Case 1L: m=0, nu>0 (Weibull-like)
+    list(t_half = 3, nu =  2, m =  0,
+         G = c(2.244867998231077e-02, 3.010237439309285e-01, 5.000000000000000e-01, 5.845520232324418e-01, 6.840991973811010e-01),
+         g = c(4.261347015149480e-01, 1.806994562245466e-01, 5.776226504666210e-02, 3.138515329720806e-02, 1.298599327498647e-02),
+         h = c(4.359205422659926e-01, 2.585201638189699e-01, 1.155245300933242e-01, 7.554532709824208e-02, 4.110781981979546e-02)),
+
+    # Case 2: m<0, nu>0 (heavy-tailed)
+    list(t_half = 3, nu =  2, m = -1,
+         G = c(4.653741075440776e-02, 2.928932188134524e-01, 5.000000000000000e-01, 5.917517095361370e-01, 6.984886554222364e-01),
+         g = c(4.333920860207237e-01, 1.767766952966369e-01, 6.250000000000000e-02, 3.402069087198858e-02, 1.370506111717107e-02),
+         h = c(4.545454545454545e-01, 2.500000000000000e-01, 1.250000000000000e-01, 8.333333333333333e-02, 4.545454545454546e-02)),
+
+    # Case 2L: m<0, nu=0 (exponential decay)
+    list(t_half = 3, nu =  0, m = -1,
+         G = c(2.284003156575409e-02, 2.062994740159002e-01, 5.000000000000000e-01, 6.850197375262816e-01, 9.007874342519875e-01),
+         g = c(2.257718923587476e-01, 1.833837605982748e-01, 1.155245300933242e-01, 7.277589362189646e-02, 2.292297007478435e-02),
+         h = c(2.310490601866484e-01, 2.310490601866484e-01, 2.310490601866484e-01, 2.310490601866484e-01, 2.310490601866483e-01)),
+
+    # Case 3: m>0, nu<0 (bounded cumulative)
+    list(t_half = 3, nu = -2, m =  1,
+         G = c(1.543870887948848e-01, 3.660254037844386e-01, 5.000000000000000e-01, 5.635083268962915e-01, 6.461106321354770e-01),
+         g = c(6.527585780416260e-01, 1.160254037844387e-01, 4.166666666666666e-02, 2.459666924148339e-02, 1.143258415884856e-02),
+         h = c(7.719354439744243e-01, 1.830127018922193e-01, 8.333333333333333e-02, 5.635083268962917e-02, 3.230553160677384e-02)),
+
+    # Case 3L: m=0, nu<0 (bounded exponential)
+    list(t_half = 3, nu = -2, m =  0,
+         G = c(1.188705972421941e-01, 3.298064389861991e-01, 5.000000000000000e-01, 5.913307632637709e-01, 7.179039946690142e-01),
+         g = c(5.575380754920625e-01, 1.341019487465793e-01, 5.776226504666211e-02, 3.656973241347520e-02, 1.784973505866168e-02),
+         h = c(6.327539107729806e-01, 2.000943556421572e-01, 1.155245300933242e-01, 8.948491622597644e-02, 6.327539107729806e-02))
   )
 
-  for (pars in cases) {
-    ours   <- hzr_decompos(t_grid, t_half = pars$t_half,
-                           nu = pars$nu, m = pars$m)
-    theirs <- mixhazard::decompos(t_grid, thalf = pars$t_half,
-                                  nu = pars$nu, m = pars$m,
-                                  complet = 1)
-    expect_equal(ours$G, theirs$capgt, tolerance = 1e-12,
-                 label = paste0("G parity for m=", pars$m,
-                                ", nu=", pars$nu))
-    expect_equal(ours$g, theirs$gt, tolerance = 1e-12,
-                 label = paste0("g parity for m=", pars$m,
-                                ", nu=", pars$nu))
-    expect_equal(ours$h, theirs$ht, tolerance = 1e-12,
-                 label = paste0("h parity for m=", pars$m,
-                                ", nu=", pars$nu))
+  for (ref in golden) {
+    ours <- hzr_decompos(snap_times, t_half = ref$t_half,
+                         nu = ref$nu, m = ref$m)
+    lbl <- paste0("m=", ref$m, ", nu=", ref$nu)
+    expect_equal(ours$G, ref$G, tolerance = 1e-12,
+                 label = paste0("G for ", lbl))
+    expect_equal(ours$g, ref$g, tolerance = 1e-12,
+                 label = paste0("g for ", lbl))
+    expect_equal(ours$h, ref$h, tolerance = 1e-12,
+                 label = paste0("h for ", lbl))
   }
 })
 

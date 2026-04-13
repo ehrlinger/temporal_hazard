@@ -465,11 +465,8 @@ NULL
 
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
-  # Load KUL dataset
-  csv_path <- system.file("extdata", "cabgkul.csv", package = "TemporalHazard")
-  if (!nzchar(csv_path)) csv_path <- "inst/extdata/cabgkul.csv"
-
-  dat <- utils::read.csv(csv_path)
+  # Load KUL dataset (lazy-loaded with the package)
+  dat <- TemporalHazard::cabgkul
   stopifnot(nrow(dat) == 5880, sum(dat$dead) == 545)
 
   # C binary reference output from hz.deadp.KUL.lst

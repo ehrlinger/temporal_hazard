@@ -118,51 +118,35 @@ NULL
 #' summary(fit2)
 #'
 #' \donttest{
-#' # ── Parametric survival with Kaplan-Meier overlay (requires hvtiPlotR)
-#' if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
-#'     requireNamespace("ggplot2", quietly = TRUE)) {
-#'   library(hvtiPlotR)
+#' # ── Parametric survival with Kaplan-Meier overlay ─────────────────
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   library(ggplot2)
 #'
 #'   # Parametric curve on a fine grid at median covariate profile
 #'   t_grid   <- seq(0.05, max(dat$time), length.out = 80)
 #'   curve_df <- data.frame(
 #'     time = t_grid, age = median(dat$age), nyha = 2, shock = 0
 #'   )
-#'   curve_df$survival <- predict(fit2, newdata = curve_df, type = "survival")
+#'   curve_df$survival <- predict(fit2, newdata = curve_df,
+#'                                type = "survival") * 100
 #'
 #'   # Kaplan-Meier empirical overlay
 #'   km    <- survival::survfit(survival::Surv(time, status) ~ 1, data = dat)
-#'   km_df <- data.frame(time = km$time, estimate = km$surv * 100,
-#'                        source = "Kaplan-Meier")
+#'   km_df <- data.frame(time = km$time, survival = km$surv * 100)
 #'
-#'   curve_plot <- transform(curve_df, survival = survival * 100,
-#'                           source = "Parametric (Weibull)")
-#'
-#'   hz_obj <- hv_hazard(
-#'     curve_data       = curve_plot,
-#'     x_col            = "time",
-#'     estimate_col     = "survival",
-#'     group_col        = "source",
-#'     empirical        = km_df,
-#'     emp_x_col        = "time",
-#'     emp_estimate_col = "estimate",
-#'     emp_group_col    = "source",
-#'     emp_geom         = "step"
-#'   )
-#'
-#'   plot(hz_obj) +
-#'     ggplot2::scale_colour_manual(
+#'   ggplot() +
+#'     geom_step(data = km_df, aes(time, survival, colour = "Kaplan-Meier")) +
+#'     geom_line(data = curve_df, aes(time, survival,
+#'                                    colour = "Parametric (Weibull)")) +
+#'     scale_colour_manual(
 #'       values = c("Parametric (Weibull)" = "#0072B2",
 #'                  "Kaplan-Meier"         = "#D55E00")
 #'     ) +
-#'     ggplot2::scale_y_continuous(limits = c(0, 100)) +
-#'     ggplot2::labs(
-#'       x      = "Years after surgery",
-#'       y      = "Freedom from death (%)",
-#'       colour = NULL
-#'     ) +
-#'     hv_theme_manuscript() +
-#'     ggplot2::theme(legend.position = "bottom")
+#'     scale_y_continuous(limits = c(0, 100)) +
+#'     labs(x = "Years after surgery", y = "Freedom from death (%)",
+#'          colour = NULL) +
+#'     theme_minimal() +
+#'     theme(legend.position = "bottom")
 #' }
 #' }
 #'
@@ -547,10 +531,9 @@ hazard <- function(formula = NULL,
 #' new_patients
 #'
 #' \donttest{
-#' # ── Grouped survival curves (requires hvtiPlotR) ─────────────────────
-#' if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
-#'     requireNamespace("ggplot2", quietly = TRUE)) {
-#'   library(hvtiPlotR)
+#' # ── Grouped survival curves ───────────────────────────────────────
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   library(ggplot2)
 #'
 #'   t_grid <- seq(0.05, max(dat$time), length.out = 80)
 #'   profiles <- data.frame(
@@ -574,21 +557,14 @@ hazard <- function(formula = NULL,
 #'   })
 #'   curve_df <- do.call(rbind, curve_list)
 #'
-#'   hz_obj <- hv_hazard(
-#'     curve_data   = curve_df,
-#'     x_col        = "time",
-#'     estimate_col = "survival",
-#'     group_col    = "profile"
-#'   )
-#'
-#'   plot(hz_obj) +
-#'     ggplot2::scale_y_continuous(limits = c(0, 100)) +
-#'     ggplot2::labs(
-#'       x     = "Years after surgery",
-#'       y     = "Freedom from death (%)",
-#'       title = "Predicted survival by risk profile"
-#'     ) +
-#'     hv_theme_manuscript()
+#'   ggplot(curve_df, aes(time, survival, colour = profile)) +
+#'     geom_line() +
+#'     scale_y_continuous(limits = c(0, 100)) +
+#'     labs(x = "Years after surgery",
+#'          y = "Freedom from death (%)",
+#'          title = "Predicted survival by risk profile",
+#'          colour = NULL) +
+#'     theme_minimal()
 #' }
 #' }
 #' @export
