@@ -122,9 +122,13 @@
 #' #        dist = "multiphase",
 #' #        phases = list(early = early, constant = const, late = late))
 #'
-#' @seealso [hzr_decompos()] for the underlying parametric family,
+#' @seealso [hazard()] for fitting multiphase models,
+#'   [hzr_decompos()] for the underlying parametric family,
 #'   [hzr_phase_cumhaz()] and [hzr_phase_hazard()] for computing
 #'   \eqn{\Phi(t)} and \eqn{\phi(t)} from these specifications.
+#'
+#' \code{vignette("fitting-hazard-models")} for multiphase fitting examples,
+#' \code{vignette("mf-mathematical-foundations")} for the mathematical framework.
 #'
 #' @export
 hzr_phase <- function(type = c("cdf", "hazard", "constant", "g3"),

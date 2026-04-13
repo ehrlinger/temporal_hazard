@@ -120,7 +120,11 @@ early_cov <- hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
 
 }
 \seealso{
+\code{\link[=hazard]{hazard()}} for fitting multiphase models,
 \code{\link[=hzr_decompos]{hzr_decompos()}} for the underlying parametric family,
 \code{\link[=hzr_phase_cumhaz]{hzr_phase_cumhaz()}} and \code{\link[=hzr_phase_hazard]{hzr_phase_hazard()}} for computing
 \eqn{\Phi(t)} and \eqn{\phi(t)} from these specifications.
+
+\code{vignette("fitting-hazard-models")} for multiphase fitting examples,
+\code{vignette("mf-mathematical-foundations")} for the mathematical framework.
 }

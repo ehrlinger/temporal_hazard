@@ -33,7 +33,35 @@ septal defects (congenital heart disease) at the Cleveland Clinic between
 1977 and 1993. Exhibits two identifiable hazard phases: an early
 post-operative risk and a constant late phase.
 }
+\examples{
+data(avc)
+avc <- na.omit(avc)
+
+# Kaplan-Meier survival
+km <- survival::survfit(survival::Surv(int_dead, dead) ~ 1, data = avc)
+plot(km, xlab = "Months after AVC repair", ylab = "Survival",
+     main = "AVC: Kaplan-Meier survival estimate")
+
+\donttest{
+# Multiphase hazard fit
+fit <- hazard(
+  survival::Surv(int_dead, dead) ~ 1, data = avc,
+  dist = "multiphase",
+  phases = list(
+    early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("cdf", t_half = 10, nu = 1, m = 1)
+  ),
+  fit = TRUE, control = list(n_starts = 5, maxit = 1000)
+)
+summary(fit)
+}
+
+}
 \seealso{
+\code{vignette("fitting-hazard-models")},
+\code{vignette("prediction-visualization")}
+
 Other datasets: 
 \code{\link{cabgkul}},
 \code{\link{omc}},

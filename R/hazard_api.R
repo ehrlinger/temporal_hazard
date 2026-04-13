@@ -201,6 +201,16 @@ NULL
 #' }
 #' }
 #'
+#' @seealso
+#' [predict.hazard()] for survival/cumulative-hazard predictions,
+#' [summary.hazard()] for model summaries,
+#' [hzr_phase()] for specifying multiphase temporal shapes.
+#'
+#' Vignettes with worked examples:
+#' \code{vignette("fitting-hazard-models")} --- single-phase through multiphase fitting,
+#' \code{vignette("prediction-visualization")} --- prediction types and decomposed hazard plots,
+#' \code{vignette("inference-diagnostics")} --- bootstrap CIs and model diagnostics.
+#'
 #' @references
 #' Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying
 #' hazard into phases, each incorporating a separate stream of concomitant
@@ -567,6 +577,46 @@ hazard <- function(formula = NULL,
 #'     theme_minimal()
 #' }
 #' }
+#'
+#' \donttest{
+#' # ── Multiphase predictions with decomposition ────────────────────
+#' set.seed(42)
+#' n   <- 200
+#' dat <- data.frame(
+#'   time   = rexp(n, rate = 0.25) + 0.01,
+#'   status = rbinom(n, size = 1, prob = 0.65)
+#' )
+#' fit_mp <- hazard(
+#'   survival::Surv(time, status) ~ 1,
+#'   data   = dat,
+#'   dist   = "multiphase",
+#'   phases = list(
+#'     early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
+#'     late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+#'   ),
+#'   fit     = TRUE,
+#'   control = list(n_starts = 3, maxit = 500)
+#' )
+#'
+#' t_grid <- seq(0.01, max(dat$time) * 0.9, length.out = 100)
+#' nd     <- data.frame(time = t_grid)
+#'
+#' # Overall survival
+#' predict(fit_mp, newdata = nd, type = "survival")
+#'
+#' # Per-phase decomposed cumulative hazard
+#' decomp <- predict(fit_mp, newdata = nd,
+#'                   type = "cumulative_hazard", decompose = TRUE)
+#' head(decomp)
+#' }
+#'
+#' @seealso
+#' [hazard()] for model fitting,
+#' [summary.hazard()] for model summaries,
+#' [hzr_phase()] for multiphase temporal shapes.
+#'
+#' \code{vignette("prediction-visualization")} for detailed prediction
+#' workflows including decomposed hazard plots and patient-specific curves.
 #' @export
 predict.hazard <- function(object, newdata = NULL,
                            type = c("hazard", "linear_predictor",
@@ -833,9 +883,38 @@ print.hazard <- function(x, ...) {
 #' @param ... Unused; for S3 compatibility.
 #' @return An object of class `summary.hazard`.
 #' @examples
+#' # ── Single-phase Weibull summary ────────────────────────────────────
 #' fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
 #'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 #' summary(fit)
+#'
+#' \donttest{
+#' # ── Multiphase model summary ────────────────────────────────────────
+#' set.seed(42)
+#' n   <- 200
+#' dat <- data.frame(
+#'   time   = rexp(n, rate = 0.25) + 0.01,
+#'   status = rbinom(n, size = 1, prob = 0.65)
+#' )
+#' fit_mp <- hazard(
+#'   survival::Surv(time, status) ~ 1,
+#'   data   = dat,
+#'   dist   = "multiphase",
+#'   phases = list(
+#'     early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
+#'     late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+#'   ),
+#'   fit     = TRUE,
+#'   control = list(n_starts = 3, maxit = 500)
+#' )
+#' summary(fit_mp)
+#' }
+#'
+#' @seealso
+#' [hazard()] for model fitting, [predict.hazard()] for predictions.
+#'
+#' \code{vignette("fitting-hazard-models")} for fitting workflows,
+#' \code{vignette("inference-diagnostics")} for bootstrap CIs and diagnostics.
 #' @export
 summary.hazard <- function(object, ...) {
   n <- length(object$data$time)

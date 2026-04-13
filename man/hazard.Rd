@@ -219,3 +219,13 @@ Probability of atrial fibrillation after ablation: Using a parametric
 nonlinear temporal decomposition mixed effects model. \emph{Stat Methods Med Res.}
 2018;27(1):126--141. \doi{10.1177/0962280215623583}
 }
+\seealso{
+\code{\link[=predict.hazard]{predict.hazard()}} for survival/cumulative-hazard predictions,
+\code{\link[=summary.hazard]{summary.hazard()}} for model summaries,
+\code{\link[=hzr_phase]{hzr_phase()}} for specifying multiphase temporal shapes.
+
+Vignettes with worked examples:
+\code{vignette("fitting-hazard-models")} --- single-phase through multiphase fitting,
+\code{vignette("prediction-visualization")} --- prediction types and decomposed hazard plots,
+\code{vignette("inference-diagnostics")} --- bootstrap CIs and model diagnostics.
+}

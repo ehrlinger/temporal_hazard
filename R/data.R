@@ -22,6 +22,33 @@
 #'
 #' @source Blackstone, Naftel, and Turner (1986)
 #'   \doi{10.1080/01621459.1986.10478314}. Cleveland Clinic Foundation.
+#'
+#' @examples
+#' data(avc)
+#' avc <- na.omit(avc)
+#'
+#' # Kaplan-Meier survival
+#' km <- survival::survfit(survival::Surv(int_dead, dead) ~ 1, data = avc)
+#' plot(km, xlab = "Months after AVC repair", ylab = "Survival",
+#'      main = "AVC: Kaplan-Meier survival estimate")
+#'
+#' \donttest{
+#' # Multiphase hazard fit
+#' fit <- hazard(
+#'   survival::Surv(int_dead, dead) ~ 1, data = avc,
+#'   dist = "multiphase",
+#'   phases = list(
+#'     early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1),
+#'     constant = hzr_phase("constant"),
+#'     late     = hzr_phase("cdf", t_half = 10, nu = 1, m = 1)
+#'   ),
+#'   fit = TRUE, control = list(n_starts = 5, maxit = 1000)
+#' )
+#' summary(fit)
+#' }
+#'
+#' @seealso \code{vignette("fitting-hazard-models")},
+#'   \code{vignette("prediction-visualization")}
 #' @family datasets
 "avc"
 
@@ -40,6 +67,30 @@
 #'
 #' @source KU Leuven cardiac surgery registry. Primary benchmark dataset for
 #'   C binary parity testing.
+#'
+#' @examples
+#' data(cabgkul)
+#'
+#' # Kaplan-Meier survival
+#' km <- survival::survfit(survival::Surv(int_dead, dead) ~ 1, data = cabgkul)
+#' plot(km, xlab = "Months after CABG", ylab = "Survival",
+#'      main = "CABGKUL: Kaplan-Meier survival (n = 5,880)")
+#'
+#' \donttest{
+#' # Single-phase Weibull fit with parametric overlay
+#' fit <- hazard(survival::Surv(int_dead, dead) ~ 1, data = cabgkul,
+#'               dist = "weibull", theta = c(mu = 0.10, nu = 1.0), fit = TRUE)
+#' t_grid <- seq(0.01, max(cabgkul$int_dead) * 0.9, length.out = 200)
+#' surv   <- predict(fit, newdata = data.frame(time = t_grid),
+#'                   type = "survival")
+#' plot(km, xlab = "Months after CABG", ylab = "Survival",
+#'      main = "CABGKUL: Weibull vs. Kaplan-Meier")
+#' lines(t_grid, surv, col = "blue", lwd = 2)
+#' legend("bottomleft", c("KM", "Weibull"), col = c("black", "blue"),
+#'        lty = 1, lwd = c(1, 2))
+#' }
+#'
+#' @seealso \code{vignette("fitting-hazard-models")}
 #' @family datasets
 "cabgkul"
 
@@ -125,5 +176,23 @@
 #' }
 #'
 #' @source Cleveland Clinic Foundation heart valve replacement registry.
+#'
+#' @examples
+#' data(valves)
+#' valves_cc <- na.omit(valves)
+#'
+#' # Kaplan-Meier for two endpoints
+#' km_death <- survival::survfit(
+#'   survival::Surv(int_dead, dead) ~ 1, data = valves_cc)
+#' km_pve <- survival::survfit(
+#'   survival::Surv(int_pve, pve) ~ 1, data = valves_cc)
+#'
+#' plot(km_death, xlab = "Months after valve replacement", ylab = "Survival",
+#'      main = "Valves: Death and PVE endpoints")
+#' lines(km_pve, col = "red")
+#' legend("bottomleft", c("Death", "PVE"), col = c("black", "red"), lty = 1)
+#'
+#' @seealso \code{vignette("fitting-hazard-models")},
+#'   \code{vignette("prediction-visualization")}
 #' @family datasets
 "valves"

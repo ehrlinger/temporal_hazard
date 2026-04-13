@@ -40,7 +40,26 @@ The largest multivariable example dataset with multiple endpoints
 including death, prosthetic valve endocarditis (PVE), bioprosthesis
 degeneration, and reoperation.
 }
+\examples{
+data(valves)
+valves_cc <- na.omit(valves)
+
+# Kaplan-Meier for two endpoints
+km_death <- survival::survfit(
+  survival::Surv(int_dead, dead) ~ 1, data = valves_cc)
+km_pve <- survival::survfit(
+  survival::Surv(int_pve, pve) ~ 1, data = valves_cc)
+
+plot(km_death, xlab = "Months after valve replacement", ylab = "Survival",
+     main = "Valves: Death and PVE endpoints")
+lines(km_pve, col = "red")
+legend("bottomleft", c("Death", "PVE"), col = c("black", "red"), lty = 1)
+
+}
 \seealso{
+\code{vignette("fitting-hazard-models")},
+\code{vignette("prediction-visualization")}
+
 Other datasets: 
 \code{\link{avc}},
 \code{\link{cabgkul}},
