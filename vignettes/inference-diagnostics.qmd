@@ -48,6 +48,7 @@ functional forms that should enter the final model.
 ```{r}
 #| label: explore-data
 data(avc)
+avc <- na.omit(avc)
 
 # Candidate covariates
 candidates <- c("age", "status", "mal", "com_iv", "inc_surg", "orifice")

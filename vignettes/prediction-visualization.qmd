@@ -46,6 +46,7 @@ compared against this baseline to assess goodness-of-fit.
 ```{r}
 #| label: km-baseline
 data(avc)
+avc <- na.omit(avc)
 km <- survfit(Surv(int_dead, dead) ~ 1, data = avc)
 ```
 
@@ -284,6 +285,7 @@ The `valves` dataset has multiple endpoints that can be visualized together:
 #| fig-width: 7
 #| fig-height: 4.5
 data(valves)
+valves <- na.omit(valves)
 
 km_death <- survfit(Surv(int_dead, dead) ~ 1, data = valves)
 km_pve   <- survfit(Surv(int_pve, pve) ~ 1, data = valves)

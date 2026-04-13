@@ -107,6 +107,7 @@ interface to fit a multivariable Weibull model.
 ```{r}
 #| label: avc-data
 data(avc)
+avc <- na.omit(avc)
 str(avc)
 ```
 
@@ -214,6 +215,7 @@ endpoint independently:
 ```{r}
 #| label: valves-death
 data(valves)
+valves <- na.omit(valves)
 
 fit_death <- hazard(
   Surv(int_dead, dead) ~ age_cop + nyha + mechvalv,
