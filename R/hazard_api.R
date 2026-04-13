@@ -936,8 +936,9 @@ summary.hazard <- function(object, ...) {
     z_stat <- rep(NA_real_, length(theta))
     p_value <- rep(NA_real_, length(theta))
 
-    if (!is.null(vcov_mat) && is.matrix(vcov_mat) && !anyNA(vcov_mat)) {
-      std_error <- sqrt(diag(vcov_mat))
+    if (!is.null(vcov_mat) && is.matrix(vcov_mat)) {
+      d <- diag(vcov_mat)
+      std_error <- sqrt(d)            # NA for fixed params, finite for free
       valid <- is.finite(std_error) & std_error > 0
       z_stat[valid] <- theta[valid] / std_error[valid]
       p_value[valid] <- 2 * pnorm(-abs(z_stat[valid]))
@@ -964,7 +965,7 @@ summary.hazard <- function(object, ...) {
     counts = object$fit$counts,
     message = object$fit$message,
     coefficients = coef_table,
-    has_vcov = !is.null(vcov_mat) && is.matrix(vcov_mat) && !anyNA(vcov_mat),
+    has_vcov = !is.null(vcov_mat) && is.matrix(vcov_mat),
     phases = object$spec$phases
   )
 
@@ -988,8 +989,10 @@ print.summary.hazard <- function(x, ...) {
       nm <- names(x$phases)[i]
       ph <- x$phases[[i]]
       label <- switch(ph$type,
-        cdf = "cdf (early risk)", hazard = "hazard (late risk)",
-        constant = "constant (flat rate)")
+        cdf      = paste0("cdf (", nm, " risk)"),
+        hazard   = "hazard (late risk)",
+        constant = "constant (flat rate)",
+        g3       = "g3 (late risk)")
       cat("  phase ", i, ":      ", nm, " - ", label, "\n", sep = "")
     }
   }
@@ -1023,7 +1026,8 @@ print.summary.hazard <- function(x, ...) {
         if (length(rows) > 0) {
           ph <- x$phases[[nm]]
           label <- switch(ph$type,
-            cdf = "cdf", hazard = "hazard", constant = "constant")
+            cdf = "cdf", hazard = "hazard", constant = "constant",
+            g3 = "g3")
           cat("\n  Phase: ", nm, " (", label, ")\n", sep = "")
           sub_table <- x$coefficients[rows, , drop = FALSE]
           # Strip phase prefix from row names for cleaner display
