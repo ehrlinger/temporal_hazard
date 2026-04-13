@@ -356,29 +356,21 @@ datasets <- data.frame(
     "hm.deadp.VALVES"
   )
 )
-knitr::kable(datasets, caption = "Reference datasets in inst/extdata/")
+knitr::kable(datasets, caption = "Reference datasets (lazy-loaded via `data()`)")
 ```
 
 
 ## Loading datasets
 
 ```{r load-demo}
-# Helper: find extdata files whether package is installed or not
-find_extdata <- function(file) {
-  path <- system.file("extdata", file, package = "TemporalHazard")
-  if (nzchar(path)) return(path)
-  # Fall back to source tree (e.g., during quarto render before install)
-  src <- file.path("..", "inst", "extdata", file)
-  if (file.exists(src)) return(src)
-  stop("Cannot find ", file, " -- run devtools::install() first")
-}
+# Datasets are lazy-loaded with the package — just reference them directly.
+# Raw CSVs are also available in inst/extdata/ for advanced use:
+#   read.csv(system.file("extdata", "cabgkul.csv", package = "TemporalHazard"))
 
-# Load the KUL CABG dataset
-kul <- read.csv(find_extdata("cabgkul.csv"))
-str(kul)
+data(cabgkul)
+str(cabgkul)
 
-# Load the AVC dataset
-avc <- read.csv(find_extdata("avc.csv"))
+data(avc)
 str(avc)
 ```
 

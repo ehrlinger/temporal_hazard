@@ -124,51 +124,35 @@ fit2 <- hazard(
 summary(fit2)
 
 \donttest{
-# ── Parametric survival with Kaplan-Meier overlay (requires hvtiPlotR)
-if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
-    requireNamespace("ggplot2", quietly = TRUE)) {
-  library(hvtiPlotR)
+# ── Parametric survival with Kaplan-Meier overlay ─────────────────
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  library(ggplot2)
 
   # Parametric curve on a fine grid at median covariate profile
   t_grid   <- seq(0.05, max(dat$time), length.out = 80)
   curve_df <- data.frame(
     time = t_grid, age = median(dat$age), nyha = 2, shock = 0
   )
-  curve_df$survival <- predict(fit2, newdata = curve_df, type = "survival")
+  curve_df$survival <- predict(fit2, newdata = curve_df,
+                               type = "survival") * 100
 
   # Kaplan-Meier empirical overlay
   km    <- survival::survfit(survival::Surv(time, status) ~ 1, data = dat)
-  km_df <- data.frame(time = km$time, estimate = km$surv * 100,
-                       source = "Kaplan-Meier")
+  km_df <- data.frame(time = km$time, survival = km$surv * 100)
 
-  curve_plot <- transform(curve_df, survival = survival * 100,
-                          source = "Parametric (Weibull)")
-
-  hz_obj <- hv_hazard(
-    curve_data       = curve_plot,
-    x_col            = "time",
-    estimate_col     = "survival",
-    group_col        = "source",
-    empirical        = km_df,
-    emp_x_col        = "time",
-    emp_estimate_col = "estimate",
-    emp_group_col    = "source",
-    emp_geom         = "step"
-  )
-
-  plot(hz_obj) +
-    ggplot2::scale_colour_manual(
+  ggplot() +
+    geom_step(data = km_df, aes(time, survival, colour = "Kaplan-Meier")) +
+    geom_line(data = curve_df, aes(time, survival,
+                                   colour = "Parametric (Weibull)")) +
+    scale_colour_manual(
       values = c("Parametric (Weibull)" = "#0072B2",
                  "Kaplan-Meier"         = "#D55E00")
     ) +
-    ggplot2::scale_y_continuous(limits = c(0, 100)) +
-    ggplot2::labs(
-      x      = "Years after surgery",
-      y      = "Freedom from death (\%)",
-      colour = NULL
-    ) +
-    hv_theme_manuscript() +
-    ggplot2::theme(legend.position = "bottom")
+    scale_y_continuous(limits = c(0, 100)) +
+    labs(x = "Months after surgery", y = "Freedom from death (\%)",
+         colour = NULL) +
+    theme_minimal() +
+    theme(legend.position = "bottom")
 }
 }
 
@@ -234,4 +218,14 @@ Rajeswaran J, Blackstone EH, Ehrlinger J, Li L, Ishwaran H, Parides MK.
 Probability of atrial fibrillation after ablation: Using a parametric
 nonlinear temporal decomposition mixed effects model. \emph{Stat Methods Med Res.}
 2018;27(1):126--141. \doi{10.1177/0962280215623583}
+}
+\seealso{
+\code{\link[=predict.hazard]{predict.hazard()}} for survival/cumulative-hazard predictions,
+\code{\link[=summary.hazard]{summary.hazard()}} for model summaries,
+\code{\link[=hzr_phase]{hzr_phase()}} for specifying multiphase temporal shapes.
+
+Vignettes with worked examples:
+\code{vignette("fitting-hazard-models")} --- single-phase through multiphase fitting,
+\code{vignette("prediction-visualization")} --- prediction types and decomposed hazard plots,
+\code{vignette("inference-diagnostics")} --- bootstrap CIs and model diagnostics.
 }

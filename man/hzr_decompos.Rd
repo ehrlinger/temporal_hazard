@@ -89,5 +89,8 @@ nonlinear temporal decomposition mixed effects model. \emph{Stat Methods Med Res
 }
 \seealso{
 \code{\link[=hzr_phase_cumhaz]{hzr_phase_cumhaz()}} for the phase-level cumulative hazard
-contribution, \code{\link[=hzr_argument_mapping]{hzr_argument_mapping()}} for SAS/C parameter mapping.
+contribution, \code{\link[=hzr_argument_mapping]{hzr_argument_mapping()}} for SAS/C parameter mapping,
+\code{\link[=hzr_phase]{hzr_phase()}} for specifying phases in \code{\link[=hazard]{hazard()}} models.
+
+\code{vignette("mf-mathematical-foundations")} for the full derivation.
 }

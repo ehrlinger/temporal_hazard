@@ -15,6 +15,7 @@ format:
 ```{r}
 #| include: false
 has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE)
+has_avc <- has_pkg && "avc" %in% utils::data(package = "TemporalHazard")$results[, "Item"]
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -73,69 +74,183 @@ new_patients
 
 ## Visualizing predicted survival
 
-The `hvtiPlotR` package provides publication-quality plotting for parametric
-hazard models via `hv_hazard()` and its `plot()` method. Here we build a
-survival curve over a fine time grid for a median-profile patient and overlay
-the Kaplan-Meier nonparametric estimate from the raw data.
+Here we build a survival curve over a fine time grid for a median-profile
+patient and overlay the Kaplan-Meier nonparametric estimate from the raw data.
 
 ```{r}
 #| label: fig-survival
 #| fig-cap: "Parametric Weibull survival curve with Kaplan-Meier overlay"
 #| fig-width: 7
 #| fig-height: 5
-if (requireNamespace("hvtiPlotR", quietly = TRUE)) {
-  library(hvtiPlotR)
+library(ggplot2)
 
-  # Parametric curve on a fine grid
-  t_grid <- seq(0.05, max(dat$time), length.out = 80)
-  curve_df <- data.frame(
-    time = t_grid,
-    AGE = median(dat$age),
-    nyha = 2,
-    shock = 0
-  )
-  curve_df$survival <- predict(fit, newdata = curve_df, type = "survival")
+# Parametric curve on a fine grid
+t_grid <- seq(0.05, max(dat$time), length.out = 80)
+curve_df <- data.frame(
+  time = t_grid,
+  AGE = median(dat$age),
+  nyha = 2,
+  shock = 0
+)
+curve_df$survival <- predict(fit, newdata = curve_df, type = "survival") * 100
 
-  # Kaplan-Meier empirical overlay
-  km <- survival::survfit(survival::Surv(time, status) ~ 1, data = dat)
-  km_df <- data.frame(
-    time     = km$time,
-    estimate = km$surv * 100,
-    source   = "Kaplan-Meier"
-  )
+# Kaplan-Meier empirical overlay
+km <- survival::survfit(survival::Surv(time, status) ~ 1, data = dat)
+km_df <- data.frame(time = km$time, survival = km$surv * 100)
 
-  # Add source label to parametric curve for legend
-  curve_plot <- transform(curve_df, survival = survival * 100,
-                          source = "Parametric (Weibull)")
-
-  # Build plot with hv_hazard + plot
-  hz_obj <- hv_hazard(
-    curve_data       = curve_plot,
-    x_col            = "time",
-    estimate_col     = "survival",
-    group_col        = "source",
-    empirical        = km_df,
-    emp_x_col        = "time",
-    emp_estimate_col = "estimate",
-    emp_group_col    = "source",
-    emp_geom         = "step"
-  )
-
-  plot(hz_obj) +
-    ggplot2::scale_colour_manual(
-      values = c("Parametric (Weibull)" = "#0072B2",
-                 "Kaplan-Meier"         = "#D55E00")
-    ) +
-    ggplot2::scale_y_continuous(limits = c(0, 100)) +
-    ggplot2::labs(
-      x      = "Years after surgery",
-      y      = "Freedom from death (%)",
-      colour = NULL
-    ) +
-    hv_theme_manuscript() +
-    ggplot2::theme(legend.position = "bottom")
-}
+ggplot() +
+  geom_step(data = km_df, aes(time, survival, colour = "Kaplan-Meier")) +
+  geom_line(data = curve_df, aes(time, survival,
+                                  colour = "Parametric (Weibull)")) +
+  scale_colour_manual(
+    values = c("Parametric (Weibull)" = "#0072B2",
+               "Kaplan-Meier"         = "#D55E00")
+  ) +
+  scale_y_continuous(limits = c(0, 100)) +
+  labs(x = "Months after surgery", y = "Freedom from death (%)",
+       colour = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
 ```
+
+## Multiphase models
+
+Real clinical hazard patterns are rarely monotone. After cardiac surgery, the
+risk of death starts high (early post-operative risk), drops to a low background
+rate, and eventually rises again as patients age. A single Weibull curve cannot
+capture this --- but a multiphase additive hazard model can.
+
+The total hazard is decomposed into additive phases, each with its own temporal
+shape:
+
+$$H(t \mid x) = \sum_{j=1}^{J} \mu_j(x) \cdot \Phi_j(t)$$
+
+Each phase is specified with `hzr_phase()`, which sets the temporal shape type
+and starting values for the optimizer.
+
+```{r}
+#| label: multiphase-fit
+#| eval: !expr has_avc
+# AVC dataset is lazy-loaded with the package
+data(avc)
+
+fit_mp <- hazard(
+  Surv(int_dead, dead) ~ 1,
+  data   = avc,
+  dist   = "multiphase",
+  phases = list(
+    early    = hzr_phase("cdf",      t_half = 0.5, nu = 1, m = 1),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("cdf",      t_half = 10,  nu = 1, m = 1)
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 5, maxit = 1000)
+)
+
+summary(fit_mp)
+```
+
+### Decomposed hazard visualization
+
+The `decompose = TRUE` argument returns per-phase cumulative hazard
+contributions. We numerically differentiate these to visualize the
+instantaneous hazard rate for each phase.
+
+```{r}
+#| label: fig-hazard-phases
+#| eval: !expr has_avc
+#| fig-cap: "Additive phase decomposition: the total hazard (solid) is the sum of early, constant, and late components (dashed)"
+#| fig-width: 7
+#| fig-height: 4.5
+t_grid <- seq(0.01, max(avc$int_dead) * 0.95, length.out = 200)
+nd     <- data.frame(time = t_grid)
+
+# decompose = TRUE returns per-phase cumulative hazard columns
+decomp <- predict(fit_mp, newdata = nd, type = "cumulative_hazard",
+                  decompose = TRUE)
+
+# Numerical differentiation: h(t) ≈ ΔH(t) / Δt
+num_hazard <- function(cumhaz, time) {
+  dt <- diff(time)
+  dH <- diff(cumhaz)
+  c(dH[1] / dt[1], dH / dt)
+}
+
+h_long <- rbind(
+  data.frame(time = t_grid, hazard = num_hazard(decomp$early, t_grid),
+             Phase = "Early"),
+  data.frame(time = t_grid, hazard = num_hazard(decomp$constant, t_grid),
+             Phase = "Constant"),
+  data.frame(time = t_grid, hazard = num_hazard(decomp$late, t_grid),
+             Phase = "Late"),
+  data.frame(time = t_grid, hazard = num_hazard(decomp$total, t_grid),
+             Phase = "Total")
+)
+h_long$Phase <- factor(h_long$Phase,
+                       levels = c("Total", "Early", "Constant", "Late"))
+
+ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase)) +
+  geom_line(aes(linewidth = Phase)) +
+  scale_colour_manual(values = c(Total = "#222222", Early = "#E69F00",
+                                 Constant = "#56B4E9", Late = "#CC79A7")) +
+  scale_linetype_manual(values = c(Total = "solid", Early = "dashed",
+                                   Constant = "dashed", Late = "dashed")) +
+  scale_linewidth_manual(values = c(Total = 1.3, Early = 0.7,
+                                    Constant = 0.7, Late = 0.7)) +
+  labs(x = "Months after surgery", y = "Hazard rate",
+       colour = "Phase", linetype = "Phase", linewidth = "Phase") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+### Multiphase survival with Kaplan-Meier overlay
+
+```{r}
+#| label: fig-mp-survival
+#| eval: !expr has_avc
+#| fig-cap: "Multiphase parametric survival vs. Kaplan-Meier"
+#| fig-width: 7
+#| fig-height: 4.5
+surv_df <- data.frame(
+  time     = t_grid,
+  survival = predict(fit_mp, newdata = nd, type = "survival") * 100
+)
+
+km    <- survfit(Surv(int_dead, dead) ~ 1, data = avc)
+km_df <- data.frame(time = km$time, survival = km$surv * 100)
+
+ggplot() +
+  geom_step(data = km_df, aes(time, survival, colour = "Kaplan-Meier"),
+            linewidth = 0.6) +
+  geom_line(data = surv_df, aes(time, survival, colour = "Multiphase model"),
+            linewidth = 1.1) +
+  scale_colour_manual(
+    values = c("Multiphase model" = "#0072B2", "Kaplan-Meier" = "#D55E00")
+  ) +
+  scale_y_continuous(limits = c(0, 100)) +
+  labs(x = "Months after surgery", y = "Freedom from death (%)",
+       colour = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+### Phase types
+
+TemporalHazard supports several phase types:
+
+```{r}
+#| eval: false
+hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 1)   # Early risk (bounded)
+hzr_phase("constant")                                   # Flat background rate
+hzr_phase("cdf",      t_half = 10,  nu = 1, m = 0)    # Late risk (CDF-based)
+hzr_phase("g3",       tau = 1, gamma = 3, alpha = 1,   # Late risk (G3 power law)
+                       eta = 1)
+```
+
+The `"g3"` type uses the four-parameter G3 decomposition from the original
+C/SAS HAZARD program, providing unbounded power-law growth for late-phase
+hazards. See `vignette("mf-mathematical-foundations")` for the full
+mathematical treatment.
 
 ## Numerical helpers
 

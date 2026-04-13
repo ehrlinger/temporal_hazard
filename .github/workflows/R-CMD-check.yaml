@@ -35,14 +35,14 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck, any::roxygen2
+          extra-packages: any::rcmdcheck, any::roxygen2, any::pkgload
           needs: check
 
       - name: Ensure roxygen outputs are current
         if: matrix.config.check_roxygen
         shell: Rscript {0}
         run: |
-          roxygen2::roxygenise(load_code = roxygen2::load_source)
+          roxygen2::roxygenise(load_code = roxygen2::load_pkgload)
           changed <- system("git status --porcelain", intern = TRUE)
           if (length(changed) > 0) {
             writeLines(changed)

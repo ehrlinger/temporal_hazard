@@ -102,7 +102,10 @@
 #' d2 <- hzr_decompos(t_grid, t_half = 3, nu = 2, m = -1)
 #'
 #' @seealso [hzr_phase_cumhaz()] for the phase-level cumulative hazard
-#'   contribution, [hzr_argument_mapping()] for SAS/C parameter mapping.
+#'   contribution, [hzr_argument_mapping()] for SAS/C parameter mapping,
+#'   [hzr_phase()] for specifying phases in [hazard()] models.
+#'
+#' \code{vignette("mf-mathematical-foundations")} for the full derivation.
 #'
 #' @export
 hzr_decompos <- function(time, t_half, nu, m) {

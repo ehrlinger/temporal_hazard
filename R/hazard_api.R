@@ -118,51 +118,35 @@ NULL
 #' summary(fit2)
 #'
 #' \donttest{
-#' # ── Parametric survival with Kaplan-Meier overlay (requires hvtiPlotR)
-#' if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
-#'     requireNamespace("ggplot2", quietly = TRUE)) {
-#'   library(hvtiPlotR)
+#' # ── Parametric survival with Kaplan-Meier overlay ─────────────────
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   library(ggplot2)
 #'
 #'   # Parametric curve on a fine grid at median covariate profile
 #'   t_grid   <- seq(0.05, max(dat$time), length.out = 80)
 #'   curve_df <- data.frame(
 #'     time = t_grid, age = median(dat$age), nyha = 2, shock = 0
 #'   )
-#'   curve_df$survival <- predict(fit2, newdata = curve_df, type = "survival")
+#'   curve_df$survival <- predict(fit2, newdata = curve_df,
+#'                                type = "survival") * 100
 #'
 #'   # Kaplan-Meier empirical overlay
 #'   km    <- survival::survfit(survival::Surv(time, status) ~ 1, data = dat)
-#'   km_df <- data.frame(time = km$time, estimate = km$surv * 100,
-#'                        source = "Kaplan-Meier")
+#'   km_df <- data.frame(time = km$time, survival = km$surv * 100)
 #'
-#'   curve_plot <- transform(curve_df, survival = survival * 100,
-#'                           source = "Parametric (Weibull)")
-#'
-#'   hz_obj <- hv_hazard(
-#'     curve_data       = curve_plot,
-#'     x_col            = "time",
-#'     estimate_col     = "survival",
-#'     group_col        = "source",
-#'     empirical        = km_df,
-#'     emp_x_col        = "time",
-#'     emp_estimate_col = "estimate",
-#'     emp_group_col    = "source",
-#'     emp_geom         = "step"
-#'   )
-#'
-#'   plot(hz_obj) +
-#'     ggplot2::scale_colour_manual(
+#'   ggplot() +
+#'     geom_step(data = km_df, aes(time, survival, colour = "Kaplan-Meier")) +
+#'     geom_line(data = curve_df, aes(time, survival,
+#'                                    colour = "Parametric (Weibull)")) +
+#'     scale_colour_manual(
 #'       values = c("Parametric (Weibull)" = "#0072B2",
 #'                  "Kaplan-Meier"         = "#D55E00")
 #'     ) +
-#'     ggplot2::scale_y_continuous(limits = c(0, 100)) +
-#'     ggplot2::labs(
-#'       x      = "Years after surgery",
-#'       y      = "Freedom from death (%)",
-#'       colour = NULL
-#'     ) +
-#'     hv_theme_manuscript() +
-#'     ggplot2::theme(legend.position = "bottom")
+#'     scale_y_continuous(limits = c(0, 100)) +
+#'     labs(x = "Months after surgery", y = "Freedom from death (%)",
+#'          colour = NULL) +
+#'     theme_minimal() +
+#'     theme(legend.position = "bottom")
 #' }
 #' }
 #'
@@ -216,6 +200,16 @@ NULL
 #'     ggplot2::theme(legend.position = "bottom")
 #' }
 #' }
+#'
+#' @seealso
+#' [predict.hazard()] for survival/cumulative-hazard predictions,
+#' [summary.hazard()] for model summaries,
+#' [hzr_phase()] for specifying multiphase temporal shapes.
+#'
+#' Vignettes with worked examples:
+#' \code{vignette("fitting-hazard-models")} --- single-phase through multiphase fitting,
+#' \code{vignette("prediction-visualization")} --- prediction types and decomposed hazard plots,
+#' \code{vignette("inference-diagnostics")} --- bootstrap CIs and model diagnostics.
 #'
 #' @references
 #' Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying
@@ -547,10 +541,9 @@ hazard <- function(formula = NULL,
 #' new_patients
 #'
 #' \donttest{
-#' # ── Grouped survival curves (requires hvtiPlotR) ─────────────────────
-#' if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
-#'     requireNamespace("ggplot2", quietly = TRUE)) {
-#'   library(hvtiPlotR)
+#' # ── Grouped survival curves ───────────────────────────────────────
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   library(ggplot2)
 #'
 #'   t_grid <- seq(0.05, max(dat$time), length.out = 80)
 #'   profiles <- data.frame(
@@ -574,23 +567,56 @@ hazard <- function(formula = NULL,
 #'   })
 #'   curve_df <- do.call(rbind, curve_list)
 #'
-#'   hz_obj <- hv_hazard(
-#'     curve_data   = curve_df,
-#'     x_col        = "time",
-#'     estimate_col = "survival",
-#'     group_col    = "profile"
-#'   )
+#'   ggplot(curve_df, aes(time, survival, colour = profile)) +
+#'     geom_line() +
+#'     scale_y_continuous(limits = c(0, 100)) +
+#'     labs(x = "Months after surgery",
+#'          y = "Freedom from death (%)",
+#'          title = "Predicted survival by risk profile",
+#'          colour = NULL) +
+#'     theme_minimal()
+#' }
+#' }
 #'
-#'   plot(hz_obj) +
-#'     ggplot2::scale_y_continuous(limits = c(0, 100)) +
-#'     ggplot2::labs(
-#'       x     = "Years after surgery",
-#'       y     = "Freedom from death (%)",
-#'       title = "Predicted survival by risk profile"
-#'     ) +
-#'     hv_theme_manuscript()
+#' \donttest{
+#' # ── Multiphase predictions with decomposition ────────────────────
+#' set.seed(42)
+#' n   <- 200
+#' dat <- data.frame(
+#'   time   = rexp(n, rate = 0.25) + 0.01,
+#'   status = rbinom(n, size = 1, prob = 0.65)
+#' )
+#' fit_mp <- hazard(
+#'   survival::Surv(time, status) ~ 1,
+#'   data   = dat,
+#'   dist   = "multiphase",
+#'   phases = list(
+#'     early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
+#'     late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+#'   ),
+#'   fit     = TRUE,
+#'   control = list(n_starts = 3, maxit = 500)
+#' )
+#'
+#' t_grid <- seq(0.01, max(dat$time) * 0.9, length.out = 100)
+#' nd     <- data.frame(time = t_grid)
+#'
+#' # Overall survival
+#' predict(fit_mp, newdata = nd, type = "survival")
+#'
+#' # Per-phase decomposed cumulative hazard
+#' decomp <- predict(fit_mp, newdata = nd,
+#'                   type = "cumulative_hazard", decompose = TRUE)
+#' head(decomp)
 #' }
-#' }
+#'
+#' @seealso
+#' [hazard()] for model fitting,
+#' [summary.hazard()] for model summaries,
+#' [hzr_phase()] for multiphase temporal shapes.
+#'
+#' \code{vignette("prediction-visualization")} for detailed prediction
+#' workflows including decomposed hazard plots and patient-specific curves.
 #' @export
 predict.hazard <- function(object, newdata = NULL,
                            type = c("hazard", "linear_predictor",
@@ -857,9 +883,38 @@ print.hazard <- function(x, ...) {
 #' @param ... Unused; for S3 compatibility.
 #' @return An object of class `summary.hazard`.
 #' @examples
+#' # ── Single-phase Weibull summary ────────────────────────────────────
 #' fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
 #'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 #' summary(fit)
+#'
+#' \donttest{
+#' # ── Multiphase model summary ────────────────────────────────────────
+#' set.seed(42)
+#' n   <- 200
+#' dat <- data.frame(
+#'   time   = rexp(n, rate = 0.25) + 0.01,
+#'   status = rbinom(n, size = 1, prob = 0.65)
+#' )
+#' fit_mp <- hazard(
+#'   survival::Surv(time, status) ~ 1,
+#'   data   = dat,
+#'   dist   = "multiphase",
+#'   phases = list(
+#'     early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
+#'     late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+#'   ),
+#'   fit     = TRUE,
+#'   control = list(n_starts = 3, maxit = 500)
+#' )
+#' summary(fit_mp)
+#' }
+#'
+#' @seealso
+#' [hazard()] for model fitting, [predict.hazard()] for predictions.
+#'
+#' \code{vignette("fitting-hazard-models")} for fitting workflows,
+#' \code{vignette("inference-diagnostics")} for bootstrap CIs and diagnostics.
 #' @export
 summary.hazard <- function(object, ...) {
   n <- length(object$data$time)

@@ -24,16 +24,12 @@ articles:
     navbar: Migration guides
     contents:
       - sas-to-r-migration
-  - title: "Examples: by analysis family"
+  - title: Worked examples
     navbar: Examples
     contents:
-      - lg-exploratory-example
-      - ac-actuarial-example
-      - hz-estimate-hazard-example
-      - hm-multivariable-example
-      - hp-prediction-example
-      - bs-bootstrap-example
-      - hs-sensitivity-example
+      - fitting-hazard-models
+      - prediction-visualization
+      - inference-diagnostics
 
 reference:
   - title: Hazard model
@@ -53,6 +49,13 @@ reference:
     contents:
       - hzr_decompos
       - hzr_decompos_g3
+  - title: Datasets
+    contents:
+      - avc
+      - cabgkul
+      - omc
+      - tga
+      - valves
   - title: Migration tools
     contents:
       - hzr_argument_mapping

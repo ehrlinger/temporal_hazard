@@ -19,7 +19,37 @@ Returns a compact summary of a \code{hazard} object, including model metadata,
 fit diagnostics, and coefficient-level statistics when available.
 }
 \examples{
+# ── Single-phase Weibull summary ────────────────────────────────────
 fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 summary(fit)
+
+\donttest{
+# ── Multiphase model summary ────────────────────────────────────────
+set.seed(42)
+n   <- 200
+dat <- data.frame(
+  time   = rexp(n, rate = 0.25) + 0.01,
+  status = rbinom(n, size = 1, prob = 0.65)
+)
+fit_mp <- hazard(
+  survival::Surv(time, status) ~ 1,
+  data   = dat,
+  dist   = "multiphase",
+  phases = list(
+    early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
+    late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 3, maxit = 500)
+)
+summary(fit_mp)
+}
+
+}
+\seealso{
+\code{\link[=hazard]{hazard()}} for model fitting, \code{\link[=predict.hazard]{predict.hazard()}} for predictions.
+
+\code{vignette("fitting-hazard-models")} for fitting workflows,
+\code{vignette("inference-diagnostics")} for bootstrap CIs and diagnostics.
 }

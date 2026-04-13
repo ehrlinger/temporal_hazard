@@ -93,10 +93,9 @@ new_patients$cumulative_hazard <- cumhaz
 new_patients
 
 \donttest{
-# ── Grouped survival curves (requires hvtiPlotR) ─────────────────────
-if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
-    requireNamespace("ggplot2", quietly = TRUE)) {
-  library(hvtiPlotR)
+# ── Grouped survival curves ───────────────────────────────────────
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  library(ggplot2)
 
   t_grid <- seq(0.05, max(dat$time), length.out = 80)
   profiles <- data.frame(
@@ -120,21 +119,55 @@ if (requireNamespace("hvtiPlotR", quietly = TRUE) &&
   })
   curve_df <- do.call(rbind, curve_list)
 
-  hz_obj <- hv_hazard(
-    curve_data   = curve_df,
-    x_col        = "time",
-    estimate_col = "survival",
-    group_col    = "profile"
-  )
+  ggplot(curve_df, aes(time, survival, colour = profile)) +
+    geom_line() +
+    scale_y_continuous(limits = c(0, 100)) +
+    labs(x = "Months after surgery",
+         y = "Freedom from death (\%)",
+         title = "Predicted survival by risk profile",
+         colour = NULL) +
+    theme_minimal()
+}
+}
 
-  plot(hz_obj) +
-    ggplot2::scale_y_continuous(limits = c(0, 100)) +
-    ggplot2::labs(
-      x     = "Years after surgery",
-      y     = "Freedom from death (\%)",
-      title = "Predicted survival by risk profile"
-    ) +
-    hv_theme_manuscript()
+\donttest{
+# ── Multiphase predictions with decomposition ────────────────────
+set.seed(42)
+n   <- 200
+dat <- data.frame(
+  time   = rexp(n, rate = 0.25) + 0.01,
+  status = rbinom(n, size = 1, prob = 0.65)
+)
+fit_mp <- hazard(
+  survival::Surv(time, status) ~ 1,
+  data   = dat,
+  dist   = "multiphase",
+  phases = list(
+    early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
+    late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 3, maxit = 500)
+)
+
+t_grid <- seq(0.01, max(dat$time) * 0.9, length.out = 100)
+nd     <- data.frame(time = t_grid)
+
+# Overall survival
+predict(fit_mp, newdata = nd, type = "survival")
+
+# Per-phase decomposed cumulative hazard
+decomp <- predict(fit_mp, newdata = nd,
+                  type = "cumulative_hazard", decompose = TRUE)
+head(decomp)
 }
+
 }
+\seealso{
+\code{\link[=hazard]{hazard()}} for model fitting,
+\code{\link[=summary.hazard]{summary.hazard()}} for model summaries,
+\code{\link[=hzr_phase]{hzr_phase()}} for multiphase temporal shapes.
+
+\code{vignette("prediction-visualization")} for detailed prediction
+workflows including decomposed hazard plots and patient-specific curves.
 }

@@ -722,8 +722,3 @@ NULL
   
   invisible(result$parsed)
 }
-
-#' Utility: string concatenation pipe
-#'
-#' @noRd
-'%+%' <- function(x, y) paste0(x, y)
