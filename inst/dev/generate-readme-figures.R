@@ -6,13 +6,13 @@ library(TemporalHazard)
 library(ggplot2)
 library(survival)
 
-# -- Load the AVC dataset (lazy-loaded with the package) --------------------
-data(avc)
+# -- Load the CABGKUL dataset (lazy-loaded with the package) -----------------
+data(cabgkul)
 
-# -- Fit a 3-phase multiphase model on AVC death ----------------------------
+# -- Fit a 3-phase multiphase model on CABG death ----------------------------
 fit <- hazard(
   Surv(int_dead, dead) ~ 1,
-  data   = avc,
+  data   = cabgkul,
   dist   = "multiphase",
   phases = list(
     early    = hzr_phase("cdf",      t_half = 0.5, nu = 1, m = 1),
@@ -24,7 +24,7 @@ fit <- hazard(
 )
 
 # -- Time grid for prediction ------------------------------------------------
-t_grid <- seq(0.01, max(avc$int_dead) * 0.95, length.out = 200)
+t_grid <- seq(0.01, max(cabgkul$int_dead) * 0.95, length.out = 200)
 nd     <- data.frame(time = t_grid)
 
 # -- Decomposed cumulative hazard → numerical hazard rate --------------------
@@ -69,9 +69,9 @@ p1 <- ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase,
                                    Constant = "dashed", Late = "dashed")) +
   scale_linewidth_manual(values = c(Total = 1.3, Early = 0.7,
                                     Constant = 0.7, Late = 0.7)) +
-  labs(x = "Years after surgery",
+  labs(x = "Months after CABG",
        y = "Hazard rate",
-       title = "Additive phase decomposition of hazard",
+       title = "Additive phase decomposition of hazard (CABGKUL, n = 5,880)",
        colour = "Phase", linetype = "Phase", linewidth = "Phase") +
   theme_minimal(base_size = 13) +
   theme(legend.position = "bottom",
@@ -84,7 +84,7 @@ ggsave("man/figures/readme-hazard-phases.png", p1,
 surv_total <- predict(fit, newdata = nd, type = "survival")
 surv_df    <- data.frame(time = t_grid, survival = surv_total * 100)
 
-km      <- survfit(Surv(int_dead, dead) ~ 1, data = avc)
+km      <- survfit(Surv(int_dead, dead) ~ 1, data = cabgkul)
 km_df   <- data.frame(time = km$time, survival = km$surv * 100)
 
 p2 <- ggplot() +
@@ -96,9 +96,9 @@ p2 <- ggplot() +
     values = c("Multiphase model" = "#0072B2", "Kaplan-Meier" = "#D55E00")
   ) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Years after surgery",
+  labs(x = "Months after CABG",
        y = "Freedom from death (%)",
-       title = "Multiphase parametric survival vs. Kaplan-Meier",
+       title = "Multiphase parametric survival vs. Kaplan-Meier (CABGKUL)",
        colour = NULL) +
   theme_minimal(base_size = 13) +
   theme(legend.position = "bottom",

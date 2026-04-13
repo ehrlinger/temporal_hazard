@@ -1,7 +1,7 @@
 # TemporalHazard
 
 <!-- badges: start -->
-[![version](https://img.shields.io/badge/version-0.9.0-blue.svg)](https://github.com/ehrlinger/temporal_hazard)
+[![version](https://img.shields.io/badge/version-0.9.1-blue.svg)](https://github.com/ehrlinger/temporal_hazard)
 [![R-CMD-check](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/ehrlinger/temporal_hazard/branch/main/graph/badge.svg)](https://app.codecov.io/gh/ehrlinger/temporal_hazard?branch=main)
 [![pkgdown site](https://img.shields.io/badge/docs-pkgdown-blue)](https://ehrlinger.github.io/temporal_hazard/)
@@ -23,13 +23,13 @@ rate (constant phase), and eventually rises again as patients age (late phase).
 A single Weibull curve forces a monotone shape; a multiphase model captures all
 three regimes simultaneously.
 
-<img src="man/figures/readme-hazard-phases.png" width="100%" alt="Additive phase decomposition showing early, constant, and late hazard components summing to the total hazard curve" />
+<img src="man/figures/readme-hazard-phases.png" width="100%" alt="Additive phase decomposition showing early, constant, and late hazard components summing to the total hazard curve (CABGKUL, n=5,880)" />
 
 The resulting survival curve closely tracks the nonparametric Kaplan-Meier estimate
 while providing a smooth, parametric representation that supports covariate
 adjustment, prediction, and extrapolation.
 
-<img src="man/figures/readme-survival.png" width="100%" alt="Multiphase parametric survival curve overlaid on the Kaplan-Meier estimate from the AVC dataset" />
+<img src="man/figures/readme-survival.png" width="100%" alt="Multiphase parametric survival curve overlaid on the Kaplan-Meier estimate from the CABGKUL dataset (n=5,880)" />
 
 ## Quick start
 
@@ -42,24 +42,26 @@ remotes::install_github("ehrlinger/temporal_hazard")
 
 ```r
 library(TemporalHazard)
+data(cabgkul)
 
+# Intercept-only Weibull on 5,880 CABG patients
 fit <- hazard(
-  survival::Surv(time, status) ~ age + nyha,
-  data  = dat,
+  survival::Surv(int_dead, dead) ~ 1,
+  data  = cabgkul,
   dist  = "weibull",
-  theta = c(mu = 0.25, nu = 1.1, beta1 = 0, beta2 = 0),
+  theta = c(mu = 0.10, nu = 1.0),
   fit   = TRUE
 )
 summary(fit)
-predict(fit, newdata = new_patients, type = "survival")
 ```
 
 ### Multiphase model
 
 ```r
+# Three-phase additive hazard decomposition
 fit_mp <- hazard(
   survival::Surv(int_dead, dead) ~ 1,
-  data   = avc,
+  data   = cabgkul,
   dist   = "multiphase",
   phases = list(
     early    = hzr_phase("cdf",      t_half = 0.5, nu = 1, m = 1),
@@ -71,20 +73,25 @@ fit_mp <- hazard(
 summary(fit_mp)
 
 # Per-phase decomposition of cumulative hazard
-predict(fit_mp, newdata = grid, type = "cumulative_hazard", decompose = TRUE)
+t_grid <- seq(0.01, max(cabgkul$int_dead) * 0.9, length.out = 200)
+predict(fit_mp, newdata = data.frame(time = t_grid),
+        type = "cumulative_hazard", decompose = TRUE)
 ```
 
 Each phase is specified with `hzr_phase()`, which sets the temporal shape
 type and starting values. The optimizer estimates both the phase-specific
-scale parameters and shape parameters jointly.
+scale parameters and shape parameters jointly. Covariates are supported via
+the formula interface (see `vignette("fitting-hazard-models")`).
 
 ## Documentation
 
-- **[Getting Started](https://ehrlinger.github.io/temporal_hazard/articles/getting-started.html)** --- single-phase and multiphase fit-predict workflows with visualizations.
+- **[Getting Started](https://ehrlinger.github.io/temporal_hazard/articles/getting-started.html)** --- first fit-predict workflow with visualizations.
+- **[Fitting Hazard Models](https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.html)** --- intercept-only through multiphase and multi-endpoint models.
+- **[Prediction & Visualization](https://ehrlinger.github.io/temporal_hazard/articles/prediction-visualization.html)** --- survival curves, decomposed hazard, patient-specific risk profiles.
+- **[Inference & Diagnostics](https://ehrlinger.github.io/temporal_hazard/articles/inference-diagnostics.html)** --- bootstrap CIs, decile-of-risk validation, sensitivity analysis.
 - **[Mathematical Foundations](https://ehrlinger.github.io/temporal_hazard/articles/mf-mathematical-foundations.html)** --- the generalized decomposition, additive hazard model, censoring likelihood, and time-varying covariates.
 - **[Package Architecture](https://ehrlinger.github.io/temporal_hazard/articles/ar-architecture.html)** --- internal design, golden fixtures, and dataset catalog.
 - **[SAS-to-R Migration](https://ehrlinger.github.io/temporal_hazard/articles/sas-to-r-migration.html)** --- statement-by-statement mapping from SAS HAZARD syntax.
-- **[Example vignettes](https://ehrlinger.github.io/temporal_hazard/articles/)** --- exploratory, actuarial, estimation, multivariable, prediction, bootstrap, and sensitivity workflows.
 
 ## Development
 
