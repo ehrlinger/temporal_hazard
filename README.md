@@ -72,9 +72,11 @@ fit_mp <- hazard(
   data   = cabgkul,
   dist   = "multiphase",
   phases = list(
-    early    = hzr_phase("cdf",      t_half = 0.5, nu = 1, m = 1),
+    early    = hzr_phase("cdf", t_half = 0.2, nu = 1, m = 1,
+                          fixed = "shapes"),
     constant = hzr_phase("constant"),
-    late     = hzr_phase("cdf",      t_half = 10,  nu = 1, m = 1)
+    late     = hzr_phase("g3",  tau = 1, gamma = 3, alpha = 1, eta = 1,
+                          fixed = "shapes")
   ),
   fit = TRUE
 )
