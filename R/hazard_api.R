@@ -988,8 +988,10 @@ print.summary.hazard <- function(x, ...) {
       nm <- names(x$phases)[i]
       ph <- x$phases[[i]]
       label <- switch(ph$type,
-        cdf = "cdf (early risk)", hazard = "hazard (late risk)",
-        constant = "constant (flat rate)")
+        cdf      = paste0("cdf (", nm, " risk)"),
+        hazard   = "hazard (late risk)",
+        constant = "constant (flat rate)",
+        g3       = "g3 (late risk)")
       cat("  phase ", i, ":      ", nm, " - ", label, "\n", sep = "")
     }
   }

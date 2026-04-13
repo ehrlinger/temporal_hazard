@@ -15,7 +15,6 @@ format:
 ```{r}
 #| include: false
 has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE)
-has_avc <- has_pkg && "avc" %in% utils::data(package = "TemporalHazard")$results[, "Item"]
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
@@ -87,9 +86,9 @@ library(ggplot2)
 # Parametric curve on a fine grid
 t_grid <- seq(0.05, max(dat$time), length.out = 80)
 curve_df <- data.frame(
-  time = t_grid,
-  AGE = median(dat$age),
-  nyha = 2,
+  time  = t_grid,
+  age   = median(dat$age),
+  nyha  = 2,
   shock = 0
 )
 curve_df$survival <- predict(fit, newdata = curve_df, type = "survival") * 100
@@ -130,13 +129,12 @@ and starting values for the optimizer.
 
 ```{r}
 #| label: multiphase-fit
-#| eval: !expr has_avc
-# AVC dataset is lazy-loaded with the package
-data(avc)
+# CABGKUL is the benchmark dataset for 3-phase decomposition (n = 5,880)
+data(cabgkul)
 
 fit_mp <- hazard(
   Surv(int_dead, dead) ~ 1,
-  data   = avc,
+  data   = cabgkul,
   dist   = "multiphase",
   phases = list(
     early    = hzr_phase("cdf",      t_half = 0.5, nu = 1, m = 1),
@@ -158,11 +156,10 @@ instantaneous hazard rate for each phase.
 
 ```{r}
 #| label: fig-hazard-phases
-#| eval: !expr has_avc
 #| fig-cap: "Additive phase decomposition: the total hazard (solid) is the sum of early, constant, and late components (dashed)"
 #| fig-width: 7
 #| fig-height: 4.5
-t_grid <- seq(0.01, max(avc$int_dead) * 0.95, length.out = 200)
+t_grid <- seq(0.01, max(cabgkul$int_dead) * 0.95, length.out = 200)
 nd     <- data.frame(time = t_grid)
 
 # decompose = TRUE returns per-phase cumulative hazard columns
@@ -197,7 +194,7 @@ ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase)) +
                                    Constant = "dashed", Late = "dashed")) +
   scale_linewidth_manual(values = c(Total = 1.3, Early = 0.7,
                                     Constant = 0.7, Late = 0.7)) +
-  labs(x = "Months after surgery", y = "Hazard rate",
+  labs(x = "Months after CABG", y = "Hazard rate",
        colour = "Phase", linetype = "Phase", linewidth = "Phase") +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -207,7 +204,6 @@ ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase)) +
 
 ```{r}
 #| label: fig-mp-survival
-#| eval: !expr has_avc
 #| fig-cap: "Multiphase parametric survival vs. Kaplan-Meier"
 #| fig-width: 7
 #| fig-height: 4.5
@@ -216,7 +212,7 @@ surv_df <- data.frame(
   survival = predict(fit_mp, newdata = nd, type = "survival") * 100
 )
 
-km    <- survfit(Surv(int_dead, dead) ~ 1, data = avc)
+km    <- survfit(Surv(int_dead, dead) ~ 1, data = cabgkul)
 km_df <- data.frame(time = km$time, survival = km$surv * 100)
 
 ggplot() +
@@ -228,7 +224,7 @@ ggplot() +
     values = c("Multiphase model" = "#0072B2", "Kaplan-Meier" = "#D55E00")
   ) +
   scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Months after surgery", y = "Freedom from death (%)",
+  labs(x = "Months after CABG", y = "Freedom from death (%)",
        colour = NULL) +
   theme_minimal() +
   theme(legend.position = "bottom")
