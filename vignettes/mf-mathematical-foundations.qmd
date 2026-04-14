@@ -7,13 +7,11 @@ format:
     toc: true
     toc-depth: 3
     number-sections: true
+vignette: >
+  %\VignetteIndexEntry{Mathematical Foundations of TemporalHazard}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
 ---
-
-<!--
-%\VignetteIndexEntry{Mathematical Foundations of TemporalHazard}
-%\VignetteEngine{quarto::html}
-%\VignetteEncoding{UTF-8}
--->
 
 ```{r}
 #| include: false

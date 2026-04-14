@@ -53,7 +53,7 @@ Use \code{"multiphase"} for N-phase additive hazard models (requires \code{phase
 \item{phases}{Optional named list of \code{\link[=hzr_phase]{hzr_phase()}} objects specifying the
 phases for a multiphase model (\code{dist = "multiphase"}).  See Examples.}
 
-\item{fit}{Logical; if TRUE and theta is provided, fit the model via ML (default TRUE).}
+\item{fit}{Logical; if TRUE, fit the model via maximum likelihood (default FALSE).}
 
 \item{control}{Named list of control options (see Details).}
 

@@ -4,13 +4,11 @@ subtitle: "Build, fit, and predict with temporal parametric hazard models"
 format:
   html:
     code-fold: false
+vignette: >
+  %\VignetteIndexEntry{Getting Started with TemporalHazard}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
 ---
-
-<!--
-%\VignetteIndexEntry{Getting Started with TemporalHazard}
-%\VignetteEngine{quarto::html}
-%\VignetteEncoding{UTF-8}
--->
 
 ```{r}
 #| include: false
