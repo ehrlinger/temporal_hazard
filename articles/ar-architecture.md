@@ -3,10 +3,13 @@
 ## 1 Overview
 
 TemporalHazard is a pure-R reimplementation of the C/SAS HAZARD
-procedure originally developed at Cleveland Clinic for multi-phase
-parametric hazard modeling (Blackstone, Naftel, and Turner 1986). The
-package provides a unified framework for fitting additive hazard models
-with an arbitrary number of temporal phases, each governed by the
+procedure originally developed at the University of Alabama at
+Birmingham (UAB) for multi-phase parametric hazard modeling (Blackstone,
+Naftel, and Turner 1986). The SAS/C code and this R package are
+currently developed and maintained at The Cleveland Clinic Foundation,
+and the R code was wholly developed at The Cleveland Clinic Foundation.
+The package provides a unified framework for fitting additive hazard
+models with an arbitrary number of temporal phases, each governed by the
 three-parameter `decompos(t; t_half, nu, m)` family. The generalized
 temporal decomposition extends naturally to longitudinal mixed-effects
 settings (Rajeswaran et al. 2018).

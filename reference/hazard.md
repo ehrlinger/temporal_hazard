@@ -266,14 +266,15 @@ fit_mp <- hazard(
   data   = dat,
   dist   = "multiphase",
   phases = list(
-    early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
-    late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+    early = hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
+                       fixed = "shapes"),
+    late  = hzr_phase("cdf", t_half = 5,   nu = 1, m = 0,
+                       fixed = "shapes")
   ),
   fit     = TRUE,
-  control = list(n_starts = 3, maxit = 500)
+  control = list(n_starts = 5, maxit = 1000)
 )
 summary(fit_mp)
-#> Warning: NaNs produced
 #> Multiphase hazard model (2 phases)
 #>   observations: 180 
 #>   predictors:   0 
@@ -282,24 +283,24 @@ summary(fit_mp)
 #>   phase 2:      late - cdf (late risk)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -292.772 
-#>   evaluations: fn=140, gr=53
+#>   log-lik:      -321.926 
+#>   evaluations: fn=16, gr=7
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                 estimate std_error     z_stat   p_value
-#>   log_mu     -0.54824228       NaN         NA        NA
-#>   log_t_half  1.02039433       NaN         NA        NA
-#>   nu          1.75652792       NaN         NA        NA
-#>   m          -0.04565666 0.2817192 -0.1620644 0.8712551
+#>                estimate std_error z_stat p_value
+#>   log_mu     -1.8209827        NA     NA      NA
+#>   log_t_half -0.6931472        NA     NA      NA
+#>   nu          2.0000000        NA     NA      NA
+#>   m           0.0000000        NA     NA      NA
 #> 
 #>   Phase: late (cdf)
-#>                estimate std_error   z_stat   p_value
-#>   log_mu      2.6577939  1.765858 1.505100 0.1322983
-#>   log_t_half  4.2707658  2.887531 1.479037 0.1391303
-#>   nu          1.8308388       NaN       NA        NA
-#>   m          -0.1004546       NaN       NA        NA
+#>               estimate  std_error   z_stat      p_value
+#>   log_mu     0.6119202 0.05531211 11.06304 1.895578e-28
+#>   log_t_half 1.6094379         NA       NA           NA
+#>   nu         1.0000000         NA       NA           NA
+#>   m          0.0000000         NA       NA           NA
 
 # ── Per-phase decomposed cumulative hazard ────────────────────────
 if (requireNamespace("ggplot2", quietly = TRUE)) {

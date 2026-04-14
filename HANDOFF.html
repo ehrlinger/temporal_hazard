@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,6 +30,7 @@
     <li><a class="dropdown-item" href="articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
+    <li><a class="dropdown-item" href="articles/clinical-analysis-walkthrough.html">Complete Clinical Analysis Walkthrough</a></li>
     <li><a class="dropdown-item" href="articles/fitting-hazard-models.html">Fitting Hazard Models</a></li>
     <li><a class="dropdown-item" href="articles/prediction-visualization.html">Prediction &amp; Visualization</a></li>
     <li><a class="dropdown-item" href="articles/inference-diagnostics.html">Inference &amp; Diagnostics</a></li>
@@ -122,6 +123,25 @@
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"inst/dev/generate-readme-figures.R"</span><span class="op">)</span></span></code></pre></div>
 </li>
 </ol></div>
+<div class="section level3">
+<h3 id="branch-protection-enforcement">Branch Protection Enforcement<a class="anchor" aria-label="anchor" href="#branch-protection-enforcement"></a></h3>
+<p>Ensure GitHub branch protection is enabled for <code>main</code> with:</p>
+<ol style="list-style-type: decimal"><li>Pull request required before merge</li>
+<li>At least 1 approval</li>
+<li>Dismiss stale approvals on new commits</li>
+<li>Require status checks to pass</li>
+<li>Require branch to be up to date before merging</li>
+<li>Require conversation resolution before merging</li>
+<li>Optional but recommended: include administrators</li>
+</ol><p>Require these status checks:</p>
+<ul><li><code>lint</code></li>
+<li><code>test-coverage</code></li>
+<li>
+<code>build-and-deploy</code> (pkgdown PR validation)</li>
+<li><code>check-badge-sync</code></li>
+<li>All <code>R-CMD-check</code> matrix checks</li>
+</ul><p>See <code>.github/BRANCH_PROTECTION.md</code> for the full branch-protection setup guide.</p>
+</div>
 <div class="section level3">
 <h3 id="short-term-cran-submission">Short-term: CRAN Submission<a class="anchor" aria-label="anchor" href="#short-term-cran-submission"></a></h3>
 <ul><li>Ensure 0 ERROR / 0 WARNING / only expected NOTE(s)</li>

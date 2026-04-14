@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,6 +47,7 @@
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
+    <li><a class="dropdown-item" href="../articles/clinical-analysis-walkthrough.html">Complete Clinical Analysis Walkthrough</a></li>
     <li><a class="dropdown-item" href="../articles/fitting-hazard-models.html">Fitting Hazard Models</a></li>
     <li><a class="dropdown-item" href="../articles/prediction-visualization.html">Prediction &amp; Visualization</a></li>
     <li><a class="dropdown-item" href="../articles/inference-diagnostics.html">Inference &amp; Diagnostics</a></li>
@@ -226,21 +227,21 @@ Figure 1: Weibull parametric survival vs. Kaplan-Meier (CABG, KU Leuven)
 <span><span class="co">#&gt;   phase 2:      constant - constant (flat rate)</span></span>
 <span><span class="co">#&gt;   engine:       native-r-m2 </span></span>
 <span><span class="co">#&gt;   converged:    TRUE </span></span>
-<span><span class="co">#&gt;   log-lik:      -215.944 </span></span>
-<span><span class="co">#&gt;   evaluations: fn=67, gr=29</span></span>
+<span><span class="co">#&gt;   log-lik:      -211.468 </span></span>
+<span><span class="co">#&gt;   evaluations: fn=4, gr=1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients (internal scale):</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Phase: early (cdf)</span></span>
-<span><span class="co">#&gt;               estimate std_error z_stat p_value</span></span>
-<span><span class="co">#&gt;   log_mu     -1.029847        NA     NA      NA</span></span>
-<span><span class="co">#&gt;   log_t_half  0.338792        NA     NA      NA</span></span>
-<span><span class="co">#&gt;   nu          4.580170        NA     NA      NA</span></span>
-<span><span class="co">#&gt;   m          -0.184108        NA     NA      NA</span></span>
+<span><span class="co">#&gt;                estimate  std_error     z_stat      p_value</span></span>
+<span><span class="co">#&gt;   log_mu     -1.4574911 0.07272253 -20.041810 2.379564e-89</span></span>
+<span><span class="co">#&gt;   log_t_half -1.7946653 0.36483350  -4.919135 8.692750e-07</span></span>
+<span><span class="co">#&gt;   nu          1.4542433 0.55221855   2.633456 8.452075e-03</span></span>
+<span><span class="co">#&gt;   m           0.9265214 0.71022121   1.304553 1.920450e-01</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Phase: constant (constant)</span></span>
 <span><span class="co">#&gt;           estimate std_error z_stat p_value</span></span>
-<span><span class="co">#&gt;   log_mu -1229.234        NA     NA      NA</span></span></code></pre></div>
+<span><span class="co">#&gt;   log_mu -7.523244        NA     NA      NA</span></span></code></pre></div>
 </div>
 <p>Comparing the single-phase Weibull to the multiphase fit:</p>
 <div class="cell">

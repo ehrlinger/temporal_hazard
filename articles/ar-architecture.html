@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,6 +47,7 @@
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
+    <li><a class="dropdown-item" href="../articles/clinical-analysis-walkthrough.html">Complete Clinical Analysis Walkthrough</a></li>
     <li><a class="dropdown-item" href="../articles/fitting-hazard-models.html">Fitting Hazard Models</a></li>
     <li><a class="dropdown-item" href="../articles/prediction-visualization.html">Prediction &amp; Visualization</a></li>
     <li><a class="dropdown-item" href="../articles/inference-diagnostics.html">Inference &amp; Diagnostics</a></li>
@@ -82,7 +83,7 @@
     <section class="section level2" data-number="1"><h2 data-number="1" id="overview">
 <span class="header-section-number">1</span> Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>TemporalHazard is a pure-R reimplementation of the C/SAS HAZARD procedure originally developed at Cleveland Clinic for multi-phase parametric hazard modeling (Blackstone, Naftel, and Turner 1986). The package provides a unified framework for fitting additive hazard models with an arbitrary number of temporal phases, each governed by the three-parameter <code>decompos(t; t_half, nu, m)</code> family. The generalized temporal decomposition extends naturally to longitudinal mixed-effects settings (Rajeswaran et al. 2018).</p>
+<p>TemporalHazard is a pure-R reimplementation of the C/SAS HAZARD procedure originally developed at the University of Alabama at Birmingham (UAB) for multi-phase parametric hazard modeling (Blackstone, Naftel, and Turner 1986). The SAS/C code and this R package are currently developed and maintained at The Cleveland Clinic Foundation, and the R code was wholly developed at The Cleveland Clinic Foundation. The package provides a unified framework for fitting additive hazard models with an arbitrary number of temporal phases, each governed by the three-parameter <code>decompos(t; t_half, nu, m)</code> family. The generalized temporal decomposition extends naturally to longitudinal mixed-effects settings (Rajeswaran et al. 2018).</p>
 <p>This vignette documents the internal architecture: how source files are organized, how functions compose into the fitting pipeline, how golden fixtures ensure regression-free development, and what reference datasets ship with the package.</p>
 </section><section class="section level2" data-number="2"><h2 data-number="2" id="source-file-organization">
 <span class="header-section-number">2</span> Source file organization<a class="anchor" aria-label="anchor" href="#source-file-organization"></a>

@@ -168,23 +168,23 @@ summary(fit_mp)
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>               estimate  std_error    z_stat p_value
-#>   log_mu     -3.779643 0.09381473 -40.28837       0
-#>   log_t_half -1.609438         NA        NA      NA
-#>   nu          1.000000         NA        NA      NA
-#>   m           1.000000         NA        NA      NA
+#>               estimate std_error    z_stat p_value
+#>   log_mu     -3.779538 0.0835127 -45.25704       0
+#>   log_t_half -1.609438        NA        NA      NA
+#>   nu          1.000000        NA        NA      NA
+#>   m           1.000000        NA        NA      NA
 #> 
 #>   Phase: constant (constant)
 #>           estimate  std_error    z_stat p_value
-#>   log_mu -7.224008 0.09299137 -77.68471       0
+#>   log_mu -7.225804 0.08275159 -87.31921       0
 #> 
 #>   Phase: late (g3)
-#>            estimate std_error    z_stat p_value
-#>   log_mu  -16.65919 0.1158934 -143.7458       0
-#>   log_tau   0.00000        NA        NA      NA
-#>   gamma     3.00000        NA        NA      NA
-#>   alpha     1.00000        NA        NA      NA
-#>   eta       1.00000        NA        NA      NA
+#>            estimate std_error z_stat p_value
+#>   log_mu  -16.65781        NA     NA      NA
+#>   log_tau   0.00000        NA     NA      NA
+#>   gamma     3.00000        NA     NA      NA
+#>   alpha     1.00000        NA     NA      NA
+#>   eta       1.00000        NA     NA      NA
 ```
 
 ### Decomposed hazard visualization

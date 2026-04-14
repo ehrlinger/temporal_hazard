@@ -58,3 +58,14 @@
   : Numerically stable log(1 - exp(-x)) for x \> 0
 - [`hzr_clamp_prob()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_clamp_prob.md)
   : Clamp probabilities away from 0 and 1
+
+## Diagnostics
+
+- [`hzr_deciles()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_deciles.md)
+  : Decile-of-risk calibration
+- [`print(`*`<hzr_deciles>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_deciles.md)
+  : Print method for hzr_deciles
+- [`hzr_gof()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_gof.md)
+  : Goodness-of-fit: observed vs. predicted events
+- [`print(`*`<hzr_gof>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_gof.md)
+  : Print method for hzr_gof

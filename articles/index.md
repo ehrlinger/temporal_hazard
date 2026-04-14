@@ -19,6 +19,8 @@
 
 ### Worked examples
 
+- [Complete Clinical Analysis
+  Walkthrough](https://ehrlinger.github.io/temporal_hazard/articles/clinical-analysis-walkthrough.md):
 - [Fitting Hazard
   Models](https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.md):
 - [Prediction &

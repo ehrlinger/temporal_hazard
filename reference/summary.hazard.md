@@ -50,13 +50,13 @@ summary(fit)
 #>   dist:         weibull 
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -57.588 
-#>   evaluations: fn=17, gr=5
+#>   log-lik:      -55.1318 
+#>   evaluations: fn=31, gr=5
 #> 
 #> Coefficients:
-#>     estimate  std_error   z_stat      p_value
-#> mu 0.4017570 0.07799612 5.150987 2.591190e-07
-#> nu 0.9772992 0.14742788 6.628998 3.379725e-11
+#>     estimate std_error   z_stat      p_value
+#> mu 0.4582700 0.1066703 4.296136 1.738007e-05
+#> nu 0.8182644 0.1251257 6.539537 6.170969e-11
 
 # \donttest{
 # ── Multiphase model summary ────────────────────────────────────────
@@ -71,14 +71,15 @@ fit_mp <- hazard(
   data   = dat,
   dist   = "multiphase",
   phases = list(
-    early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
-    late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+    early = hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
+                       fixed = "shapes"),
+    late  = hzr_phase("cdf", t_half = 5,   nu = 1, m = 0,
+                       fixed = "shapes")
   ),
   fit     = TRUE,
-  control = list(n_starts = 3, maxit = 500)
+  control = list(n_starts = 5, maxit = 1000)
 )
 summary(fit_mp)
-#> Warning: NaNs produced
 #> Multiphase hazard model (2 phases)
 #>   observations: 200 
 #>   predictors:   0 
@@ -87,23 +88,23 @@ summary(fit_mp)
 #>   phase 2:      late - cdf (late risk)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -393.584 
-#>   evaluations: fn=88, gr=21
+#>   log-lik:      -428.716 
+#>   evaluations: fn=27, gr=5
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                  estimate std_error    z_stat     p_value
-#>   log_mu      0.239134485       NaN        NA          NA
-#>   log_t_half  1.818478590       NaN        NA          NA
-#>   nu          0.004353297       NaN        NA          NA
-#>   m          -0.787666114 0.1325287 -5.943362 2.79235e-09
+#>                estimate std_error z_stat p_value
+#>   log_mu     -2.1153072        NA     NA      NA
+#>   log_t_half -0.6931472        NA     NA      NA
+#>   nu          2.0000000        NA     NA      NA
+#>   m           0.0000000        NA     NA      NA
 #> 
 #>   Phase: late (cdf)
-#>                 estimate std_error     z_stat    p_value
-#>   log_mu      3.74165145 5.9132228  0.6327601 0.52689032
-#>   log_t_half  2.39068098 5.9151369  0.4041633 0.68609267
-#>   nu         -0.75329358 0.3993425 -1.8863346 0.05924987
-#>   m           0.02353084 0.1145096  0.2054924 0.83718746
+#>               estimate  std_error  z_stat      p_value
+#>   log_mu     0.5511641 0.04098849 13.4468 3.214692e-41
+#>   log_t_half 1.6094379         NA      NA           NA
+#>   nu         1.0000000         NA      NA           NA
+#>   m          0.0000000         NA      NA           NA
 # }
 ```

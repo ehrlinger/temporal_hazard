@@ -13,7 +13,7 @@ post-operative risk and a constant late phase."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,7 @@ post-operative risk and a constant late phase."></head><body>
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
+    <li><a class="dropdown-item" href="../articles/clinical-analysis-walkthrough.html">Complete Clinical Analysis Walkthrough</a></li>
     <li><a class="dropdown-item" href="../articles/fitting-hazard-models.html">Fitting Hazard Models</a></li>
     <li><a class="dropdown-item" href="../articles/prediction-visualization.html">Prediction &amp; Visualization</a></li>
     <li><a class="dropdown-item" href="../articles/inference-diagnostics.html">Inference &amp; Diagnostics</a></li>
@@ -152,21 +153,21 @@ post-operative risk and a constant late phase.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phase 2:      constant - constant (flat rate)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -216.075 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=42, gr=21</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -211.468 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=4, gr=1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (internal scale):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: early (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate std_error z_stat p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -0.9278386        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  0.8601116        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          8.4530094        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -1.3311525        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate  std_error     z_stat      p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -1.4575139 0.07271743 -20.043529 2.298771e-89</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half -1.7947622 0.36480632  -4.919767 8.664715e-07</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          1.4541539 0.55210214   2.633849 8.442293e-03</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m           0.9266039 0.71017327   1.304758 1.919754e-01</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: constant (constant)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>           estimate std_error z_stat p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu -155.1512        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu -7.523126        NA     NA      NA</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

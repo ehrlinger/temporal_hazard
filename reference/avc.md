@@ -108,20 +108,20 @@ summary(fit)
 #>   phase 2:      constant - constant (flat rate)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -216.075 
-#>   evaluations: fn=42, gr=21
+#>   log-lik:      -211.468 
+#>   evaluations: fn=4, gr=1
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                estimate std_error z_stat p_value
-#>   log_mu     -0.9278386        NA     NA      NA
-#>   log_t_half  0.8601116        NA     NA      NA
-#>   nu          8.4530094        NA     NA      NA
-#>   m          -1.3311525        NA     NA      NA
+#>                estimate  std_error     z_stat      p_value
+#>   log_mu     -1.4575139 0.07271743 -20.043529 2.298771e-89
+#>   log_t_half -1.7947622 0.36480632  -4.919767 8.664715e-07
+#>   nu          1.4541539 0.55210214   2.633849 8.442293e-03
+#>   m           0.9266039 0.71017327   1.304758 1.919754e-01
 #> 
 #>   Phase: constant (constant)
 #>           estimate std_error z_stat p_value
-#>   log_mu -155.1512        NA     NA      NA
+#>   log_mu -7.523126        NA     NA      NA
 # }
 ```

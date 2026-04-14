@@ -1,8 +1,10 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/404.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/BRANCH_PROTECTION.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/HANDOFF.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/LICENSE-text.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/articles/ar-architecture.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/articles/clinical-analysis-walkthrough.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/articles/getting-started.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/articles/index.html</loc></url>
@@ -17,6 +19,7 @@
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/cabgkul.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/coef.hazard.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_as_design_matrix.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_conserve_events.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_create_c_reference_kul_fixture.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_create_loglogistic_golden_fixture.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_create_lognormal_golden_fixture.html</loc></url>
@@ -24,6 +27,7 @@
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_create_synthetic_golden_fixtures.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_g3_phase_derivatives.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_gradient_multiphase.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_log_mu_positions.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_logl_multiphase.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_multiphase_cumhaz.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_multiphase_hazard.html</loc></url>
@@ -37,6 +41,7 @@
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_phase_n_shape.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_phase_start.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_phase_theta_names.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_select_fixmu_phase.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_split_theta.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_unpack_phase_theta.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_validate_phases.html</loc></url>
@@ -45,8 +50,10 @@
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/hazard.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/hzr_argument_mapping.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/hzr_clamp_prob.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/hzr_deciles.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos_g3.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/hzr_gof.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/hzr_log1mexp.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/hzr_log1pexp.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.html</loc></url>
@@ -56,6 +63,8 @@
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/is_hzr_phase.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/omc.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/predict.hazard.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_deciles.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_gof.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/summary.hazard.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/tga.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/valves.html</loc></url>

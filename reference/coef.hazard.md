@@ -25,5 +25,5 @@ coef(object, ...)
 fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 coef(fit)
-#> [1] 0.5757909 1.3980152
+#> [1] 0.6261954 1.4082893
 ```

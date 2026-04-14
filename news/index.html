@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,6 +30,7 @@
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
+    <li><a class="dropdown-item" href="../articles/clinical-analysis-walkthrough.html">Complete Clinical Analysis Walkthrough</a></li>
     <li><a class="dropdown-item" href="../articles/fitting-hazard-models.html">Fitting Hazard Models</a></li>
     <li><a class="dropdown-item" href="../articles/prediction-visualization.html">Prediction &amp; Visualization</a></li>
     <li><a class="dropdown-item" href="../articles/inference-diagnostics.html">Inference &amp; Diagnostics</a></li>
@@ -48,6 +49,27 @@
       <small>Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.3" id="temporalhazard-093">TemporalHazard 0.9.3<a class="anchor" aria-label="anchor" href="#temporalhazard-093"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-9-3">New features<a class="anchor" aria-label="anchor" href="#new-features-0-9-3"></a></h3>
+<ul><li>
+<code><a href="../reference/hzr_deciles.html">hzr_deciles()</a></code> — Decile-of-risk calibration function comparing observed vs. expected event counts across risk groups with chi-square GOF testing. Implements the SAS <code>deciles.hazard.sas</code> macro workflow.</li>
+<li>
+<code><a href="../reference/hzr_gof.html">hzr_gof()</a></code> — Goodness-of-fit function comparing parametric predictions against nonparametric (Kaplan-Meier) estimates with observed vs. expected event counting. Implements the SAS <code>hazplot.sas</code> macro workflow.</li>
+<li>
+<strong>Conservation of Events (CoE)</strong> — Turner’s theorem is now integrated into the multiphase optimizer. One phase’s log_mu scaling parameter is solved analytically at each iteration, reducing the optimization dimension by 1 and improving numerical stability and convergence. Enabled by default; disable with <code>control = list(conserve = FALSE)</code>. Implements the core algorithm from C HAZARD <code>setcoe.c</code> / <code>consrv.c</code>.</li>
+<li>New vignette: “Complete Clinical Analysis Walkthrough” — end-to-end workflow from Kaplan-Meier baseline through validated multivariable model, mirroring the SAS HAZARD analytical sequence.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="improvements-0-9-3">Improvements<a class="anchor" aria-label="anchor" href="#improvements-0-9-3"></a></h3>
+<ul><li>Multi-start optimizer now respects user-set RNG seeds for reproducibility (removed <code>set.seed(NULL)</code> that was actively breaking determinism).</li>
+<li>Vignette metadata normalized to YAML <code>vignette:</code> key across all 8 files.</li>
+<li>
+<code>fit</code> parameter documentation corrected to state default is FALSE.</li>
+<li>README now includes key capabilities table and development plan link.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.1" id="temporalhazard-091">TemporalHazard 0.9.1<a class="anchor" aria-label="anchor" href="#temporalhazard-091"></a></h2>
 <div class="section level3">

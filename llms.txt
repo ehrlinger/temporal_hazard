@@ -8,6 +8,14 @@ decomposition family. This structure captures real clinical risk
 patterns that standard single-distribution models (Weibull, log-normal)
 cannot represent.
 
+## Provenance and maintenance
+
+The original SAS/C HAZARD code was developed at the University of
+Alabama at Birmingham (UAB). The SAS/C code and this R package are
+currently developed and maintained at The Cleveland Clinic Foundation.
+The R code in TemporalHazard was wholly developed at The Cleveland
+Clinic Foundation.
+
 ## Why multiphase?
 
 After cardiac surgery, the risk of death is not constant. It starts high
@@ -39,7 +47,7 @@ estimate from the CABGKUL dataset
 | Time-varying covariates                                                    |   ✅   |
 | Weighted events                                                            |   🚧   |
 | Automatic stepwise covariate selection (forward, backward, stepwise)       |   🚧   |
-| Conservation of Events theorem for numerically stable parameter estimation |   🚧   |
+| Conservation of Events theorem for numerically stable parameter estimation |   ✅   |
 | Covariance and correlation matrix estimation                               |   ✅   |
 
 white_check_mark: = implemented \| 🚧 = planned
@@ -110,6 +118,10 @@ jointly. Covariates are supported via the formula interface (see
 
 ## Documentation
 
+- **[Clinical Analysis
+  Walkthrough](https://ehrlinger.github.io/temporal_hazard/articles/clinical-analysis-walkthrough.html)**
+  — complete end-to-end workflow from Kaplan-Meier baseline through
+  validated multivariable model.
 - **[Getting
   Started](https://ehrlinger.github.io/temporal_hazard/articles/getting-started.html)**
   — first fit-predict workflow with visualizations.
@@ -149,7 +161,9 @@ automatically from `main`.
 See
 [`inst/dev/DEVELOPMENT-PLAN.md`](https://ehrlinger.github.io/temporal_hazard/inst/dev/DEVELOPMENT-PLAN.md)
 for the full roadmap covering the C/SAS migration, multiphase
-implementation, CRAN release, and planned feature parity work.
+implementation, CRAN release, and planned feature parity work. See
+[`.github/BRANCH_PROTECTION.md`](https://ehrlinger.github.io/temporal_hazard/BRANCH_PROTECTION.md)
+for recommended required-check settings that block merges when CI fails.
 
 # Package index
 
@@ -212,6 +226,17 @@ implementation, CRAN release, and planned feature parity work.
 - [`hzr_clamp_prob()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_clamp_prob.md)
   : Clamp probabilities away from 0 and 1
 
+## Diagnostics
+
+- [`hzr_deciles()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_deciles.md)
+  : Decile-of-risk calibration
+- [`print(`*`<hzr_deciles>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_deciles.md)
+  : Print method for hzr_deciles
+- [`hzr_gof()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_gof.md)
+  : Goodness-of-fit: observed vs. predicted events
+- [`print(`*`<hzr_gof>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_gof.md)
+  : Print method for hzr_gof
+
 # Articles
 
 ### Getting started
@@ -233,6 +258,8 @@ implementation, CRAN release, and planned feature parity work.
 
 ### Worked examples
 
+- [Complete Clinical Analysis
+  Walkthrough](https://ehrlinger.github.io/temporal_hazard/articles/clinical-analysis-walkthrough.md):
 - [Fitting Hazard
   Models](https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.md):
 - [Prediction &

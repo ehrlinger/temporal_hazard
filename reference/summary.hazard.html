@@ -9,7 +9,7 @@ fit diagnostics, and coefficient-level statistics when available."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,6 +32,7 @@ fit diagnostics, and coefficient-level statistics when available."></head><body>
     <li><a class="dropdown-item" href="../articles/sas-to-r-migration.html">Migrating from SAS HAZARD to TemporalHazard</a></li>
     <li><hr class="dropdown-divider"></li>
     <li><h6 class="dropdown-header" data-toc-skip>Examples</h6></li>
+    <li><a class="dropdown-item" href="../articles/clinical-analysis-walkthrough.html">Complete Clinical Analysis Walkthrough</a></li>
     <li><a class="dropdown-item" href="../articles/fitting-hazard-models.html">Fitting Hazard Models</a></li>
     <li><a class="dropdown-item" href="../articles/prediction-visualization.html">Prediction &amp; Visualization</a></li>
     <li><a class="dropdown-item" href="../articles/inference-diagnostics.html">Inference &amp; Diagnostics</a></li>
@@ -97,13 +98,13 @@ fit diagnostics, and coefficient-level statistics when available.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   dist:         weibull </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -57.588 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=17, gr=5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -55.1318 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=31, gr=5</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     estimate  std_error   z_stat      p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> mu 0.4017570 0.07799612 5.150987 2.591190e-07</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> nu 0.9772992 0.14742788 6.628998 3.379725e-11</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     estimate std_error   z_stat      p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu 0.4582700 0.1066703 4.296136 1.738007e-05</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> nu 0.8182644 0.1251257 6.539537 6.170969e-11</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># ── Multiphase model summary ────────────────────────────────────────</span></span></span>
@@ -118,14 +119,15 @@ fit diagnostics, and coefficient-level statistics when available.</p>
 <span class="r-in"><span>  data   <span class="op">=</span> <span class="va">dat</span>,</span></span>
 <span class="r-in"><span>  dist   <span class="op">=</span> <span class="st">"multiphase"</span>,</span></span>
 <span class="r-in"><span>  phases <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    early <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>,      t_half <span class="op">=</span> <span class="fl">0.5</span>, nu <span class="op">=</span> <span class="fl">2</span>, m <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    late  <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>,      t_half <span class="op">=</span> <span class="fl">5</span>,   nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    early <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>, t_half <span class="op">=</span> <span class="fl">0.5</span>, nu <span class="op">=</span> <span class="fl">2</span>, m <span class="op">=</span> <span class="fl">0</span>,</span></span>
+<span class="r-in"><span>                       fixed <span class="op">=</span> <span class="st">"shapes"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    late  <span class="op">=</span> <span class="fu"><a href="hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>, t_half <span class="op">=</span> <span class="fl">5</span>,   nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">0</span>,</span></span>
+<span class="r-in"><span>                       fixed <span class="op">=</span> <span class="st">"shapes"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  fit     <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">3</span>, maxit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">5</span>, maxit <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_mp</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>NaNs produced</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Multiphase hazard model (2 phases)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   observations: 200 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   predictors:   0 </span>
@@ -134,24 +136,24 @@ fit diagnostics, and coefficient-level statistics when available.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phase 2:      late - cdf (late risk)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -393.584 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=88, gr=21</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -428.716 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=27, gr=5</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (internal scale):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: early (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                  estimate std_error    z_stat     p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu      0.239134485       NaN        NA          NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  1.818478590       NaN        NA          NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          0.004353297       NaN        NA          NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -0.787666114 0.1325287 -5.943362 2.79235e-09</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate std_error z_stat p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -2.1153072        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half -0.6931472        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          2.0000000        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m           0.0000000        NA     NA      NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: late (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 estimate std_error     z_stat    p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu      3.74165145 5.9132228  0.6327601 0.52689032</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  2.39068098 5.9151369  0.4041633 0.68609267</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu         -0.75329358 0.3993425 -1.8863346 0.05924987</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m           0.02353084 0.1145096  0.2054924 0.83718746</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               estimate  std_error  z_stat      p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     0.5511641 0.04098849 13.4468 3.214692e-41</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half 1.6094379         NA      NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu         1.0000000         NA      NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m          0.0000000         NA      NA           NA</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
