@@ -32,6 +32,21 @@ adjustment, prediction, and extrapolation.
 
 <img src="man/figures/readme-survival.png" width="100%" alt="Multiphase parametric survival curve overlaid on the Kaplan-Meier estimate from the CABGKUL dataset (n=5,880)" />
 
+## Key capabilities
+
+| Feature | Status |
+|:---|:---:|
+| Multi-phase hazard modeling (early, constant, late phases) | :white_check_mark: |
+| Right censoring and interval censoring | :white_check_mark: |
+| Repeating events (epoch decomposition) | :construction: |
+| Time-varying covariates | :white_check_mark: |
+| Weighted events | :construction: |
+| Automatic stepwise covariate selection (forward, backward, stepwise) | :construction: |
+| Conservation of Events theorem for numerically stable parameter estimation | :construction: |
+| Covariance and correlation matrix estimation | :white_check_mark: |
+
+:white_check_mark: = implemented | :construction: = planned
+
 ## Installation
 
 ```r
@@ -114,3 +129,5 @@ devtools::check()
 ```
 
 GitHub Actions runs multi-platform `R CMD check` on every push and pull request. Coverage is published to Codecov and the pkgdown site deploys automatically from `main`.
+
+See [`inst/dev/DEVELOPMENT-PLAN.md`](inst/dev/DEVELOPMENT-PLAN.md) for the full roadmap covering the C/SAS migration, multiphase implementation, CRAN release, and planned feature parity work.
