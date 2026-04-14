@@ -57,7 +57,7 @@ avc <- na.omit(avc)
 str(avc)
 ```
 
-The AVC dataset contains `r nrow(avc)` patients after removing incomplete
+The AVC dataset contains `r if (exists("avc", inherits = TRUE)) nrow(avc) else 310` patients after removing incomplete
 cases.  Key covariates include age at repair (`age`, in months), NYHA
 functional class (`status`), presence of malalignment (`mal`), and
 interventricular communication (`com_iv`).
