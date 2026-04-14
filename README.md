@@ -1,7 +1,7 @@
 # TemporalHazard
 
 <!-- badges: start -->
-[![version](https://img.shields.io/badge/version-0.9.2-blue.svg)](https://github.com/ehrlinger/temporal_hazard)
+[![version](https://img.shields.io/badge/version-0.9.3-blue.svg)](https://github.com/ehrlinger/temporal_hazard)
 [![R-CMD-check](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/ehrlinger/temporal_hazard/branch/main/graph/badge.svg)](https://app.codecov.io/gh/ehrlinger/temporal_hazard?branch=main)
 [![lint](https://github.com/ehrlinger/temporal_hazard/actions/workflows/lint.yaml/badge.svg)](https://github.com/ehrlinger/temporal_hazard/actions/workflows/lint.yaml)
@@ -42,7 +42,7 @@ adjustment, prediction, and extrapolation.
 | Time-varying covariates | :white_check_mark: |
 | Weighted events | :construction: |
 | Automatic stepwise covariate selection (forward, backward, stepwise) | :construction: |
-| Conservation of Events theorem for numerically stable parameter estimation | :construction: |
+| Conservation of Events theorem for numerically stable parameter estimation | :white_check_mark: |
 | Covariance and correlation matrix estimation | :white_check_mark: |
 
 :white_check_mark: = implemented | :construction: = planned

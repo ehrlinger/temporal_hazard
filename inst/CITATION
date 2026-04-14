@@ -3,7 +3,7 @@ bibentry(
   title    = "TemporalHazard: Temporal Parametric Hazard Modeling in R",
   author   = person("John", "Ehrlinger"),
   year     = "2026",
-  note     = "R package version 0.9.2",
+  note     = "R package version 0.9.3",
   url      = "https://ehrlinger.github.io/temporal_hazard/"
 )
 
