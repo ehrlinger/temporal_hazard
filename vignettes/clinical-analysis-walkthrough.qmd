@@ -427,6 +427,7 @@ should predict the same total number of events as actually observed.
 
 ```{r}
 #| label: gof-summary
+#| eval: !expr has_pkg
 gof <- hzr_gof(fit_mv)
 print(gof)
 ```

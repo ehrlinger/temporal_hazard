@@ -320,8 +320,7 @@ hzr_gof <- function(object, time_grid = NULL) {
   n_total    <- length(obs_time)
 
   # --- Kaplan-Meier via survival::survfit -----------------------------------
-  surv_obj <- survival::Surv(obs_time, obs_status)
-  km_fit <- survival::survfit(surv_obj ~ 1)
+  km_fit <- survival::survfit(survival::Surv(obs_time, obs_status) ~ 1)
 
   # survfit output: time, n.risk, n.event, n.censor, surv
   km_times   <- km_fit$time
