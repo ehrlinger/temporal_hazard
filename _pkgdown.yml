@@ -71,6 +71,10 @@ reference:
       - print.hzr_deciles
       - hzr_gof
       - print.hzr_gof
+      - hzr_kaplan
+      - print.hzr_kaplan
+      - hzr_calibrate
+      - print.hzr_calibrate
 
 home:
   links:
