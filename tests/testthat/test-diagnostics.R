@@ -422,3 +422,103 @@ test_that("print.hzr_kaplan runs without error", {
   expect_output(print(km), "Kaplan-Meier")
   expect_output(print(km), "RMST")
 })
+
+
+# =========================================================================
+# hzr_calibrate tests
+# =========================================================================
+
+test_that("hzr_calibrate returns correct structure", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 10)
+
+  expect_s3_class(cal, "hzr_calibrate")
+  expect_s3_class(cal, "data.frame")
+  expect_equal(nrow(cal), 10)
+  expect_named(cal, c("group", "n", "events", "mean", "min", "max",
+                       "prob", "link_value"))
+  expect_equal(attr(cal, "link"), "logit")
+  expect_equal(attr(cal, "groups"), 10L)
+})
+
+test_that("hzr_calibrate group counts sum to n", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 5)
+
+  expect_equal(sum(cal$n), nrow(avc))
+  expect_equal(sum(cal$events), sum(avc$dead))
+})
+
+test_that("hzr_calibrate group means are monotone", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 10)
+
+  # Group means should increase (group 1 = lowest x)
+  expect_true(all(diff(cal$mean) > 0),
+              label = "group means should be strictly increasing")
+})
+
+test_that("hzr_calibrate logit values are finite where prob in (0,1)", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 10)
+
+  valid <- cal$prob > 0 & cal$prob < 1
+  expect_true(all(is.finite(cal$link_value[valid])))
+})
+
+test_that("hzr_calibrate gompertz link works", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 5, link = "gompertz")
+
+  expect_equal(attr(cal, "link"), "gompertz")
+  # Gompertz = log(-log(1-p)), should be finite for 0 < p < 1
+  valid <- cal$prob > 0 & cal$prob < 1
+  expect_true(all(is.finite(cal$link_value[valid])))
+})
+
+test_that("hzr_calibrate cox link requires time", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+
+  expect_error(
+    hzr_calibrate(avc$age, avc$dead, link = "cox"),
+    "time.*required"
+  )
+
+  cal <- hzr_calibrate(avc$age, avc$dead, link = "cox",
+                        time = avc$int_dead, groups = 5)
+  expect_equal(attr(cal, "link"), "cox")
+  expect_equal(nrow(cal), 5)
+})
+
+test_that("hzr_calibrate stratified by grouping variable", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 5,
+                        by = ifelse(avc$mal == 1, "mal", "no_mal"))
+
+  expect_true("by" %in% names(cal))
+  # Should have rows for both strata
+  expect_true(all(c("mal", "no_mal") %in% cal$by))
+  # Total n across all rows should equal nrow(avc)
+  expect_equal(sum(cal$n), nrow(avc))
+})
+
+test_that("hzr_calibrate rejects invalid inputs", {
+  expect_error(hzr_calibrate("a", 1), "numeric")
+  expect_error(hzr_calibrate(1:5, 1:3), "same length")
+  expect_error(hzr_calibrate(1:5, rep(1, 5), groups = 1), "at least 2")
+})
+
+test_that("print.hzr_calibrate runs without error", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 5)
+  expect_output(print(cal), "Variable calibration")
+  expect_output(print(cal), "logit")
+})

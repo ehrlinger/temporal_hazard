@@ -745,3 +745,197 @@ print.hzr_kaplan <- function(x, digits = 4, n = 20, ...) {
   }
   invisible(x)
 }
+
+
+# =========================================================================
+# hzr_calibrate — Variable calibration (logit / Gompertz / Cox transform)
+# =========================================================================
+
+#' Calibrate a continuous variable against an outcome
+#'
+#' Group a continuous covariate into quantile bins, compute the event
+#' probability (or hazard rate) per bin, and apply a link transform
+#' (logit, Gompertz, or Cox).
+#' This is the R equivalent of the SAS `logit.sas` and `logitgr.sas`
+#' macros.
+#'
+#' Use this function before model entry to assess whether a covariate's
+#' relationship with the outcome is approximately linear on the link
+#' scale. If the transformed probabilities are roughly linear against
+#' the group means, the covariate can enter the model untransformed.
+#' Curvature suggests a transformation (log, quadratic) may improve fit.
+#'
+#' @param x Numeric vector: the continuous covariate to calibrate.
+#' @param event Numeric vector: event indicator (1 = event, 0 = no event).
+#' @param groups Integer: number of quantile bins (default 10).
+#' @param by Optional factor or character vector for stratified calibration
+#'   (SAS `logitgr.sas` functionality). If provided, calibration is
+#'   computed within each stratum. Default `NULL` (no stratification).
+#' @param link Character: transform to apply to event probabilities.
+#'   One of `"logit"` (default), `"gompertz"` (complementary log-log),
+#'   or `"cox"`.
+#' @param time Optional numeric vector: follow-up time, required when
+#'   `link = "cox"`. The Cox link computes
+#'   \eqn{\log(\text{events} / \sum \text{time})} (constant hazard rate).
+#'
+#' @return A data frame with one row per group (or per group-by-stratum
+#'   combination) and columns:
+#' \describe{
+#'   \item{group}{Integer group label.}
+#'   \item{by}{Stratum level (only present when `by` is provided).}
+#'   \item{n}{Number of observations in the group.}
+#'   \item{events}{Number of events.}
+#'   \item{mean}{Mean of `x` within the group.}
+#'   \item{min}{Minimum of `x` within the group.}
+#'   \item{max}{Maximum of `x` within the group.}
+#'   \item{prob}{Event probability (events / n), or for Cox link:
+#'     events / sum(time).}
+#'   \item{link_value}{Transformed probability on the chosen link scale.}
+#' }
+#'
+#' @examples
+#' data(avc)
+#' avc <- na.omit(avc)
+#'
+#' # Logit calibration of age
+#' cal <- hzr_calibrate(avc$age, avc$dead, groups = 10)
+#' print(cal)
+#'
+#' \donttest{
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   library(ggplot2)
+#'   ggplot(cal, aes(mean, link_value)) +
+#'     geom_point(size = 3) +
+#'     geom_smooth(method = "lm", formula = y ~ x, se = FALSE,
+#'                 linetype = "dashed") +
+#'     labs(x = "Age at repair (months)", y = "Logit(P(death))") +
+#'     theme_minimal()
+#' }
+#' }
+#'
+#' @seealso [hzr_deciles()] for model-based calibration after fitting.
+#' @export
+hzr_calibrate <- function(x, event, groups = 10L, by = NULL,
+                          link = c("logit", "gompertz", "cox"),
+                          time = NULL) {
+  link <- match.arg(link)
+
+  if (!is.numeric(x) || !is.numeric(event)) {
+    stop("'x' and 'event' must be numeric vectors.", call. = FALSE)
+  }
+  if (length(x) != length(event)) {
+    stop("'x' and 'event' must have the same length.", call. = FALSE)
+  }
+  groups <- as.integer(groups)
+  if (groups < 2L) {
+    stop("'groups' must be at least 2.", call. = FALSE)
+  }
+  if (link == "cox" && is.null(time)) {
+    stop("'time' is required when link = 'cox'.", call. = FALSE)
+  }
+  if (!is.null(time) && length(time) != length(x)) {
+    stop("'time' must have the same length as 'x'.", call. = FALSE)
+  }
+
+  # --- Assign quantile groups -----------------------------------------------
+  ranks <- rank(x, ties.method = "first")
+  n <- length(x)
+  group <- as.integer(cut(ranks,
+                          breaks = seq(0, n, length.out = groups + 1L),
+                          include.lowest = TRUE,
+                          labels = seq_len(groups)))
+
+  # --- Build data frame for aggregation ------------------------------------
+  df <- data.frame(x = x, event = event, group = group)
+  if (!is.null(time)) df$time <- time
+  if (!is.null(by)) df$by <- by
+
+  # --- Aggregation function -------------------------------------------------
+  .calibrate_group <- function(d) {
+    ng <- nrow(d)
+    ev <- sum(d$event)
+    if (link == "cox") {
+      prob <- if (sum(d$time) > 0) ev / sum(d$time) else NA_real_
+    } else {
+      prob <- if (ng > 0) ev / ng else NA_real_
+    }
+
+    # Apply link transform
+    link_val <- if (is.na(prob) || prob <= 0 || prob >= 1) {
+      NA_real_
+    } else if (link == "logit") {
+      log(prob / (1 - prob))
+    } else if (link == "gompertz") {
+      log(-log(1 - prob))
+    } else {
+      # Cox: prob is already events/time (hazard rate)
+      if (prob > 0) log(prob) else NA_real_
+    }
+
+    data.frame(
+      n      = ng,
+      events = ev,
+      mean   = mean(d$x),
+      min    = min(d$x),
+      max    = max(d$x),
+      prob   = prob,
+      link_value = link_val
+    )
+  }
+
+  # --- Aggregate by group (and optionally by stratum) -----------------------
+  if (is.null(by)) {
+    result_list <- lapply(split(df, df$group), .calibrate_group)
+    result <- do.call(rbind, result_list)
+    result$group <- as.integer(rownames(result))
+    rownames(result) <- NULL
+    result <- result[order(result$group),
+                     c("group", "n", "events", "mean", "min", "max",
+                       "prob", "link_value")]
+  } else {
+    splits <- split(df, list(df$by, df$group))
+    result_list <- lapply(splits, function(d) {
+      if (nrow(d) == 0) return(NULL)
+      r <- .calibrate_group(d)
+      r$by <- d$by[1]
+      r$group <- d$group[1]
+      r
+    })
+    result <- do.call(rbind, Filter(Negate(is.null), result_list))
+    rownames(result) <- NULL
+    result <- result[order(result$by, result$group),
+                     c("group", "by", "n", "events", "mean", "min", "max",
+                       "prob", "link_value")]
+  }
+
+  attr(result, "link") <- link
+  attr(result, "groups") <- groups
+  class(result) <- c("hzr_calibrate", "data.frame")
+  result
+}
+
+#' Print method for hzr_calibrate
+#'
+#' @param x An `hzr_calibrate` object.
+#' @param digits Number of significant digits.
+#' @param ... Additional arguments (ignored).
+#' @export
+print.hzr_calibrate <- function(x, digits = 3, ...) {
+  lnk <- attr(x, "link")
+  grp <- attr(x, "groups")
+  cat("Variable calibration (", lnk, " link, ", grp, " groups)\n",
+      sep = "")
+  if ("by" %in% names(x)) {
+    cat("Stratified by:", paste(unique(x$by), collapse = ", "), "\n")
+  }
+  cat("\n")
+  display <- x
+  display$mean <- round(display$mean, digits)
+  display$min <- round(display$min, digits)
+  display$max <- round(display$max, digits)
+  display$prob <- round(display$prob, digits)
+  display$link_value <- round(display$link_value, digits)
+  class(display) <- "data.frame"
+  print(display, row.names = FALSE)
+  invisible(x)
+}

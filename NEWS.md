@@ -12,6 +12,11 @@
   confidence limits that respect the [0, 1] boundary, interval hazard rate,
   density, and restricted mean survival time (life integral). Implements the
   SAS `kaplan.sas` macro output structure.
+* `hzr_calibrate()` — Variable calibration function for assessing functional
+  form before model entry. Groups a continuous covariate into quantile bins
+  and applies logit, Gompertz, or Cox link transforms. Supports
+  stratification via the `by` parameter. Implements the SAS `logit.sas` and
+  `logitgr.sas` macros.
 * **Conservation of Events (CoE)** — Turner's theorem is now integrated into
   the multiphase optimizer. One phase's log_mu scaling parameter is solved
   analytically at each iteration, reducing the optimization dimension by 1
