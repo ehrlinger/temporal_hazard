@@ -157,11 +157,13 @@ NULL
 #'   data   = dat,
 #'   dist   = "multiphase",
 #'   phases = list(
-#'     early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
-#'     late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+#'     early = hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
+#'                        fixed = "shapes"),
+#'     late  = hzr_phase("cdf", t_half = 5,   nu = 1, m = 0,
+#'                        fixed = "shapes")
 #'   ),
 #'   fit     = TRUE,
-#'   control = list(n_starts = 3, maxit = 500)
+#'   control = list(n_starts = 5, maxit = 1000)
 #' )
 #' summary(fit_mp)
 #'
@@ -591,8 +593,10 @@ hazard <- function(formula = NULL,
 #'   data   = dat,
 #'   dist   = "multiphase",
 #'   phases = list(
-#'     early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
-#'     late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+#'     early = hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
+#'                        fixed = "shapes"),
+#'     late  = hzr_phase("cdf", t_half = 5,   nu = 1, m = 0,
+#'                        fixed = "shapes")
 #'   ),
 #'   fit     = TRUE,
 #'   control = list(n_starts = 3, maxit = 500)
@@ -909,11 +913,13 @@ print.hazard <- function(x, ...) {
 #'   data   = dat,
 #'   dist   = "multiphase",
 #'   phases = list(
-#'     early = hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 0),
-#'     late  = hzr_phase("cdf",      t_half = 5,   nu = 1, m = 0)
+#'     early = hzr_phase("cdf", t_half = 0.5, nu = 2, m = 0,
+#'                        fixed = "shapes"),
+#'     late  = hzr_phase("cdf", t_half = 5,   nu = 1, m = 0,
+#'                        fixed = "shapes")
 #'   ),
 #'   fit     = TRUE,
-#'   control = list(n_starts = 3, maxit = 500)
+#'   control = list(n_starts = 5, maxit = 1000)
 #' )
 #' summary(fit_mp)
 #' }

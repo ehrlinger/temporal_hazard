@@ -1,4 +1,4 @@
-# TemporalHazard 0.9.2
+# TemporalHazard 0.9.3
 
 ## New features
 
@@ -8,6 +8,12 @@
 * `hzr_gof()` — Goodness-of-fit function comparing parametric predictions
   against nonparametric (Kaplan-Meier) estimates with observed vs. expected
   event counting. Implements the SAS `hazplot.sas` macro workflow.
+* **Conservation of Events (CoE)** — Turner's theorem is now integrated into
+  the multiphase optimizer. One phase's log_mu scaling parameter is solved
+  analytically at each iteration, reducing the optimization dimension by 1
+  and improving numerical stability and convergence. Enabled by default;
+  disable with `control = list(conserve = FALSE)`. Implements the core
+  algorithm from C HAZARD `setcoe.c` / `consrv.c`.
 * New vignette: "Complete Clinical Analysis Walkthrough" — end-to-end
   workflow from Kaplan-Meier baseline through validated multivariable model,
   mirroring the SAS HAZARD analytical sequence.

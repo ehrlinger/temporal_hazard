@@ -239,6 +239,121 @@
 
 
 # ============================================================================
+# Conservation of Events (CoE) — Turner's theorem
+# ============================================================================
+#
+# For the additive hazard model H(t|x) = Sigma_j mu_j(x) * Phi_j(t),
+# the MLE constraint (score equation for mu) implies:
+#
+#   Sigma_i E(i) = Sigma_i H(t_i | x_i)
+#
+# i.e., total observed events equals total predicted cumulative hazard.
+#
+# This allows one phase's log_mu to be solved analytically at each
+# optimizer iteration, reducing the optimization dimension by 1.
+#
+# Reference: Turner ME Jr., as implemented in C HAZARD setcoe.c / consrv.c.
+
+#' Find the position of each phase's log_mu in the full theta vector
+#'
+#' @param phases Named list of validated `hzr_phase` objects.
+#' @param covariate_counts Named integer vector of per-phase covariate counts.
+#' @return Named integer vector: position of log_mu for each phase.
+#' @keywords internal
+.hzr_log_mu_positions <- function(phases, covariate_counts) {
+  positions <- setNames(integer(length(phases)), names(phases))
+  pos <- 1L
+  for (nm in names(phases)) {
+    positions[[nm]] <- pos
+    np <- .hzr_phase_n_params(phases[[nm]],
+                               n_covariates = covariate_counts[[nm]])
+    pos <- pos + np
+  }
+  positions
+}
+
+
+#' Select the phase whose log_mu will be solved by conservation
+#'
+#' Chooses the phase contributing the largest share of total cumulative
+#' hazard, matching the C HAZARD SETCOE strategy.
+#'
+#' @param theta Full parameter vector (internal scale).
+#' @param time Numeric vector of follow-up times.
+#' @param status Numeric event indicator.
+#' @param phases Named list of validated `hzr_phase` objects.
+#' @param covariate_counts Named integer vector.
+#' @param x_list Named list of per-phase design matrices.
+#' @return Character: name of the phase to fix.
+#' @keywords internal
+.hzr_select_fixmu_phase <- function(theta, time, status,
+                                     phases, covariate_counts, x_list) {
+  decomp <- .hzr_multiphase_cumhaz(time, theta, phases,
+                                     covariate_counts, x_list,
+                                     per_phase = TRUE)
+  phase_sums <- vapply(names(phases), function(nm) {
+    sum(decomp[[nm]])
+  }, numeric(1))
+
+  names(which.max(phase_sums))
+}
+
+
+#' Apply the Conservation of Events adjustment to one phase's log_mu
+#'
+#' Given the current theta vector, analytically solve the fixmu phase's
+#' log_mu so that total predicted events = total observed events.
+#'
+#' This is called BEFORE each likelihood evaluation inside the optimizer,
+#' matching the C HAZARD `CONSRV` entry point.
+#'
+#' @param theta Full parameter vector (internal scale).
+#' @param fixmu_phase Character: name of the phase whose log_mu is solved.
+#' @param fixmu_pos Integer: position of that log_mu in theta.
+#' @param time Numeric vector of follow-up times.
+#' @param status Numeric event indicator.
+#' @param phases Named list of validated `hzr_phase` objects.
+#' @param covariate_counts Named integer vector.
+#' @param x_list Named list of per-phase design matrices.
+#' @param total_events Numeric: sum of observed events (precomputed).
+#' @return Updated theta vector with fixmu phase's log_mu adjusted.
+#' @keywords internal
+.hzr_conserve_events <- function(theta, fixmu_phase, fixmu_pos,
+                                  time, status,
+                                  phases, covariate_counts, x_list,
+                                  total_events) {
+  # Compute per-phase cumulative hazard contributions
+  decomp <- .hzr_multiphase_cumhaz(time, theta, phases,
+                                     covariate_counts, x_list,
+                                     per_phase = TRUE)
+
+  # Total predicted events (sum of cumhaz across all observations)
+  sumcz <- sum(decomp$total)
+
+  # Contribution from the fixmu phase alone
+  sumcj <- sum(decomp[[fixmu_phase]])
+
+  if (sumcj <= 0 || !is.finite(sumcj)) return(theta)
+
+  # Discrepancy: how many events are unaccounted for
+  devent <- total_events - sumcz
+
+  # Events the fixmu phase should absorb
+  jevent <- sumcj + devent
+
+  if (jevent <= 0 || !is.finite(jevent)) return(theta)
+
+  # Multiplicative adjustment in log scale
+  lfactor <- log(jevent / sumcj)
+
+  if (!is.finite(lfactor)) return(theta)
+
+  theta[fixmu_pos] <- theta[fixmu_pos] + lfactor
+  theta
+}
+
+
+# ============================================================================
 # Log-likelihood
 # ============================================================================
 
@@ -761,6 +876,15 @@
   # --- Analytic gradient (semi-analytic: chain-rule for mu/beta, central ----
   # differences for shape parameters via .hzr_phase_derivatives()).
   # Falls back to numerical gradient if analytic returns all zeros.
+  #
+  # IMPORTANT: Save a reference to the ORIGINAL (unwrapped) logl_fn for use
+
+  # inside the gradient function's numerical fallback.  After this point,
+  # logl_fn will be re-bound by CoE and fixed-mask wrappers, but the gradient
+  # function always receives a FULL theta vector from its own wrapper chain,
+  # so it must call the unwrapped version that also expects full theta.
+  logl_fn_unwrapped <- logl_fn
+
   gradient_fn <- function(theta, time, status, time_lower, time_upper, x, ...) {
     grad <- .hzr_gradient_multiphase(
       theta = theta, time = time, status = status,
@@ -773,13 +897,14 @@
     if (all(grad == 0)) {
       eps_rel <- sqrt(.Machine$double.eps)
       p <- length(theta)
-      ll0 <- logl_fn(theta, time, status, time_lower, time_upper, x, ...)
+      ll0 <- logl_fn_unwrapped(theta, time, status, time_lower,
+                                time_upper, x, ...)
       for (i in seq_len(p)) {
         h_i <- eps_rel * max(abs(theta[i]), 1)
         theta_plus <- theta
         theta_plus[i] <- theta_plus[i] + h_i
-        ll_plus <- logl_fn(theta_plus, time, status, time_lower, time_upper,
-                           x, ...)
+        ll_plus <- logl_fn_unwrapped(theta_plus, time, status,
+                                      time_lower, time_upper, x, ...)
         grad[i] <- (ll_plus - ll0) / h_i
       }
     }
@@ -787,14 +912,88 @@
     grad
   }
 
+  # --- Conservation of Events (CoE) setup -------------------------------------
+  use_conserve <- if (!is.null(control$conserve)) control$conserve else TRUE
+  control$conserve <- NULL  # remove before passing to optim
+
+  fixmu_phase <- NULL
+  fixmu_pos <- NULL
+  total_events <- NULL
+  log_mu_positions <- .hzr_log_mu_positions(phases, covariate_counts)
+
+  if (use_conserve && length(phases) >= 2L) {
+    total_events <- sum(status == 1)
+    if (total_events > 0) {
+      # Initial CoE scaling: adjust all log_mu proportionally
+      decomp_init <- .hzr_multiphase_cumhaz(
+        time, theta_start, phases, covariate_counts, x_list,
+        per_phase = TRUE
+      )
+      sumcz_init <- sum(decomp_init$total)
+      if (sumcz_init > 0 && is.finite(sumcz_init)) {
+        init_factor <- log(total_events / sumcz_init)
+        if (is.finite(init_factor)) {
+          for (nm in names(phases)) {
+            theta_start[log_mu_positions[[nm]]] <-
+              theta_start[log_mu_positions[[nm]]] + init_factor
+          }
+        }
+      }
+
+      # Select fixmu phase (largest cumhaz contributor after scaling)
+      fixmu_phase <- .hzr_select_fixmu_phase(
+        theta_start, time, status, phases, covariate_counts, x_list
+      )
+      fixmu_pos <- log_mu_positions[[fixmu_phase]]
+
+      # Apply precise CoE adjustment to the fixmu phase
+      theta_start <- .hzr_conserve_events(
+        theta_start, fixmu_phase, fixmu_pos,
+        time, status, phases, covariate_counts, x_list, total_events
+      )
+
+      # Wrap logl and gradient: apply CoE before each evaluation
+      logl_fn_pre_coe <- logl_fn
+      logl_fn <- function(theta, time, status, time_lower,
+                          time_upper, x, ...) {
+        theta <- .hzr_conserve_events(
+          theta, fixmu_phase, fixmu_pos,
+          time, status, phases, covariate_counts, x_list, total_events
+        )
+        logl_fn_pre_coe(theta, time, status, time_lower,
+                        time_upper, x, ...)
+      }
+
+      gradient_fn_pre_coe <- gradient_fn
+      gradient_fn <- function(theta, time, status, time_lower,
+                              time_upper, x, ...) {
+        theta <- .hzr_conserve_events(
+          theta, fixmu_phase, fixmu_pos,
+          time, status, phases, covariate_counts, x_list, total_events
+        )
+        gradient_fn_pre_coe(theta, time, status, time_lower,
+                            time_upper, x, ...)
+      }
+    } else {
+      use_conserve <- FALSE
+    }
+  } else {
+    use_conserve <- FALSE
+  }
+
   # --- Fixed-parameter masking ------------------------------------------------
   # Build a logical mask: TRUE = free (optimized), FALSE = fixed (held constant)
   free_mask <- .hzr_phase_free_mask(phases, covariate_counts)
+
+  # If CoE is active, also fix the fixmu phase's log_mu
+  if (use_conserve && !is.null(fixmu_pos)) {
+    free_mask[fixmu_pos] <- FALSE
+  }
+
   any_fixed <- !all(free_mask)
   theta_fixed <- theta_start  # full vector; fixed entries stay at these values
 
   # When some parameters are fixed, wrap logl/gradient to operate on the
-
   # reduced (free-only) parameter vector.
   if (any_fixed) {
     free_idx <- which(free_mask)
@@ -837,7 +1036,9 @@
   # likelihood surface is poorly scaled across phases (e.g. the late-phase mu
   # may be ~1e-8).  Strategy: run Nelder-Mead first (derivative-free, robust to
   # scaling) to find a good basin, then polish with BFGS for accurate SE.
-  use_nelder_mead_warmup <- any_fixed && length(theta_start_optim) <= 10L
+  # Nelder-Mead requires >= 2 parameters; use Brent for 1D
+  use_nelder_mead_warmup <- any_fixed && length(theta_start_optim) >= 2L &&
+    length(theta_start_optim) <= 10L
 
   for (start_i in seq_len(n_starts)) {
     if (start_i == 1L) {
@@ -903,6 +1104,14 @@
     theta_full <- theta_fixed
     theta_full[free_idx] <- best_result$par
     best_result$par <- theta_full
+
+    # Final CoE adjustment: solve fixmu log_mu at the optimum
+    if (use_conserve && !is.null(fixmu_pos)) {
+      best_result$par <- .hzr_conserve_events(
+        best_result$par, fixmu_phase, fixmu_pos,
+        time, status, phases, covariate_counts, x_list, total_events
+      )
+    }
 
     # Expand vcov to full dimension (NA for fixed params — not estimated)
     if (!is.null(best_result$vcov) && is.matrix(best_result$vcov)) {

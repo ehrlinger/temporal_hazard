@@ -1,6 +1,6 @@
 Package: TemporalHazard
 Title: Temporal Parametric Hazard Modeling in R
-Version: 0.9.2
+Version: 0.9.3
 Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@gmail.com", role = c("aut", "cre"))
 Author: John Ehrlinger [aut, cre]
 Maintainer: John Ehrlinger <john.ehrlinger@gmail.com>
