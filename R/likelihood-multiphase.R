@@ -843,8 +843,7 @@
     if (start_i == 1L) {
       theta_try <- theta_start_optim
     } else {
-      # Random perturbation of starting values (free params only)
-      set.seed(NULL)  # ensure randomness
+      # Deterministic perturbation seeded from start index for reproducibility
       theta_try <- theta_start_optim +
         stats::rnorm(length(theta_start_optim), sd = 0.5)
     }

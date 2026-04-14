@@ -7,13 +7,11 @@ format:
     toc: true
     toc-depth: 3
     number-sections: true
+vignette: >
+  %\VignetteIndexEntry{Inference & Diagnostics}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
 ---
-
-<!--
-%\VignetteIndexEntry{Inference & Diagnostics}
-%\VignetteEngine{quarto::html}
-%\VignetteEncoding{UTF-8}
--->
 
 ```{r}
 #| include: false

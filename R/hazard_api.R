@@ -61,7 +61,7 @@ NULL
 #'   Use `"multiphase"` for N-phase additive hazard models (requires `phases`).
 #' @param phases Optional named list of [hzr_phase()] objects specifying the
 #'   phases for a multiphase model (`dist = "multiphase"`).  See Examples.
-#' @param fit Logical; if TRUE and theta is provided, fit the model via ML (default TRUE).
+#' @param fit Logical; if TRUE, fit the model via maximum likelihood (default FALSE).
 #' @param control Named list of control options (see Details).
 #' @param ... Additional named arguments retained for parity with legacy calling
 #'   conventions.

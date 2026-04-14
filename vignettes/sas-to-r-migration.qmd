@@ -1,13 +1,11 @@
 ---
 title: "Migrating from SAS HAZARD to TemporalHazard"
 format: html
+vignette: >
+  %\VignetteIndexEntry{Migrating from SAS HAZARD to TemporalHazard}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
 ---
-
-<!--
-%\VignetteIndexEntry{Migrating from SAS HAZARD to TemporalHazard}
-%\VignetteEngine{quarto::html}
-%\VignetteEncoding{UTF-8}
--->
 
 ```{r}
 #| include: false
