@@ -149,7 +149,7 @@ fit_mp <- hazard(
                        fixed = "shapes")
   ),
   fit     = TRUE,
-  control = list(n_starts = 3, maxit = 500)
+  control = list(n_starts = 5, maxit = 1000)
 )
 
 t_grid <- seq(0.01, max(dat$time) * 0.9, length.out = 100)

@@ -921,7 +921,11 @@
   total_events <- NULL
   log_mu_positions <- .hzr_log_mu_positions(phases, covariate_counts)
 
-  if (use_conserve && length(phases) >= 2L) {
+  # CoE is only valid for right-censored + exact-event data.  Interval and
+  # left censoring require a different event-counting formulation.
+  coe_supported_data <- all(status %in% c(0, 1))
+
+  if (use_conserve && coe_supported_data && length(phases) >= 2L) {
     total_events <- sum(status == 1)
     if (total_events > 0) {
       # Initial CoE scaling: adjust all log_mu proportionally
