@@ -517,3 +517,231 @@ print.hzr_gof <- function(x, digits = 3, ...) {
       "cum_expected, residual\n")
   invisible(x)
 }
+
+
+# =========================================================================
+# hzr_kaplan — Kaplan-Meier with exact logit confidence limits
+# =========================================================================
+
+#' Kaplan-Meier survival with exact logit confidence limits
+#'
+#' Compute the product-limit (Kaplan-Meier) survival estimate with
+#' logit-transformed confidence limits that respect the \eqn{[0, 1]}
+#' boundary.
+#' This is the R equivalent of the SAS `kaplan.sas` macro.
+#'
+#' The standard Greenwood confidence interval can exceed \eqn{[0, 1]} in the
+#' tails. The logit-transformed interval avoids this by working on the
+#' log-odds scale:
+#'
+#' \deqn{
+#'   \text{CL}_{\text{lower}} = S / \bigl(S + (1-S)\,
+#'   \exp(z_\alpha\,\text{SI})\bigr)
+#' }
+#' \deqn{
+#'   \text{CL}_{\text{upper}} = S / \bigl(S + (1-S)\,
+#'   \exp(-z_\alpha\,\text{SI})\bigr)
+#' }
+#'
+#' where \eqn{\text{SI} = \sqrt{V_P - 1} / (1 - S)}, \eqn{V_P} is the
+#' cumulative Greenwood variance product, and \eqn{z_\alpha} is the
+#' normal quantile for the requested confidence level.
+#'
+#' @param time Numeric vector of follow-up times.
+#' @param status Numeric event indicator (1 = event, 0 = censored).
+#' @param conf_level Confidence level for the interval (default 0.95).
+#'   The SAS default of 0.68268948 corresponds to a 1-SD interval.
+#' @param event_only Logical; if `TRUE` (default), only return rows at
+#'   event times.
+#'   If `FALSE`, include rows at censoring times as well.
+#'
+#' @return A data frame with one row per time point and columns:
+#' \describe{
+#'   \item{time}{Event/censoring time.}
+#'   \item{n_risk}{Number at risk at start of interval.}
+#'   \item{n_event}{Number of events at this time.}
+#'   \item{n_censor}{Number censored at this time.}
+#'   \item{survival}{Kaplan-Meier survival estimate.}
+#'   \item{std_err}{Standard error of survival (Greenwood).}
+#'   \item{cl_lower}{Lower confidence limit (logit-transformed).}
+#'   \item{cl_upper}{Upper confidence limit (logit-transformed).}
+#'   \item{cumhaz}{Cumulative hazard \eqn{= -\log(S)}.}
+#'   \item{hazard}{Interval hazard rate
+#'     \eqn{= \log(S_{t-1} / S_t) / \Delta t}.}
+#'   \item{density}{Probability density estimate
+#'     \eqn{= (S_{t-1} - S_t) / \Delta t}.}
+#'   \item{life}{Restricted mean survival time (area under curve to
+#'     this time).}
+#' }
+#'
+#' @examples
+#' data(cabgkul)
+#' km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+#' head(km)
+#'
+#' \donttest{
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   library(ggplot2)
+#'   ggplot(km, aes(time)) +
+#'     geom_step(aes(y = survival * 100)) +
+#'     geom_ribbon(aes(ymin = cl_lower * 100, ymax = cl_upper * 100),
+#'                 stat = "identity", alpha = 0.2) +
+#'     labs(x = "Months", y = "Survival (%)") +
+#'     theme_minimal()
+#' }
+#' }
+#'
+#' @seealso [hzr_gof()] for parametric vs. nonparametric comparison.
+#' @export
+hzr_kaplan <- function(time, status, conf_level = 0.95,
+                       event_only = TRUE) {
+  if (!is.numeric(time) || !is.numeric(status)) {
+    stop("'time' and 'status' must be numeric vectors.", call. = FALSE)
+  }
+  if (length(time) != length(status)) {
+    stop("'time' and 'status' must have the same length.", call. = FALSE)
+  }
+  if (conf_level <= 0 || conf_level >= 1) {
+    stop("'conf_level' must be between 0 and 1.", call. = FALSE)
+  }
+
+  z_alpha <- stats::qnorm(0.5 + 0.5 * conf_level)
+
+  # Use survival::survfit for the core KM computation
+  km_fit <- survival::survfit(survival::Surv(time, status) ~ 1)
+
+  n_times <- length(km_fit$time)
+
+  # --- Build output vectors at each event/censoring time --------------------
+  km_time    <- km_fit$time
+  km_n_risk  <- km_fit$n.risk
+  km_n_event <- km_fit$n.event
+  km_n_censor <- km_fit$n.censor
+  km_surv    <- km_fit$surv
+
+  # --- Greenwood variance product and exact logit CL -----------------------
+  # VAR_PROD = prod_i [1/(n_i - d_i) - 1/n_i + 1] for all event times
+  # The product is cumulative: each time contributes a multiplicative factor.
+  var_prod <- rep(1.0, n_times)
+  for (i in seq_len(n_times)) {
+    ni <- km_n_risk[i]
+    di <- km_n_event[i]
+    if (ni > 0 && (ni - di) > 0 && di > 0) {
+      factor_i <- 1.0 / (ni - di) - 1.0 / ni + 1.0
+      if (i == 1L) {
+        var_prod[i] <- factor_i
+      } else {
+        var_prod[i] <- var_prod[i - 1L] * factor_i
+      }
+    } else if (i > 1L) {
+      var_prod[i] <- var_prod[i - 1L]
+    }
+  }
+
+  # Standard error (Greenwood)
+  var_exact <- km_surv^2 * pmax(var_prod - 1, 0)
+  std_err <- sqrt(var_exact)
+
+  # Logit-transformed confidence limits (SAS SI_EXACT formula)
+  si_exact <- rep(0.0, n_times)
+  idx_valid <- km_surv < 1 & km_surv > 0
+  si_exact[idx_valid] <- sqrt(pmax(var_prod[idx_valid] - 1, 0)) /
+    (1 - km_surv[idx_valid])
+
+  cl_lower <- km_surv / (km_surv + (1 - km_surv) *
+                            exp(z_alpha * si_exact))
+  cl_upper <- km_surv / (km_surv + (1 - km_surv) *
+                            exp(-z_alpha * si_exact))
+
+  # Edge cases: if S = 1 or S = 0, CL = S
+
+  cl_lower[km_surv >= 1] <- 1
+  cl_upper[km_surv >= 1] <- 1
+  cl_lower[km_surv <= 0] <- 0
+  cl_upper[km_surv <= 0] <- 0
+
+  # --- Cumulative hazard -----------------------------------------------------
+  cumhaz <- -log(pmax(km_surv, .Machine$double.xmin))
+
+  # --- Interval hazard and density ------------------------------------------
+  lag_surv <- c(1, km_surv[-n_times])
+  lag_time <- c(0, km_time[-n_times])
+  delta_t <- km_time - lag_time
+
+  hazard <- rep(NA_real_, n_times)
+  density <- rep(NA_real_, n_times)
+  idx_haz <- km_n_event > 0 & delta_t > 0 & km_surv > 0
+  hazard[idx_haz] <- log(lag_surv[idx_haz] / km_surv[idx_haz]) /
+    delta_t[idx_haz]
+  density[idx_haz] <- (lag_surv[idx_haz] - km_surv[idx_haz]) /
+    delta_t[idx_haz]
+
+  # --- Restricted mean survival (life integral) -----------------------------
+  # Modified trapezoidal rule: LIFE(t) = LIFE(t-1) + dt*(3S(t) - S(t-1))/2
+  life <- rep(0, n_times)
+  lag_life <- 0
+  for (i in seq_len(n_times)) {
+    life[i] <- lag_life + delta_t[i] * (3 * km_surv[i] - lag_surv[i]) / 2
+    lag_life <- life[i]
+  }
+
+  # --- Assemble result ------------------------------------------------------
+  result <- data.frame(
+    time      = km_time,
+    n_risk    = km_n_risk,
+    n_event   = km_n_event,
+    n_censor  = km_n_censor,
+    survival  = km_surv,
+    std_err   = std_err,
+    cl_lower  = cl_lower,
+    cl_upper  = cl_upper,
+    cumhaz    = cumhaz,
+    hazard    = hazard,
+    density   = density,
+    life      = life
+  )
+
+  if (event_only) {
+    result <- result[result$n_event > 0, , drop = FALSE]
+    rownames(result) <- NULL
+  }
+
+  class(result) <- c("hzr_kaplan", "data.frame")
+  result
+}
+
+#' Print method for hzr_kaplan
+#'
+#' @param x An `hzr_kaplan` object.
+#' @param digits Number of significant digits.
+#' @param n Maximum rows to print (default 20).
+#' @param ... Additional arguments (ignored).
+#' @export
+print.hzr_kaplan <- function(x, digits = 4, n = 20, ...) {
+  cat("Kaplan-Meier estimate with logit confidence limits\n")
+  total_events <- sum(x$n_event)
+  cat("Events:", total_events, " | Time points:", nrow(x), "\n")
+  if (nrow(x) > 0) {
+    cat("Survival range:",
+        round(min(x$survival), digits), "to",
+        round(max(x$survival), digits), "\n")
+    cat("RMST at last event:", round(x$life[nrow(x)], digits), "\n\n")
+  }
+  display <- x
+  display$survival <- round(display$survival, digits)
+  display$std_err <- round(display$std_err, digits)
+  display$cl_lower <- round(display$cl_lower, digits)
+  display$cl_upper <- round(display$cl_upper, digits)
+  display$cumhaz <- round(display$cumhaz, digits)
+  display$hazard <- round(display$hazard, digits)
+  display$density <- round(display$density, digits)
+  display$life <- round(display$life, digits)
+  class(display) <- "data.frame"
+  if (nrow(display) > n) {
+    print(utils::head(display, n), row.names = FALSE)
+    cat("... (", nrow(display) - n, " more rows)\n")
+  } else {
+    print(display, row.names = FALSE)
+  }
+  invisible(x)
+}

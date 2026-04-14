@@ -8,6 +8,10 @@
 * `hzr_gof()` — Goodness-of-fit function comparing parametric predictions
   against nonparametric (Kaplan-Meier) estimates with observed vs. expected
   event counting. Implements the SAS `hazplot.sas` macro workflow.
+* `hzr_kaplan()` — Kaplan-Meier survival estimator with logit-transformed
+  confidence limits that respect the [0, 1] boundary, interval hazard rate,
+  density, and restricted mean survival time (life integral). Implements the
+  SAS `kaplan.sas` macro output structure.
 * **Conservation of Events (CoE)** — Turner's theorem is now integrated into
   the multiphase optimizer. One phase's log_mu scaling parameter is solved
   analytically at each iteration, reducing the optimization dimension by 1

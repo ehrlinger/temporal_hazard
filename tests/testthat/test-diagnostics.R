@@ -317,3 +317,108 @@ test_that("print.hzr_gof runs without error", {
   expect_output(print(gof), "Goodness-of-fit")
   expect_output(print(gof), "Conservation ratio")
 })
+
+
+# =========================================================================
+# hzr_kaplan tests
+# =========================================================================
+
+test_that("hzr_kaplan returns correct structure", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+
+  expect_s3_class(km, "hzr_kaplan")
+  expect_s3_class(km, "data.frame")
+  expect_true(nrow(km) > 0)
+  expect_named(km, c("time", "n_risk", "n_event", "n_censor",
+                      "survival", "std_err", "cl_lower", "cl_upper",
+                      "cumhaz", "hazard", "density", "life"))
+})
+
+test_that("hzr_kaplan survival is monotone non-increasing", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+
+  expect_true(all(diff(km$survival) <= 0),
+              label = "survival should be non-increasing")
+  expect_true(all(km$survival >= 0 & km$survival <= 1))
+})
+
+test_that("hzr_kaplan confidence limits respect [0, 1]", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+
+  expect_true(all(km$cl_lower >= 0 & km$cl_lower <= 1))
+  expect_true(all(km$cl_upper >= 0 & km$cl_upper <= 1))
+  # Lower <= survival <= upper
+  expect_true(all(km$cl_lower <= km$survival + 1e-10))
+  expect_true(all(km$cl_upper >= km$survival - 1e-10))
+})
+
+test_that("hzr_kaplan matches survfit survival values", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead, event_only = FALSE)
+  sf <- survival::survfit(survival::Surv(int_dead, dead) ~ 1,
+                           data = cabgkul)
+
+  # Survival values at survfit times should match exactly
+  expect_equal(km$survival, sf$surv, tolerance = 1e-12)
+  expect_equal(km$time, sf$time)
+})
+
+test_that("hzr_kaplan cumhaz is consistent with survival", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+
+  # cumhaz = -log(S)
+  expected_cumhaz <- -log(pmax(km$survival, .Machine$double.xmin))
+  expect_equal(km$cumhaz, expected_cumhaz, tolerance = 1e-10)
+})
+
+test_that("hzr_kaplan life integral is non-negative and non-decreasing", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+
+  expect_true(all(km$life >= 0))
+  expect_true(all(diff(km$life) >= -1e-10),
+              label = "life integral should be non-decreasing")
+})
+
+test_that("hzr_kaplan event_only filters correctly", {
+  data(cabgkul, package = "TemporalHazard")
+  km_events <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead,
+                            event_only = TRUE)
+  km_all <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead,
+                         event_only = FALSE)
+
+  expect_true(nrow(km_all) >= nrow(km_events))
+  expect_true(all(km_events$n_event > 0))
+})
+
+test_that("hzr_kaplan conf_level parameter works", {
+  data(cabgkul, package = "TemporalHazard")
+  km_95 <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead,
+                        conf_level = 0.95)
+  km_68 <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead,
+                        conf_level = 0.68268948)
+
+  # 95% intervals should be wider than 68% (1-SD) intervals
+  width_95 <- km_95$cl_upper - km_95$cl_lower
+  width_68 <- km_68$cl_upper - km_68$cl_lower
+  # Compare at matching times where both have events
+  expect_true(all(width_95 >= width_68 - 1e-10))
+})
+
+test_that("hzr_kaplan rejects invalid inputs", {
+  expect_error(hzr_kaplan("a", 1), "numeric")
+  expect_error(hzr_kaplan(1:5, 1:3), "same length")
+  expect_error(hzr_kaplan(1:5, rep(1, 5), conf_level = 1.5),
+               "between 0 and 1")
+})
+
+test_that("print.hzr_kaplan runs without error", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+  expect_output(print(km), "Kaplan-Meier")
+  expect_output(print(km), "RMST")
+})
