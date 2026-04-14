@@ -1,0 +1,457 @@
+---
+title: "Complete Clinical Analysis Walkthrough"
+subtitle: "From Kaplan-Meier baseline to validated multivariable model"
+author: "John Ehrlinger"
+date: last-modified
+format:
+  html:
+    code-fold: false
+    toc: true
+    toc-depth: 3
+    number-sections: true
+vignette: >
+  %\VignetteIndexEntry{Complete Clinical Analysis Walkthrough}
+  %\VignetteEngine{quarto::html}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r}
+#| include: false
+has_pkg <- requireNamespace("TemporalHazard", quietly = TRUE)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5,
+  eval = has_pkg
+)
+```
+
+This vignette demonstrates the **complete analytical workflow** for a
+temporal parametric hazard analysis, mirroring the disciplined sequence used
+in the original SAS HAZARD system:
+
+1. **Nonparametric baseline** --- Kaplan-Meier life table
+2. **Shape fitting** --- start simple, build to multiphase
+3. **Variable screening** --- calibrate covariates, assess functional form
+4. **Multivariable model** --- covariate entry with fixed shapes
+5. **Prediction** --- patient-specific risk profiles
+6. **Validation** --- decile-of-risk calibration
+
+This corresponds to the SAS programs `ac.*` → `hz.*` → `lg.*` → `hm.*` →
+`hp.*` → `hs.*`.
+
+We use the **AVC** dataset (310 patients, atrioventricular canal repair)
+which has rich covariates and two identifiable hazard phases.
+
+## Data preparation
+
+```{r}
+#| label: setup
+library(TemporalHazard)
+if (has_ggplot2) library(ggplot2)
+
+data(avc)
+avc <- na.omit(avc)
+str(avc)
+```
+
+The AVC dataset contains `r nrow(avc)` patients after removing incomplete
+cases.  Key covariates include age at repair (`age`, in months), NYHA
+functional class (`status`), presence of malalignment (`mal`), and
+interventricular communication (`com_iv`).
+
+## Step 1: Nonparametric baseline
+
+Before fitting any parametric model, establish the empirical survival curve
+using the Kaplan-Meier estimator.  This is the benchmark against which all
+parametric fits will be compared.
+
+```{r}
+#| label: fig-km-baseline
+#| fig-cap: "Kaplan-Meier survival estimate for AVC patients (n = 310)"
+#| eval: !expr has_pkg && has_ggplot2
+km <- survival::survfit(survival::Surv(int_dead, dead) ~ 1, data = avc)
+
+km_df <- data.frame(
+  time     = km$time,
+  survival = km$surv * 100,
+  lower    = km$lower * 100,
+  upper    = km$upper * 100
+)
+
+ggplot(km_df, aes(time, survival)) +
+  geom_step(colour = "#D55E00", linewidth = 0.8) +
+  geom_ribbon(aes(ymin = lower, ymax = upper),
+              stat = "identity", alpha = 0.15, fill = "#D55E00") +
+  labs(x = "Months after AVC repair", y = "Survival (%)") +
+  coord_cartesian(ylim = c(0, 100)) +
+  theme_minimal()
+```
+
+The KM curve shows a sharp early drop (operative mortality) followed by a
+roughly constant attrition rate.  This two-phase pattern suggests an early
+CDF phase plus a constant phase --- no obvious late rising hazard.
+
+## Step 2: Shape fitting --- simple to complex
+
+### 2a. Single-phase Weibull
+
+Start with the simplest parametric model to establish a baseline fit.
+
+```{r}
+#| label: weibull-fit
+fit_weib <- hazard(
+  survival::Surv(int_dead, dead) ~ 1,
+  data  = avc,
+  dist  = "weibull",
+  theta = c(mu = 0.05, nu = 0.5),
+  fit   = TRUE
+)
+summary(fit_weib)
+```
+
+The Weibull forces a monotone hazard shape.  Let's overlay it on the
+Kaplan-Meier to see where it fits well and where it doesn't.
+
+```{r}
+#| label: fig-weibull-overlay
+#| fig-cap: "Single Weibull vs. Kaplan-Meier"
+#| eval: !expr has_pkg && has_ggplot2
+t_grid <- seq(0.01, max(avc$int_dead) * 0.9, length.out = 200)
+surv_weib <- predict(fit_weib,
+                     newdata = data.frame(time = t_grid),
+                     type = "survival") * 100
+
+ggplot() +
+  geom_step(data = km_df, aes(time, survival),
+            colour = "#D55E00", linewidth = 0.6) +
+  geom_line(data = data.frame(time = t_grid, survival = surv_weib),
+            aes(time, survival), colour = "#0072B2", linewidth = 0.8) +
+  labs(x = "Months after AVC repair", y = "Survival (%)") +
+  coord_cartesian(ylim = c(0, 100)) +
+  theme_minimal()
+```
+
+The single Weibull typically misses the sharp early drop --- it compromises
+between the early and late time frames.
+
+### 2b. Two-phase model (early CDF + constant)
+
+Based on the KM shape, fit an early phase (resolving operative risk) plus
+a constant phase (background attrition).
+
+```{r}
+#| label: multiphase-fit
+fit_mp <- hazard(
+  survival::Surv(int_dead, dead) ~ 1,
+  data   = avc,
+  dist   = "multiphase",
+  phases = list(
+    early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                          fixed = "shapes"),
+    constant = hzr_phase("constant")
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 5, maxit = 1000)
+)
+summary(fit_mp)
+```
+
+Note the use of `fixed = "shapes"` --- we fix the temporal shape parameters
+and only estimate the scale (log_mu) for each phase.  This matches the
+standard HAZARD workflow: shapes are set from clinical knowledge or
+preliminary exploration, then scales and covariates are estimated.
+
+```{r}
+#| label: fig-multiphase-overlay
+#| fig-cap: "Two-phase parametric model vs. Kaplan-Meier"
+#| eval: !expr has_pkg && has_ggplot2
+surv_mp <- predict(fit_mp,
+                   newdata = data.frame(time = t_grid),
+                   type = "survival") * 100
+
+ggplot() +
+  geom_step(data = km_df, aes(time, survival),
+            colour = "#D55E00", linewidth = 0.6) +
+  geom_line(data = data.frame(time = t_grid, survival = surv_mp),
+            aes(time, survival), colour = "#0072B2", linewidth = 0.8) +
+  labs(x = "Months after AVC repair", y = "Survival (%)") +
+  coord_cartesian(ylim = c(0, 100)) +
+  theme_minimal()
+```
+
+### 2c. Decomposed hazard
+
+Visualize the per-phase contributions to the cumulative hazard.
+
+```{r}
+#| label: fig-decomposed
+#| fig-cap: "Phase decomposition of cumulative hazard"
+#| eval: !expr has_pkg && has_ggplot2
+decomp <- predict(fit_mp,
+                  newdata = data.frame(time = t_grid),
+                  type = "cumulative_hazard",
+                  decompose = TRUE)
+
+decomp_df <- data.frame(
+  time  = t_grid,
+  total = decomp[, "total"],
+  early = decomp[, "early"],
+  const = decomp[, "constant"]
+)
+
+ggplot(decomp_df, aes(x = time)) +
+  geom_line(aes(y = total), linewidth = 0.9, colour = "black") +
+  geom_line(aes(y = early), linewidth = 0.7, colour = "#E69F00",
+            linetype = "dashed") +
+  geom_line(aes(y = const), linewidth = 0.7, colour = "#56B4E9",
+            linetype = "dashed") +
+  labs(x = "Months after AVC repair", y = "Cumulative hazard") +
+  theme_minimal()
+```
+
+The early phase contributes most of its risk in the first few months, then
+levels off.  The constant phase accumulates linearly over time.
+
+## Step 3: Variable screening
+
+Before entering covariates into the hazard model, screen them for
+association with the outcome.  This step corresponds to the `lg.*` programs
+in the SAS workflow.
+
+### 3a. Univariable logistic screening
+
+Use simple logistic regression of the event indicator on each covariate to
+get a quick ranking by strength of association.
+
+```{r}
+#| label: screening
+covariates <- c("age", "status", "mal", "com_iv", "orifice",
+                "inc_surg", "opmos")
+
+screen_results <- data.frame(
+  variable = covariates,
+  coef     = numeric(length(covariates)),
+  p_value  = numeric(length(covariates))
+)
+
+for (i in seq_along(covariates)) {
+  v <- covariates[i]
+  fml <- as.formula(paste("dead ~", v))
+  lg <- glm(fml, data = avc, family = binomial)
+  s <- summary(lg)$coefficients
+  if (nrow(s) >= 2) {
+    screen_results$coef[i] <- s[2, 1]
+    screen_results$p_value[i] <- s[2, 4]
+  }
+}
+
+screen_results <- screen_results[order(screen_results$p_value), ]
+screen_results$significant <- ifelse(screen_results$p_value < 0.05,
+                                      "*", "")
+screen_results
+```
+
+### 3b. Functional form assessment
+
+For continuous covariates that appear significant, examine whether the
+relationship with outcome is linear on the logit scale using LOESS
+smoothing.  Non-linear patterns suggest a transformation may be needed.
+
+```{r}
+#| label: fig-loess-age
+#| fig-cap: "LOESS smooth: age vs. mortality probability"
+#| eval: !expr has_pkg && has_ggplot2
+ggplot(avc, aes(age, dead)) +
+  geom_point(alpha = 0.2, size = 1) +
+  geom_smooth(method = "loess", formula = y ~ x, se = TRUE,
+              colour = "#0072B2", fill = "#0072B2", alpha = 0.2) +
+  labs(x = "Age at repair (months)", y = "P(death)") +
+  theme_minimal()
+```
+
+If the LOESS curve is roughly linear (or monotone), the covariate can enter
+the model untransformed.  S-shaped or U-shaped curves suggest
+transformations (log, quadratic) may improve the fit.
+
+## Step 4: Multivariable model
+
+Enter the significant covariates into the two-phase hazard model.  With
+the current package, variable selection is done manually --- identify the
+promising covariates from screening, then fit the full model.
+
+```{r}
+#| label: multivariable-fit
+fit_mv <- hazard(
+  survival::Surv(int_dead, dead) ~ age + status + mal + com_iv,
+  data   = avc,
+  dist   = "multiphase",
+  phases = list(
+    early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                          fixed = "shapes"),
+    constant = hzr_phase("constant")
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 5, maxit = 1000)
+)
+summary(fit_mv)
+```
+
+The coefficient table shows phase-specific covariate effects.  A positive
+coefficient means higher hazard (worse prognosis).  Interpretation:
+covariates scale the phase-specific hazard multiplicatively via
+exp(x * beta).
+
+## Step 5: Prediction
+
+### 5a. Baseline survival curve
+
+Generate the survival curve for a reference patient (median age, NYHA
+class 1, no malalignment, no interventricular communication).
+
+```{r}
+#| label: fig-prediction
+#| fig-cap: "Reference patient survival with Kaplan-Meier overlay"
+#| eval: !expr has_pkg && has_ggplot2
+ref_patient <- data.frame(
+  time   = t_grid,
+  age    = median(avc$age),
+  status = 1,
+  mal    = 0,
+  com_iv = 0
+)
+
+surv_ref <- predict(fit_mv, newdata = ref_patient,
+                    type = "survival") * 100
+
+ggplot() +
+  geom_step(data = km_df, aes(time, survival),
+            colour = "#D55E00", linewidth = 0.6, alpha = 0.7) +
+  geom_line(data = data.frame(time = t_grid, survival = surv_ref),
+            aes(time, survival), colour = "#0072B2", linewidth = 0.8) +
+  labs(x = "Months after AVC repair", y = "Survival (%)") +
+  coord_cartesian(ylim = c(0, 100)) +
+  theme_minimal()
+```
+
+### 5b. Sensitivity analysis --- risk factor comparison
+
+Compare survival curves for a low-risk vs. high-risk patient profile to
+visualize the effect of covariates on long-term outcome.
+
+```{r}
+#| label: fig-sensitivity
+#| fig-cap: "Survival by risk profile: low-risk (blue) vs. high-risk (red)"
+#| eval: !expr has_pkg && has_ggplot2
+low_risk <- data.frame(
+  time   = t_grid,
+  age    = quantile(avc$age, 0.25),
+  status = 1,
+  mal    = 0,
+  com_iv = 0
+)
+
+high_risk <- data.frame(
+  time   = t_grid,
+  age    = quantile(avc$age, 0.90),
+  status = 4,
+  mal    = 1,
+  com_iv = 1
+)
+
+surv_lo <- predict(fit_mv, newdata = low_risk, type = "survival") * 100
+surv_hi <- predict(fit_mv, newdata = high_risk, type = "survival") * 100
+
+sens_df <- data.frame(
+  time = rep(t_grid, 2),
+  survival = c(surv_lo, surv_hi),
+  profile = rep(c("Low risk", "High risk"), each = length(t_grid))
+)
+
+ggplot(sens_df, aes(time, survival, colour = profile)) +
+  geom_line(linewidth = 0.8) +
+  scale_colour_manual(values = c("Low risk" = "#0072B2",
+                                  "High risk" = "#D55E00")) +
+  labs(x = "Months after AVC repair", y = "Survival (%)",
+       colour = NULL) +
+  coord_cartesian(ylim = c(0, 100)) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+## Step 6: Validation --- decile-of-risk calibration
+
+Partition patients into deciles by predicted risk and compare observed
+vs. expected event rates.  Good calibration means the two track each
+other.  This implements the workflow of the SAS `deciles.hazard.sas`
+macro.
+
+```{r}
+#| label: fig-deciles
+#| fig-cap: "Observed vs. expected event rates by risk decile"
+#| eval: !expr has_pkg && has_ggplot2
+cal <- hzr_deciles(fit_mv, time = max(avc$int_dead))
+print(cal)
+```
+
+```{r}
+#| label: fig-decile-plot
+#| fig-cap: "Decile calibration: observed (bars) vs. expected (points) event rates"
+#| eval: !expr has_pkg && has_ggplot2
+ggplot(cal, aes(x = group)) +
+  geom_col(aes(y = observed_rate), fill = "#56B4E9", alpha = 0.7) +
+  geom_point(aes(y = expected_rate), colour = "#D55E00", size = 3) +
+  geom_line(aes(y = expected_rate), colour = "#D55E00", linewidth = 0.5) +
+  scale_x_continuous(breaks = seq_len(nrow(cal))) +
+  labs(x = "Risk decile (1 = lowest)", y = "Event rate",
+       caption = paste("Overall chi-sq =",
+                        round(attr(cal, "overall")$chi_sq, 2),
+                        ", p =",
+                        format.pval(attr(cal, "overall")$p_value,
+                                     digits = 3))) +
+  theme_minimal()
+```
+
+A non-significant overall chi-square statistic (p > 0.05) indicates
+adequate calibration --- the model's predictions are consistent with
+observed event rates across the risk spectrum.
+
+## Why not Cox regression?
+
+The temporal parametric approach offers several advantages over Cox
+proportional hazards for this type of analysis:
+
+| Feature | Cox (`coxph`) | TemporalHazard |
+|:---|:---:|:---:|
+| Proportional hazards required | Yes | No |
+| Baseline hazard specified | No | Yes (parametric) |
+| Multiple hazard phases | No | Yes (additive) |
+| Patient-specific survival prediction | Approximate | Exact |
+| Smooth extrapolation beyond data | No | Yes |
+| Conservation of events check | No | Planned |
+| Interval censoring | Not standard | Supported |
+
+The key insight is that many clinical outcomes exhibit **non-proportional
+hazards**: the risk factors that dominate early mortality (e.g., surgical
+complexity) differ from those driving late attrition (e.g., age, comorbidity).
+The multiphase model captures this naturally through phase-specific
+covariate effects.
+
+## Summary
+
+The complete analytical workflow follows a disciplined sequence:
+
+1. **Kaplan-Meier baseline** --- establish the empirical survival pattern
+2. **Shape fitting** --- match the temporal shape, simple to complex
+3. **Variable screening** --- logistic screening, LOESS functional form
+4. **Multivariable model** --- enter covariates with fixed shapes
+5. **Prediction** --- reference curves, sensitivity analysis
+6. **Validation** --- decile calibration, parametric vs. KM overlay
+
+This sequence ensures that the temporal shape is established before
+covariates are introduced, and that the final model is validated against
+the observed data.  See `vignette("getting-started")` for the minimal
+API workflow and `vignette("mf-mathematical-foundations")` for the
+mathematical details.

@@ -111,6 +111,7 @@ the formula interface (see `vignette("fitting-hazard-models")`).
 
 ## Documentation
 
+- **[Clinical Analysis Walkthrough](https://ehrlinger.github.io/temporal_hazard/articles/clinical-analysis-walkthrough.html)** --- complete end-to-end workflow from Kaplan-Meier baseline through validated multivariable model.
 - **[Getting Started](https://ehrlinger.github.io/temporal_hazard/articles/getting-started.html)** --- first fit-predict workflow with visualizations.
 - **[Fitting Hazard Models](https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.html)** --- intercept-only through multiphase and multi-endpoint models.
 - **[Prediction & Visualization](https://ehrlinger.github.io/temporal_hazard/articles/prediction-visualization.html)** --- survival curves, decomposed hazard, patient-specific risk profiles.

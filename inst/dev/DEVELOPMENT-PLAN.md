@@ -189,7 +189,200 @@ Tasks:
 
 ---
 
-## Phase 5: Performance and Extensions — FUTURE
+## Phase 5: Utility Functions (SAS Macro Equivalents) — PLANNED
+
+The SAS HAZARD system ships utility macros for non-parametric estimation,
+goodness-of-fit, variable calibration, bootstrap inference, and competing
+risks. These cover the full analytical workflow around the core fitting
+engine. R equivalents should be exported functions in the `hzr_` namespace.
+
+### SAS macro inventory and R mapping
+
+| SAS Macro | Purpose | R Equivalent | Priority |
+|:---|:---|:---|:---:|
+| `kaplan.sas` | KM survival with exact logit CL | `hzr_kaplan()` | High |
+| `hazplot.sas` | Observed vs predicted overlay + CoE GOF | `hzr_gof()` | High |
+| `deciles.hazard.sas` | Calibration by predicted survival deciles | `hzr_deciles()` | High |
+| `chisqgf.sas` | Chi-square GOF test (obs vs expected) | `hzr_chisq_gof()` | Medium |
+| `nelsonl.sas` | Nelson estimator for weighted/repeated events | `hzr_nelson()` | Medium |
+| `nelsont.sas` | Nelson estimator for terminating events | `hzr_nelson()` (unified) | Medium |
+| `bootstrap.hazard.sas` | Bootstrap bagging with variable selection | `hzr_bootstrap()` | Medium |
+| `bootstrap.summary.sas` | Summarize bootstrap coefficient distributions | (part of `hzr_bootstrap()`) | Medium |
+| `logit.sas` | Calibrate continuous variables (decile logit) | `hzr_calibrate()` | Low |
+| `logitgr.sas` | Calibrate by natural grouping variable | `hzr_calibrate()` (with `by=`) | Low |
+| `markov.sas` | Competing risks cumulative incidence (Greenwood) | `hzr_competing_risks()` | Low |
+| `plot.sas` | Publication-quality SAS plots | Not needed (ggplot2) | — |
+
+### 5a. `hzr_kaplan()` — Kaplan-Meier with Exact Confidence Limits
+
+**SAS reference:** `kaplan.sas`
+
+R's `survival::survfit()` provides KM estimates, but the SAS macro adds
+logit-transformed exact confidence limits (more accurate than Greenwood
+in the tails), hazard rate estimation at each interval, life integral
+computation, and stratified log-rank testing. A thin wrapper around
+`survfit()` that adds these extras and returns a tidy data frame would
+match the SAS output structure used by `hazplot.sas` and `deciles.hazard.sas`.
+
+**Effort:** Small — mostly formatting `survfit()` output with added CL
+transform.
+
+### 5b. `hzr_gof()` — Goodness-of-Fit: Observed vs Predicted
+
+**SAS reference:** `hazplot.sas`
+
+The central validation tool in the HAZARD workflow. Given a fitted `hazard`
+object, compute at each observed event time:
+- Parametric predicted survival, cumulative hazard, and hazard rate
+- Nonparametric (KM or Nelson) estimates at the same times
+- Cumulative observed vs expected event counts (conservation of events)
+- Chi-square GOF p-value for the obs/exp comparison
+- Per-phase hazard component percentages
+
+Returns a data frame suitable for plotting parametric vs nonparametric
+overlays with `ggplot2`. Optionally supports stratified GOF by a grouping
+variable.
+
+**Effort:** Medium — requires combining `predict.hazard()` output with
+`hzr_kaplan()` output and implementing the CoE event-counting algorithm.
+
+### 5c. `hzr_deciles()` — Decile-of-Risk Calibration
+
+**SAS reference:** `deciles.hazard.sas`
+
+Given a fitted model and a time point, rank patients into deciles by
+predicted survival, then compare actual vs expected event counts per
+decile with chi-square GOF. The inference vignette already demonstrates
+this workflow manually — wrapping it as a function standardizes the
+output and enables programmatic calibration checks.
+
+**Effort:** Small — the logic is already demonstrated in the vignette;
+needs packaging as an exported function.
+
+### 5d. `hzr_nelson()` — Nelson Cumulative Hazard Estimator
+
+**SAS reference:** `nelsonl.sas`, `nelsont.sas`
+
+Wayne Nelson's estimator for cumulative hazard with lognormal confidence
+limits. Handles both terminating (single) events and weighted/repeated
+events. Not available in base `survival` — `survfit()` uses the
+Breslow estimator which differs in variance estimation. Important for
+validating fits on weighted or repeating-event data.
+
+**Effort:** Medium — the Nelson algorithm is straightforward but the
+lognormal CI transform and weighted-event handling need careful
+implementation.
+
+### 5e. `hzr_bootstrap()` — Bootstrap Inference
+
+**SAS reference:** `bootstrap.hazard.sas`, `bootstrap.summary.sas`
+
+Resample data with replacement, refit the hazard model on each replicate,
+and accumulate coefficient distributions. Supports fractional sampling
+(bagging), time-varying covariate data (resample by patient ID), and
+optional stepwise selection per replicate. Returns a tidy data frame of
+per-replicate coefficients with summary statistics (frequency of selection,
+mean, SD, CI).
+
+**Effort:** Medium — the resampling loop is simple, but handling TVC data,
+failed fits, and optional stepwise selection adds complexity. The inference
+vignette already shows manual bootstrap; this wraps it as a function.
+
+### 5f. `hzr_calibrate()` — Variable Calibration
+
+**SAS reference:** `logit.sas`, `logitgr.sas`
+
+Group a continuous covariate into quantile bins, compute event probability
+per bin, and apply logit (or Gompertz/Cox) transform. Used for assessing
+functional form before model entry — does the covariate-outcome
+relationship look linear on the logit scale, or does it need a transform?
+Supports stratification by a grouping variable.
+
+**Effort:** Small — simple rank + aggregate + transform pipeline.
+
+### 5g. `hzr_competing_risks()` — Competing Risks Incidence
+
+**SAS reference:** `markov.sas`
+
+Compute cumulative incidence of competing events using Greenwood's variance
+formula. Unlike 1-KM (which overestimates incidence when competing risks
+exist), this provides correct marginal incidence for each event type with
+standard errors. The valves dataset (death, PVE, reoperation) is a natural
+test case.
+
+**Effort:** Medium — the Greenwood variance matrix computation is
+moderately complex. Could also wrap `cmprsk::cuminc()` if a dependency
+is acceptable.
+
+---
+
+## Phase 6: Documentation Gaps — PLANNED
+
+The SAS HAZARD documentation walks users through a disciplined analytical
+sequence. The R vignettes cover the same pieces but have gaps relative to
+what a SAS HAZARD veteran would expect.
+
+### 6a. Complete Clinical Analysis Walkthrough
+
+**Priority:** High
+
+A new vignette that mirrors the SAS `ac.*` → `hz.*` → `hm.*` → `hp.*` →
+`hs.*` workflow on one dataset (CABGKUL):
+
+1. Nonparametric baseline (KM life table)
+2. Shape fitting: start simple (Weibull), build to multiphase, show how
+   to fix overparameterized shapes
+3. Variable selection: manual screening with `hzr_calibrate()` and
+   univariable logistic, then multivariable model building
+4. Prediction: patient-specific risk profiles, covariate sensitivity
+5. Validation: `hzr_gof()` overlay, `hzr_deciles()` calibration,
+   conservation-of-events check
+
+This is the single most impactful documentation addition — it teaches
+the analytical discipline, not just the API.
+
+### 6b. Cox Regression Comparison
+
+**Priority:** Medium
+
+A section (in getting-started or a standalone vignette) making the case
+for multiphase parametric modeling vs Cox regression:
+
+| Feature | Cox (semi-parametric) | TemporalHazard (parametric) |
+|---|---|---|
+| Proportional hazards | Required | Not required |
+| Baseline hazard | Unspecified | Fully parametric |
+| Multiple hazard phases | Not supported | Supported |
+| Patient-specific prediction | Approximate | Exact |
+| Event conservation check | Not available | Planned |
+| Interval censoring | Not standard | Supported |
+
+The SAS introduction makes this comparison prominently. R users coming
+from `coxph()` need to understand why they'd switch.
+
+### 6c. Convergence Troubleshooting
+
+**Priority:** Medium
+
+A section in the fitting vignette or math foundations covering:
+- How to choose starting values from the KM cumulative hazard plot
+- When to fix shape parameters (`fixed = "shapes"`) vs estimate freely
+- Multi-start strategy and `control$n_starts`
+- Signs of overparameterization (boundary estimates, huge SEs, NaN)
+- Optimization method differences (the SAS docs walk through Newton vs
+  Quasi-Newton vs Steepest Descent)
+
+### 6d. Interval Censoring and Left-Truncation Examples
+
+**Priority:** Low
+
+Worked examples demonstrating interval-censored and left-truncated data
+with `Surv(time1, time2, status)` syntax. The math foundations vignette
+covers the theory but there are no hands-on examples.
+
+---
+
+## Phase 7: Performance and Extensions — FUTURE
 
 Items that would improve the package beyond SAS parity.
 
