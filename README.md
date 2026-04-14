@@ -16,6 +16,13 @@ and late --- each governed by the generalized temporal decomposition family.
 This structure captures real clinical risk patterns that standard single-distribution
 models (Weibull, log-normal) cannot represent.
 
+## Provenance and maintenance
+
+The original SAS/C HAZARD code was developed at the University of Alabama at
+Birmingham (UAB). The SAS/C code and this R package are currently developed
+and maintained at The Cleveland Clinic Foundation. The R code in
+TemporalHazard was wholly developed at The Cleveland Clinic Foundation.
+
 ## Why multiphase?
 
 After cardiac surgery, the risk of death is not constant. It starts high in
@@ -132,3 +139,4 @@ devtools::check()
 GitHub Actions runs multi-platform `R CMD check` on every push and pull request. Coverage is published to Codecov and the pkgdown site deploys automatically from `main`.
 
 See [`inst/dev/DEVELOPMENT-PLAN.md`](inst/dev/DEVELOPMENT-PLAN.md) for the full roadmap covering the C/SAS migration, multiphase implementation, CRAN release, and planned feature parity work.
+See [`.github/BRANCH_PROTECTION.md`](.github/BRANCH_PROTECTION.md) for recommended required-check settings that block merges when CI fails.

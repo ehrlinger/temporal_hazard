@@ -88,6 +88,28 @@ table to `README.md`.
    source("inst/dev/generate-readme-figures.R")
    ```
 
+### Branch Protection Enforcement
+
+Ensure GitHub branch protection is enabled for `main` with:
+
+1. Pull request required before merge
+2. At least 1 approval
+3. Dismiss stale approvals on new commits
+4. Require status checks to pass
+5. Require branch to be up to date before merging
+6. Require conversation resolution before merging
+7. Optional but recommended: include administrators
+
+Require these status checks:
+
+- `lint`
+- `test-coverage`
+- `build-and-deploy` (pkgdown PR validation)
+- `check-badge-sync`
+- All `R-CMD-check` matrix checks
+
+See `.github/BRANCH_PROTECTION.md` for the full branch-protection setup guide.
+
 ### Short-term: CRAN Submission
 
 - Ensure 0 ERROR / 0 WARNING / only expected NOTE(s)

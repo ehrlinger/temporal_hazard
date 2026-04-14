@@ -27,6 +27,7 @@ articles:
   - title: Worked examples
     navbar: Examples
     contents:
+      - clinical-analysis-walkthrough
       - fitting-hazard-models
       - prediction-visualization
       - inference-diagnostics
@@ -64,6 +65,12 @@ reference:
       - hzr_log1pexp
       - hzr_log1mexp
       - hzr_clamp_prob
+  - title: Diagnostics
+    contents:
+      - hzr_deciles
+      - print.hzr_deciles
+      - hzr_gof
+      - print.hzr_gof
 
 home:
   links:

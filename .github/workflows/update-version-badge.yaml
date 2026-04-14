@@ -5,9 +5,37 @@ on:
     branches: [main, master]
     paths:
       - DESCRIPTION
+      - README.md
+  pull_request:
+    branches: [main, master]
+    paths:
+      - DESCRIPTION
+      - README.md
 
 jobs:
+  check-badge-sync:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from DESCRIPTION
+        id: version
+        run: |
+          ver=$(grep '^Version:' DESCRIPTION | sed 's/Version: *//')
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if README badge version is out of sync
+        run: |
+          expected="https://img.shields.io/badge/version-${{ steps.version.outputs.version }}-blue.svg"
+          grep -F "$expected" README.md > /dev/null || {
+            echo "README version badge does not match DESCRIPTION Version: ${{ steps.version.outputs.version }}"
+            echo "Expected badge URL: $expected"
+            exit 1
+          }
+
   update-badge:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
