@@ -27,16 +27,17 @@ A data frame with one row per risk group and columns:
 \describe{
 \item{group}{Integer group label (1 = lowest risk).}
 \item{n}{Number of observations in the group.}
-\item{events}{Observed event count.}
-\item{expected}{Expected event count (sum of cumulative hazard
-values, which equals the predicted number of events under the
-fitted model).}
+\item{events}{Observed event count by the requested horizon
+(event indicator = 1 and event time <= \code{time}).}
+\item{expected}{Expected event count by the requested horizon,
+computed as the sum of individual event probabilities
+(\eqn{1 - S(time)}).}
 \item{observed_rate}{Observed event rate (events / n).}
 \item{expected_rate}{Expected event rate (expected / n).}
 \item{chi_sq}{Chi-square contribution: (events - expected)^2 /
 expected.}
-\item{p_value}{Two-sided p-value from the chi-square test for
-this group.}
+\item{p_value}{Upper-tail p-value from the chi-square test for
+this group (1 df).}
 \item{mean_survival}{Mean predicted survival probability in the
 group.}
 \item{mean_cumhaz}{Mean predicted cumulative hazard in the group.}
@@ -54,7 +55,8 @@ calibration means the two track each other across the risk spectrum.
 This implements the workflow of the SAS \code{deciles.hazard.sas} macro.
 Patients are ranked by predicted cumulative hazard at a specified time
 point, grouped into quantile bins, and each bin is tested with a
-chi-square goodness-of-fit statistic.
+chi-square goodness-of-fit statistic. Subjects censored before the
+requested horizon are excluded from the observed-vs-expected comparison.
 }
 \examples{
 \donttest{

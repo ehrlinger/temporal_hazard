@@ -1,8 +1,8 @@
 # tests/testthat/test-diagnostics.R
 # Tests for hzr_deciles() and related diagnostic utilities
 
-# Helper: fit a Weibull model with covariates (produces varying predictions)
-.fit_avc_weibull <- function() {
+# Helper cache: fit once to reduce repeated optimizer runs across tests.
+.avc_fixture <- local({
   data(avc, package = "TemporalHazard")
   avc <- na.omit(avc)
   fit <- hazard(
@@ -12,9 +12,12 @@
     theta = c(mu = 0.01, nu = 0.5, beta_age = 0, beta_mal = 0),
     fit   = TRUE
   )
-  stopifnot(!is.na(fit$fit$converged))
-  fit
-}
+  stopifnot(isTRUE(fit$fit$converged))
+  list(avc = avc, fit = fit)
+})
+
+.fit_avc_weibull <- function() .avc_fixture$fit
+.avc_data <- function() .avc_fixture$avc
 
 test_that("hzr_deciles returns correct structure", {
   fit <- .fit_avc_weibull()
@@ -31,28 +34,52 @@ test_that("hzr_deciles returns correct structure", {
   ov <- attr(cal, "overall")
   expect_true(is.list(ov))
   expect_named(ov, c("chi_sq", "df", "p_value", "time", "groups",
-                      "total_events", "total_expected"))
+                      "total_events", "total_expected",
+                      "n_included", "n_excluded"))
   expect_equal(ov$time, 120)
   expect_equal(ov$groups, 10)
 })
 
-test_that("hzr_deciles group counts sum to n", {
+test_that("hzr_deciles group counts sum to evaluable n", {
   fit <- .fit_avc_weibull()
-  data(avc, package = "TemporalHazard")
-  avc <- na.omit(avc)
+  avc <- .avc_data()
   cal <- hzr_deciles(fit, time = 120)
+  included <- with(avc, dead == 1 | int_dead >= 120)
+  events_120 <- with(avc, dead == 1 & int_dead <= 120 & included)
 
-  expect_equal(sum(cal$n), nrow(avc))
-  expect_equal(sum(cal$events), sum(avc$dead))
+  expect_equal(sum(cal$n), sum(included))
+  expect_equal(sum(cal$events), sum(events_120))
+  expect_equal(attr(cal, "overall")$n_excluded, sum(!included))
 })
 
 test_that("hzr_deciles works with non-default groups", {
   fit <- .fit_avc_weibull()
-  data(avc, package = "TemporalHazard")
-  avc <- na.omit(avc)
+  avc <- .avc_data()
   cal5 <- hzr_deciles(fit, time = 60, groups = 5)
   expect_equal(nrow(cal5), 5)
-  expect_equal(sum(cal5$n), nrow(avc))
+  expect_equal(sum(cal5$n), sum(avc$dead == 1 | avc$int_dead >= 60))
+})
+
+test_that("hzr_deciles events and expected totals increase with horizon", {
+  fit <- .fit_avc_weibull()
+  avc <- .avc_data()
+  status_all <- avc$dead
+  time_all <- ifelse(avc$dead == 1, avc$int_dead, 1e9)
+
+  cal60 <- hzr_deciles(fit, time = 60, status = status_all,
+                       event_time = time_all)
+  cal120 <- hzr_deciles(fit, time = 120, status = status_all,
+                        event_time = time_all)
+
+  events_60 <- with(avc, sum(dead == 1 & int_dead <= 60))
+  events_120 <- with(avc, sum(dead == 1 & int_dead <= 120))
+
+  expect_equal(sum(cal60$events), events_60)
+  expect_equal(sum(cal120$events), events_120)
+  expect_equal(sum(cal60$n), nrow(avc))
+  expect_equal(sum(cal120$n), nrow(avc))
+  expect_true(sum(cal120$events) >= sum(cal60$events))
+  expect_true(sum(cal120$expected) >= sum(cal60$expected))
 })
 
 test_that("hzr_deciles risk ordering is monotone", {
@@ -90,10 +117,11 @@ test_that("hzr_deciles works with intercept-only model", {
     fit   = TRUE
   )
   cal <- hzr_deciles(fit, time = 12)
+  included <- with(cabgkul, dead == 1 | int_dead >= 12)
 
   expect_s3_class(cal, "hzr_deciles")
   expect_equal(nrow(cal), 10)
-  expect_equal(sum(cal$n), nrow(cabgkul))
+  expect_equal(sum(cal$n), sum(included))
   # All expected rates should be equal (same prediction for everyone)
   expect_true(max(cal$expected_rate) - min(cal$expected_rate) < 1e-10)
 })
@@ -115,17 +143,21 @@ test_that("hzr_deciles works with multiphase model", {
     control = list(n_starts = 3, maxit = 500)
   )
   cal <- hzr_deciles(fit_mp, time = 60)
+  included <- with(cabgkul, dead == 1 | int_dead >= 60)
 
   expect_s3_class(cal, "hzr_deciles")
   expect_equal(nrow(cal), 10)
-  expect_equal(sum(cal$n), nrow(cabgkul))
+  expect_equal(sum(cal$n), sum(included))
 })
 
 test_that("hzr_deciles rejects invalid inputs", {
   fit <- .fit_avc_weibull()
+  avc <- .avc_data()
 
   expect_error(hzr_deciles(fit, time = -1), "positive")
   expect_error(hzr_deciles(fit, time = 120, groups = 1), "at least 2")
+  expect_error(hzr_deciles(fit, time = 120, groups = nrow(avc) + 1),
+               "included observations")
   expect_error(hzr_deciles("not_a_model", time = 12), "hazard object")
 })
 

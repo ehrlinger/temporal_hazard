@@ -14,7 +14,8 @@ NULL
 #' This implements the workflow of the SAS `deciles.hazard.sas` macro.
 #' Patients are ranked by predicted cumulative hazard at a specified time
 #' point, grouped into quantile bins, and each bin is tested with a
-#' chi-square goodness-of-fit statistic.
+#' chi-square goodness-of-fit statistic. Subjects censored before the
+#' requested horizon are excluded from the observed-vs-expected comparison.
 #'
 #' @param object A fitted `hazard` object (with `fit = TRUE`).
 #' @param time Numeric scalar: the time point at which to evaluate
@@ -31,16 +32,17 @@ NULL
 #' \describe{
 #'   \item{group}{Integer group label (1 = lowest risk).}
 #'   \item{n}{Number of observations in the group.}
-#'   \item{events}{Observed event count.}
-#'   \item{expected}{Expected event count (sum of cumulative hazard
-#'     values, which equals the predicted number of events under the
-#'     fitted model).}
+#'   \item{events}{Observed event count by the requested horizon
+#'     (event indicator = 1 and event time <= \code{time}).}
+#'   \item{expected}{Expected event count by the requested horizon,
+#'     computed as the sum of individual event probabilities
+#'     (\eqn{1 - S(time)}).}
 #'   \item{observed_rate}{Observed event rate (events / n).}
 #'   \item{expected_rate}{Expected event rate (expected / n).}
 #'   \item{chi_sq}{Chi-square contribution: (events - expected)^2 /
 #'     expected.}
-#'   \item{p_value}{Two-sided p-value from the chi-square test for
-#'     this group.}
+#'   \item{p_value}{Upper-tail p-value from the chi-square test for
+#'     this group (1 df).}
 #'   \item{mean_survival}{Mean predicted survival probability in the
 #'     group.}
 #'   \item{mean_cumhaz}{Mean predicted cumulative hazard in the group.}
@@ -93,23 +95,64 @@ hzr_deciles <- function(object, time, groups = 10L,
   if (is.null(event_time)) {
     event_time <- object$data$time
   }
-  n <- length(status)
-  if (length(event_time) != n) {
+  n_obs <- length(status)
+  if (length(event_time) != n_obs) {
     stop("'status' and 'event_time' must have the same length.",
          call. = FALSE)
   }
-
-  # --- Predicted cumulative hazard and survival at the target time ----------
-  # Build newdata with the target time and any covariates from the original fit
-  if (!is.null(object$data$x) && ncol(object$data$x) > 0) {
-    nd <- as.data.frame(object$data$x)
-    nd$time <- time
-  } else {
-    nd <- data.frame(time = rep(time, n))
+  if (any(!is.finite(event_time)) || any(event_time < 0)) {
+    stop("'event_time' must be finite and non-negative.", call. = FALSE)
+  }
+  if (any(!is.finite(status)) || any(!status %in% c(0, 1))) {
+    stop("'status' must be coded as 0/1 with finite values.", call. = FALSE)
   }
 
-  cumhaz <- predict(object, newdata = nd, type = "cumulative_hazard")
+  n_model <- length(object$data$time)
+  if (n_obs != n_model) {
+    stop("'status'/'event_time' lengths must match the fitted data length (",
+         n_model, ").", call. = FALSE)
+  }
+
+  # --- Predicted cumulative hazard and survival at the target time ----------
+  # Compute per-observation predictions at the calibration horizon.
+  if (identical(object$spec$dist, "multiphase")) {
+    phases <- object$fit$phases
+    if (is.null(phases)) phases <- object$spec$phases
+    cov_counts <- object$fit$covariate_counts
+    x_list <- object$fit$x_list
+    cumhaz <- .hzr_multiphase_cumhaz(
+      rep(time, n_model), object$fit$theta, phases, cov_counts, x_list,
+      per_phase = FALSE
+    )
+  } else if (!is.null(object$data$x) && ncol(object$data$x) > 0) {
+    nd <- as.data.frame(object$data$x)
+    nd$time <- time
+    cumhaz <- predict(object, newdata = nd, type = "cumulative_hazard")
+  } else {
+    nd <- data.frame(time = rep(time, n_model))
+    cumhaz <- predict(object, newdata = nd, type = "cumulative_hazard")
+  }
   survival <- exp(-cumhaz)
+
+  # Exclude subjects censored before the calibration horizon.
+  include <- (status == 1) | (event_time >= time)
+  n_excluded <- sum(!include)
+  if (!any(include)) {
+    stop("No observations are available at the requested horizon after ",
+         "excluding subjects censored before 'time'.", call. = FALSE)
+  }
+
+  status <- status[include]
+  event_time <- event_time[include]
+  cumhaz <- cumhaz[include]
+  survival <- survival[include]
+  observed <- as.integer(status == 1 & event_time <= time)
+  n_included <- length(observed)
+
+  if (groups > n_included) {
+    stop("'groups' must be <= number of included observations at horizon (",
+         n_included, ").", call. = FALSE)
+  }
 
   # --- Rank into groups by predicted risk (cumulative hazard) ---------------
   # Higher cumhaz = higher risk; group 1 = lowest risk.
@@ -119,7 +162,8 @@ hzr_deciles <- function(object, time, groups = 10L,
   # observations are distributed as evenly as possible across groups.
   ranks <- rank(cumhaz, ties.method = "first")
   group <- as.integer(cut(ranks,
-                          breaks = seq(0, n, length.out = groups + 1L),
+                          breaks = seq(0, n_included,
+                                       length.out = groups + 1L),
                           include.lowest = TRUE,
                           labels = seq_len(groups)))
 
@@ -140,21 +184,21 @@ hzr_deciles <- function(object, time, groups = 10L,
   for (g in seq_len(groups)) {
     idx <- which(group == g)
     ng <- length(idx)
-    obs_events <- sum(status[idx] == 1)
-    exp_events <- sum(cumhaz[idx])
+    obs_events <- sum(observed[idx] == 1)
+    exp_events <- sum(1 - survival[idx])
 
     result$n[g] <- ng
     result$events[g] <- obs_events
     result$expected[g] <- exp_events
     result$observed_rate[g] <- if (ng > 0) obs_events / ng else NA_real_
     result$expected_rate[g] <- if (ng > 0) exp_events / ng else NA_real_
-    result$mean_survival[g] <- mean(survival[idx])
-    result$mean_cumhaz[g] <- mean(cumhaz[idx])
+    result$mean_survival[g] <- if (ng > 0) mean(survival[idx]) else NA_real_
+    result$mean_cumhaz[g] <- if (ng > 0) mean(cumhaz[idx]) else NA_real_
 
     # Per-group chi-square: (O - E)^2 / E
     if (exp_events > 0) {
       result$chi_sq[g] <- (obs_events - exp_events)^2 / exp_events
-      # Two-sided p-value from chi-square with 1 df
+      # Upper-tail p-value from chi-square with 1 df
       result$p_value[g] <- stats::pchisq(result$chi_sq[g], df = 1,
                                           lower.tail = FALSE)
     } else {
@@ -179,8 +223,10 @@ hzr_deciles <- function(object, time, groups = 10L,
     p_value = overall_p,
     time = time,
     groups = groups,
-    total_events = sum(status == 1),
-    total_expected = sum(cumhaz)
+    total_events = sum(observed == 1),
+    total_expected = sum(1 - survival),
+    n_included = n_included,
+    n_excluded = n_excluded
   )
 
   class(result) <- c("hzr_deciles", "data.frame")
@@ -196,22 +242,26 @@ hzr_deciles <- function(object, time, groups = 10L,
 print.hzr_deciles <- function(x, digits = 3, ...) {
   ov <- attr(x, "overall")
   cat("Decile-of-risk calibration at time =", ov$time, "\n")
+  if (!is.null(ov$n_included) && !is.null(ov$n_excluded)) {
+    cat("Included", ov$n_included, "observations (excluded", ov$n_excluded,
+        "censored before horizon).\n")
+  }
   cat(ov$groups, "groups,", ov$total_events, "observed events,",
-      round(ov$total_expected, 1), "expected\n\n")
+      signif(ov$total_expected, digits), "expected\n\n")
 
   # Format for display
   display <- x
-  display$expected <- round(display$expected, digits)
-  display$observed_rate <- round(display$observed_rate, digits)
-  display$expected_rate <- round(display$expected_rate, digits)
-  display$chi_sq <- round(display$chi_sq, digits)
-  display$p_value <- round(display$p_value, digits)
-  display$mean_survival <- round(display$mean_survival, digits)
-  display$mean_cumhaz <- round(display$mean_cumhaz, digits)
+  display$expected <- signif(display$expected, digits)
+  display$observed_rate <- signif(display$observed_rate, digits)
+  display$expected_rate <- signif(display$expected_rate, digits)
+  display$chi_sq <- signif(display$chi_sq, digits)
+  display$p_value <- signif(display$p_value, digits)
+  display$mean_survival <- signif(display$mean_survival, digits)
+  display$mean_cumhaz <- signif(display$mean_cumhaz, digits)
   class(display) <- "data.frame"
   print(display, row.names = FALSE)
 
-  cat("\nOverall: chi-sq =", round(ov$chi_sq, digits),
+  cat("\nOverall: chi-sq =", signif(ov$chi_sq, digits),
       "on", ov$df, "df, p =",
       format.pval(ov$p_value, digits = digits), "\n")
 
@@ -318,6 +368,19 @@ hzr_gof <- function(object, time_grid = NULL) {
   obs_time   <- object$data$time
   obs_status <- object$data$status
   n_total    <- length(obs_time)
+
+  if (length(obs_status) != n_total) {
+    stop("Stored 'time' and 'status' vectors must have the same length.",
+         call. = FALSE)
+  }
+  if (any(!is.finite(obs_time)) || any(obs_time < 0)) {
+    stop("Stored event/censoring times must be finite and non-negative.",
+         call. = FALSE)
+  }
+  if (any(!is.finite(obs_status)) || any(!obs_status %in% c(0, 1))) {
+    stop("Stored status must be coded as 0/1 with finite values.",
+         call. = FALSE)
+  }
 
   # --- Kaplan-Meier via survival::survfit -----------------------------------
   km_fit <- survival::survfit(survival::Surv(obs_time, obs_status) ~ 1)

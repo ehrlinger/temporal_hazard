@@ -327,7 +327,7 @@ what a SAS HAZARD veteran would expect.
 **Priority:** High
 
 A new vignette that mirrors the SAS `ac.*` → `hz.*` → `hm.*` → `hp.*` →
-`hs.*` workflow on one dataset (CABGKUL):
+`hs.*` workflow on one dataset (AVC):
 
 1. Nonparametric baseline (KM life table)
 2. Shape fitting: start simple (Weibull), build to multiphase, show how
