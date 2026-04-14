@@ -78,6 +78,55 @@
 <p><img src="reference/figures/readme-survival.png" width="100%" alt="Multiphase parametric survival curve overlaid on the Kaplan-Meier estimate from the CABGKUL dataset (n=5,880)"></p>
 </div>
 <div class="section level2">
+<h2 id="key-capabilities">Key capabilities<a class="anchor" aria-label="anchor" href="#key-capabilities"></a>
+</h2>
+<table class="table">
+<caption>white_check_mark: = implemented | <span class="emoji" data-emoji="construction">🚧</span> = planned</caption>
+<colgroup>
+<col width="44%">
+<col width="55%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Feature</th>
+<th align="center">Status</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Multi-phase hazard modeling (early, constant, late phases)</td>
+<td align="center"><span class="emoji" data-emoji="white_check_mark">✅</span></td>
+</tr>
+<tr class="even">
+<td align="left">Right censoring and interval censoring</td>
+<td align="center"><span class="emoji" data-emoji="white_check_mark">✅</span></td>
+</tr>
+<tr class="odd">
+<td align="left">Repeating events (epoch decomposition)</td>
+<td align="center"><span class="emoji" data-emoji="construction">🚧</span></td>
+</tr>
+<tr class="even">
+<td align="left">Time-varying covariates</td>
+<td align="center"><span class="emoji" data-emoji="white_check_mark">✅</span></td>
+</tr>
+<tr class="odd">
+<td align="left">Weighted events</td>
+<td align="center"><span class="emoji" data-emoji="construction">🚧</span></td>
+</tr>
+<tr class="even">
+<td align="left">Automatic stepwise covariate selection (forward, backward, stepwise)</td>
+<td align="center"><span class="emoji" data-emoji="construction">🚧</span></td>
+</tr>
+<tr class="odd">
+<td align="left">Conservation of Events theorem for numerically stable parameter estimation</td>
+<td align="center"><span class="emoji" data-emoji="construction">🚧</span></td>
+</tr>
+<tr class="even">
+<td align="left">Covariance and correlation matrix estimation</td>
+<td align="center"><span class="emoji" data-emoji="white_check_mark">✅</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
@@ -162,6 +211,7 @@
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">test</span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">check</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>GitHub Actions runs multi-platform <code>R CMD check</code> on every push and pull request. Coverage is published to Codecov and the pkgdown site deploys automatically from <code>main</code>.</p>
+<p>See <a href="inst/dev/DEVELOPMENT-PLAN.html"><code>inst/dev/DEVELOPMENT-PLAN.md</code></a> for the full roadmap covering the C/SAS migration, multiphase implementation, CRAN release, and planned feature parity work.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

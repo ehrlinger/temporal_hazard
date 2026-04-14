@@ -50,13 +50,13 @@ summary(fit)
 #>   dist:         weibull 
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -48.3228 
-#>   evaluations: fn=15, gr=6
+#>   log-lik:      -57.588 
+#>   evaluations: fn=17, gr=5
 #> 
 #> Coefficients:
 #>     estimate  std_error   z_stat      p_value
-#> mu 0.5201972 0.09124047 5.701386 1.188371e-08
-#> nu 1.0961938 0.16189266 6.771115 1.277937e-11
+#> mu 0.4017570 0.07799612 5.150987 2.591190e-07
+#> nu 0.9772992 0.14742788 6.628998 3.379725e-11
 
 # \donttest{
 # ── Multiphase model summary ────────────────────────────────────────
@@ -87,23 +87,23 @@ summary(fit_mp)
 #>   phase 2:      late - cdf (late risk)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -388.918 
-#>   evaluations: fn=100, gr=32
+#>   log-lik:      -393.584 
+#>   evaluations: fn=88, gr=21
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                  estimate   std_error      z_stat      p_value
-#>   log_mu     -3.979438679 0.569883164   -6.982903 2.891427e-12
-#>   log_t_half -0.943134742 0.007166541 -131.602509 0.000000e+00
-#>   nu          0.003751501         NaN          NA           NA
-#>   m           4.152983242         NaN          NA           NA
+#>                  estimate std_error    z_stat     p_value
+#>   log_mu      0.239134485       NaN        NA          NA
+#>   log_t_half  1.818478590       NaN        NA          NA
+#>   nu          0.004353297       NaN        NA          NA
+#>   m          -0.787666114 0.1325287 -5.943362 2.79235e-09
 #> 
 #>   Phase: late (cdf)
-#>                estimate std_error     z_stat      p_value
-#>   log_mu      2.7627013 1.1630799  2.3753324 1.753315e-02
-#>   log_t_half  5.0259890 2.8740152  1.7487691 8.033094e-02
-#>   nu          2.6355015 3.4025002  0.7745779 4.385891e-01
-#>   m          -0.7663702 0.1108225 -6.9152967 4.668851e-12
+#>                 estimate std_error     z_stat    p_value
+#>   log_mu      3.74165145 5.9132228  0.6327601 0.52689032
+#>   log_t_half  2.39068098 5.9151369  0.4041633 0.68609267
+#>   nu         -0.75329358 0.3993425 -1.8863346 0.05924987
+#>   m           0.02353084 0.1145096  0.2054924 0.83718746
 # }
 ```

@@ -50,82 +50,118 @@
 
 <div id="session-handoff--temporal_hazard" class="section level1">
 
-<p>Last updated: 2026-04-10</p>
+<p>Last updated: 2026-04-14</p>
+<div class="section level2">
+<h2 id="current-state">Current State<a class="anchor" aria-label="anchor" href="#current-state"></a></h2>
+<p><strong>Version:</strong> 0.9.1 <strong>Branch:</strong> <code>feature/analytic-gradients</code> (local commits not yet pushed to origin) <strong>R CMD check:</strong> 0 ERROR, 0 WARNING, 1 NOTE (new submission + DOI false positives) <strong>Lint:</strong> Clean (lintr CI workflow in place) <strong>Test suite:</strong> 540+ tests passing; one CI run may still show a stale failure on <code>test-multiphase-parity.R</code> line 360 — the fix (<code>&gt;= -3750</code>) is committed locally but needs to be pushed.</p>
+</div>
 <div class="section level2">
 <h2 id="what-was-done-this-session">What Was Done This Session<a class="anchor" aria-label="anchor" href="#what-was-done-this-session"></a></h2>
 <div class="section level3">
-<h3 id="id_1-hvtiplotr-kaplan-meier-step-function-support">1. hvtiPlotR: Kaplan-Meier Step Function Support<a class="anchor" aria-label="anchor" href="#id_1-hvtiplotr-kaplan-meier-step-function-support"></a></h3>
-<p><strong>Files changed:</strong> <code>hvtiPlotR/R/hazard-plot.R</code></p>
-<p>Added <code>emp_geom</code> parameter to <code>hv_hazard()</code>, <code>plot.hv_hazard()</code>, and <code>hazard_plot()</code>. When <code>emp_geom = "step"</code>, empirical KM data renders as a proper step function (<code>geom_step()</code>) instead of discrete points (<code>geom_point()</code>). Default is <code>"point"</code> for backward compat.</p>
-<p><strong>Status:</strong> Code complete, needs <code>devtools::install()</code> in hvtiPlotR before temporal_hazard can use it.</p>
+<h3 id="id_1-cran-review-fixes-from-gpt-53-review">1. CRAN Review Fixes (from GPT-5.3 review)<a class="anchor" aria-label="anchor" href="#id_1-cran-review-fixes-from-gpt-53-review"></a></h3>
+<p><strong>High: <code>fit</code> default docs/behavior mismatch</strong> - <code>R/hazard_api.R</code> roxygen <code>@param fit</code> said “default TRUE” but implementation is <code>fit = FALSE</code> - Fixed docs and <code>man/hazard.Rd</code> to say “default FALSE”</p>
+<p><strong>Medium: Non-deterministic reseeding in multi-start optimizer</strong> - <code>R/likelihood-multiphase.R</code> had <code>set.seed(NULL)</code> in the multi-start loop, actively breaking reproducibility when users call <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> before fitting - Removed <code>set.seed(NULL)</code> — perturbations now follow the user’s RNG state</p>
+<p><strong>Low: Vignette metadata inconsistency</strong> - 6 of 7 vignettes used HTML comment <code>&lt;!-- %\Vignette... --&gt;</code> blocks - <code>ar-architecture.qmd</code> used YAML <code>vignette: &gt;</code> key (the correct Quarto approach) - Normalized all 7 to use YAML <code>vignette:</code> key inside front matter</p>
+<p><strong>Low: CITATION URL redirect</strong> - Added trailing slash to <code>inst/CITATION</code> URL to match DESCRIPTION fix</p>
 </div>
 <div class="section level3">
-<h3 id="id_2-temporal_hazard-updated-all-km-overlay-plots">2. temporal_hazard: Updated All KM Overlay Plots<a class="anchor" aria-label="anchor" href="#id_2-temporal_hazard-updated-all-km-overlay-plots"></a></h3>
-<p>Updated every KM-vs-parametric plot to use: - <code>emp_geom = "step"</code> for proper KM step functions - Two distinct colors: blue (#0072B2) for parametric, orange (#D55E00) for KM - Bottom-positioned legend with <code>colour = NULL</code> (no legend title)</p>
-<p><strong>Files changed:</strong> - <code>R/hazard_api.R</code> — hazard() Rd example - <code>vignettes/getting-started.qmd</code> - <code>vignettes/hz-estimate-hazard-example.qmd</code> (AVC Weibull + KUL Exponential) - <code>vignettes/hp-prediction-example.qmd</code></p>
-<p><strong>Status:</strong> Code complete. To see the plots, reinstall hvtiPlotR first, then reinstall temporal_hazard, then rebuild pkgdown.</p>
-</div>
+<h3 id="id_2-sas-parity-gap-analysis">2. SAS Parity Gap Analysis<a class="anchor" aria-label="anchor" href="#id_2-sas-parity-gap-analysis"></a></h3>
+<p>Created <code>inst/dev/SAS-PARITY-GAP-ANALYSIS.md</code> — detailed feature-by-feature comparison of C/SAS HAZARD vs TemporalHazard R package. Added a capabilities table to <code>README.md</code>.</p>
+<p><strong>Feature parity status:</strong></p>
+<table class="table"><thead><tr class="header"><th align="left">Capability</th>
+<th align="center">Status</th>
+</tr></thead><tbody><tr class="odd"><td align="left">Multi-phase hazard modeling</td>
+<td align="center">Complete</td>
+</tr><tr class="even"><td align="left">Right and interval censoring</td>
+<td align="center">Complete</td>
+</tr><tr class="odd"><td align="left">Time-varying covariates</td>
+<td align="center">Complete</td>
+</tr><tr class="even"><td align="left">Covariance/correlation estimation</td>
+<td align="center">Complete</td>
+</tr><tr class="odd"><td align="left">Repeating events (epoch decomposition)</td>
+<td align="center">Planned</td>
+</tr><tr class="even"><td align="left">Weighted events</td>
+<td align="center">Planned</td>
+</tr><tr class="odd"><td align="left">Stepwise covariate selection</td>
+<td align="center">Planned</td>
+</tr><tr class="even"><td align="left">Conservation of Events theorem</td>
+<td align="center">Planned</td>
+</tr></tbody></table></div>
 <div class="section level3">
-<h3 id="id_3-multiphase-implementation-plan">3. Multiphase Implementation Plan<a class="anchor" aria-label="anchor" href="#id_3-multiphase-implementation-plan"></a></h3>
-<p>Created <code>MULTIPHASE_PLAN.md</code> with the full architecture for N-phase hazard models using the generalized <code>decompos()</code> function from the mixhazard repo.</p>
-<p><strong>Key design decisions made:</strong> - Prerelease — no backward compat constraints - Every phase uses the same <code>decompos(t; t_half, nu, m)</code> engine - N-phase (not hard-coded 3-phase) - Parameter names bridge SAS/C conventions: <code>t_half</code>, <code>nu</code>, <code>m</code> - Additive cumulative hazard: <code>H(t|x) = Σ μ_j(x) · Φ_j(t; θ_j)</code> - Phase types: “cdf” (early), “hazard” (late), “constant” - Phase-specific covariates via formula argument in <code><a href="reference/hzr_phase.html">hzr_phase()</a></code></p>
-<p><strong>Status:</strong> Plan written, not yet implemented.</p>
-</div>
+<h3 id="id_3-prior-session-work-carried-forward">3. Prior Session Work (carried forward)<a class="anchor" aria-label="anchor" href="#id_3-prior-session-work-carried-forward"></a></h3>
+<ul><li>Switched multiphase vignette demos from AVC to CABGKUL with G3 + fixed shapes</li>
+<li>Fixed critical <code><a href="reference/summary.hazard.html">summary.hazard()</a></code> bug: <code>!anyNA(vcov_mat)</code> was rejecting entire vcov when fixed params had NA diagonal entries</li>
+<li>Added <code>g3 = "g3"</code> to coefficient table switch statement</li>
+<li>Extensive lintr cleanup across R/ and tests/</li>
+<li>Added lint CI workflow (<code>.github/workflows/lint.yaml</code>)</li>
+<li>Created NEWS.md, inst/CITATION, cran-comments.md</li>
+<li>Fixed CI test: free-shape log-lik test changed from <code>&lt;= -3700</code> to <code>&gt;= -3750</code>
+</li>
+</ul></div>
 </div>
 <div class="section level2">
 <h2 id="what-needs-doing-next">What Needs Doing Next<a class="anchor" aria-label="anchor" href="#what-needs-doing-next"></a></h2>
 <div class="section level3">
-<h3 id="immediate-pre-implementation-prep">Immediate: Pre-Implementation Prep<a class="anchor" aria-label="anchor" href="#immediate-pre-implementation-prep"></a></h3>
+<h3 id="immediate-push-and-verify-ci">Immediate: Push and Verify CI<a class="anchor" aria-label="anchor" href="#immediate-push-and-verify-ci"></a></h3>
 <ol style="list-style-type: decimal"><li>
-<p><strong>Regenerate golden fixtures</strong> — still pending from the Weibull optimizer reparameterization. Run:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">load_all</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/dot-hzr_create_synthetic_golden_fixtures.html">.hzr_create_synthetic_golden_fixtures</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>This will update the 3 .rds files in <code>inst/fixtures/</code> and fix the 4 CI test failures.</p>
+<p><strong>Push local commits:</strong></p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">git</span> push origin feature/analytic-gradients</span></code></pre></div>
+<p>Then open a PR or merge to main so CI picks up all fixes.</p>
 </li>
+<li><p><strong>Verify CI passes:</strong> R-CMD-check, lint, and test-coverage workflows should all go green.</p></li>
 <li>
-<p><strong>Reinstall hvtiPlotR</strong> — the step geom changes need to be installed:</p>
+<p><strong>Local final check:</strong></p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># From hvtiPlotR directory:</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">check</span><span class="op">(</span>args <span class="op">=</span> <span class="st">"--as-cran"</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">spell_check</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </li>
 <li>
-<p><strong>Rebuild pkgdown site</strong> — to see the updated KM plots:</p>
+<p><strong>Regenerate README figures:</strong></p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># From temporal_hazard directory:</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu">pkgdown</span><span class="fu">::</span><span class="fu"><a href="https://pkgdown.r-lib.org/reference/build_site.html" class="external-link">build_site</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"inst/dev/generate-readme-figures.R"</span><span class="op">)</span></span></code></pre></div>
 </li>
 </ol></div>
 <div class="section level3">
-<h3 id="implementation-multiphase-per-multiphase_planmd">Implementation: Multiphase (per MULTIPHASE_PLAN.md)<a class="anchor" aria-label="anchor" href="#implementation-multiphase-per-multiphase_planmd"></a></h3>
-<p>Build order (each step independently testable):</p>
-<ol style="list-style-type: decimal"><li><p><strong><code>R/decomposition.R</code></strong> — port <code>decompos()</code> from mixhazard as <code><a href="reference/hzr_decompos.html">hzr_decompos()</a></code>. Add <code><a href="reference/hzr_phase_cumhaz.html">hzr_phase_cumhaz()</a></code> and <code><a href="reference/hzr_phase_hazard.html">hzr_phase_hazard()</a></code>. Test against mixhazard reference output.</p></li>
-<li><p><strong><code>R/phase-spec.R</code></strong> — <code><a href="reference/hzr_phase.html">hzr_phase()</a></code> constructor. Simple S3 class.</p></li>
-<li><p><strong><code>R/likelihood-multiphase.R</code></strong> — likelihood, gradient, multi-start optimizer. Follows the existing <code>likelihood-weibull.R</code> pattern.</p></li>
-<li><p><strong><code>R/hazard_api.R</code></strong> — wire <code>dist = "multiphase"</code> dispatch with <code>phases</code> argument.</p></li>
-<li><p><strong>predict/summary</strong> — add <code>decompose = TRUE</code> for per-phase output.</p></li>
-<li><p><strong><code>R/argument_mapping.R</code></strong> — extend SAS/C → R mapping table.</p></li>
-<li><p><strong>Vignettes/examples</strong> — decomposition plot showing phases adding together.</p></li>
-<li><p><strong>Parity tests</strong> — validate against C binary output.</p></li>
-</ol></div>
+<h3 id="short-term-cran-submission">Short-term: CRAN Submission<a class="anchor" aria-label="anchor" href="#short-term-cran-submission"></a></h3>
+<ul><li>Ensure 0 ERROR / 0 WARNING / only expected NOTE(s)</li>
+<li>Submit via <code>devtools::submit_cran()</code> or web form</li>
+<li>Monitor CRAN feedback</li>
+</ul></div>
+<div class="section level3">
+<h3 id="medium-term-feature-gaps-see-instdevsas-parity-gap-analysismd">Medium-term: Feature Gaps (see <code>inst/dev/SAS-PARITY-GAP-ANALYSIS.md</code>)<a class="anchor" aria-label="anchor" href="#medium-term-feature-gaps-see-instdevsas-parity-gap-analysismd"></a></h3>
+<p><strong>Priority order:</strong> 1. <strong>Conservation of Events theorem</strong> — reduces optimizer dimensions, improves convergence stability. Medium effort. 2. <strong>Stepwise covariate selection</strong> — critical for clinical research workflows. Large effort. 3. <strong>Observation weights</strong> — threading through likelihood functions. Medium effort. 4. <strong>Repeating events</strong> — mostly documentation + data interface; math is already in place. Small-medium effort.</p>
+</div>
+<div class="section level3">
+<h3 id="optional-test-cleanup">Optional: Test Cleanup<a class="anchor" aria-label="anchor" href="#optional-test-cleanup"></a></h3>
+<ul><li>Wrap 2 expected test warnings (NaNs in summary, Hessian not invertible) with <code>expect_warning()</code> so they don’t clutter test output</li>
+<li>Raise coverage from ~62% toward 80% on high-value files (<code>likelihood-multiphase.R</code>, <code>formula-helpers.R</code>, <code>decomposition.R</code>)</li>
+</ul></div>
 </div>
 <div class="section level2">
 <h2 id="key-context">Key Context<a class="anchor" aria-label="anchor" href="#key-context"></a></h2>
-<ul><li><p>The Weibull optimizer was reparameterized to use the C code’s (α, ψ, β) internally, with delta-method back-transform to user-facing (μ, ν, β). This is in <code>R/likelihood-weibull.R</code>.</p></li>
-<li><p>The <code>hazard</code> repo at <code>/Users/ehrlinj/Documents/GitHub/hazard/</code> has the original C source code for reference.</p></li>
-<li><p>The <code>mixhazard</code> repo at <code>/Users/ehrlinj/Documents/GitHub/mixhazard/</code> has the generalized <code>decompos()</code> function in <code>R/time_functions.R</code>.</p></li>
-<li><p>hvtiPlotR’s <code>hv_hazard()</code> handles all survival plotting. The package is at <code>/Users/ehrlinj/Documents/GitHub/hvtiPlotR/</code>.</p></li>
+<ul><li>The C/SAS HAZARD source is at <code>~/Documents/GitHub/hazard/</code>
+</li>
+<li>The mixhazard R package (decompos source) is at <code>~/Documents/GitHub/mixhazard/</code>
+</li>
+<li>hvtiPlotR (survival plotting) is at <code>~/Documents/GitHub/hvtiPlotR/</code>
+</li>
+<li>G3 late-phase decomposition is fully implemented in R (<code><a href="reference/hzr_decompos_g3.html">hzr_decompos_g3()</a></code>)</li>
+<li>C/SAS HAZARD fixes all shapes and only estimates 3 log_mu values; R matches this with <code>fixed = "shapes"</code> in <code><a href="reference/hzr_phase.html">hzr_phase()</a></code>
+</li>
+<li>C reference benchmark: log-likelihood -3740.52 on CABGKUL with fixed shapes</li>
 </ul></div>
 <div class="section level2">
 <h2 id="files-to-read-first">Files to Read First<a class="anchor" aria-label="anchor" href="#files-to-read-first"></a></h2>
 <p>When resuming:</p>
-<pre><code>temporal_hazard/MULTIPHASE_PLAN.md     — full architecture plan
-temporal_hazard/R/likelihood-weibull.R — pattern for new likelihood files
-temporal_hazard/R/hazard_api.R         — main API to modify
-temporal_hazard/R/optimizer.R          — generic optimizer wrapper
-mixhazard/R/time_functions.R           — decompos() source to port
-hazard/src/utils/hzr_cum_haz_func.c   — original C phase functions</code></pre>
+<pre><code>temporal_hazard/inst/dev/SAS-PARITY-GAP-ANALYSIS.md — feature gap details
+temporal_hazard/NEWS.md                              — changelog
+temporal_hazard/R/hazard_api.R                       — main API (45 KB)
+temporal_hazard/R/likelihood-multiphase.R             — multiphase engine (41 KB)
+temporal_hazard/R/decomposition.R                     — decompos family (23 KB)
+temporal_hazard/vignettes/getting-started.qmd         — primary user-facing demo
+hazard/src/llike/setcoe.c                             — Conservation of Events (C)
+hazard/src/vars/stepw.c                               — Stepwise selection (C)</code></pre>
 </div>
 </div>
 

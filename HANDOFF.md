@@ -1,136 +1,147 @@
 # Session Handoff — temporal_hazard
 
-Last updated: 2026-04-10
+Last updated: 2026-04-14
+
+## Current State
+
+**Version:** 0.9.1 **Branch:** `feature/analytic-gradients` (local
+commits not yet pushed to origin) **R CMD check:** 0 ERROR, 0 WARNING, 1
+NOTE (new submission + DOI false positives) **Lint:** Clean (lintr CI
+workflow in place) **Test suite:** 540+ tests passing; one CI run may
+still show a stale failure on `test-multiphase-parity.R` line 360 — the
+fix (`>= -3750`) is committed locally but needs to be pushed.
 
 ## What Was Done This Session
 
-### 1. hvtiPlotR: Kaplan-Meier Step Function Support
+### 1. CRAN Review Fixes (from GPT-5.3 review)
 
-**Files changed:** `hvtiPlotR/R/hazard-plot.R`
+**High: `fit` default docs/behavior mismatch** - `R/hazard_api.R`
+roxygen `@param fit` said “default TRUE” but implementation is
+`fit = FALSE` - Fixed docs and `man/hazard.Rd` to say “default FALSE”
 
-Added `emp_geom` parameter to `hv_hazard()`, `plot.hv_hazard()`, and
-`hazard_plot()`. When `emp_geom = "step"`, empirical KM data renders as
-a proper step function (`geom_step()`) instead of discrete points
-(`geom_point()`). Default is `"point"` for backward compat.
+**Medium: Non-deterministic reseeding in multi-start optimizer** -
+`R/likelihood-multiphase.R` had `set.seed(NULL)` in the multi-start
+loop, actively breaking reproducibility when users call
+[`set.seed()`](https://rdrr.io/r/base/Random.html) before fitting -
+Removed `set.seed(NULL)` — perturbations now follow the user’s RNG state
 
-**Status:** Code complete, needs `devtools::install()` in hvtiPlotR
-before temporal_hazard can use it.
+**Low: Vignette metadata inconsistency** - 6 of 7 vignettes used HTML
+comment `<!-- %\Vignette... -->` blocks - `ar-architecture.qmd` used
+YAML `vignette: >` key (the correct Quarto approach) - Normalized all 7
+to use YAML `vignette:` key inside front matter
 
-### 2. temporal_hazard: Updated All KM Overlay Plots
+**Low: CITATION URL redirect** - Added trailing slash to `inst/CITATION`
+URL to match DESCRIPTION fix
 
-Updated every KM-vs-parametric plot to use: - `emp_geom = "step"` for
-proper KM step functions - Two distinct colors: blue (#0072B2) for
-parametric, orange (#D55E00) for KM - Bottom-positioned legend with
-`colour = NULL` (no legend title)
+### 2. SAS Parity Gap Analysis
 
-**Files changed:** - `R/hazard_api.R` — hazard() Rd example -
-`vignettes/getting-started.qmd` -
-`vignettes/hz-estimate-hazard-example.qmd` (AVC Weibull + KUL
-Exponential) - `vignettes/hp-prediction-example.qmd`
+Created `inst/dev/SAS-PARITY-GAP-ANALYSIS.md` — detailed
+feature-by-feature comparison of C/SAS HAZARD vs TemporalHazard R
+package. Added a capabilities table to `README.md`.
 
-**Status:** Code complete. To see the plots, reinstall hvtiPlotR first,
-then reinstall temporal_hazard, then rebuild pkgdown.
+**Feature parity status:**
 
-### 3. Multiphase Implementation Plan
+| Capability                             |  Status  |
+|:---------------------------------------|:--------:|
+| Multi-phase hazard modeling            | Complete |
+| Right and interval censoring           | Complete |
+| Time-varying covariates                | Complete |
+| Covariance/correlation estimation      | Complete |
+| Repeating events (epoch decomposition) | Planned  |
+| Weighted events                        | Planned  |
+| Stepwise covariate selection           | Planned  |
+| Conservation of Events theorem         | Planned  |
 
-Created `MULTIPHASE_PLAN.md` with the full architecture for N-phase
-hazard models using the generalized `decompos()` function from the
-mixhazard repo.
+### 3. Prior Session Work (carried forward)
 
-**Key design decisions made:** - Prerelease — no backward compat
-constraints - Every phase uses the same `decompos(t; t_half, nu, m)`
-engine - N-phase (not hard-coded 3-phase) - Parameter names bridge SAS/C
-conventions: `t_half`, `nu`, `m` - Additive cumulative hazard:
-`H(t|x) = Σ μ_j(x) · Φ_j(t; θ_j)` - Phase types: “cdf” (early), “hazard”
-(late), “constant” - Phase-specific covariates via formula argument in
-[`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
-
-**Status:** Plan written, not yet implemented.
+- Switched multiphase vignette demos from AVC to CABGKUL with G3 + fixed
+  shapes
+- Fixed critical
+  [`summary.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/summary.hazard.md)
+  bug: `!anyNA(vcov_mat)` was rejecting entire vcov when fixed params
+  had NA diagonal entries
+- Added `g3 = "g3"` to coefficient table switch statement
+- Extensive lintr cleanup across R/ and tests/
+- Added lint CI workflow (`.github/workflows/lint.yaml`)
+- Created NEWS.md, inst/CITATION, cran-comments.md
+- Fixed CI test: free-shape log-lik test changed from `<= -3700` to
+  `>= -3750`
 
 ## What Needs Doing Next
 
-### Immediate: Pre-Implementation Prep
+### Immediate: Push and Verify CI
 
-1.  **Regenerate golden fixtures** — still pending from the Weibull
-    optimizer reparameterization. Run:
+1.  **Push local commits:**
 
-    ``` r
-    devtools::load_all()
-    .hzr_create_synthetic_golden_fixtures()
+    ``` bash
+    git push origin feature/analytic-gradients
     ```
 
-    This will update the 3 .rds files in `inst/fixtures/` and fix the 4
-    CI test failures.
+    Then open a PR or merge to main so CI picks up all fixes.
 
-2.  **Reinstall hvtiPlotR** — the step geom changes need to be
-    installed:
+2.  **Verify CI passes:** R-CMD-check, lint, and test-coverage workflows
+    should all go green.
+
+3.  **Local final check:**
 
     ``` r
-    # From hvtiPlotR directory:
     devtools::install()
+    devtools::check(args = "--as-cran")
+    devtools::spell_check()
     ```
 
-3.  **Rebuild pkgdown site** — to see the updated KM plots:
+4.  **Regenerate README figures:**
 
     ``` r
-    # From temporal_hazard directory:
-    devtools::install()
-    pkgdown::build_site()
+    source("inst/dev/generate-readme-figures.R")
     ```
 
-### Implementation: Multiphase (per MULTIPHASE_PLAN.md)
+### Short-term: CRAN Submission
 
-Build order (each step independently testable):
+- Ensure 0 ERROR / 0 WARNING / only expected NOTE(s)
+- Submit via `devtools::submit_cran()` or web form
+- Monitor CRAN feedback
 
-1.  **`R/decomposition.R`** — port `decompos()` from mixhazard as
-    [`hzr_decompos()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos.md).
-    Add
-    [`hzr_phase_cumhaz()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase_cumhaz.md)
-    and
-    [`hzr_phase_hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase_hazard.md).
-    Test against mixhazard reference output.
+### Medium-term: Feature Gaps (see `inst/dev/SAS-PARITY-GAP-ANALYSIS.md`)
 
-2.  **`R/phase-spec.R`** —
-    [`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
-    constructor. Simple S3 class.
+**Priority order:** 1. **Conservation of Events theorem** — reduces
+optimizer dimensions, improves convergence stability. Medium effort. 2.
+**Stepwise covariate selection** — critical for clinical research
+workflows. Large effort. 3. **Observation weights** — threading through
+likelihood functions. Medium effort. 4. **Repeating events** — mostly
+documentation + data interface; math is already in place. Small-medium
+effort.
 
-3.  **`R/likelihood-multiphase.R`** — likelihood, gradient, multi-start
-    optimizer. Follows the existing `likelihood-weibull.R` pattern.
+### Optional: Test Cleanup
 
-4.  **`R/hazard_api.R`** — wire `dist = "multiphase"` dispatch with
-    `phases` argument.
-
-5.  **predict/summary** — add `decompose = TRUE` for per-phase output.
-
-6.  **`R/argument_mapping.R`** — extend SAS/C → R mapping table.
-
-7.  **Vignettes/examples** — decomposition plot showing phases adding
-    together.
-
-8.  **Parity tests** — validate against C binary output.
+- Wrap 2 expected test warnings (NaNs in summary, Hessian not
+  invertible) with `expect_warning()` so they don’t clutter test output
+- Raise coverage from ~62% toward 80% on high-value files
+  (`likelihood-multiphase.R`, `formula-helpers.R`, `decomposition.R`)
 
 ## Key Context
 
-- The Weibull optimizer was reparameterized to use the C code’s (α, ψ,
-  β) internally, with delta-method back-transform to user-facing (μ, ν,
-  β). This is in `R/likelihood-weibull.R`.
-
-- The `hazard` repo at `/Users/ehrlinj/Documents/GitHub/hazard/` has the
-  original C source code for reference.
-
-- The `mixhazard` repo at `/Users/ehrlinj/Documents/GitHub/mixhazard/`
-  has the generalized `decompos()` function in `R/time_functions.R`.
-
-- hvtiPlotR’s `hv_hazard()` handles all survival plotting. The package
-  is at `/Users/ehrlinj/Documents/GitHub/hvtiPlotR/`.
+- The C/SAS HAZARD source is at `~/Documents/GitHub/hazard/`
+- The mixhazard R package (decompos source) is at
+  `~/Documents/GitHub/mixhazard/`
+- hvtiPlotR (survival plotting) is at `~/Documents/GitHub/hvtiPlotR/`
+- G3 late-phase decomposition is fully implemented in R
+  ([`hzr_decompos_g3()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos_g3.md))
+- C/SAS HAZARD fixes all shapes and only estimates 3 log_mu values; R
+  matches this with `fixed = "shapes"` in
+  [`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
+- C reference benchmark: log-likelihood -3740.52 on CABGKUL with fixed
+  shapes
 
 ## Files to Read First
 
 When resuming:
 
-    temporal_hazard/MULTIPHASE_PLAN.md     — full architecture plan
-    temporal_hazard/R/likelihood-weibull.R — pattern for new likelihood files
-    temporal_hazard/R/hazard_api.R         — main API to modify
-    temporal_hazard/R/optimizer.R          — generic optimizer wrapper
-    mixhazard/R/time_functions.R           — decompos() source to port
-    hazard/src/utils/hzr_cum_haz_func.c   — original C phase functions
+    temporal_hazard/inst/dev/SAS-PARITY-GAP-ANALYSIS.md — feature gap details
+    temporal_hazard/NEWS.md                              — changelog
+    temporal_hazard/R/hazard_api.R                       — main API (45 KB)
+    temporal_hazard/R/likelihood-multiphase.R             — multiphase engine (41 KB)
+    temporal_hazard/R/decomposition.R                     — decompos family (23 KB)
+    temporal_hazard/vignettes/getting-started.qmd         — primary user-facing demo
+    hazard/src/llike/setcoe.c                             — Conservation of Events (C)
+    hazard/src/vars/stepw.c                               — Stepwise selection (C)

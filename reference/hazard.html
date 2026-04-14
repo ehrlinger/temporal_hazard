@@ -140,7 +140,7 @@ phases for a multiphase model (<code>dist = "multiphase"</code>).  See Examples.
 
 
 <dt id="arg-fit">fit<a class="anchor" aria-label="anchor" href="#arg-fit"></a></dt>
-<dd><p>Logical; if TRUE and theta is provided, fit the model via ML (default TRUE).</p></dd>
+<dd><p>Logical; if TRUE, fit the model via maximum likelihood (default FALSE).</p></dd>
 
 
 <dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
@@ -308,24 +308,24 @@ nonlinear temporal decomposition mixed effects model. <em>Stat Methods Med Res.<
 <span class="r-out co"><span class="r-pr">#&gt;</span>   phase 2:      late - cdf (late risk)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   engine:       native-r-m2 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   converged:    TRUE </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -293.54 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=51, gr=18</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log-lik:      -292.772 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   evaluations: fn=140, gr=53</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (internal scale):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: early (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 estimate std_error z_stat p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -1.35525079       NaN     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  0.51499302       NaN     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          1.62479296       NaN     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -0.04234978       NaN     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 estimate std_error     z_stat   p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -0.54824228       NaN         NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  1.02039433       NaN         NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          1.75652792       NaN         NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -0.04565666 0.2817192 -0.1620644 0.8712551</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: late (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate  std_error      z_stat      p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu      4.1471854        NaN          NA           NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  2.9167551        NaN          NA           NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu         -0.6987465 0.03759895 -18.5842060 4.313365e-77</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m           0.1030004 0.24083596   0.4276787 6.688850e-01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate std_error   z_stat   p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu      2.6577939  1.765858 1.505100 0.1322983</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half  4.2707658  2.887531 1.479037 0.1391303</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          1.8308388       NaN       NA        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m          -0.1004546       NaN       NA        NA</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># ── Per-phase decomposed cumulative hazard ────────────────────────</span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"ggplot2"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>

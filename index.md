@@ -29,6 +29,21 @@ extrapolation.
 estimate from the CABGKUL dataset
 (n=5,880)](reference/figures/readme-survival.png)
 
+## Key capabilities
+
+| Feature                                                                    | Status |
+|:---------------------------------------------------------------------------|:------:|
+| Multi-phase hazard modeling (early, constant, late phases)                 |   ✅   |
+| Right censoring and interval censoring                                     |   ✅   |
+| Repeating events (epoch decomposition)                                     |   🚧   |
+| Time-varying covariates                                                    |   ✅   |
+| Weighted events                                                            |   🚧   |
+| Automatic stepwise covariate selection (forward, backward, stepwise)       |   🚧   |
+| Conservation of Events theorem for numerically stable parameter estimation |   🚧   |
+| Covariance and correlation matrix estimation                               |   ✅   |
+
+white_check_mark: = implemented \| 🚧 = planned
+
 ## Installation
 
 ``` r
@@ -130,3 +145,8 @@ devtools::check()
 GitHub Actions runs multi-platform `R CMD check` on every push and pull
 request. Coverage is published to Codecov and the pkgdown site deploys
 automatically from `main`.
+
+See
+[`inst/dev/DEVELOPMENT-PLAN.md`](https://ehrlinger.github.io/temporal_hazard/inst/dev/DEVELOPMENT-PLAN.md)
+for the full roadmap covering the C/SAS migration, multiphase
+implementation, CRAN release, and planned feature parity work.

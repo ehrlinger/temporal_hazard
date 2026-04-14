@@ -87,8 +87,8 @@ hazard(
 
 - fit:
 
-  Logical; if TRUE and theta is provided, fit the model via ML (default
-  TRUE).
+  Logical; if TRUE, fit the model via maximum likelihood (default
+  FALSE).
 
 - control:
 
@@ -282,24 +282,24 @@ summary(fit_mp)
 #>   phase 2:      late - cdf (late risk)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -293.54 
-#>   evaluations: fn=51, gr=18
+#>   log-lik:      -292.772 
+#>   evaluations: fn=140, gr=53
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                 estimate std_error z_stat p_value
-#>   log_mu     -1.35525079       NaN     NA      NA
-#>   log_t_half  0.51499302       NaN     NA      NA
-#>   nu          1.62479296       NaN     NA      NA
-#>   m          -0.04234978       NaN     NA      NA
+#>                 estimate std_error     z_stat   p_value
+#>   log_mu     -0.54824228       NaN         NA        NA
+#>   log_t_half  1.02039433       NaN         NA        NA
+#>   nu          1.75652792       NaN         NA        NA
+#>   m          -0.04565666 0.2817192 -0.1620644 0.8712551
 #> 
 #>   Phase: late (cdf)
-#>                estimate  std_error      z_stat      p_value
-#>   log_mu      4.1471854        NaN          NA           NA
-#>   log_t_half  2.9167551        NaN          NA           NA
-#>   nu         -0.6987465 0.03759895 -18.5842060 4.313365e-77
-#>   m           0.1030004 0.24083596   0.4276787 6.688850e-01
+#>                estimate std_error   z_stat   p_value
+#>   log_mu      2.6577939  1.765858 1.505100 0.1322983
+#>   log_t_half  4.2707658  2.887531 1.479037 0.1391303
+#>   nu          1.8308388       NaN       NA        NA
+#>   m          -0.1004546       NaN       NA        NA
 
 # ── Per-phase decomposed cumulative hazard ────────────────────────
 if (requireNamespace("ggplot2", quietly = TRUE)) {

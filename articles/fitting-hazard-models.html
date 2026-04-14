@@ -79,11 +79,7 @@
 
 
 
-    <!--
-%\VignetteIndexEntry{Fitting Hazard Models}
-%\VignetteEngine{quarto::html}
-%\VignetteEncoding{UTF-8}
---><div class="cell">
+    <div class="cell">
 <div class="sourceCode cell-code" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ehrlinger.github.io/temporal_hazard/">TemporalHazard</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival" class="external-link">survival</a></span><span class="op">)</span></span>
@@ -231,20 +227,20 @@ Figure 1: Weibull parametric survival vs. Kaplan-Meier (CABG, KU Leuven)
 <span><span class="co">#&gt;   engine:       native-r-m2 </span></span>
 <span><span class="co">#&gt;   converged:    TRUE </span></span>
 <span><span class="co">#&gt;   log-lik:      -215.944 </span></span>
-<span><span class="co">#&gt;   evaluations: fn=64, gr=29</span></span>
+<span><span class="co">#&gt;   evaluations: fn=67, gr=29</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients (internal scale):</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Phase: early (cdf)</span></span>
-<span><span class="co">#&gt;                estimate std_error z_stat p_value</span></span>
-<span><span class="co">#&gt;   log_mu     -1.0294341        NA     NA      NA</span></span>
-<span><span class="co">#&gt;   log_t_half  0.3374701        NA     NA      NA</span></span>
-<span><span class="co">#&gt;   nu          4.5735652        NA     NA      NA</span></span>
-<span><span class="co">#&gt;   m          -0.1823975        NA     NA      NA</span></span>
+<span><span class="co">#&gt;               estimate std_error z_stat p_value</span></span>
+<span><span class="co">#&gt;   log_mu     -1.029847        NA     NA      NA</span></span>
+<span><span class="co">#&gt;   log_t_half  0.338792        NA     NA      NA</span></span>
+<span><span class="co">#&gt;   nu          4.580170        NA     NA      NA</span></span>
+<span><span class="co">#&gt;   m          -0.184108        NA     NA      NA</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Phase: constant (constant)</span></span>
 <span><span class="co">#&gt;           estimate std_error z_stat p_value</span></span>
-<span><span class="co">#&gt;   log_mu -1761.351        NA     NA      NA</span></span></code></pre></div>
+<span><span class="co">#&gt;   log_mu -1229.234        NA     NA      NA</span></span></code></pre></div>
 </div>
 <p>Comparing the single-phase Weibull to the multiphase fit:</p>
 <div class="cell">

@@ -162,20 +162,20 @@ summary(fit_mp)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
 #>   log-lik:      -215.944 
-#>   evaluations: fn=64, gr=29
+#>   evaluations: fn=67, gr=29
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                estimate std_error z_stat p_value
-#>   log_mu     -1.0294341        NA     NA      NA
-#>   log_t_half  0.3374701        NA     NA      NA
-#>   nu          4.5735652        NA     NA      NA
-#>   m          -0.1823975        NA     NA      NA
+#>               estimate std_error z_stat p_value
+#>   log_mu     -1.029847        NA     NA      NA
+#>   log_t_half  0.338792        NA     NA      NA
+#>   nu          4.580170        NA     NA      NA
+#>   m          -0.184108        NA     NA      NA
 #> 
 #>   Phase: constant (constant)
 #>           estimate std_error z_stat p_value
-#>   log_mu -1761.351        NA     NA      NA
+#>   log_mu -1229.234        NA     NA      NA
 ```
 
 Comparing the single-phase Weibull to the multiphase fit:
