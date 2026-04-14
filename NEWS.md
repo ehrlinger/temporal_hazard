@@ -1,3 +1,25 @@
+# TemporalHazard 0.9.2
+
+## New features
+
+* `hzr_deciles()` — Decile-of-risk calibration function comparing observed
+  vs. expected event counts across risk groups with chi-square GOF testing.
+  Implements the SAS `deciles.hazard.sas` macro workflow.
+* `hzr_gof()` — Goodness-of-fit function comparing parametric predictions
+  against nonparametric (Kaplan-Meier) estimates with observed vs. expected
+  event counting. Implements the SAS `hazplot.sas` macro workflow.
+* New vignette: "Complete Clinical Analysis Walkthrough" — end-to-end
+  workflow from Kaplan-Meier baseline through validated multivariable model,
+  mirroring the SAS HAZARD analytical sequence.
+
+## Improvements
+
+* Multi-start optimizer now respects user-set RNG seeds for reproducibility
+  (removed `set.seed(NULL)` that was actively breaking determinism).
+* Vignette metadata normalized to YAML `vignette:` key across all 8 files.
+* `fit` parameter documentation corrected to state default is FALSE.
+* README now includes key capabilities table and development plan link.
+
 # TemporalHazard 0.9.1
 
 ## New features

@@ -217,3 +217,241 @@ print.hzr_deciles <- function(x, digits = 3, ...) {
 
   invisible(x)
 }
+
+
+# =========================================================================
+# hzr_gof — Observed vs. expected goodness-of-fit
+# =========================================================================
+
+#' Goodness-of-fit: observed vs. predicted events
+#'
+#' Compare a fitted hazard model against the nonparametric Kaplan-Meier
+#' estimate by computing observed and expected (parametric) event counts
+#' at each distinct event time.  This is the R equivalent of the SAS
+#' `hazplot.sas` macro and implements the conservation-of-events
+#' diagnostic.
+#'
+#' At each observed event time the function computes:
+#' \itemize{
+#'   \item The Kaplan-Meier survival and cumulative hazard.
+#'   \item The parametric survival and cumulative hazard from the fitted
+#'     model (and per-phase components for multiphase models).
+#'   \item Cumulative observed events vs. cumulative expected events
+#'     (sum of individual cumulative hazards for those exiting the risk
+#'     set at each time).
+#'   \item The running residual (expected minus observed).
+#' }
+#'
+#' Perfect model fit implies the expected and observed event counts track
+#' each other (residual near zero).  This is the conservation-of-events
+#' principle.
+#'
+#' @param object A fitted `hazard` object (with `fit = TRUE`).
+#' @param time_grid Optional numeric vector of time points at which to
+#'   evaluate the parametric model.
+#'   If `NULL` (default), uses the sorted unique event times from the
+#'   fitted data.
+#'
+#' @return A data frame with one row per time point and columns:
+#' \describe{
+#'   \item{time}{Evaluation time.}
+#'   \item{n_risk}{Number at risk (Kaplan-Meier).}
+#'   \item{n_event}{Number of events at this time.}
+#'   \item{n_censor}{Number censored at this time.}
+#'   \item{km_surv}{Kaplan-Meier survival estimate.}
+#'   \item{km_cumhaz}{Kaplan-Meier cumulative hazard
+#'     (\eqn{-\log(\text{km\_surv})}).}
+#'   \item{par_surv}{Parametric survival from the fitted model.}
+#'   \item{par_cumhaz}{Parametric cumulative hazard.}
+#'   \item{cum_observed}{Cumulative observed events to this time.}
+#'   \item{cum_expected}{Cumulative expected events (sum of individual
+#'     cumulative hazards for observations exiting the risk set).}
+#'   \item{residual}{Expected minus observed
+#'     (\code{cum_expected - cum_observed}).}
+#' }
+#'
+#' For multiphase models, additional columns are appended for each
+#' phase: \code{par_cumhaz_<phase>}.
+#'
+#' An attribute `"summary"` is attached with scalar diagnostics:
+#' total observed events, total expected events, and the final residual.
+#'
+#' @examples
+#' \donttest{
+#' data(avc)
+#' avc <- na.omit(avc)
+#' fit <- hazard(
+#'   survival::Surv(int_dead, dead) ~ age + mal,
+#'   data  = avc,
+#'   dist  = "weibull",
+#'   theta = c(mu = 0.01, nu = 0.5, beta_age = 0, beta_mal = 0),
+#'   fit   = TRUE
+#' )
+#' gof <- hzr_gof(fit)
+#' print(gof)
+#'
+#' # Plot observed vs expected events
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   library(ggplot2)
+#'   ggplot(gof, aes(x = time)) +
+#'     geom_line(aes(y = cum_observed), colour = "#D55E00") +
+#'     geom_line(aes(y = cum_expected), colour = "#0072B2") +
+#'     labs(x = "Time", y = "Cumulative events") +
+#'     theme_minimal()
+#' }
+#' }
+#'
+#' @seealso [hzr_deciles()] for decile-of-risk calibration,
+#'   [predict.hazard()] for prediction types.
+#' @export
+hzr_gof <- function(object, time_grid = NULL) {
+  if (!inherits(object, "hazard")) {
+    stop("'object' must be a fitted hazard object.", call. = FALSE)
+  }
+  if (is.null(object$fit$theta) ||
+      (is.logical(object$fit$converged) && is.na(object$fit$converged))) {
+    stop("'object' has no fitted parameters. Refit with fit = TRUE.",
+         call. = FALSE)
+  }
+
+  # --- Extract observed data ------------------------------------------------
+  obs_time   <- object$data$time
+  obs_status <- object$data$status
+  n_total    <- length(obs_time)
+
+  # --- Kaplan-Meier via survival::survfit -----------------------------------
+  surv_obj <- survival::Surv(obs_time, obs_status)
+  km_fit <- survival::survfit(surv_obj ~ 1)
+
+  # survfit output: time, n.risk, n.event, n.censor, surv
+  km_times   <- km_fit$time
+  km_n_risk  <- km_fit$n.risk
+  km_n_event <- km_fit$n.event
+  km_n_censor <- km_fit$n.censor
+  km_surv    <- km_fit$surv
+
+  # --- Decide time grid -----------------------------------------------------
+  if (is.null(time_grid)) {
+    time_grid <- km_times
+  }
+
+  # --- Parametric predictions at each time point ----------------------------
+  is_multiphase <- (object$spec$dist == "multiphase")
+
+  if (!is.null(object$data$x) && ncol(object$data$x) > 0) {
+    # For covariate models, evaluate at covariate means (baseline patient)
+    x_means <- colMeans(object$data$x)
+    nd <- as.data.frame(t(x_means))
+    nd <- nd[rep(1, length(time_grid)), , drop = FALSE]
+    nd$time <- time_grid
+  } else {
+    nd <- data.frame(time = time_grid)
+  }
+
+  par_cumhaz <- predict(object, newdata = nd, type = "cumulative_hazard")
+
+  # Phase decomposition for multiphase models
+  phase_cumhaz <- NULL
+  if (is_multiphase) {
+    decomp <- predict(object, newdata = nd, type = "cumulative_hazard",
+                      decompose = TRUE)
+    # decomp is a matrix; first column is "total", rest are phase names
+    phase_cols <- colnames(decomp)[colnames(decomp) != "total"]
+    phase_cumhaz <- as.data.frame(decomp[, phase_cols, drop = FALSE])
+  }
+
+  par_surv <- exp(-par_cumhaz)
+
+  # --- Interpolate KM at the time grid --------------------------------------
+  # Use stepfun-style interpolation for KM (right-continuous)
+  km_surv_at_grid <- stats::approx(
+    x = c(0, km_times), y = c(1, km_surv),
+    xout = time_grid, method = "constant", f = 0, rule = 2
+  )$y
+  km_cumhaz_at_grid <- -log(pmax(km_surv_at_grid, .Machine$double.xmin))
+
+  # Interpolate n.risk, n.event, n.censor at grid times
+  # For event counts, sum events at matching times; 0 otherwise
+  km_n_risk_grid <- stats::approx(
+    x = c(0, km_times), y = c(n_total, km_n_risk),
+    xout = time_grid, method = "constant", f = 0, rule = 2
+  )$y
+  km_n_event_grid <- rep(0, length(time_grid))
+  km_n_censor_grid <- rep(0, length(time_grid))
+  for (i in seq_along(km_times)) {
+    match_idx <- which(abs(time_grid - km_times[i]) < .Machine$double.eps * 100)
+    if (length(match_idx) > 0) {
+      km_n_event_grid[match_idx[1]] <- km_n_event[i]
+      km_n_censor_grid[match_idx[1]] <- km_n_censor[i]
+    }
+  }
+
+  # --- Conservation of Events accounting ------------------------------------
+  # At each event time, accumulate:
+  #   cum_observed: running sum of observed events
+  #   cum_expected: running sum of individual cumulative hazards for
+  #                 observations exiting the risk set (events + censored)
+  #
+  # The expected events for observations leaving at time t is:
+  #   (n_event + n_censor) * parametric_cumhaz(t)
+  # This is the SAS hazplot approach: total * _CUMHAZ at that interval.
+
+  cum_observed <- cumsum(km_n_event_grid)
+  interval_expected <- (km_n_event_grid + km_n_censor_grid) * par_cumhaz
+  cum_expected <- cumsum(interval_expected)
+  residual <- cum_expected - cum_observed
+
+  # --- Assemble result ------------------------------------------------------
+  result <- data.frame(
+    time         = time_grid,
+    n_risk       = km_n_risk_grid,
+    n_event      = km_n_event_grid,
+    n_censor     = km_n_censor_grid,
+    km_surv      = km_surv_at_grid,
+    km_cumhaz    = km_cumhaz_at_grid,
+    par_surv     = par_surv,
+    par_cumhaz   = par_cumhaz,
+    cum_observed = cum_observed,
+    cum_expected = cum_expected,
+    residual     = residual
+  )
+
+  # Add phase columns for multiphase
+  if (!is.null(phase_cumhaz)) {
+    for (ph in names(phase_cumhaz)) {
+      result[[paste0("par_cumhaz_", ph)]] <- phase_cumhaz[[ph]]
+    }
+  }
+
+  # Summary diagnostics
+  attr(result, "summary") <- list(
+    total_observed = cum_observed[length(cum_observed)],
+    total_expected = cum_expected[length(cum_expected)],
+    final_residual = residual[length(residual)],
+    dist = object$spec$dist,
+    n = n_total
+  )
+
+  class(result) <- c("hzr_gof", "data.frame")
+  result
+}
+
+#' Print method for hzr_gof
+#'
+#' @param x An `hzr_gof` object.
+#' @param digits Number of significant digits for formatting.
+#' @param ... Additional arguments (ignored).
+#' @export
+print.hzr_gof <- function(x, digits = 3, ...) {
+  s <- attr(x, "summary")
+  cat("Goodness-of-fit: observed vs. expected events\n")
+  cat("Distribution:", s$dist, " | n =", s$n, "\n\n")
+  cat("Total observed events:", s$total_observed, "\n")
+  cat("Total expected events:", round(s$total_expected, digits), "\n")
+  cat("Final residual (E - O):", round(s$final_residual, digits), "\n")
+  cat("Conservation ratio (E/O):",
+      round(s$total_expected / max(s$total_observed, 1), digits), "\n")
+  cat("\nUse plot columns: time, km_surv, par_surv, cum_observed,",
+      "cum_expected, residual\n")
+  invisible(x)
+}

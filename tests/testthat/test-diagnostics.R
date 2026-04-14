@@ -149,3 +149,139 @@ test_that("print.hzr_deciles runs without error", {
   expect_output(print(cal), "Decile-of-risk calibration")
   expect_output(print(cal), "Overall")
 })
+
+
+# =========================================================================
+# hzr_gof tests
+# =========================================================================
+
+test_that("hzr_gof returns correct structure", {
+  fit <- .fit_avc_weibull()
+  gof <- hzr_gof(fit)
+
+  expect_s3_class(gof, "hzr_gof")
+  expect_s3_class(gof, "data.frame")
+  expect_true(nrow(gof) > 0)
+  expect_true(all(c("time", "n_risk", "n_event", "n_censor",
+                     "km_surv", "km_cumhaz", "par_surv", "par_cumhaz",
+                     "cum_observed", "cum_expected", "residual") %in%
+                    names(gof)))
+
+  # Summary attribute
+  s <- attr(gof, "summary")
+  expect_true(is.list(s))
+  expect_named(s, c("total_observed", "total_expected", "final_residual",
+                     "dist", "n"))
+})
+
+test_that("hzr_gof cumulative observed equals total events", {
+  fit <- .fit_avc_weibull()
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  gof <- hzr_gof(fit)
+
+  s <- attr(gof, "summary")
+  expect_equal(s$total_observed, sum(avc$dead))
+  expect_equal(s$n, nrow(avc))
+})
+
+test_that("hzr_gof survival values are in [0, 1]", {
+  fit <- .fit_avc_weibull()
+  gof <- hzr_gof(fit)
+
+  expect_true(all(gof$km_surv >= 0 & gof$km_surv <= 1))
+  expect_true(all(gof$par_surv >= 0 & gof$par_surv <= 1))
+})
+
+test_that("hzr_gof cumulative hazard is non-negative and increasing", {
+  fit <- .fit_avc_weibull()
+  gof <- hzr_gof(fit)
+
+  expect_true(all(gof$km_cumhaz >= 0))
+  expect_true(all(gof$par_cumhaz >= 0))
+  # Parametric cumhaz should be non-decreasing
+  expect_true(all(diff(gof$par_cumhaz) >= -1e-10))
+})
+
+test_that("hzr_gof conservation ratio is reasonable", {
+  fit <- .fit_avc_weibull()
+  gof <- hzr_gof(fit)
+
+  s <- attr(gof, "summary")
+  ratio <- s$total_expected / s$total_observed
+  # For a reasonable fit, E/O should be in the ballpark (0.5 to 2.0)
+  expect_true(ratio > 0.2 && ratio < 5.0,
+              label = paste("conservation ratio", round(ratio, 3),
+                            "should be between 0.2 and 5.0"))
+})
+
+test_that("hzr_gof works with custom time grid", {
+  fit <- .fit_avc_weibull()
+  t_grid <- seq(1, 200, by = 10)
+  gof <- hzr_gof(fit, time_grid = t_grid)
+
+  expect_equal(nrow(gof), length(t_grid))
+  expect_equal(gof$time, t_grid)
+})
+
+test_that("hzr_gof works with intercept-only model", {
+  data(cabgkul, package = "TemporalHazard")
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data  = cabgkul,
+    dist  = "weibull",
+    theta = c(mu = 0.10, nu = 1.0),
+    fit   = TRUE
+  )
+  gof <- hzr_gof(fit)
+
+  expect_s3_class(gof, "hzr_gof")
+  expect_true(nrow(gof) > 0)
+  s <- attr(gof, "summary")
+  expect_equal(s$total_observed, sum(cabgkul$dead))
+})
+
+test_that("hzr_gof works with multiphase model", {
+  data(cabgkul, package = "TemporalHazard")
+  fit_mp <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data   = cabgkul,
+    dist   = "multiphase",
+    phases = list(
+      early    = hzr_phase("cdf", t_half = 0.2, nu = 1, m = 1,
+                            fixed = "shapes"),
+      constant = hzr_phase("constant"),
+      late     = hzr_phase("g3", tau = 1, gamma = 3, alpha = 1, eta = 1,
+                            fixed = "shapes")
+    ),
+    fit     = TRUE,
+    control = list(n_starts = 3, maxit = 500)
+  )
+  gof <- hzr_gof(fit_mp)
+
+  expect_s3_class(gof, "hzr_gof")
+  # Should have phase-specific columns
+  expect_true(any(grepl("^par_cumhaz_", names(gof))))
+})
+
+test_that("hzr_gof rejects invalid inputs", {
+  expect_error(hzr_gof("not_a_model"), "hazard object")
+
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  fit_unfitted <- hazard(
+    survival::Surv(int_dead, dead) ~ age + mal,
+    data  = avc,
+    dist  = "weibull",
+    theta = c(mu = 0.01, nu = 0.5, 0, 0),
+    fit   = FALSE
+  )
+  expect_error(hzr_gof(fit_unfitted), "fit = TRUE")
+})
+
+test_that("print.hzr_gof runs without error", {
+  fit <- .fit_avc_weibull()
+  gof <- hzr_gof(fit)
+  expect_output(print(gof), "Goodness-of-fit")
+  expect_output(print(gof), "Conservation ratio")
+})

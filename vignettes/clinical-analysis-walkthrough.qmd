@@ -418,6 +418,59 @@ A non-significant overall chi-square statistic (p > 0.05) indicates
 adequate calibration --- the model's predictions are consistent with
 observed event rates across the risk spectrum.
 
+### Conservation of events check
+
+The conservation-of-events principle states that a well-fitting model
+should predict the same total number of events as actually observed.
+`hzr_gof()` tracks this cumulatively over time --- the residual
+(expected minus observed) should stay near zero.
+
+```{r}
+#| label: gof-summary
+gof <- hzr_gof(fit_mv)
+print(gof)
+```
+
+```{r}
+#| label: fig-gof-survival
+#| fig-cap: "Parametric (blue) vs. Kaplan-Meier (orange) survival"
+#| eval: !expr has_pkg && has_ggplot2
+ggplot(gof, aes(x = time)) +
+  geom_step(aes(y = km_surv * 100), colour = "#D55E00", linewidth = 0.6) +
+  geom_line(aes(y = par_surv * 100), colour = "#0072B2", linewidth = 0.8) +
+  labs(x = "Months after AVC repair", y = "Survival (%)") +
+  coord_cartesian(ylim = c(0, 100)) +
+  theme_minimal()
+```
+
+```{r}
+#| label: fig-gof-events
+#| fig-cap: "Cumulative observed (orange) vs. expected (blue) events"
+#| eval: !expr has_pkg && has_ggplot2
+ggplot(gof, aes(x = time)) +
+  geom_line(aes(y = cum_observed), colour = "#D55E00", linewidth = 0.8) +
+  geom_line(aes(y = cum_expected), colour = "#0072B2",
+            linewidth = 0.8, linetype = "dashed") +
+  labs(x = "Months after AVC repair", y = "Cumulative events") +
+  theme_minimal()
+```
+
+```{r}
+#| label: fig-gof-residual
+#| fig-cap: "Conservation-of-events residual (expected minus observed) over time"
+#| eval: !expr has_pkg && has_ggplot2
+ggplot(gof, aes(x = time, y = residual)) +
+  geom_line(linewidth = 0.7, colour = "grey30") +
+  geom_hline(yintercept = 0, linetype = "dashed", colour = "grey60") +
+  labs(x = "Months after AVC repair",
+       y = "Residual (expected - observed)") +
+  theme_minimal()
+```
+
+A residual that hovers near zero across the full time range indicates the
+model conserves events well.  Persistent positive residual means the model
+overpredicts risk; persistent negative means it underpredicts.
+
 ## Why not Cox regression?
 
 The temporal parametric approach offers several advantages over Cox
@@ -430,7 +483,7 @@ proportional hazards for this type of analysis:
 | Multiple hazard phases | No | Yes (additive) |
 | Patient-specific survival prediction | Approximate | Exact |
 | Smooth extrapolation beyond data | No | Yes |
-| Conservation of events check | No | Planned |
+| Conservation of events check | No | Yes (`hzr_gof()`) |
 | Interval censoring | Not standard | Supported |
 
 The key insight is that many clinical outcomes exhibit **non-proportional
@@ -448,7 +501,7 @@ The complete analytical workflow follows a disciplined sequence:
 3. **Variable screening** --- logistic screening, LOESS functional form
 4. **Multivariable model** --- enter covariates with fixed shapes
 5. **Prediction** --- reference curves, sensitivity analysis
-6. **Validation** --- decile calibration, parametric vs. KM overlay
+6. **Validation** --- decile calibration, conservation-of-events check
 
 This sequence ensures that the temporal shape is established before
 covariates are introduced, and that the final model is validated against
