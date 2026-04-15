@@ -168,14 +168,14 @@ summary(fit_mp)
 #> 
 #>   Phase: early (cdf)
 #>                estimate  std_error     z_stat      p_value
-#>   log_mu     -1.4574911 0.07272253 -20.041810 2.379564e-89
-#>   log_t_half -1.7946653 0.36483350  -4.919135 8.692750e-07
-#>   nu          1.4542433 0.55221855   2.633456 8.452075e-03
-#>   m           0.9265214 0.71022121   1.304553 1.920450e-01
+#>   log_mu     -1.4575073 0.07272087 -20.042491 2.347232e-89
+#>   log_t_half -1.7947432 0.36481698  -4.919572 8.673386e-07
+#>   nu          1.4541984 0.55216657   2.633623 8.447933e-03
+#>   m           0.9265622 0.71021108   1.304629 1.920191e-01
 #> 
 #>   Phase: constant (constant)
 #>           estimate std_error z_stat p_value
-#>   log_mu -7.523244        NA     NA      NA
+#>   log_mu -7.523156        NA     NA      NA
 ```
 
 Comparing the single-phase Weibull to the multiphase fit:

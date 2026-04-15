@@ -1,11 +1,11 @@
-# Print method for hzr_gof
+# Print method for hzr_calibrate
 
-Print method for hzr_gof
+Print method for hzr_calibrate
 
 ## Usage
 
 ``` r
-# S3 method for class 'hzr_gof'
+# S3 method for class 'hzr_calibrate'
 print(x, digits = 3, ...)
 ```
 
@@ -13,7 +13,7 @@ print(x, digits = 3, ...)
 
 - x:
 
-  An `hzr_gof` object.
+  An `hzr_calibrate` object.
 
 - digits:
 

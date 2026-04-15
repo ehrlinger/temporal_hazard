@@ -58,6 +58,16 @@
 <li>
 <code><a href="../reference/hzr_gof.html">hzr_gof()</a></code> — Goodness-of-fit function comparing parametric predictions against nonparametric (Kaplan-Meier) estimates with observed vs. expected event counting. Implements the SAS <code>hazplot.sas</code> macro workflow.</li>
 <li>
+<code><a href="../reference/hzr_kaplan.html">hzr_kaplan()</a></code> — Kaplan-Meier survival estimator with logit-transformed confidence limits that respect the [0, 1] boundary, interval hazard rate, density, and restricted mean survival time (life integral). Implements the SAS <code>kaplan.sas</code> macro output structure.</li>
+<li>
+<code><a href="../reference/hzr_calibrate.html">hzr_calibrate()</a></code> — Variable calibration function for assessing functional form before model entry. Groups a continuous covariate into quantile bins and applies logit, Gompertz, or Cox link transforms. Supports stratification via the <code>by</code> parameter. Implements the SAS <code>logit.sas</code> and <code>logitgr.sas</code> macros.</li>
+<li>
+<code><a href="../reference/hzr_nelson.html">hzr_nelson()</a></code> — Wayne Nelson cumulative hazard estimator with lognormal confidence limits. Supports weighted events for severity-adjusted repeated event analyses. Implements the SAS <code>nelsonl.sas</code> macro.</li>
+<li>
+<code><a href="../reference/hzr_bootstrap.html">hzr_bootstrap()</a></code> — Bootstrap resampling for hazard model coefficients with bagging support (fractional sampling). Returns per-replicate estimates and summary statistics (mean, SD, percentile CI). Implements the SAS <code>bootstrap.hazard.sas</code> macro workflow.</li>
+<li>
+<code><a href="../reference/hzr_competing_risks.html">hzr_competing_risks()</a></code> — Competing risks cumulative incidence using the Aalen-Johansen estimator with Greenwood variance. Handles any number of competing event types. Implements the SAS <code>markov.sas</code> macro.</li>
+<li>
 <strong>Conservation of Events (CoE)</strong> — Turner’s theorem is now integrated into the multiphase optimizer. One phase’s log_mu scaling parameter is solved analytically at each iteration, reducing the optimization dimension by 1 and improving numerical stability and convergence. Enabled by default; disable with <code>control = list(conserve = FALSE)</code>. Implements the core algorithm from C HAZARD <code>setcoe.c</code> / <code>consrv.c</code>.</li>
 <li>New vignette: “Complete Clinical Analysis Walkthrough” — end-to-end workflow from Kaplan-Meier baseline through validated multivariable model, mirroring the SAS HAZARD analytical sequence.</li>
 </ul></div>

@@ -17,7 +17,7 @@ print(x, digits = 3, ...)
 
 - digits:
 
-  Number of significant digits for formatting.
+  Number of decimal places for formatting.
 
 - ...:
 

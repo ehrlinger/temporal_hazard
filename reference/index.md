@@ -69,3 +69,21 @@
   : Goodness-of-fit: observed vs. predicted events
 - [`print(`*`<hzr_gof>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_gof.md)
   : Print method for hzr_gof
+- [`hzr_kaplan()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_kaplan.md)
+  : Kaplan-Meier survival with exact logit confidence limits
+- [`print(`*`<hzr_kaplan>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_kaplan.md)
+  : Print method for hzr_kaplan
+- [`hzr_calibrate()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_calibrate.md)
+  : Calibrate a continuous variable against an outcome
+- [`print(`*`<hzr_calibrate>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_calibrate.md)
+  : Print method for hzr_calibrate
+- [`hzr_nelson()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_nelson.md)
+  [`print(`*`<hzr_nelson>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_nelson.md)
+  : Wayne Nelson cumulative hazard estimator with lognormal confidence
+  limits
+- [`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)
+  [`print(`*`<hzr_bootstrap>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)
+  : Bootstrap resampling for hazard model coefficients
+- [`hzr_competing_risks()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_competing_risks.md)
+  [`print(`*`<hzr_competing_risks>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_competing_risks.md)
+  : Competing risks cumulative incidence
