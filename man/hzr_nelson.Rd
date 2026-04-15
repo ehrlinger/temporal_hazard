@@ -22,7 +22,7 @@ zero weight). Use for severity-weighted repeated events.}
 
 \item{x}{An \code{hzr_nelson} object.}
 
-\item{digits}{Number of significant digits.}
+\item{digits}{Number of decimal places for formatting.}
 
 \item{...}{Additional arguments (ignored).}
 }

@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{An \code{hzr_kaplan} object.}
 
-\item{digits}{Number of significant digits.}
+\item{digits}{Number of decimal places for formatting.}
 
 \item{n}{Maximum rows to print (default 20).}
 

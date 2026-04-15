@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{An \code{hzr_gof} object.}
 
-\item{digits}{Number of significant digits for formatting.}
+\item{digits}{Number of decimal places for formatting.}
 
 \item{...}{Additional arguments (ignored).}
 }

@@ -15,8 +15,9 @@ hzr_kaplan(time, status, conf_level = 0.95, event_only = TRUE)
 The SAS default of 0.68268948 corresponds to a 1-SD interval.}
 
 \item{event_only}{Logical; if \code{TRUE} (default), only return rows at
-event times.
-If \code{FALSE}, include rows at censoring times as well.}
+event times (where \code{n_event > 0}).
+If \code{FALSE}, return rows at all times reported by
+\code{survival::survfit()} (events and censoring times).}
 }
 \value{
 A data frame with one row per time point and columns:

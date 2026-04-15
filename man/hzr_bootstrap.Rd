@@ -29,7 +29,7 @@ replicate (default 1.0 for full bootstrap; < 1 for bagging).}
 
 \item{x}{An \code{hzr_bootstrap} object.}
 
-\item{digits}{Number of significant digits.}
+\item{digits}{Number of decimal places for formatting.}
 
 \item{...}{Additional arguments (ignored).}
 }

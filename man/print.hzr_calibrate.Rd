@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{An \code{hzr_calibrate} object.}
 
-\item{digits}{Number of significant digits.}
+\item{digits}{Number of decimal places for formatting.}
 
 \item{...}{Additional arguments (ignored).}
 }

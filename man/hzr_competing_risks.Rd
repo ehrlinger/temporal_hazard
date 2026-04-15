@@ -17,7 +17,7 @@ hzr_competing_risks(time, event)
 
 \item{x}{An \code{hzr_competing_risks} object.}
 
-\item{digits}{Number of significant digits.}
+\item{digits}{Number of decimal places for formatting.}
 
 \item{...}{Additional arguments (ignored).}
 }
