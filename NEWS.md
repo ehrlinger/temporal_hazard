@@ -17,6 +17,16 @@
   and applies logit, Gompertz, or Cox link transforms. Supports
   stratification via the `by` parameter. Implements the SAS `logit.sas` and
   `logitgr.sas` macros.
+* `hzr_nelson()` — Wayne Nelson cumulative hazard estimator with lognormal
+  confidence limits. Supports weighted events for severity-adjusted repeated
+  event analyses. Implements the SAS `nelsonl.sas` macro.
+* `hzr_bootstrap()` — Bootstrap resampling for hazard model coefficients with
+  bagging support (fractional sampling). Returns per-replicate estimates and
+  summary statistics (mean, SD, percentile CI). Implements the SAS
+  `bootstrap.hazard.sas` macro workflow.
+* `hzr_competing_risks()` — Competing risks cumulative incidence using the
+  Aalen-Johansen estimator with Greenwood variance. Handles any number of
+  competing event types. Implements the SAS `markov.sas` macro.
 * **Conservation of Events (CoE)** — Turner's theorem is now integrated into
   the multiphase optimizer. One phase's log_mu scaling parameter is solved
   analytically at each iteration, reducing the optimization dimension by 1

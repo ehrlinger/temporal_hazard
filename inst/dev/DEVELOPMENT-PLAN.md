@@ -112,25 +112,14 @@ Close the remaining feature gaps between the C/SAS HAZARD system and the
 R package. See `SAS-PARITY-GAP-ANALYSIS.md` for detailed implementation
 notes on each item.
 
-### 4a. Conservation of Events Theorem
+### 4a. Conservation of Events Theorem — COMPLETE (v0.9.3)
 
-**Priority:** High
-**Effort:** Medium-large
-**Impact:** Improved numerical stability and convergence for all users
-
-The CoE theorem (Turner) provides an explicit closed-form solution for one
-scaling parameter (mu) given the other parameters, reducing the optimization
-dimension by one. The C implementation lives in `setcoe.c` and `consrv.c`.
-
-Tasks:
-1. Implement CoE constraint solver: given shape params and data, solve for
-   log_mu satisfying Sum(events) = Sum(CF(t_i))
-2. Integrate into multiphase optimizer loop (solve mu analytically at each
-   iteration before evaluating likelihood on reduced parameter set)
-3. Extend to interval-censored and weighted data
-4. Add `conserve` control option (default TRUE) matching SAS
-   `CONSERVE/NOCONSERVE`
-5. Validate against SAS output
+Turner's theorem integrated into `.hzr_optim_multiphase()`. One phase's
+log_mu solved analytically at each iteration via `.hzr_conserve_events()`.
+Controlled via `control$conserve` (default TRUE). Currently supports
+right-censored + exact-event data; interval/left-censored extension is a
+follow-up item. Key functions: `.hzr_conserve_events()`,
+`.hzr_select_fixmu_phase()`, `.hzr_log_mu_positions()`.
 
 ### 4b. Stepwise Covariate Selection
 
@@ -189,7 +178,7 @@ Tasks:
 
 ---
 
-## Phase 5: Utility Functions (SAS Macro Equivalents) — PLANNED
+## Phase 5: Utility Functions (SAS Macro Equivalents) — COMPLETE (v0.9.3)
 
 The SAS HAZARD system ships utility macros for non-parametric estimation,
 goodness-of-fit, variable calibration, bootstrap inference, and competing
@@ -200,17 +189,17 @@ engine. R equivalents should be exported functions in the `hzr_` namespace.
 
 | SAS Macro | Purpose | R Equivalent | Priority |
 |:---|:---|:---|:---:|
-| `kaplan.sas` | KM survival with exact logit CL | `hzr_kaplan()` | High |
-| `hazplot.sas` | Observed vs predicted overlay + CoE GOF | `hzr_gof()` | High |
-| `deciles.hazard.sas` | Calibration by predicted survival deciles | `hzr_deciles()` | High |
-| `chisqgf.sas` | Chi-square GOF test (obs vs expected) | `hzr_chisq_gof()` | Medium |
-| `nelsonl.sas` | Nelson estimator for weighted/repeated events | `hzr_nelson()` | Medium |
-| `nelsont.sas` | Nelson estimator for terminating events | `hzr_nelson()` (unified) | Medium |
-| `bootstrap.hazard.sas` | Bootstrap bagging with variable selection | `hzr_bootstrap()` | Medium |
-| `bootstrap.summary.sas` | Summarize bootstrap coefficient distributions | (part of `hzr_bootstrap()`) | Medium |
-| `logit.sas` | Calibrate continuous variables (decile logit) | `hzr_calibrate()` | Low |
-| `logitgr.sas` | Calibrate by natural grouping variable | `hzr_calibrate()` (with `by=`) | Low |
-| `markov.sas` | Competing risks cumulative incidence (Greenwood) | `hzr_competing_risks()` | Low |
+| `kaplan.sas` | KM survival with exact logit CL | `hzr_kaplan()` | Done |
+| `hazplot.sas` | Observed vs predicted overlay + CoE GOF | `hzr_gof()` | Done |
+| `deciles.hazard.sas` | Calibration by predicted survival deciles | `hzr_deciles()` | Done |
+| `chisqgf.sas` | Chi-square GOF test (obs vs expected) | (part of `hzr_deciles()`) | Done |
+| `nelsonl.sas` | Nelson estimator for weighted/repeated events | `hzr_nelson()` | Done |
+| `nelsont.sas` | Nelson estimator for terminating events | `hzr_nelson()` (unified) | Done |
+| `bootstrap.hazard.sas` | Bootstrap bagging with variable selection | `hzr_bootstrap()` | Done |
+| `bootstrap.summary.sas` | Summarize bootstrap coefficient distributions | (part of `hzr_bootstrap()`) | Done |
+| `logit.sas` | Calibrate continuous variables (decile logit) | `hzr_calibrate()` | Done |
+| `logitgr.sas` | Calibrate by natural grouping variable | `hzr_calibrate()` (with `by=`) | Done |
+| `markov.sas` | Competing risks cumulative incidence (Greenwood) | `hzr_competing_risks()` | Done |
 | `plot.sas` | Publication-quality SAS plots | Not needed (ggplot2) | — |
 
 ### 5a. `hzr_kaplan()` — Kaplan-Meier with Exact Confidence Limits

@@ -4,15 +4,36 @@ Last updated: 2026-04-14
 
 ## Current State
 
-**Version:** 0.9.1
-**Branch:** `feature/analytic-gradients` (local commits not yet pushed to origin)
-**R CMD check:** 0 ERROR, 0 WARNING, 1 NOTE (new submission + DOI false positives)
+**Version:** 0.9.3
+**Branch:** `feature/analytic-gradients`
+**R CMD check:** 0 ERROR, 0 WARNING, 1 NOTE (new submission)
 **Lint:** Clean (lintr CI workflow in place)
-**Test suite:** 540+ tests passing; one CI run may still show a stale failure on
-`test-multiphase-parity.R` line 360 — the fix (`>= -3750`) is committed locally
-but needs to be pushed.
+**Test suite:** 700+ tests passing across all platforms.
+**Exported functions:** 8 new diagnostic/utility functions in this session.
 
-## What Was Done This Session
+## What Was Done This Session (2026-04-14, continued)
+
+### 0. Conservation of Events (CoE) in Optimizer
+
+Turner's theorem integrated into `.hzr_optim_multiphase()`. One phase's
+log_mu solved analytically at each iteration, reducing optimization
+dimension by 1. Controlled via `control$conserve` (default TRUE for
+right-censored data). Key bug fixed: gradient function closure scoping
+with double-wrapped logl_fn — solved with `logl_fn_unwrapped` capture.
+
+### 0b. SAS Macro Utility Functions (Phase 5 — COMPLETE)
+
+All SAS HAZARD utility macros now have R equivalents:
+
+| Function | SAS Macro | Purpose |
+|:---|:---|:---|
+| `hzr_deciles()` | `deciles.hazard.sas` | Decile-of-risk calibration with chi-sq GOF |
+| `hzr_gof()` | `hazplot.sas` | Observed vs expected events, CoE diagnostic |
+| `hzr_kaplan()` | `kaplan.sas` | KM with logit CL, hazard, density, RMST |
+| `hzr_calibrate()` | `logit.sas`/`logitgr.sas` | Variable calibration (logit/Gompertz/Cox) |
+| `hzr_nelson()` | `nelsonl.sas` | Nelson cumhaz with lognormal CL, weighted events |
+| `hzr_bootstrap()` | `bootstrap.hazard.sas` | Bootstrap bagging with coefficient summaries |
+| `hzr_competing_risks()` | `markov.sas` | Aalen-Johansen competing risks incidence |
 
 ### 1. CRAN Review Fixes (from GPT-5.3 review)
 
