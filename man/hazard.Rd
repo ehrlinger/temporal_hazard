@@ -17,6 +17,7 @@ hazard(
   dist = "weibull",
   phases = NULL,
   fit = FALSE,
+  weights = NULL,
   control = list(),
   ...
 )
@@ -54,6 +55,11 @@ Use \code{"multiphase"} for N-phase additive hazard models (requires \code{phase
 phases for a multiphase model (\code{dist = "multiphase"}).  See Examples.}
 
 \item{fit}{Logical; if TRUE, fit the model via maximum likelihood (default FALSE).}
+
+\item{weights}{Optional numeric vector of observation weights (non-negative).
+Each observation's log-likelihood contribution is multiplied by its weight.
+Use for severity-weighted repeated events. Default \code{NULL} (unit weights).
+Implements the SAS \code{WEIGHT} statement.}
 
 \item{control}{Named list of control options (see Details).}
 

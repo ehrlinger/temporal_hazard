@@ -1,3 +1,17 @@
+# TemporalHazard 0.9.4
+
+## New features
+
+* **Observation weights** — `weights` argument in `hazard()` applies Fisher
+  weighting to the log-likelihood. Each observation's contribution is
+  multiplied by its weight, enabling severity-weighted event analyses.
+  Threaded through all distribution-specific likelihood and gradient
+  functions. Implements the SAS `WEIGHT` statement.
+* **Repeating events** — `Surv(start, stop, event)` start-stop notation
+  is now supported for epoch-decomposed longitudinal data. Each epoch
+  contributes `H(stop) - H(start)` to the likelihood, matching the SAS
+  `LCENSOR`/`STIME` mechanism.
+
 # TemporalHazard 0.9.3
 
 ## New features

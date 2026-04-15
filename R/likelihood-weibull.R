@@ -93,6 +93,7 @@ NULL
     time_lower = NULL,
     time_upper = NULL,
     x = NULL,
+    weights = NULL,
     dist_name = "weibull",
     return_gradient = FALSE,
     return_hessian = FALSE) {
@@ -100,6 +101,9 @@ NULL
   # Shape parameter count for Weibull
   n_shape <- 2  # mu, nu (scale, shape)
   n <- length(time)
+
+  # Default unit weights
+  if (is.null(weights)) weights <- rep(1, n)
 
   # Extract parameters
   mu <- theta[1]    # scale > 0
@@ -150,31 +154,33 @@ NULL
   idx_left <- status == -1
   idx_interval <- status == 2
 
-  # Exact events: log h(t) + log S(t) = log h(t) - H(t)
+  # Exact events: w * [log h(t) - H(t)]
   ll_event <- if (any(idx_event)) {
-    sum(log(haz_event[idx_event]) - cumhaz_event[idx_event])
+    sum(weights[idx_event] *
+          (log(haz_event[idx_event]) - cumhaz_event[idx_event]))
   } else {
     0
   }
 
-  # Right-censored: log S(t) = -H(t)
+  # Right-censored: w * [-H(t)]
   ll_right <- if (any(idx_right)) {
-    -sum(cumhaz_event[idx_right])
+    -sum(weights[idx_right] * cumhaz_event[idx_right])
   } else {
     0
   }
 
-  # Left-censored: log F(u) = log(1 - S(u)) = log(1 - exp(-H(u)))
+  # Left-censored: w * [log(1 - exp(-H(u)))]
   ll_left <- if (any(idx_left)) {
-    sum(hzr_log1mexp(cumhaz_upper[idx_left]))
+    sum(weights[idx_left] * hzr_log1mexp(cumhaz_upper[idx_left]))
   } else {
     0
   }
 
-  # Interval-censored: log(S(l) - S(u)) = -H(l) + log(1 - exp(-(H(u)-H(l))))
+  # Interval-censored: w * [-H(l) + log(1 - exp(-(H(u)-H(l))))]
   ll_interval <- if (any(idx_interval)) {
     delta_h <- cumhaz_upper[idx_interval] - cumhaz_lower[idx_interval]
-    sum(-cumhaz_lower[idx_interval] + hzr_log1mexp(delta_h))
+    sum(weights[idx_interval] *
+          (-cumhaz_lower[idx_interval] + hzr_log1mexp(delta_h)))
   } else {
     0
   }
@@ -283,7 +289,7 @@ NULL
 #' @noRd
 .hzr_optim_weibull <- function(
     time, status, time_lower = NULL, time_upper = NULL,
-    x = NULL, theta_start, control = list()) {
+    x = NULL, theta_start, weights = NULL, control = list()) {
 
   # ── Internal reparameterisation ────────────────────────────────────────────
   # The original hazard C code parameterises the cumulative hazard as

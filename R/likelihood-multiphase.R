@@ -376,10 +376,13 @@
 #' @keywords internal
 .hzr_logl_multiphase <- function(theta, time, status,
                                   time_lower = NULL, time_upper = NULL,
-                                  x = NULL,
+                                  x = NULL, weights = NULL,
                                   phases, covariate_counts, x_list,
                                   return_gradient = FALSE,
                                   return_hessian = FALSE, ...) {
+
+  n <- length(time)
+  if (is.null(weights)) weights <- rep(1, n)
 
   # Feasibility: check parameter constraints
 
@@ -411,28 +414,30 @@
 
   logl <- 0
 
-  # Exact events: log h(t) - H(t)
+  # Exact events: w * [log h(t) - H(t)]
   if (any(idx_event)) {
     haz <- .hzr_multiphase_hazard(time, theta, phases, covariate_counts, x_list)
     if (any(!is.finite(haz[idx_event])) || any(haz[idx_event] <= 0)) return(-Inf)
-    logl <- logl + sum(log(haz[idx_event])) - sum(cumhaz[idx_event])
+    logl <- logl + sum(weights[idx_event] *
+                         (log(haz[idx_event]) - cumhaz[idx_event]))
   }
 
-  # Right-censored: -H(t)
+  # Right-censored: w * [-H(t)]
   idx_right <- status == 0
   if (any(idx_right)) {
-    logl <- logl - sum(cumhaz[idx_right])
+    logl <- logl - sum(weights[idx_right] * cumhaz[idx_right])
   }
 
-  # Left-censored: log(1 - exp(-H(u)))
+  # Left-censored: w * [log(1 - exp(-H(u)))]
   idx_left <- status == -1
   if (any(idx_left)) {
     cumhaz_upper <- .hzr_multiphase_cumhaz(upper, theta, phases,
                                              covariate_counts, x_list)
-    logl <- logl + sum(hzr_log1mexp(cumhaz_upper[idx_left]))
+    logl <- logl + sum(weights[idx_left] *
+                         hzr_log1mexp(cumhaz_upper[idx_left]))
   }
 
-  # Interval-censored: log(S(l) - S(u)) = -H(l) + log(1 - exp(-(H(u) - H(l))))
+  # Interval-censored: w * [-H(l) + log(1 - exp(-(H(u) - H(l))))]
   idx_interval <- status == 2
   if (any(idx_interval)) {
     cumhaz_lower <- .hzr_multiphase_cumhaz(lower, theta, phases,
@@ -440,7 +445,9 @@
     cumhaz_upper_iv <- .hzr_multiphase_cumhaz(upper, theta, phases,
                                                 covariate_counts, x_list)
     delta_h <- cumhaz_upper_iv[idx_interval] - cumhaz_lower[idx_interval]
-    logl <- logl + sum(-cumhaz_lower[idx_interval] + hzr_log1mexp(delta_h))
+    logl <- logl + sum(weights[idx_interval] *
+                         (-cumhaz_lower[idx_interval] +
+                            hzr_log1mexp(delta_h)))
   }
 
   if (!is.finite(logl)) return(-Inf)
@@ -810,10 +817,13 @@
                                    time_lower = NULL, time_upper = NULL,
                                    x = NULL,
                                    theta_start = NULL,
+                                   weights = NULL,
                                    control = list(),
                                    phases,
                                    formula_global = NULL,
                                    data = NULL) {
+
+  if (is.null(weights)) weights <- rep(1, length(time))
 
   phases <- .hzr_validate_phases(phases)
 
@@ -867,7 +877,7 @@
     .hzr_logl_multiphase(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper,
-      x = x,
+      x = x, weights = weights,
       phases = phases, covariate_counts = covariate_counts,
       x_list = x_list, ...
     )
@@ -926,7 +936,7 @@
   coe_supported_data <- all(status %in% c(0, 1))
 
   if (use_conserve && coe_supported_data && length(phases) >= 2L) {
-    total_events <- sum(status == 1)
+    total_events <- sum(weights[status == 1])
     if (total_events > 0) {
       # Initial CoE scaling: adjust all log_mu proportionally
       decomp_init <- .hzr_multiphase_cumhaz(

@@ -62,6 +62,10 @@ NULL
 #' @param phases Optional named list of [hzr_phase()] objects specifying the
 #'   phases for a multiphase model (`dist = "multiphase"`).  See Examples.
 #' @param fit Logical; if TRUE, fit the model via maximum likelihood (default FALSE).
+#' @param weights Optional numeric vector of observation weights (non-negative).
+#'   Each observation's log-likelihood contribution is multiplied by its weight.
+#'   Use for severity-weighted repeated events. Default `NULL` (unit weights).
+#'   Implements the SAS `WEIGHT` statement.
 #' @param control Named list of control options (see Details).
 #' @param ... Additional named arguments retained for parity with legacy calling
 #'   conventions.
@@ -237,6 +241,7 @@ hazard <- function(formula = NULL,
                    dist = "weibull",
                    phases = NULL,
                    fit = FALSE,
+                   weights = NULL,
                    control = list(),
                    ...) {
   # Formula dispatch: if formula is provided, parse it and extract time/status/x from data
@@ -325,6 +330,18 @@ hazard <- function(formula = NULL,
     }
   }
 
+  # --- Validate and normalize weights ----------------------------------------
+  n_obs <- length(time)
+  if (!is.null(weights)) {
+    if (!is.numeric(weights) || length(weights) != n_obs) {
+      stop("'weights' must be a numeric vector of length ", n_obs, ".",
+           call. = FALSE)
+    }
+    if (any(weights < 0) || any(!is.finite(weights))) {
+      stop("'weights' must be non-negative and finite.", call. = FALSE)
+    }
+  }
+
   if (!is.character(dist) || length(dist) != 1 || !nzchar(dist)) {
     stop("'dist' must be a non-empty character scalar.", call. = FALSE)
   }
@@ -403,7 +420,8 @@ hazard <- function(formula = NULL,
     optim_result <- .hzr_run_fit_safely(.hzr_optim_multiphase(
       time = time, status = status,
       time_lower = time_lower, time_upper = time_upper,
-      x = x_fit, theta_start = theta, control = control,
+      x = x_fit, theta_start = theta, weights = weights,
+      control = control,
       phases = phases, formula_global = formula, data = data
     ))
 
@@ -433,7 +451,8 @@ hazard <- function(formula = NULL,
     optim_result <- .hzr_run_fit_safely(optim_fn(
       time = time, status = status,
       time_lower = time_lower, time_upper = time_upper,
-      x = x_fit, theta_start = theta, control = control
+      x = x_fit, theta_start = theta, weights = weights,
+      control = control
     ))
 
     fit_state$theta <- optim_result$par
@@ -461,7 +480,8 @@ hazard <- function(formula = NULL,
       time_lower = time_lower,
       time_upper = time_upper,
       status = as.numeric(status),
-      x = x
+      x = x,
+      weights = weights
     ),
     fit = fit_state,
     legacy_args = list(...),

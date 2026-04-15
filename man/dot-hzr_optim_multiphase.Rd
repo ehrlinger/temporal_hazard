@@ -11,6 +11,7 @@
   time_upper = NULL,
   x = NULL,
   theta_start = NULL,
+  weights = NULL,
   control = list(),
   phases,
   formula_global = NULL,
