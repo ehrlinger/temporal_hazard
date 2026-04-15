@@ -236,7 +236,7 @@ hzr_deciles <- function(object, time, groups = 10L,
 #' Print method for hzr_deciles
 #'
 #' @param x An `hzr_deciles` object.
-#' @param digits Number of significant digits for formatting.
+#' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
 #' @export
 print.hzr_deciles <- function(x, digits = 3, ...) {
@@ -501,7 +501,7 @@ hzr_gof <- function(object, time_grid = NULL) {
 #' Print method for hzr_gof
 #'
 #' @param x An `hzr_gof` object.
-#' @param digits Number of significant digits for formatting.
+#' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
 #' @export
 print.hzr_gof <- function(x, digits = 3, ...) {
@@ -552,8 +552,9 @@ print.hzr_gof <- function(x, digits = 3, ...) {
 #' @param conf_level Confidence level for the interval (default 0.95).
 #'   The SAS default of 0.68268948 corresponds to a 1-SD interval.
 #' @param event_only Logical; if `TRUE` (default), only return rows at
-#'   event times.
-#'   If `FALSE`, include rows at censoring times as well.
+#'   event times (where `n_event > 0`).
+#'   If `FALSE`, return rows at all times reported by
+#'   `survival::survfit()` (events and censoring times).
 #'
 #' @return A data frame with one row per time point and columns:
 #' \describe{
@@ -677,11 +678,12 @@ hzr_kaplan <- function(time, status, conf_level = 0.95,
     delta_t[idx_haz]
 
   # --- Restricted mean survival (life integral) -----------------------------
-  # Modified trapezoidal rule: LIFE(t) = LIFE(t-1) + dt*(3S(t) - S(t-1))/2
+  # KM survival is a right-continuous step function.  RMST is accumulated
+  # as the sum of rectangle areas: each interval contributes dt * S(t-1).
   life <- rep(0, n_times)
   lag_life <- 0
   for (i in seq_len(n_times)) {
-    life[i] <- lag_life + delta_t[i] * (3 * km_surv[i] - lag_surv[i]) / 2
+    life[i] <- lag_life + delta_t[i] * lag_surv[i]
     lag_life <- life[i]
   }
 
@@ -713,7 +715,7 @@ hzr_kaplan <- function(time, status, conf_level = 0.95,
 #' Print method for hzr_kaplan
 #'
 #' @param x An `hzr_kaplan` object.
-#' @param digits Number of significant digits.
+#' @param digits Number of decimal places for formatting.
 #' @param n Maximum rows to print (default 20).
 #' @param ... Additional arguments (ignored).
 #' @export
@@ -917,7 +919,7 @@ hzr_calibrate <- function(x, event, groups = 10L, by = NULL,
 #' Print method for hzr_calibrate
 #'
 #' @param x An `hzr_calibrate` object.
-#' @param digits Number of significant digits.
+#' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
 #' @export
 print.hzr_calibrate <- function(x, digits = 3, ...) {
@@ -1015,28 +1017,33 @@ hzr_nelson <- function(time, event, weight = NULL, conf_level = 0.95) {
   # Collapse to unique times
   u_times <- sort(unique(time_s[event_s == 1]))
   if (length(u_times) == 0) {
-    return(data.frame(time = numeric(0), n_risk = numeric(0),
+    out <- data.frame(time = numeric(0), n_risk = numeric(0),
                       n_event = numeric(0), weight_sum = numeric(0),
                       cumhaz = numeric(0), std_err = numeric(0),
                       cl_lower = numeric(0), cl_upper = numeric(0),
-                      hazard = numeric(0), cum_events = numeric(0)))
+                      hazard = numeric(0), cum_events = numeric(0))
+    class(out) <- c("hzr_nelson", "data.frame")
+    return(out)
   }
 
-  n_total <- n
   out_n <- length(u_times)
   n_risk <- numeric(out_n)
   n_event_out <- numeric(out_n)
   weight_sum <- numeric(out_n)
   cumhaz <- numeric(out_n)
-  i_nrisk <- 0
-  cum_it <- 0
+
+  # Single pass: compute cumhaz, variance, and lognormal CL together
+  std_err <- numeric(out_n)
+  cl_lower <- numeric(out_n)
+  cl_upper <- numeric(out_n)
+
+  run_i_nrisk <- 0
+  run_it <- 0
   cum_dist <- 0
 
   for (k in seq_along(u_times)) {
     t_k <- u_times[k]
-    # Number at risk: still in the study at this time
     n_risk[k] <- sum(time_s >= t_k)
-    # Events and weights at this time
     at_time <- time_s == t_k & event_s == 1
     n_event_out[k] <- sum(at_time)
     weight_sum[k] <- sum(e_wght_s[at_time])
@@ -1046,35 +1053,20 @@ hzr_nelson <- function(time, event, weight = NULL, conf_level = 0.95) {
     cum_dist <- cum_dist + dist_k
     cumhaz[k] <- cum_dist
 
-    # Variance accumulators
-    if (n_risk[k] > 0) i_nrisk <- i_nrisk + 1 / n_risk[k]
-    cum_it <- cum_it + n_event_out[k]
-  }
-
-  # Variance and lognormal CL
-  std_err <- numeric(out_n)
-  cl_lower <- numeric(out_n)
-  cl_upper <- numeric(out_n)
-
-  # Recompute running accumulators for per-row CL
-  run_i_nrisk <- 0
-  run_it <- 0
-  run_cumhaz <- 0
-  for (k in seq_along(u_times)) {
+    # Variance and lognormal CL (running accumulators)
     if (n_risk[k] > 0) run_i_nrisk <- run_i_nrisk + 1 / n_risk[k]
     run_it <- run_it + n_event_out[k]
-    run_cumhaz <- cumhaz[k]
 
-    if (run_it > 0 && run_cumhaz > 0) {
-      var_cef <- run_i_nrisk * run_cumhaz / run_it
+    if (run_it > 0 && cum_dist > 0) {
+      var_cef <- run_i_nrisk * cum_dist / run_it
       std_err[k] <- sqrt(var_cef)
 
-      sigma2 <- log(run_i_nrisk / (run_it * run_cumhaz) + 1)
+      sigma2 <- log(run_i_nrisk / (run_it * cum_dist) + 1)
       sigma <- sqrt(sigma2)
-      mu <- log(run_cumhaz) - sigma2 / 2
+      mu_ln <- log(cum_dist) - sigma2 / 2
 
-      cl_upper[k] <- exp(mu + z_alpha * sigma)
-      cl_lower[k] <- exp(mu - z_alpha * sigma)
+      cl_upper[k] <- exp(mu_ln + z_alpha * sigma)
+      cl_lower[k] <- exp(mu_ln - z_alpha * sigma)
     }
   }
 
@@ -1105,7 +1097,7 @@ hzr_nelson <- function(time, event, weight = NULL, conf_level = 0.95) {
 
 #' @rdname hzr_nelson
 #' @param x An `hzr_nelson` object.
-#' @param digits Number of significant digits.
+#' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
 #' @export
 print.hzr_nelson <- function(x, digits = 4, ...) {
@@ -1212,9 +1204,10 @@ hzr_bootstrap <- function(object, n_boot = 200L, fraction = 1.0,
 
     # Resample with replacement
     idx <- sample.int(n_obs, size = sample_size, replace = TRUE)
-    boot_data <- orig_data[idx, , drop = FALSE]
+    boot_data <- orig_data[idx, , drop = FALSE] # nolint: object_usage_linter.
 
     # Refit using the same call but with resampled data
+    # (boot_data is referenced via quote() inside eval — lintr cannot trace this)
     boot_fit <- tryCatch({
       cl_boot <- cl
       cl_boot$data <- quote(boot_data)
@@ -1288,7 +1281,7 @@ hzr_bootstrap <- function(object, n_boot = 200L, fraction = 1.0,
 
 #' @rdname hzr_bootstrap
 #' @param x An `hzr_bootstrap` object.
-#' @param digits Number of significant digits.
+#' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
 #' @export
 print.hzr_bootstrap <- function(x, digits = 4, ...) {
@@ -1479,7 +1472,7 @@ hzr_competing_risks <- function(time, event) {
 
 #' @rdname hzr_competing_risks
 #' @param x An `hzr_competing_risks` object.
-#' @param digits Number of significant digits.
+#' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
 #' @export
 print.hzr_competing_risks <- function(x, digits = 4, ...) {
