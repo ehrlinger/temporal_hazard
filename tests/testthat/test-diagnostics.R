@@ -317,3 +317,382 @@ test_that("print.hzr_gof runs without error", {
   expect_output(print(gof), "Goodness-of-fit")
   expect_output(print(gof), "Conservation ratio")
 })
+
+
+# =========================================================================
+# hzr_kaplan tests
+# =========================================================================
+
+test_that("hzr_kaplan returns correct structure", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+
+  expect_s3_class(km, "hzr_kaplan")
+  expect_s3_class(km, "data.frame")
+  expect_true(nrow(km) > 0)
+  expect_named(km, c("time", "n_risk", "n_event", "n_censor",
+                      "survival", "std_err", "cl_lower", "cl_upper",
+                      "cumhaz", "hazard", "density", "life"))
+})
+
+test_that("hzr_kaplan survival is monotone non-increasing", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+
+  expect_true(all(diff(km$survival) <= 0),
+              label = "survival should be non-increasing")
+  expect_true(all(km$survival >= 0 & km$survival <= 1))
+})
+
+test_that("hzr_kaplan confidence limits respect [0, 1]", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+
+  expect_true(all(km$cl_lower >= 0 & km$cl_lower <= 1))
+  expect_true(all(km$cl_upper >= 0 & km$cl_upper <= 1))
+  # Lower <= survival <= upper
+  expect_true(all(km$cl_lower <= km$survival + 1e-10))
+  expect_true(all(km$cl_upper >= km$survival - 1e-10))
+})
+
+test_that("hzr_kaplan matches survfit survival values", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead, event_only = FALSE)
+  sf <- survival::survfit(survival::Surv(int_dead, dead) ~ 1,
+                           data = cabgkul)
+
+  # Survival values at survfit times should match exactly
+  expect_equal(km$survival, sf$surv, tolerance = 1e-12)
+  expect_equal(km$time, sf$time)
+})
+
+test_that("hzr_kaplan cumhaz is consistent with survival", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+
+  # cumhaz = -log(S)
+  expected_cumhaz <- -log(pmax(km$survival, .Machine$double.xmin))
+  expect_equal(km$cumhaz, expected_cumhaz, tolerance = 1e-10)
+})
+
+test_that("hzr_kaplan life integral is non-negative and non-decreasing", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+
+  expect_true(all(km$life >= 0))
+  expect_true(all(diff(km$life) >= -1e-10),
+              label = "life integral should be non-decreasing")
+})
+
+test_that("hzr_kaplan event_only filters correctly", {
+  data(cabgkul, package = "TemporalHazard")
+  km_events <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead,
+                            event_only = TRUE)
+  km_all <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead,
+                         event_only = FALSE)
+
+  expect_true(nrow(km_all) >= nrow(km_events))
+  expect_true(all(km_events$n_event > 0))
+})
+
+test_that("hzr_kaplan conf_level parameter works", {
+  data(cabgkul, package = "TemporalHazard")
+  km_95 <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead,
+                        conf_level = 0.95)
+  km_68 <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead,
+                        conf_level = 0.68268948)
+
+  # 95% intervals should be wider than 68% (1-SD) intervals
+  width_95 <- km_95$cl_upper - km_95$cl_lower
+  width_68 <- km_68$cl_upper - km_68$cl_lower
+  # Compare at matching times where both have events
+  expect_true(all(width_95 >= width_68 - 1e-10))
+})
+
+test_that("hzr_kaplan rejects invalid inputs", {
+  expect_error(hzr_kaplan("a", 1), "numeric")
+  expect_error(hzr_kaplan(1:5, 1:3), "same length")
+  expect_error(hzr_kaplan(1:5, rep(1, 5), conf_level = 1.5),
+               "between 0 and 1")
+})
+
+test_that("print.hzr_kaplan runs without error", {
+  data(cabgkul, package = "TemporalHazard")
+  km <- hzr_kaplan(cabgkul$int_dead, cabgkul$dead)
+  expect_output(print(km), "Kaplan-Meier")
+  expect_output(print(km), "RMST")
+})
+
+
+# =========================================================================
+# hzr_calibrate tests
+# =========================================================================
+
+test_that("hzr_calibrate returns correct structure", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 10)
+
+  expect_s3_class(cal, "hzr_calibrate")
+  expect_s3_class(cal, "data.frame")
+  expect_equal(nrow(cal), 10)
+  expect_named(cal, c("group", "n", "events", "mean", "min", "max",
+                       "prob", "link_value"))
+  expect_equal(attr(cal, "link"), "logit")
+  expect_equal(attr(cal, "groups"), 10L)
+})
+
+test_that("hzr_calibrate group counts sum to n", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 5)
+
+  expect_equal(sum(cal$n), nrow(avc))
+  expect_equal(sum(cal$events), sum(avc$dead))
+})
+
+test_that("hzr_calibrate group means are monotone", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 10)
+
+  # Group means should increase (group 1 = lowest x)
+  expect_true(all(diff(cal$mean) > 0),
+              label = "group means should be strictly increasing")
+})
+
+test_that("hzr_calibrate logit values are finite where prob in (0,1)", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 10)
+
+  valid <- cal$prob > 0 & cal$prob < 1
+  expect_true(all(is.finite(cal$link_value[valid])))
+})
+
+test_that("hzr_calibrate gompertz link works", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 5, link = "gompertz")
+
+  expect_equal(attr(cal, "link"), "gompertz")
+  # Gompertz = log(-log(1-p)), should be finite for 0 < p < 1
+  valid <- cal$prob > 0 & cal$prob < 1
+  expect_true(all(is.finite(cal$link_value[valid])))
+})
+
+test_that("hzr_calibrate cox link requires time", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+
+  expect_error(
+    hzr_calibrate(avc$age, avc$dead, link = "cox"),
+    "time.*required"
+  )
+
+  cal <- hzr_calibrate(avc$age, avc$dead, link = "cox",
+                        time = avc$int_dead, groups = 5)
+  expect_equal(attr(cal, "link"), "cox")
+  expect_equal(nrow(cal), 5)
+})
+
+test_that("hzr_calibrate stratified by grouping variable", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 5,
+                        by = ifelse(avc$mal == 1, "mal", "no_mal"))
+
+  expect_true("by" %in% names(cal))
+  # Should have rows for both strata
+  expect_true(all(c("mal", "no_mal") %in% cal$by))
+  # Total n across all rows should equal nrow(avc)
+  expect_equal(sum(cal$n), nrow(avc))
+})
+
+test_that("hzr_calibrate rejects invalid inputs", {
+  expect_error(hzr_calibrate("a", 1), "numeric")
+  expect_error(hzr_calibrate(1:5, 1:3), "same length")
+  expect_error(hzr_calibrate(1:5, rep(1, 5), groups = 1), "at least 2")
+})
+
+test_that("print.hzr_calibrate runs without error", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  cal <- hzr_calibrate(avc$age, avc$dead, groups = 5)
+  expect_output(print(cal), "Variable calibration")
+  expect_output(print(cal), "logit")
+})
+
+
+# =========================================================================
+# hzr_nelson tests
+# =========================================================================
+
+test_that("hzr_nelson returns correct structure", {
+  data(cabgkul, package = "TemporalHazard")
+  nel <- hzr_nelson(cabgkul$int_dead, cabgkul$dead)
+
+  expect_s3_class(nel, "hzr_nelson")
+  expect_true(nrow(nel) > 0)
+  expect_named(nel, c("time", "n_risk", "n_event", "weight_sum",
+                       "cumhaz", "std_err", "cl_lower", "cl_upper",
+                       "hazard", "cum_events"))
+})
+
+test_that("hzr_nelson cumhaz is non-decreasing", {
+  data(cabgkul, package = "TemporalHazard")
+  nel <- hzr_nelson(cabgkul$int_dead, cabgkul$dead)
+
+  expect_true(all(diff(nel$cumhaz) >= -1e-10))
+  expect_true(all(nel$cumhaz >= 0))
+})
+
+test_that("hzr_nelson CL are non-negative and ordered", {
+  data(cabgkul, package = "TemporalHazard")
+  nel <- hzr_nelson(cabgkul$int_dead, cabgkul$dead)
+
+  expect_true(all(nel$cl_lower >= 0))
+  expect_true(all(nel$cl_upper >= 0))
+  expect_true(all(nel$cl_lower <= nel$cumhaz + 1e-10))
+  expect_true(all(nel$cl_upper >= nel$cumhaz - 1e-10))
+})
+
+test_that("hzr_nelson weighted events change cumhaz", {
+  data(cabgkul, package = "TemporalHazard")
+  nel_unw <- hzr_nelson(cabgkul$int_dead, cabgkul$dead)
+  # Double weights should roughly double cumhaz
+  nel_w2 <- hzr_nelson(cabgkul$int_dead, cabgkul$dead,
+                         weight = rep(2, nrow(cabgkul)))
+  expect_true(
+    nel_w2$cumhaz[nrow(nel_w2)] > nel_unw$cumhaz[nrow(nel_unw)] * 1.5
+  )
+})
+
+test_that("hzr_nelson rejects invalid inputs", {
+  expect_error(hzr_nelson("a", 1), "numeric")
+  expect_error(hzr_nelson(1:5, 1:3), "same length")
+})
+
+test_that("print.hzr_nelson runs without error", {
+  data(cabgkul, package = "TemporalHazard")
+  nel <- hzr_nelson(cabgkul$int_dead, cabgkul$dead)
+  expect_output(print(nel), "Nelson")
+})
+
+
+# =========================================================================
+# hzr_bootstrap tests
+# =========================================================================
+
+test_that("hzr_bootstrap returns correct structure", {
+  set.seed(42)
+  fit <- .fit_avc_weibull()
+  bs <- hzr_bootstrap(fit, n_boot = 10, seed = 123)
+
+  expect_s3_class(bs, "hzr_bootstrap")
+  expect_true(is.data.frame(bs$replicates))
+  expect_true(is.data.frame(bs$summary))
+  expect_true(bs$n_success + bs$n_failed == 10)
+  expect_named(bs$summary, c("parameter", "n", "pct", "mean", "sd",
+                              "min", "max", "ci_lower", "ci_upper"))
+})
+
+test_that("hzr_bootstrap seed gives reproducible results", {
+  fit <- .fit_avc_weibull()
+  bs1 <- hzr_bootstrap(fit, n_boot = 5, seed = 999)
+  bs2 <- hzr_bootstrap(fit, n_boot = 5, seed = 999)
+
+  expect_equal(bs1$replicates$estimate, bs2$replicates$estimate)
+})
+
+test_that("hzr_bootstrap fraction parameter works", {
+  fit <- .fit_avc_weibull()
+  bs <- hzr_bootstrap(fit, n_boot = 5, fraction = 0.5, seed = 42)
+
+  expect_s3_class(bs, "hzr_bootstrap")
+  expect_true(bs$n_success > 0)
+})
+
+test_that("hzr_bootstrap rejects invalid inputs", {
+  expect_error(hzr_bootstrap("not_a_model"), "hazard object")
+})
+
+test_that("print.hzr_bootstrap runs without error", {
+  fit <- .fit_avc_weibull()
+  bs <- hzr_bootstrap(fit, n_boot = 5, seed = 42)
+  expect_output(print(bs), "Bootstrap")
+})
+
+
+# =========================================================================
+# hzr_competing_risks tests
+# =========================================================================
+
+test_that("hzr_competing_risks returns correct structure", {
+  data(valves, package = "TemporalHazard")
+  valves_cc <- na.omit(valves)
+  event_cr <- ifelse(valves_cc$dead == 1, 1L,
+                     ifelse(valves_cc$pve == 1, 2L, 0L))
+  time_cr <- pmin(valves_cc$int_dead, valves_cc$int_pve)
+  cr <- hzr_competing_risks(time_cr, event_cr)
+
+  expect_s3_class(cr, "hzr_competing_risks")
+  expect_true(nrow(cr) > 0)
+  expect_true("surv" %in% names(cr))
+  expect_true("incid_1" %in% names(cr))
+  expect_true("incid_2" %in% names(cr))
+  expect_true("se_surv" %in% names(cr))
+})
+
+test_that("hzr_competing_risks survival + incidences sum to ~1", {
+  data(valves, package = "TemporalHazard")
+  valves_cc <- na.omit(valves)
+  event_cr <- ifelse(valves_cc$dead == 1, 1L,
+                     ifelse(valves_cc$pve == 1, 2L, 0L))
+  time_cr <- pmin(valves_cc$int_dead, valves_cc$int_pve)
+  cr <- hzr_competing_risks(time_cr, event_cr)
+
+  # At each time: surv + sum(incid) should be approximately 1
+  total <- cr$surv + cr$incid_1 + cr$incid_2
+  expect_true(all(abs(total - 1) < 0.01),
+              label = "surv + incidences should sum to ~1")
+})
+
+test_that("hzr_competing_risks survival is non-increasing", {
+  data(valves, package = "TemporalHazard")
+  valves_cc <- na.omit(valves)
+  event_cr <- ifelse(valves_cc$dead == 1, 1L,
+                     ifelse(valves_cc$pve == 1, 2L, 0L))
+  time_cr <- pmin(valves_cc$int_dead, valves_cc$int_pve)
+  cr <- hzr_competing_risks(time_cr, event_cr)
+
+  expect_true(all(diff(cr$surv) <= 1e-10))
+  expect_true(all(cr$surv >= 0 & cr$surv <= 1))
+})
+
+test_that("hzr_competing_risks incidences are non-decreasing", {
+  data(valves, package = "TemporalHazard")
+  valves_cc <- na.omit(valves)
+  event_cr <- ifelse(valves_cc$dead == 1, 1L,
+                     ifelse(valves_cc$pve == 1, 2L, 0L))
+  time_cr <- pmin(valves_cc$int_dead, valves_cc$int_pve)
+  cr <- hzr_competing_risks(time_cr, event_cr)
+
+  expect_true(all(diff(cr$incid_1) >= -1e-10))
+  expect_true(all(diff(cr$incid_2) >= -1e-10))
+})
+
+test_that("hzr_competing_risks rejects invalid inputs", {
+  expect_error(hzr_competing_risks("a", 1), "numeric")
+  expect_error(hzr_competing_risks(1:5, rep(0, 5)), "No events")
+})
+
+test_that("print.hzr_competing_risks runs without error", {
+  data(valves, package = "TemporalHazard")
+  valves_cc <- na.omit(valves)
+  event_cr <- ifelse(valves_cc$dead == 1, 1L,
+                     ifelse(valves_cc$pve == 1, 2L, 0L))
+  time_cr <- pmin(valves_cc$int_dead, valves_cc$int_pve)
+  cr <- hzr_competing_risks(time_cr, event_cr)
+  expect_output(print(cr), "Competing risks")
+})

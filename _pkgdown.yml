@@ -71,6 +71,16 @@ reference:
       - print.hzr_deciles
       - hzr_gof
       - print.hzr_gof
+      - hzr_kaplan
+      - print.hzr_kaplan
+      - hzr_calibrate
+      - print.hzr_calibrate
+      - hzr_nelson
+      - print.hzr_nelson
+      - hzr_bootstrap
+      - print.hzr_bootstrap
+      - hzr_competing_risks
+      - print.hzr_competing_risks
 
 home:
   links:
