@@ -343,8 +343,9 @@
 
   if (jevent <= 0 || !is.finite(jevent)) return(theta)
 
-  # Multiplicative adjustment in log scale
+  # Multiplicative adjustment in log scale, capped to avoid extreme jumps
   lfactor <- log(jevent / sumcj)
+  lfactor <- max(min(lfactor, 5), -5)
 
   if (!is.finite(lfactor)) return(theta)
 
@@ -946,6 +947,9 @@
       sumcz_init <- sum(decomp_init$total)
       if (sumcz_init > 0 && is.finite(sumcz_init)) {
         init_factor <- log(total_events / sumcz_init)
+        # Cap the initial scaling to avoid pushing log_mu to extreme values
+        # that prevent the optimizer from recovering
+        init_factor <- max(min(init_factor, 10), -10)
         if (is.finite(init_factor)) {
           for (nm in names(phases)) {
             theta_start[log_mu_positions[[nm]]] <-

@@ -232,6 +232,7 @@ NULL
     time_lower = NULL,
     time_upper = NULL,
     x = NULL,
+    weights = NULL,
     eta = NULL,
     cumhaz = NULL,
     haz = NULL,
@@ -322,18 +323,27 @@ NULL
   phi_start   <- c(alpha_start, psi_start, beta_start)
 
   # ── Internal likelihood: H(t|x) = exp(α + Xβ) · t^exp(ψ) ────────────────
-  logl_internal <- function(theta, time, status, time_lower, time_upper, x, ...) {
+  # Note: `weights` is captured from the enclosing .hzr_optim_weibull scope.
+  w <- if (is.null(weights)) rep(1, n) else weights
+
+  logl_internal <- function(theta, time, status, time_lower, time_upper,
+                            x, ...) {
     alpha <- theta[1]
     g     <- exp(theta[2])   # nu = shape
     beta  <- if (p > n_shape) theta[(n_shape + 1):p] else numeric(0)
-    eta   <- if (!is.null(x) && length(beta) > 0) as.numeric(x %*% beta) else rep(0, n)
+    eta   <- if (!is.null(x) && length(beta) > 0) {
+      as.numeric(x %*% beta)
+    } else {
+      rep(0, n)
+    }
 
     # Left / interval censoring: delegate to full Weibull likelihood via
     # the natural-scale function, converting params on the fly.
     if (any(status %in% c(-1, 2))) {
       mu <- exp(alpha / g)
       return(.hzr_logl_weibull(c(mu, g, beta), time, status,
-                               time_lower, time_upper, x, ...))
+                               time_lower, time_upper, x,
+                               weights = weights, ...))
     }
 
     log_t <- log(pmax(time, .Machine$double.xmin))
@@ -343,14 +353,14 @@ NULL
     idx_right <- status == 0
 
     ll_event <- if (any(idx_event)) {
-      sum(alpha + eta[idx_event] + theta[2] +
-          (g - 1) * log_t[idx_event] - H[idx_event])
+      sum(w[idx_event] * (alpha + eta[idx_event] + theta[2] +
+          (g - 1) * log_t[idx_event] - H[idx_event]))
     } else {
       0
     }
 
     ll_right <- if (any(idx_right)) {
-      -sum(H[idx_right])
+      -sum(w[idx_right] * H[idx_right])
     } else {
       0
     }
@@ -410,6 +420,7 @@ NULL
     time_lower  = time_lower, time_upper = time_upper,
     x           = x,
     theta_start = phi_start,
+    weights     = weights,
     control     = control,
     use_bounds  = FALSE
   )
