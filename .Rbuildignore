@@ -1,6 +1,7 @@
 ^\.Rproj\.user$
 ^\.git$
 ^\.github$
+^\.claude$
 ^tools$
 ^inst/extdata/\.gitkeep$
 ^inst/fixtures/\.gitkeep$
@@ -22,3 +23,5 @@
 ^data-raw$
 ^cran-comments\.md$
 ^\.lintr$
+^doc$
+^Meta$
