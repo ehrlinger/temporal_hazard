@@ -196,7 +196,10 @@ NULL
 
   if (return_gradient) {
     grad <- .hzr_gradient_lognormal(
-      theta, time, status, time_lower, time_upper, x, eta, sigma, log_sigma, z, log_phi_z, log_surv
+      theta = theta, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper, x = x,
+      eta = eta, sigma = sigma, log_sigma = log_sigma,
+      z = z, log_phi_z = log_phi_z, log_surv = log_surv
     )
     attr(logl, "gradient") <- grad
   }

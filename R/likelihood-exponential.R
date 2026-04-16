@@ -172,7 +172,10 @@ NULL
   # If gradient requested, compute score vector
   if (return_gradient) {
     grad <- .hzr_gradient_exponential(
-      theta, time, status, time_lower, time_upper, x, eta, cumhaz_event, lambda, log_lambda
+      theta = theta, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper, x = x,
+      eta = eta, cumhaz = cumhaz_event,
+      lambda = lambda, log_lambda = log_lambda
     )
     attr(logl, "gradient") <- grad
   }

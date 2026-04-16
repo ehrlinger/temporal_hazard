@@ -216,7 +216,10 @@ NULL
   # If gradient requested, compute score vector
   if (return_gradient) {
     grad <- .hzr_gradient_loglogistic(
-      theta, time, status, time_lower, time_upper, x, eta, alpha, beta, log_alpha, log_beta, term_event
+      theta = theta, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper, x = x,
+      eta = eta, alpha = alpha, beta = beta,
+      log_alpha = log_alpha, log_beta = log_beta, term = term_event
     )
     attr(logl, "gradient") <- grad
   }

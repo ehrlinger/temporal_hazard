@@ -343,9 +343,8 @@
 
   if (jevent <= 0 || !is.finite(jevent)) return(theta)
 
-  # Multiplicative adjustment in log scale, capped to avoid extreme jumps
+  # Multiplicative adjustment in log scale
   lfactor <- log(jevent / sumcj)
-  lfactor <- max(min(lfactor, 5), -5)
 
   if (!is.finite(lfactor)) return(theta)
 
@@ -874,7 +873,12 @@
   names(theta_start) <- theta_names
 
   # --- Likelihood wrapper matching .hzr_optim_generic() signature -----------
-  logl_fn <- function(theta, time, status, time_lower, time_upper, x, ...) {
+  # NOTE: `weights` is an explicit formal so that .hzr_optim_generic can pass
+  # it through without colliding with a closure capture via `...`
+  # (which would trigger "formal argument 'weights' matched by multiple
+  # actual arguments").
+  logl_fn <- function(theta, time, status, time_lower, time_upper, x,
+                      weights = NULL, ...) {
     .hzr_logl_multiphase(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper,
@@ -896,7 +900,8 @@
   # so it must call the unwrapped version that also expects full theta.
   logl_fn_unwrapped <- logl_fn
 
-  gradient_fn <- function(theta, time, status, time_lower, time_upper, x, ...) {
+  gradient_fn <- function(theta, time, status, time_lower, time_upper, x,
+                          weights = NULL, ...) {
     grad <- .hzr_gradient_multiphase(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper, x = x,
@@ -947,9 +952,6 @@
       sumcz_init <- sum(decomp_init$total)
       if (sumcz_init > 0 && is.finite(sumcz_init)) {
         init_factor <- log(total_events / sumcz_init)
-        # Cap the initial scaling to avoid pushing log_mu to extreme values
-        # that prevent the optimizer from recovering
-        init_factor <- max(min(init_factor, 10), -10)
         if (is.finite(init_factor)) {
           for (nm in names(phases)) {
             theta_start[log_mu_positions[[nm]]] <-
@@ -973,24 +975,24 @@
       # Wrap logl and gradient: apply CoE before each evaluation
       logl_fn_pre_coe <- logl_fn
       logl_fn <- function(theta, time, status, time_lower,
-                          time_upper, x, ...) {
+                          time_upper, x, weights = NULL, ...) {
         theta <- .hzr_conserve_events(
           theta, fixmu_phase, fixmu_pos,
           time, status, phases, covariate_counts, x_list, total_events
         )
         logl_fn_pre_coe(theta, time, status, time_lower,
-                        time_upper, x, ...)
+                        time_upper, x, weights = weights, ...)
       }
 
       gradient_fn_pre_coe <- gradient_fn
       gradient_fn <- function(theta, time, status, time_lower,
-                              time_upper, x, ...) {
+                              time_upper, x, weights = NULL, ...) {
         theta <- .hzr_conserve_events(
           theta, fixmu_phase, fixmu_pos,
           time, status, phases, covariate_counts, x_list, total_events
         )
         gradient_fn_pre_coe(theta, time, status, time_lower,
-                            time_upper, x, ...)
+                            time_upper, x, weights = weights, ...)
       }
     } else {
       use_conserve <- FALSE
@@ -1024,15 +1026,18 @@
     }
 
     logl_fn_full <- logl_fn
-    logl_fn <- function(theta, time, status, time_lower, time_upper, x, ...) {
+    logl_fn <- function(theta, time, status, time_lower, time_upper, x,
+                        weights = NULL, ...) {
       logl_fn_full(expand_theta(theta), time, status, time_lower,
-                   time_upper, x, ...)
+                   time_upper, x, weights = weights, ...)
     }
 
     gradient_fn_full <- gradient_fn
-    gradient_fn <- function(theta, time, status, time_lower, time_upper, x, ...) {
+    gradient_fn <- function(theta, time, status, time_lower, time_upper, x,
+                            weights = NULL, ...) {
       grad_full <- gradient_fn_full(expand_theta(theta), time, status,
-                                     time_lower, time_upper, x, ...)
+                                     time_lower, time_upper, x,
+                                     weights = weights, ...)
       grad_full[free_idx]
     }
 
@@ -1075,7 +1080,7 @@
         ll <- -logl_fn(
           theta = theta, time = time, status = status,
           time_lower = time_lower, time_upper = time_upper,
-          x = x, return_gradient = FALSE
+          x = x, weights = weights, return_gradient = FALSE
         )
         if (!is.finite(ll)) return(1e10)
         ll
@@ -1101,6 +1106,7 @@
         time_lower  = time_lower, time_upper = time_upper,
         x           = x,
         theta_start = theta_try,
+        weights     = weights,
         control     = control,
         use_bounds  = FALSE
       ),

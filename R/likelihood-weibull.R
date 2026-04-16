@@ -194,8 +194,10 @@ NULL
   # If gradient requested, compute score vector.
   if (return_gradient) {
     grad <- .hzr_gradient_weibull(
-      theta, time, status, time_lower, time_upper, x, eta,
-      cumhaz_event, haz_event, mu, nu, n_shape
+      theta = theta, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper, x = x,
+      eta = eta, cumhaz = cumhaz_event, haz = haz_event,
+      mu = mu, nu = nu, n_shape = n_shape
     )
     attr(logl, "gradient") <- grad
   }
@@ -323,11 +325,15 @@ NULL
   phi_start   <- c(alpha_start, psi_start, beta_start)
 
   # ── Internal likelihood: H(t|x) = exp(α + Xβ) · t^exp(ψ) ────────────────
-  # Note: `weights` is captured from the enclosing .hzr_optim_weibull scope.
-  w <- if (is.null(weights)) rep(1, n) else weights
+  # `weights` is declared as a formal (with a default of NULL) so that when
+  # .hzr_optim_generic forwards weights via ..., it matches this formal
+  # rather than landing in ... — which would collide with the explicit
+  # `weights =` on the delegated call below.
+  .outer_w <- if (is.null(weights)) rep(1, n) else weights
 
   logl_internal <- function(theta, time, status, time_lower, time_upper,
-                            x, ...) {
+                            x, weights = NULL, ...) {
+    w_use <- if (is.null(weights)) .outer_w else weights
     alpha <- theta[1]
     g     <- exp(theta[2])   # nu = shape
     beta  <- if (p > n_shape) theta[(n_shape + 1):p] else numeric(0)
@@ -343,7 +349,7 @@ NULL
       mu <- exp(alpha / g)
       return(.hzr_logl_weibull(c(mu, g, beta), time, status,
                                time_lower, time_upper, x,
-                               weights = weights, ...))
+                               weights = w_use, ...))
     }
 
     log_t <- log(pmax(time, .Machine$double.xmin))
@@ -353,14 +359,14 @@ NULL
     idx_right <- status == 0
 
     ll_event <- if (any(idx_event)) {
-      sum(w[idx_event] * (alpha + eta[idx_event] + theta[2] +
+      sum(w_use[idx_event] * (alpha + eta[idx_event] + theta[2] +
           (g - 1) * log_t[idx_event] - H[idx_event]))
     } else {
       0
     }
 
     ll_right <- if (any(idx_right)) {
-      -sum(w[idx_right] * H[idx_right])
+      -sum(w_use[idx_right] * H[idx_right])
     } else {
       0
     }
