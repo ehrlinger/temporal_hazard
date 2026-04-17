@@ -54,11 +54,12 @@ hzr_stepwise(
   fit,                          # a fitted `hazard` object (the base model)
   scope = NULL,                 # candidate set (see §2.2)
   direction = c("both", "forward", "backward"),
-  slentry = 0.15,               # p-value threshold for entry
-  slstay  = 0.15,               # p-value threshold for retention
+  criterion = c("wald", "aic"), # entry/exit test (see §3)
+  slentry = 0.30,               # p-value threshold for entry (criterion = "wald")
+  slstay  = 0.20,               # p-value threshold for retention (criterion = "wald")
   max_steps = 50L,
   max_move  = 4L,               # per-variable oscillation limit
-  force_in  = character(),      # variables always retained
+  force_in  = character(),      # variables tested but never dropped
   force_out = character(),      # variables never considered
   trace = TRUE,                 # print step-by-step progress
   ...                           # passed to hazard() on refits
@@ -69,9 +70,16 @@ Returns an object of class `c("hzr_stepwise", "hazard")` — the final fit
 plus `$steps` (entry/exit trace), `$scope` (candidate set snapshot),
 `$criteria` (threshold settings).
 
-**Default thresholds (0.15/0.15)** match common clinical-research practice
-rather than the SAS defaults (0.3/0.2 forward, 0.05/0.2 backward). SAS
-defaults will be offered via `control = list(sas_defaults = TRUE)`.
+**Default thresholds (0.30 entry / 0.20 retention)** match the SAS
+`PROC HAZARD` defaults (`SLENTRY = 0.3`, `SLSTAY = 0.2`). The SAS
+backward-pass `SLSTAY = 0.05` variant is not modelled separately — one
+pair of thresholds governs the two-way loop. Users who want a tighter
+backward pass can call `direction = "backward"` with `slstay = 0.05`
+after a forward run.
+
+When `criterion = "aic"`, `slentry` / `slstay` are ignored and each step
+compares candidate AIC to the current model's AIC: enter if ΔAIC < 0
+(lowest ΔAIC wins ties), drop if removing improves AIC.
 
 ### Scope specification (§2.2)
 
@@ -99,15 +107,29 @@ Three ways to declare candidates:
 ### Method dispatch
 
 Exported as `hzr_stepwise()` only (no `step.hazard()` S3 method). Reason:
-`stats::step()`'s contract is based on AIC, not Wald tests, and the
-multiphase scope semantics don't fit the `step()` surface. Keeping a
+the multiphase scope semantics (per-phase entry, forced-in/out lists)
+don't fit the `step()` surface even when `criterion = "aic"`. Keeping a
 separate name avoids surprising `stats::step()` users.
 
 ---
 
 ## 3. Algorithm
 
-### 3.1 Wald test for one candidate
+### 3.1 Candidate scoring
+
+A single helper `.hzr_candidate_score(fit, variable, phase, criterion)`
+returns a numeric scalar with the same "smaller is better" convention
+regardless of criterion:
+
+- `criterion = "wald"`: returns the Wald p-value.
+- `criterion = "aic"`: returns ΔAIC = AIC_new − AIC_current. Negative
+  means the candidate improves the model; positive means it hurts.
+
+Keeping a single scoring abstraction lets the forward / backward /
+two-way loops share logic; the only difference is the threshold test at
+each step.
+
+#### 3.1a Wald test
 
 For a scalar coefficient β̂_j with SE_j from the fitted vcov:
 
@@ -119,14 +141,26 @@ statistic:
     W = β̂_S' · V_{S,S}^{−1} · β̂_S  ~  χ²_{|S|}
 
 where S is the index set of the variable's coefficients. This is already
-computable from `vcov(fit)` — no new infrastructure.
+computable from `vcov(fit)`.
 
-**Which test for entry vs retention?**
+- **Retention (backward test):** compute W on the current model — no
+  refit.
+- **Entry (forward test):** requires a candidate fit with the variable
+  added. Exact refit in v1; FAST approximate Wald deferred to v2.
 
-- **Retention (backward test):** trivial — compute W on the fitted model.
-- **Entry (forward test):** requires a *candidate* fit with the new
-  variable added. This is the expensive step. v1 refits exactly; v2 may
-  add FAST approximate Wald.
+#### 3.1b AIC comparison
+
+    AIC = −2·logLik + 2·k       where k = number of free parameters
+
+For forward entry: fit the candidate, compute
+`ΔAIC = AIC_candidate − AIC_current`. Variable enters iff ΔAIC < 0 and
+no other candidate has a smaller ΔAIC.
+
+For backward retention: leave-one-out refit is expensive. Use the
+single-parameter information-matrix approximation
+`ΔAIC ≈ −2·(W_retention) + 2` where W_retention is the Wald χ² statistic
+with df = 1 (exact for scalar coefficients; for multi-df variables fall
+back to a real refit). Variable drops iff ΔAIC_drop < 0.
 
 ### 3.2 Forward step
 
@@ -135,12 +169,15 @@ current ← fit
 for v in candidates not in current:
   for phase p in v's scope:
     candidate ← hazard(current$formula_extended_by(v, phase), data, dist,
-                       phases = current$phases_with(v in phase))
-    compute p_v at (v, p)
-best ← argmin over (v, p) of p_v
-if p_best < slentry:
+                       phases = current$phases_with(v in phase),
+                       theta_start = warm_start(current, v, phase))
+    score_v[p] ← .hzr_candidate_score(candidate, v, p, criterion)
+(best_v, best_p) ← argmin score_v
+threshold_ok ← (criterion = "wald" && score_v[best_v, best_p] < slentry)
+             || (criterion = "aic" && score_v[best_v, best_p] < 0)
+if threshold_ok:
   add v to phase p
-  log step "ENTER v into p  (p = ...)"
+  log step "ENTER v into p  (<criterion-appropriate summary>)"
 else: stop
 ```
 
@@ -153,26 +190,28 @@ dramatically cuts convergence time for nested fits.
 ```
 current ← fit
 for v in current model:
-  compute retention p_v via Wald test on current vcov
-worst ← argmax over v of p_v
-if p_worst > slstay  AND  v not in force_in:
-  drop v from its phase
-  log step "DROP v from p  (p = ...)"
+  score[v] ← .hzr_candidate_score(current, v, criterion, mode = "drop")
+worst ← argmax over v of score[v]  (for Wald — largest p)
+         OR argmin over v of score[v]  (for AIC — most negative ΔAIC_drop)
+threshold_ok ← (criterion = "wald" && score[worst] > slstay)
+             || (criterion = "aic" && score[worst] < 0)
+if threshold_ok  AND  worst ∉ force_in:
+  drop worst from its phase
+  log step "DROP worst from p  (<criterion-appropriate summary>)"
 else: stop
 ```
 
-No refit needed for the *test*; a single refit happens after the drop to
-recompute the model without v.
+`force_in` variables are scored and their stats appear in the trace so
+the user can see whether they would have dropped, but they are never
+actually removed (§2 Q4 decision).
 
 ### 3.4 Two-way loop
 
 ```
 repeat:
-  tried_add ← forward_step()
-  if tried_add didn't enter: break_add ← TRUE else break_add ← FALSE
-  tried_drop ← backward_step()
-  if tried_drop didn't drop: break_drop ← TRUE else break_drop ← FALSE
-  if break_add AND break_drop: done
+  add_happened  ← forward_step()
+  drop_happened ← backward_step()
+  if !add_happened AND !drop_happened: done
   if max_steps exceeded: warn and stop
   for each variable, track entry+exit count;
     if > max_move: freeze the variable (log "OSCILLATING — frozen")
@@ -183,11 +222,15 @@ indefinitely. SAS `MOVE` uses the same semantics.
 
 ### 3.5 Termination
 
-- `direction = "forward"`: stop when no candidate has p < slentry.
-- `direction = "backward"`: stop when no included variable has p > slstay.
-- `direction = "both"`: stop when one full pass (forward + backward) adds
-  and drops nothing.
+- `direction = "forward"`: stop when no candidate meets the entry test.
+- `direction = "backward"`: stop when no included variable meets the
+  drop test (force_in variables are tested but never counted).
+- `direction = "both"`: stop when one full pass (forward + backward)
+  adds and drops nothing.
 - `max_steps` hard cap; emits a warning if hit.
+- Non-convergent candidate refits emit a `warning()` naming the failed
+  `(variable, phase)` pair and are excluded from the step (§2 Q5
+  decision).
 
 ---
 
@@ -229,26 +272,43 @@ str(result)
 # List of 7
 #  $ fit        : hazard object (final model)
 #  $ steps      : tibble with columns
-#                   step_num, action (enter/drop), variable, phase,
-#                   p_value, stat, df, logLik, n_coef
+#                   step_num, action (enter/drop/frozen), variable, phase,
+#                   criterion, score, stat, df, logLik, aic, n_coef
+#                 `score` is p-value for criterion = "wald", ΔAIC for "aic"
 #  $ scope      : list(candidates_per_phase, force_in, force_out)
-#  $ criteria   : list(slentry, slstay, max_steps, max_move, direction)
+#  $ criteria   : list(criterion, slentry, slstay,
+#                      max_steps, max_move, direction)
 #  $ trace_msg  : character vector mirroring console output when trace=TRUE
 #  $ final_call : call object for reproducing the final fit
 #  $ elapsed    : difftime
 #  - attr(*, "class") = c("hzr_stepwise", "hazard")
 ```
 
-`print.hzr_stepwise()` shows:
+`print.hzr_stepwise()` shows, for `criterion = "wald"`:
 
 ```
-Stepwise selection (direction = both, slentry = 0.15, slstay = 0.15)
+Stepwise selection (direction = both, criterion = wald,
+                    slentry = 0.30, slstay = 0.20)
 
 Step 1: ENTER  nyha    into  early    (p = 0.002)
 Step 2: ENTER  age     into  constant (p = 0.018)
 Step 3: DROP   shock   from  early    (p = 0.341)
 Step 4: ENTER  mal     into  early    (p = 0.103)
 (no further action after 4 steps)
+
+Final model:
+  <standard hazard summary here>
+```
+
+And for `criterion = "aic"`:
+
+```
+Stepwise selection (direction = both, criterion = aic)
+
+Step 1: ENTER  nyha    into  early    (ΔAIC = -18.4)
+Step 2: ENTER  age     into  constant (ΔAIC =  -6.1)
+Step 3: DROP   shock   from  early    (ΔAIC =  -0.9)
+(no further action after 3 steps)
 
 Final model:
   <standard hazard summary here>
@@ -263,40 +323,50 @@ fit.
 
 ### 6.1 Unit tests
 
-- `stepwise_direction_forward()`: nested exponential fit where adding `x1`
-  is significant; confirm forward selects it.
+- `stepwise_direction_forward_wald()`: nested exponential fit where
+  adding `x1` is significant; confirm forward selects it.
+- `stepwise_direction_forward_aic()`: same scenario under AIC criterion;
+  confirm identical variable selected but reported ΔAIC instead of p.
 - `stepwise_direction_backward()`: overfitted model; confirm backward
-  drops the weakest.
+  drops the weakest under each criterion.
 - `stepwise_direction_both()`: mixed signal with one oscillator; confirm
   MOVE cap fires and the oscillator is frozen.
 - `stepwise_phase_specific()`: multiphase model where `age` is strong in
   `early` but weak in `constant`; confirm it enters only `early`.
-- `stepwise_force_in()`: confirm a forced variable stays in even with
-  p > slstay.
+- `stepwise_force_in_tested_not_dropped()`: forced variable has
+  p = 0.8; confirm it's reported in the trace with its p-value/ΔAIC
+  but never dropped (§2 Q4 decision).
 - `stepwise_force_out()`: confirm a blocked variable never tries to enter.
 - `stepwise_warmstart()`: check that refits converge in ≤ 3 BFGS
   iterations when starting from the prior theta.
-- `stepwise_trace_format()`: snapshot the `steps` tibble structure.
+- `stepwise_candidate_fails_warns()`: arrange a candidate refit that
+  diverges; confirm `expect_warning()` catches a message naming the
+  `(variable, phase)` and that the loop continues.
+- `stepwise_trace_format()`: snapshot the `steps` tibble structure for
+  both criteria.
 
 ### 6.2 Parity tests
 
-- **CABGKUL forward selection** matches SAS `stepw.c` output within
-  numerical tolerance for the same SLENTRY/SLSTAY/dataset. Fixture under
+- **CABGKUL forward selection (Wald)** matches SAS `stepw.c` output
+  within numerical tolerance at `SLENTRY = 0.3`. Fixture under
   `inst/extdata/stepwise-fixtures/cabgkul-forward.rds`.
-- **AVC multiphase backward** matches SAS phase-specific drops.
+- **AVC multiphase backward (Wald)** matches SAS phase-specific drops
+  at `SLSTAY = 0.2`.
+- **AIC mode** has no SAS counterpart; validated against `stats::step()`
+  on a single-distribution Weibull fit as an external reference.
 
 ### 6.3 Edge cases
 
 - All candidates insignificant → forward returns base model unchanged,
-  warning "no candidates met slentry threshold".
+  emits a `message()` "no candidates met entry threshold".
 - All included variables fail retention → backward returns phase-only
   baseline.
 - MOVE = 0 → single-pass forward then single-pass backward (useful for
   deterministic pipelines).
 - `direction = "backward"` on a model with no covariates → immediate
   stop with informative message.
-- Non-convergence on a candidate refit → skip candidate, log
-  `FAILED_REFIT`, continue.
+- Non-convergence on a candidate refit → emit `warning()` naming
+  `(variable, phase)`, skip candidate, continue.
 
 ---
 
@@ -307,7 +377,7 @@ fit.
 | Refit cost explodes on 30-variable scope × 4 phases | Warm-start from current θ cuts most refits to single BFGS pass; fall back to multi-start only if warm-started fit has non-finite logLik |
 | Wald test unreliable for boundary parameters | Reuse existing `summary.hazard()` handling of NA SEs — boundary variables get p = NA and are skipped with a trace note |
 | Multiphase phase-specific entry semantics differ from SAS | Write parity tests against `stepw.c` output before claiming parity |
-| User expects `step()`-style AIC-based selection | Document prominently; offer `hzr_stepwise_aic()` as v2 if users ask |
+| AIC mode drift from `stats::step()` | Validate single-distribution AIC paths against `stats::step()` output (§6.2) |
 | Oscillation despite MOVE cap | Add a hard `max_steps` ceiling and warn on hit |
 
 ---
@@ -316,29 +386,30 @@ fit.
 
 1. `.hzr_wald_p()` — compute Wald p-value from a fitted `hazard` for a
    named coefficient or coefficient set. Pure function, easy to test.
-2. `.hzr_phase_update_formula()` / `.hzr_hazard_update_scope()` — formula
+2. `.hzr_candidate_score()` — unified scoring wrapper dispatching to
+   Wald or AIC per the `criterion` argument.
+3. `.hzr_phase_update_formula()` / `.hzr_hazard_update_scope()` — formula
    plumbing for add/drop on single-dist and multiphase models.
-3. `.hzr_stepwise_forward_step()` — one step of forward, returns updated
+4. `.hzr_stepwise_forward_step()` — one step of forward, returns updated
    fit or `NULL`.
-4. `.hzr_stepwise_backward_step()` — one step of backward.
-5. `hzr_stepwise()` — user-facing driver combining the steps with MOVE /
+5. `.hzr_stepwise_backward_step()` — one step of backward.
+6. `hzr_stepwise()` — user-facing driver combining the steps with MOVE /
    max_steps / force_in guards.
-6. `print.hzr_stepwise()`, `summary.hzr_stepwise()`.
-7. Tests 6.1 first, then parity fixtures 6.2.
-8. Vignette section "Variable selection" in
+7. `print.hzr_stepwise()`, `summary.hzr_stepwise()`.
+8. Tests 6.1 first, then parity fixtures 6.2.
+9. Vignette section "Variable selection" in
    `clinical-analysis-walkthrough.qmd` demonstrating the workflow.
 
 ---
 
-## 9. Open questions for sign-off
+## 9. Decisions log
 
-1. **API name** — `hzr_stepwise()` as proposed, or align with `stats::step`
-   naming via `hzr_step()`?
-2. **Default thresholds** — 0.15/0.15 (clinical norm) or SAS's 0.3/0.2?
-3. **AIC mode** — skip entirely for v1 (Wald-only), or add a `criterion =
-   c("wald", "aic")` switch from the start?
-4. **Force-in semantics** — should forced variables also skip the
-   retention test entirely (SAS `INCLUDE`) or be tested but never dropped
-   regardless of p?
-5. **Boundary / non-convergent candidates** — skip silently with a trace
-   note (current proposal) or surface as a warning?
+Signed off on 2026-04-16.
+
+| # | Question | Decision |
+|---|---|---|
+| 1 | API name | `hzr_stepwise()` (no `step.hazard()` S3 method) |
+| 2 | Default thresholds | SAS defaults: `slentry = 0.30`, `slstay = 0.20` |
+| 3 | AIC mode | Built in from day one via `criterion = c("wald", "aic")` |
+| 4 | Force-in semantics | Tested and reported in trace, but never dropped |
+| 5 | Non-convergent refit | Emit `warning()` naming `(variable, phase)`, skip, continue |
