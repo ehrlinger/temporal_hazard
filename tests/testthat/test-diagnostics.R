@@ -655,6 +655,36 @@ test_that("hzr_bootstrap labels covariate rows with design-matrix names", {
   expect_true(all(c("x1", "x2") %in% bs$summary$parameter))
 })
 
+test_that("hzr_bootstrap preserves named betas while filling blanks", {
+  # Mixed-naming case: one beta is explicitly named in the starting theta
+  # and the other is left blank. The named slot must be preserved; the
+  # blank slot should pick up its design-matrix column name.
+  set.seed(11)
+  n <- 80
+  df <- data.frame(
+    t = stats::rexp(n, 0.1),
+    d = stats::rbinom(n, 1, 0.6),
+    x1 = stats::rnorm(n),
+    x2 = stats::rnorm(n)
+  )
+  fit <- hazard(
+    survival::Surv(t, d) ~ x1 + x2,
+    data  = df,
+    dist  = "weibull",
+    theta = c(mu = 0.05, nu = 0.8, b_custom = 0, 0),
+    fit   = TRUE
+  )
+
+  bs <- hzr_bootstrap(fit, n_boot = 5, seed = 321)
+  params <- bs$replicates$parameter
+
+  expect_false(any(!nzchar(params)))
+  # Named beta retained; blank beta filled from colnames(x) -> "x2".
+  expect_true("b_custom" %in% params)
+  expect_true("x2" %in% params)
+  expect_false("x1" %in% params)
+})
+
 
 # =========================================================================
 # hzr_competing_risks tests
