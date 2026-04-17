@@ -359,3 +359,35 @@ test_that("optimizer handles two phases (cdf + constant)", {
   )
   expect_true(result$value >= ll_start)
 })
+
+
+# ============================================================================
+# Regression: 3+ covariate phase must not emit vector-recycling warnings
+# ============================================================================
+
+test_that("3-covariate phase does not emit mu_j * phi_j recycling warning", {
+  # Reproduces the issue where model.matrix() silently drops NA rows in a
+  # phase-specific formula, leaving x_list[[nm]] shorter than time and
+  # triggering "longer object length is not a multiple of shorter object
+  # length" on every mu_j * phi_j multiplication inside
+  # .hzr_multiphase_cumhaz() / .hzr_multiphase_hazard().  The avc dataset
+  # has 5 NAs in inc_surg, so a 3-covariate phase referencing it would
+  # produce a 305-row design matrix against a 310-row time vector.
+  skip_if_not(exists("avc"))
+  data(avc, package = "TemporalHazard")
+
+  expect_no_warning(
+    fit <- hazard(
+      survival::Surv(int_dead, dead) ~ 1, data = avc,
+      dist = "multiphase",
+      phases = list(
+        early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                              fixed = "shapes",
+                              formula = ~ age + mal + inc_surg),
+        constant = hzr_phase("constant")
+      ),
+      fit = TRUE,
+      control = list(n_starts = 1L, maxit = 10L)
+    )
+  )
+})
