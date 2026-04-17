@@ -623,6 +623,38 @@ test_that("print.hzr_bootstrap runs without error", {
   expect_output(print(bs), "Bootstrap")
 })
 
+test_that("hzr_bootstrap labels covariate rows with design-matrix names", {
+  # Regression test: covariate parameter rows used to be emitted with empty
+  # strings, which broke wide pivots of $replicates. They should now carry
+  # the design-matrix column names (e.g. "x1", "x2").
+  set.seed(7)
+  n <- 80
+  df <- data.frame(
+    t = stats::rexp(n, 0.1),
+    d = stats::rbinom(n, 1, 0.6),
+    x1 = stats::rnorm(n),
+    x2 = stats::rnorm(n)
+  )
+  fit <- hazard(
+    survival::Surv(t, d) ~ x1 + x2,
+    data  = df,
+    dist  = "weibull",
+    theta = c(mu = 0.05, nu = 0.8, 0, 0),
+    fit   = TRUE
+  )
+
+  bs <- hzr_bootstrap(fit, n_boot = 5, seed = 123)
+  params <- bs$replicates$parameter
+
+  expect_false(any(!nzchar(params)))
+  expect_true(all(c("x1", "x2") %in% params))
+  # Each successful replicate should contribute one row per covariate.
+  expect_equal(sum(params == "x1"), bs$n_success)
+  expect_equal(sum(params == "x2"), bs$n_success)
+  # Summary table should also carry the covariate labels.
+  expect_true(all(c("x1", "x2") %in% bs$summary$parameter))
+})
+
 
 # =========================================================================
 # hzr_competing_risks tests
