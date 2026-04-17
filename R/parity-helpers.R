@@ -2,7 +2,7 @@
 #' @keywords internal
 NULL
 
-# parity-helpers.R — Helpers for cross-validating R output against the legacy C binary
+# parity-helpers.R -- Helpers for cross-validating R output against the legacy C binary
 #
 # STATUS: Stub / scaffold (M1 infrastructure, awaiting C binary integration)
 #
@@ -11,15 +11,15 @@ NULL
 # These functions wrap the compiled HAZARD C binary so the test suite can invoke
 # it programmatically, capture its output, and compare parameter estimates with
 # those produced by the R implementation.  This cross-validation is the primary
-# correctness signal during the SAS→R migration.
+# correctness signal during the SAS->R migration.
 #
 # CURRENT STATE
 # -------------
-# .hzr_get_hazard_binary() — locates binary via env var / option / package fallback
-# .hzr_run_hazard_binary() — writes working files, builds a .sas control file,
+# .hzr_get_hazard_binary() -- locates binary via env var / option / package fallback
+# .hzr_run_hazard_binary() -- writes working files, builds a .sas control file,
 #                             and invokes the legacy executable as:
 #                             hazard.exe < prefix.sas > prefix.lst 2>&1
-# .hzr_parse_hazard_output() — parses parameter tables from the .lst output.
+# .hzr_parse_hazard_output() -- parses parameter tables from the .lst output.
 #
 # ENABLING C PARITY TESTS
 # -----------------------

@@ -37,7 +37,7 @@ refits.}
 \code{"backward"}.}
 
 \item{criterion}{One of \code{"wald"} (default) or \code{"aic"}.  SAS-style
-p-value thresholds apply to Wald; AIC uses \code{ΔAIC < 0} uniformly.}
+p-value thresholds apply to Wald; AIC uses \code{DeltaAIC < 0} uniformly.}
 
 \item{slentry}{Entry p-value threshold for the Wald criterion.
 Default \code{0.30} matches SAS \code{SLENTRY}.}
@@ -66,7 +66,7 @@ Default \code{TRUE}.}
 \code{control = list(n_starts = 3)}).}
 }
 \value{
-An object of class \code{c("hzr_stepwise", "hazard")} — the
+An object of class \code{c("hzr_stepwise", "hazard")} -- the
 final fit augmented with:
 \describe{
 \item{\code{steps}}{Data frame with one row per accepted /

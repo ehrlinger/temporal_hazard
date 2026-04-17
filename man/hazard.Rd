@@ -100,7 +100,7 @@ engines remain unchanged.
 }
 }
 \examples{
-# ── Univariable Weibull ──────────────────────────────────────────────
+# -- Univariable Weibull ----------------------------------------------
 set.seed(1)
 time   <- rexp(50, rate = 0.3)
 status <- sample(0:1, 50, replace = TRUE, prob = c(0.3, 0.7))
@@ -108,7 +108,7 @@ fit <- hazard(time = time, status = status,
               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 summary(fit)
 
-# ── Formula interface with covariates ────────────────────────────────
+# -- Formula interface with covariates --------------------------------
 set.seed(1001)
 n   <- 180
 dat <- data.frame(
@@ -130,7 +130,7 @@ fit2 <- hazard(
 summary(fit2)
 
 \donttest{
-# ── Parametric survival with Kaplan-Meier overlay ─────────────────
+# -- Parametric survival with Kaplan-Meier overlay -----------------
 if (requireNamespace("ggplot2", quietly = TRUE)) {
   library(ggplot2)
 
@@ -163,7 +163,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
 }
 
 \donttest{
-# ── Multiphase model (two phases) ─────────────────────────────────
+# -- Multiphase model (two phases) ---------------------------------
 fit_mp <- hazard(
   survival::Surv(time, status) ~ 1,
   data   = dat,
@@ -179,7 +179,7 @@ fit_mp <- hazard(
 )
 summary(fit_mp)
 
-# ── Per-phase decomposed cumulative hazard ────────────────────────
+# -- Per-phase decomposed cumulative hazard ------------------------
 if (requireNamespace("ggplot2", quietly = TRUE)) {
   t_grid <- seq(0.01, max(dat$time), length.out = 100)
   decomp <- predict(fit_mp, newdata = data.frame(time = t_grid),

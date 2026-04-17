@@ -1,11 +1,11 @@
-# wald.R — Wald inference for stepwise covariate selection.
+# wald.R -- Wald inference for stepwise covariate selection.
 #
 # The stepwise engine (hzr_stepwise, Phase 4b of the development plan)
 # needs a lightweight Wald-test helper that works against any fitted
 # hazard model:
 #
-#   - Scalar test for a single named coefficient  → two-sided z-test
-#   - Joint test for a set of named coefficients  → chi-square Wald
+#   - Scalar test for a single named coefficient  -> two-sided z-test
+#   - Joint test for a set of named coefficients  -> chi-square Wald
 #
 # Both cases produce a p-value on the same scale so the stepwise loop
 # can compare candidates uniformly.
@@ -28,7 +28,7 @@
 #'
 #' @return A list with elements:
 #' \describe{
-#'   \item{stat}{Test statistic — `z` if `length(names) == 1L`,
+#'   \item{stat}{Test statistic -- `z` if `length(names) == 1L`,
 #'     chi-square otherwise.}
 #'   \item{df}{Degrees of freedom (1 for scalar, `length(names)` joint).}
 #'   \item{p_value}{Two-sided p-value, or `NA_real_` if the test could
@@ -123,7 +123,7 @@
     ))
   }
 
-  # Joint chi-square Wald: W = β' V^{-1} β  ~  chi^2_{df}
+  # Joint chi-square Wald: W = beta' V^{-1} beta  ~  chi^2_{df}
   v_inv <- tryCatch(solve(v_sub), error = function(e) NULL)
   if (is.null(v_inv)) {
     return(na_result())

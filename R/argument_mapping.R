@@ -1,4 +1,4 @@
-# argument_mapping.R — SAS HAZARD → R argument translation table
+# argument_mapping.R -- SAS HAZARD -> R argument translation table
 #
 # PURPOSE
 # -------

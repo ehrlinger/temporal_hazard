@@ -1,4 +1,4 @@
-# stepwise.R — user-facing driver for Phase 4b stepwise covariate
+# stepwise.R -- user-facing driver for Phase 4b stepwise covariate
 # selection.  Step 8.6 of STEPWISE-DESIGN.md.
 #
 # The driver combines .hzr_stepwise_forward_step() and
@@ -9,7 +9,7 @@
 #     force_in and force_out sets used internally).
 #   * `max_steps` hard cap that warns on hit.
 #   * `force_in` / `force_out` user-supplied constraints.
-#   * Optional console trace mirroring the §5 output spec.
+#   * Optional console trace mirroring the sec.5 output spec.
 #
 # The returned object inherits from both `hzr_stepwise` and `hazard`
 # so it can be passed to `predict()`, `summary()`, `coef()`, etc.
@@ -34,7 +34,7 @@
 #' @param direction One of `"both"` (default), `"forward"`,
 #'   `"backward"`.
 #' @param criterion One of `"wald"` (default) or `"aic"`.  SAS-style
-#'   p-value thresholds apply to Wald; AIC uses `ΔAIC < 0` uniformly.
+#'   p-value thresholds apply to Wald; AIC uses `DeltaAIC < 0` uniformly.
 #' @param slentry Entry p-value threshold for the Wald criterion.
 #'   Default `0.30` matches SAS `SLENTRY`.
 #' @param slstay Retention p-value threshold for the Wald criterion.
@@ -54,7 +54,7 @@
 #' @param ... Passed to the underlying `hazard()` refits (e.g.
 #'   `control = list(n_starts = 3)`).
 #'
-#' @return An object of class `c("hzr_stepwise", "hazard")` — the
+#' @return An object of class `c("hzr_stepwise", "hazard")` -- the
 #'   final fit augmented with:
 #'   \describe{
 #'     \item{\code{steps}}{Data frame with one row per accepted /
@@ -125,7 +125,7 @@ hzr_stepwise <- function(fit,
     if (isTRUE(trace)) cat(msg, "\n", sep = "")
   }
 
-  # Header line (mirrors design §5).
+  # Header line (mirrors design sec.5).
   header <- if (criterion == "wald") {
     sprintf(
       "Stepwise selection (direction = %s, criterion = wald, slentry = %.2f, slstay = %.2f)",
@@ -141,7 +141,7 @@ hzr_stepwise <- function(fit,
   emit("")
 
   # Move counter: per-variable tally of entries + exits.  Use a named
-  # list rather than a named integer vector — `lst[[missing]]` returns
+  # list rather than a named integer vector -- `lst[[missing]]` returns
   # NULL, whereas `vec[[missing]]` errors with "subscript out of bounds".
   move_counts <- list()
   frozen      <- character()
@@ -408,7 +408,7 @@ stepwise_trace <- function(fit) {
 .hzr_stepwise_shape_count <- function(fit) {
   if (fit$spec$dist == "multiphase") {
     # For multiphase, "coefficient count" is sum of betas across phases
-    # — i.e. theta length minus all non-beta slots.  Easiest path:
+    # -- i.e. theta length minus all non-beta slots.  Easiest path:
     # count columns in x_list.
     x_list <- fit$fit$x_list
     if (is.null(x_list)) return(length(fit$fit$theta))

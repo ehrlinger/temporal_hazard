@@ -2,37 +2,37 @@
 #' @keywords internal
 NULL
 
-# likelihood-exponential.R — Exponential parametric hazard likelihood, gradient, and optimizer
+# likelihood-exponential.R -- Exponential parametric hazard likelihood, gradient, and optimizer
 #
 # MODEL
 # -----
 # Constant-hazard (memoryless) proportional-hazards model:
 #
-#   h(t | x)  = λ exp(η)                    hazard (constant in t)
-#   H(t | x)  = λ t exp(η)                  cumulative hazard
-#   S(t | x)  = exp(−λ t exp(η))            survival
+#   h(t | x)  = lambda exp(eta)                    hazard (constant in t)
+#   H(t | x)  = lambda t exp(eta)                  cumulative hazard
+#   S(t | x)  = exp(-lambda t exp(eta))            survival
 #
-# where λ > 0 (baseline rate), η = x β (linear predictor).
+# where lambda > 0 (baseline rate), eta = x beta (linear predictor).
 #
 # THETA LAYOUT
 # ------------
-#   theta[1]   = log(λ)   (unconstrained; λ recovered via exp())
-#   theta[2:p] = β        (covariate coefficients; unrestricted)
+#   theta[1]   = log(lambda)   (unconstrained; lambda recovered via exp())
+#   theta[2:p] = beta        (covariate coefficients; unrestricted)
 #
-# The exponential is a special case of Weibull with ν = 1.  It has no shape
+# The exponential is a special case of Weibull with nu = 1.  It has no shape
 # parameter so theta is one element shorter than Weibull for the same data.
 # Unconstrained BFGS is used (no box bounds needed).
 #
 # FUNCTIONS
 # ---------
-#   .hzr_logl_exponential()     — log-likelihood (optionally returning gradient)
-#   .hzr_gradient_exponential() — analytical score vector
-#   .hzr_optim_exponential()    — unconstrained BFGS wrapper
+#   .hzr_logl_exponential()     -- log-likelihood (optionally returning gradient)
+#   .hzr_gradient_exponential() -- analytical score vector
+#   .hzr_optim_exponential()    -- unconstrained BFGS wrapper
 
 #' Exponential Parametric Hazard Likelihood
 #'
 #' Evaluate the log-likelihood and its derivatives for exponential hazard models.
-#' The exponential is the simplest ALT model: constant hazard λ, no shape parameter.
+#' The exponential is the simplest ALT model: constant hazard lambda, no shape parameter.
 #'
 #' @keywords internal
 
@@ -42,7 +42,7 @@ NULL
 #' parametric hazard model with optional linear-predictor covariates.
 #'
 #' @param theta Vector of parameters:
-#'   theta\[1\] = log(λ) where λ > 0 is the baseline hazard rate
+#'   theta\[1\] = log(lambda) where lambda > 0 is the baseline hazard rate
 #'   theta\[2:length\]: Covariate coefficients (linear on log-hazard scale)
 #'
 #' @param time Numeric vector of follow-up times (n)
@@ -51,7 +51,7 @@ NULL
 #'   Defaults to time if NULL.
 #' @param time_upper Optional numeric upper bound vector for left/interval-censored rows.
 #'   Defaults to time if NULL.
-#' @param x Design matrix of covariates (n × p_coef); NULL for no covariates
+#' @param x Design matrix of covariates (n x p_coef); NULL for no covariates
 #' @param return_gradient Logical; if TRUE, attach gradient vector as attribute
 #'
 #' @return Scalar log-likelihood value. If return_gradient = TRUE, gradient vector
@@ -191,8 +191,8 @@ NULL
 #'   \eqn{L = \sum(\delta_i * [\log(\lambda) + \eta_i]) - \sum(\lambda * t_i * \exp(\eta_i))}
 #'
 #' Derivatives:
-#' dL/d(log λ) = sum(δ_i) - sum(λ * t_i * exp(η_i)) = sum(δ_i) - sum(H_i)
-#' dL/dβ_j    = sum(δ_i * x_ij) - sum(λ * t_i * exp(η_i) * x_ij) = t(X) %*% (δ - H)
+#' dL/d(log lambda) = sum(delta_i) - sum(lambda * t_i * exp(eta_i)) = sum(delta_i) - sum(H_i)
+#' dL/dbeta_j    = sum(delta_i * x_ij) - sum(lambda * t_i * exp(eta_i) * x_ij) = t(X) %*% (delta - H)
 #'
 #' @noRd
 .hzr_gradient_exponential <- function(
@@ -234,12 +234,12 @@ NULL
   }
 
   # ===== Gradient w.r.t. log(lambda) =====
-  # dL/d(log λ) = sum(δ) - sum(H) = sum(δ) - sum(λ * t * exp(η))
+  # dL/d(log lambda) = sum(delta) - sum(H) = sum(delta) - sum(lambda * t * exp(eta))
   grad[1] <- sum(status) - sum(cumhaz)
 
   # ===== Gradient w.r.t. beta (covariate coefficients) =====
   if (p > 1 && !is.null(x)) {
-    # dL/dβ = t(X) %*% (δ - H)
+    # dL/dbeta = t(X) %*% (delta - H)
     residual <- status - cumhaz
     grad[2:p] <- as.numeric(crossprod(x, residual))
   }

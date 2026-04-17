@@ -1,4 +1,4 @@
-# diagnostics.R — Model validation and goodness-of-fit utilities
+# diagnostics.R -- Model validation and goodness-of-fit utilities
 #
 # Implements SAS HAZARD macro equivalents for calibration and validation.
 
@@ -270,7 +270,7 @@ print.hzr_deciles <- function(x, digits = 3, ...) {
 
 
 # =========================================================================
-# hzr_gof — Observed vs. expected goodness-of-fit
+# hzr_gof -- Observed vs. expected goodness-of-fit
 # =========================================================================
 
 #' Goodness-of-fit: observed vs. predicted events
@@ -520,7 +520,7 @@ print.hzr_gof <- function(x, digits = 3, ...) {
 
 
 # =========================================================================
-# hzr_kaplan — Kaplan-Meier with exact logit confidence limits
+# hzr_kaplan -- Kaplan-Meier with exact logit confidence limits
 # =========================================================================
 
 #' Kaplan-Meier survival with exact logit confidence limits
@@ -750,7 +750,7 @@ print.hzr_kaplan <- function(x, digits = 4, n = 20, ...) {
 
 
 # =========================================================================
-# hzr_calibrate — Variable calibration (logit / Gompertz / Cox transform)
+# hzr_calibrate -- Variable calibration (logit / Gompertz / Cox transform)
 # =========================================================================
 
 #' Calibrate a continuous variable against an outcome
@@ -944,7 +944,7 @@ print.hzr_calibrate <- function(x, digits = 3, ...) {
 
 
 # =========================================================================
-# hzr_nelson — Wayne Nelson cumulative hazard estimator
+# hzr_nelson -- Wayne Nelson cumulative hazard estimator
 # =========================================================================
 
 #' Wayne Nelson cumulative hazard estimator with lognormal confidence limits
@@ -1115,7 +1115,7 @@ print.hzr_nelson <- function(x, digits = 4, ...) {
 
 
 # =========================================================================
-# hzr_bootstrap — Bootstrap inference for hazard models
+# hzr_bootstrap -- Bootstrap inference for hazard models
 # =========================================================================
 
 #' Bootstrap resampling for hazard model coefficients
@@ -1135,9 +1135,9 @@ print.hzr_nelson <- function(x, digits = 4, ...) {
 #' @return A list with class `"hzr_bootstrap"` containing:
 #' \describe{
 #'   \item{replicates}{Data frame with columns `replicate`, `parameter`,
-#'     and `estimate` — one row per parameter per successful replicate.}
+#'     and `estimate` -- one row per parameter per successful replicate.}
 #'   \item{summary}{Data frame with columns `parameter`, `n`, `pct`,
-#'     `mean`, `sd`, `min`, `max`, `ci_lower`, `ci_upper` — one row per
+#'     `mean`, `sd`, `min`, `max`, `ci_lower`, `ci_upper` -- one row per
 #'     parameter.}
 #'   \item{n_success}{Number of successfully converged replicates.}
 #'   \item{n_failed}{Number of replicates that failed to converge.}
@@ -1207,7 +1207,7 @@ hzr_bootstrap <- function(object, n_boot = 200L, fraction = 1.0,
     boot_data <- orig_data[idx, , drop = FALSE] # nolint: object_usage_linter.
 
     # Refit using the same call but with resampled data
-    # (boot_data is referenced via quote() inside eval — lintr cannot trace this)
+    # (boot_data is referenced via quote() inside eval -- lintr cannot trace this)
     boot_fit <- tryCatch({
       cl_boot <- cl
       cl_boot$data <- quote(boot_data)
@@ -1300,7 +1300,7 @@ print.hzr_bootstrap <- function(x, digits = 4, ...) {
 
 
 # =========================================================================
-# hzr_competing_risks — Cumulative incidence with Greenwood variance
+# hzr_competing_risks -- Cumulative incidence with Greenwood variance
 # =========================================================================
 
 #' Competing risks cumulative incidence
@@ -1377,7 +1377,7 @@ hzr_competing_risks <- function(time, event) {
   incid <- matrix(0, nrow = out_n, ncol = n_types)
   colnames(incid) <- paste0("incid_", event_types)
 
-  # Variance (diagonal of Greenwood matrix — simplified)
+  # Variance (diagonal of Greenwood matrix -- simplified)
   var_surv <- numeric(out_n)
   var_incid <- matrix(0, nrow = out_n, ncol = n_types)
 

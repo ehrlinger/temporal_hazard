@@ -98,6 +98,7 @@
     status = status,
     time_lower = time_lower,
     time_upper = time_upper,
-    x = x
+    x = x,
+    surv_type = surv_type
   )
 }

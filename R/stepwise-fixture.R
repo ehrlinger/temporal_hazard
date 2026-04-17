@@ -1,8 +1,8 @@
-# stepwise-fixture.R — Load and validate SAS stepwise parity fixtures.
+# stepwise-fixture.R -- Load and validate SAS stepwise parity fixtures.
 #
 # Fixtures live under `inst/fixtures/stepwise-<scenario>.rds` (and so
 # reside under `<pkg root>/fixtures/` at install time).  They are
-# deliberately optional — tests that consume them skip when the file
+# deliberately optional -- tests that consume them skip when the file
 # is absent, so the package installs and tests pass without any SAS
 # output.
 #
@@ -126,7 +126,7 @@
   }
 
   trace <- utils::read.csv(trace_csv, stringsAsFactors = FALSE)
-  # SAS may emit "." for missing phase — translate to NA for the R side.
+  # SAS may emit "." for missing phase -- translate to NA for the R side.
   if ("phase" %in% names(trace)) {
     trace$phase[trace$phase == "."] <- NA_character_
   }

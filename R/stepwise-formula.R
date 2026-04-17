@@ -1,10 +1,10 @@
-# stepwise-formula.R — Formula and phase-scope plumbing for stepwise
+# stepwise-formula.R -- Formula and phase-scope plumbing for stepwise
 # covariate selection.
 #
 # Step 8.3 of STEPWISE-DESIGN.md.  Pure helpers that mutate formulas /
 # phase lists / coefficient scopes without touching the optimizer.  The
 # actual refit driver that combines these into a new hazard() call
-# lands in §8.4 alongside the forward/backward step implementations.
+# lands in sec.8.4 alongside the forward/backward step implementations.
 #
 # Two entry points matter to downstream code:
 #
@@ -50,7 +50,7 @@
 #' Add or drop a variable from a formula's RHS
 #'
 #' @param formula Existing formula.  One-sided (`~ x`) or two-sided
-#'   (`Surv(time, status) ~ x`) — the LHS is preserved verbatim.
+#'   (`Surv(time, status) ~ x`) -- the LHS is preserved verbatim.
 #' @param action Either `"add"` or `"drop"`.
 #' @param var Character scalar naming the variable to add / drop.
 #'
@@ -102,7 +102,7 @@
 #' Add or drop a variable from a phase's formula
 #'
 #' @param phase An `hzr_phase` object.  Its `formula` slot may be NULL
-#'   (no phase-specific covariates) — in the add case a fresh
+#'   (no phase-specific covariates) -- in the add case a fresh
 #'   `~ var` formula is created.
 #' @param action Either `"add"` or `"drop"`.
 #' @param var Character scalar.

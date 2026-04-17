@@ -2,6 +2,7 @@
 % Please edit documentation in R/phase-spec.R
 \name{hzr_phase}
 \alias{hzr_phase}
+\alias{print.hzr_phase}
 \title{Specify a single hazard phase}
 \usage{
 hzr_phase(
@@ -16,6 +17,8 @@ hzr_phase(
   formula = NULL,
   fixed = character(0)
 )
+
+\method{print}{hzr_phase}(x, ...)
 }
 \arguments{
 \item{type}{Character; phase type: \code{"cdf"}, \code{"hazard"}, \code{"g3"}, or
@@ -56,6 +59,10 @@ four).  Fixed parameters are held at their starting values; only \code{mu}
 (and covariates) are estimated.  Ignored for \code{"constant"} phases.
 This mirrors the SAS/C HAZARD workflow where shapes are typically fixed
 and only scale parameters are estimated.}
+
+\item{x}{An \code{hzr_phase} object (for \code{print.hzr_phase()}).}
+
+\item{...}{Additional arguments (ignored).}
 }
 \value{
 An S3 object of class \code{"hzr_phase"} with elements:
