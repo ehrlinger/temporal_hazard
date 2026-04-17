@@ -101,6 +101,34 @@ test_that("warm-started refits converge in far fewer iterations than cold starts
 
 # Candidate-failure warning -------------------------------------------------
 
+test_that("multi-level factor candidate errors with a main-effects note", {
+  # A 3-level factor expands to 2 columns in the design matrix — v1
+  # scope is main effects only, so stepwise should error cleanly
+  # rather than silently score one contrast.
+  set.seed(223L)
+  n <- 200L
+  df <- data.frame(
+    time   = rexp(n),
+    status = rep(1L, n),
+    x1     = rnorm(n),
+    f      = factor(sample(letters[1:3], n, replace = TRUE))
+  )
+  df$time <- df$time * exp(-0.8 * df$x1)
+
+  # Fit with the factor already in the model so we can test the
+  # single-dist guard path directly via .hzr_candidate_coef_name().
+  fit <- hazard(
+    Surv(time, status) ~ x1 + f, data = df,
+    theta = c(0.5, 1.0, 0, 0, 0),
+    dist = "weibull", fit = TRUE
+  )
+
+  expect_error(
+    TemporalHazard:::.hzr_candidate_coef_name(fit, "f", NULL),
+    "expands to multiple coefficients"
+  )
+})
+
 test_that("one bad candidate does not prevent others from entering", {
   # Set up a scope where one candidate is broken (via a nonsense name
   # triggering the `var not in data` branch, which surfaces as an

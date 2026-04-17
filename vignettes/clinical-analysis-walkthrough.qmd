@@ -315,10 +315,12 @@ Wald p-values or ΔAIC.  Defaults match SAS `PROC HAZARD`
 (`SLENTRY = 0.30`, `SLSTAY = 0.20`).
 
 We start from a baseline with no covariates, offer the same screened
-candidate pool, and let the algorithm decide.  The scope is passed as
-a flat character vector (applied to every phase in the multiphase
-model); stepping operates per `(variable, phase)` pair so a covariate
-can enter one phase and not another.
+candidate pool, and let the algorithm decide.  For multiphase models
+the scope is a named list of one-sided formulas keyed by phase, so
+each phase can advertise its own candidate set; stepping operates
+per `(variable, phase)` pair, letting a covariate enter one phase
+and not another.  Single-distribution models accept either a flat
+one-sided formula or a character vector of names.
 
 ```{r}
 #| label: stepwise-forward

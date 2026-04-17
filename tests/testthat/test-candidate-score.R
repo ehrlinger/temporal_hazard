@@ -1,5 +1,5 @@
-# `.fit_weibull()` is defined in `helper-wald.R` and auto-sourced by
-# testthat before any test-*.R files run.
+# `.fit_weibull()` is defined in `helper-stepwise.R` and auto-sourced
+# by testthat before any test-*.R files run.
 
 # .hzr_aic -----------------------------------------------------------------
 

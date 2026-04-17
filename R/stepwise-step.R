@@ -1,9 +1,9 @@
-# stepwise-step.R — Per-step drivers for hzr_stepwise()
+# stepwise-step.R -- Per-step drivers for hzr_stepwise()
 #
-# Step 8.4–8.5 of STEPWISE-DESIGN.md.  One forward step or one backward
+# Step 8.4-8.5 of STEPWISE-DESIGN.md.  One forward step or one backward
 # step, driven by the unified `.hzr_candidate_score()` wrapper.  Higher
 # level control (two-way loop, MOVE cap, force_in, max_steps) lives in
-# the hzr_stepwise() driver to be built in §8.6.
+# the hzr_stepwise() driver to be built in sec.8.6.
 
 # ---------------------------------------------------------------------------
 # Candidate enumeration
@@ -115,14 +115,14 @@
 #'
 #' Divergent candidate refits emit a `warning()` naming the failing
 #' `(variable, phase)` pair and are excluded from the selection, per
-#' the §2 Q5 decision in STEPWISE-DESIGN.md.
+#' the sec.2 Q5 decision in STEPWISE-DESIGN.md.
 #'
 #' @param current Fitted `hazard` object that is the starting point.
 #' @param scope Scope specification (see `.hzr_stepwise_candidates`).
 #' @param data Data frame for refits.
 #' @param criterion Either `"wald"` or `"aic"`.
 #' @param slentry Entry threshold for the Wald criterion (ignored when
-#'   `criterion = "aic"`; the entry rule there is ΔAIC < 0).
+#'   `criterion = "aic"`; the entry rule there is dAIC < 0).
 #' @param force_out Character vector of variables that may never be
 #'   considered as candidates.
 #' @param ... Forwarded to `.hzr_refit_with_scope()` (and thence to
@@ -134,9 +134,9 @@
 #'   \item{fit}{If accepted, the new fit.  Otherwise `current` echoed.}
 #'   \item{variable}{Variable that entered, or `NA_character_`.}
 #'   \item{phase}{Phase entered, or `NA_character_` (single-dist).}
-#'   \item{score}{Winning score (p or ΔAIC), or `NA_real_`.}
+#'   \item{score}{Winning score (p or dAIC), or `NA_real_`.}
 #'   \item{p_value}{Winning p-value.}
-#'   \item{delta_aic}{Winning ΔAIC.}
+#'   \item{delta_aic}{Winning dAIC.}
 #'   \item{stat, df}{Wald statistic / df of the winner.}
 #'   \item{all_scores}{Tibble-like data frame of every candidate
 #'     considered and its score.}
@@ -309,7 +309,7 @@
 #' for a drop test.
 #'
 #' Force-in variables are *included* in the returned list so their
-#' scores appear in the trace (§2 Q4 of STEPWISE-DESIGN.md); the
+#' scores appear in the trace (sec.2 Q4 of STEPWISE-DESIGN.md); the
 #' forward/backward driver filters them out of the argmax pool via the
 #' `force_in` flag on each row.
 #'
@@ -347,7 +347,7 @@
 #' @param data Data frame used to rebuild the dropped model.
 #' @param criterion Either `"wald"` or `"aic"`.
 #' @param slstay Retention threshold for the Wald criterion (ignored
-#'   when `criterion = "aic"`; the drop rule there is ΔAIC_drop < 0).
+#'   when `criterion = "aic"`; the drop rule there is dAIC_drop < 0).
 #' @param force_in Character vector of variables that may never be
 #'   dropped.
 #' @param ... Forwarded to `.hzr_refit_with_scope()` for the post-drop
@@ -440,7 +440,7 @@
   threshold_met <- if (criterion == "wald") {
     best$score < (1 - slstay)          # i.e. p > slstay
   } else {
-    best$score < 0                     # ΔAIC_drop < 0
+    best$score < 0                     # dAIC_drop < 0
   }
 
   if (!threshold_met) {
@@ -490,31 +490,82 @@
 #' Name under which a newly-entered variable appears in coef(fit)
 #'
 #' Canonical naming differs between fit kinds:
-#'   multiphase  — phase-prefixed formula names (e.g. `"early.age"`).
-#'   single-dist — positional `"betaN"` from `.hzr_parameter_names()`,
+#'   multiphase  -- phase-prefixed formula names (e.g. `"early.age"`).
+#'   single-dist -- positional `"betaN"` from `.hzr_parameter_names()`,
 #'     where N is the column index of `var` in `colnames(fit$data$x)`.
 #'
 #' This matches the naming `summary.hazard()` prints and the canonical
 #' name `.hzr_wald_p()` uses for coefficient lookup.
 #'
+#' Stepwise v1 is scoped to main-effect terms only.  Multi-column
+#' expansions (factors with > 2 levels, splines, interactions)
+#' trigger an error so the caller can rebuild their formula with the
+#' expansion baked in rather than silently scoring just one coefficient.
+#'
 #' @keywords internal
 #' @noRd
 .hzr_candidate_coef_name <- function(fit, var, phase) {
   if (fit$spec$dist == "multiphase") {
-    return(paste0(phase, ".", var))
+    target <- paste0(phase, ".", var)
+    coef_names <- names(stats::coef(fit))
+    if (!is.null(coef_names) && !target %in% coef_names) {
+      expanded <- grep(
+        paste0("^", .hzr_regex_escape(target)),
+        coef_names, value = TRUE
+      )
+      if (length(expanded) > 1L) {
+        stop(
+          "Variable ", sQuote(var), " in phase ", sQuote(phase),
+          " expands to multiple coefficients (",
+          paste(sQuote(expanded), collapse = ", "),
+          ").  Stepwise v1 supports main-effect terms only; ",
+          "rebuild your candidate as pre-expanded main effects and retry.",
+          call. = FALSE
+        )
+      }
+    }
+    return(target)
   }
   xcols <- colnames(fit$data$x)
-  idx <- match(var, xcols)
-  if (is.na(idx)) {
+  idx <- which(xcols == var)
+  if (length(idx) == 0L) {
+    # Check for a multi-column expansion masquerading as one variable.
+    prefix_hits <- grep(paste0("^", .hzr_regex_escape(var)), xcols)
+    if (length(prefix_hits) > 1L) {
+      stop(
+        "Variable ", sQuote(var),
+        " expands to multiple coefficients (",
+        paste(sQuote(xcols[prefix_hits]), collapse = ", "),
+        ").  Stepwise v1 supports main-effect terms only; ",
+        "rebuild your candidate as an already-expanded set of ",
+        "main effects (e.g. a numeric contrast matrix) and retry.",
+        call. = FALSE
+      )
+    }
     stop("Variable ", sQuote(var),
          " not found in the design matrix.",
+         call. = FALSE)
+  }
+  if (length(idx) > 1L) {
+    stop("Variable ", sQuote(var),
+         " matches multiple design-matrix columns -- ",
+         "stepwise v1 supports main-effect terms only.",
          call. = FALSE)
   }
   paste0("beta", idx)
 }
 
 
-#' %||% — NULL-coalesce for lazy defaults
+#' Escape a character vector for literal use in a regular expression
+#'
+#' @keywords internal
+#' @noRd
+.hzr_regex_escape <- function(x) {
+  gsub("([.\\\\|*+?^$(){}\\[\\]])", "\\\\\\1", x, perl = TRUE)
+}
+
+
+#' %||% -- NULL-coalesce for lazy defaults
 #' @keywords internal
 #' @noRd
 `%||%` <- function(a, b) if (is.null(a)) b else a
