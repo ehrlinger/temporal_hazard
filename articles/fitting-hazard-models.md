@@ -145,7 +145,8 @@ fit_mp <- hazard(
   data   = avc,
   dist   = "multiphase",
   phases = list(
-    early    = hzr_phase("cdf",      t_half = 0.5, nu = 1, m = 1),
+    early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                          fixed = "shapes"),
     constant = hzr_phase("constant")
   ),
   fit     = TRUE,
@@ -161,21 +162,21 @@ summary(fit_mp)
 #>   phase 2:      constant - constant (flat rate)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -211.468 
-#>   evaluations: fn=4, gr=1
+#>   log-lik:      -228.029 
+#>   evaluations: fn=32, gr=10
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                estimate  std_error     z_stat      p_value
-#>   log_mu     -1.4575073 0.07272087 -20.042491 2.347232e-89
-#>   log_t_half -1.7947432 0.36481698  -4.919572 8.673386e-07
-#>   nu          1.4541984 0.55216657   2.633623 8.447933e-03
-#>   m           0.9265622 0.71021108   1.304629 1.920191e-01
+#>                estimate  std_error    z_stat       p_value
+#>   log_mu     -1.4132735 0.04410012 -32.04693 2.422767e-225
+#>   log_t_half -0.6931472         NA        NA            NA
+#>   nu          1.0000000         NA        NA            NA
+#>   m           1.0000000         NA        NA            NA
 #> 
 #>   Phase: constant (constant)
 #>           estimate std_error z_stat p_value
-#>   log_mu -7.523156        NA     NA      NA
+#>   log_mu -7.609476        NA     NA      NA
 ```
 
 Comparing the single-phase Weibull to the multiphase fit:

@@ -70,10 +70,10 @@ package. Added a capabilities table to `README.md`.
 | Right and interval censoring           | Complete |
 | Time-varying covariates                | Complete |
 | Covariance/correlation estimation      | Complete |
-| Repeating events (epoch decomposition) | Planned  |
-| Weighted events                        | Planned  |
+| Repeating events (epoch decomposition) | Complete |
+| Weighted events                        | Complete |
 | Stepwise covariate selection           | Planned  |
-| Conservation of Events theorem         | Planned  |
+| Conservation of Events theorem         | Complete |
 
 ### 3. Prior Session Work (carried forward)
 
@@ -150,13 +150,11 @@ guide.
 
 ### Medium-term: Feature Gaps (see `inst/dev/SAS-PARITY-GAP-ANALYSIS.md`)
 
-**Priority order:** 1. **Conservation of Events theorem** — reduces
-optimizer dimensions, improves convergence stability. Medium effort. 2.
-**Stepwise covariate selection** — critical for clinical research
-workflows. Large effort. 3. **Observation weights** — threading through
-likelihood functions. Medium effort. 4. **Repeating events** — mostly
-documentation + data interface; math is already in place. Small-medium
-effort.
+**Priority order:** 1. **Stepwise covariate selection** — critical for
+clinical research workflows. Large effort.
+
+Completed in 0.9.3 / 0.9.4: Conservation of Events, observation weights,
+repeating events (epoch decomposition).
 
 ### Optional: Test Cleanup
 

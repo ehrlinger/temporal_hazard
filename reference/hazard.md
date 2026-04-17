@@ -21,6 +21,7 @@ hazard(
   dist = "weibull",
   phases = NULL,
   fit = FALSE,
+  weights = NULL,
   control = list(),
   ...
 )
@@ -89,6 +90,13 @@ hazard(
 
   Logical; if TRUE, fit the model via maximum likelihood (default
   FALSE).
+
+- weights:
+
+  Optional numeric vector of observation weights (non-negative). Each
+  observation's log-likelihood contribution is multiplied by its weight.
+  Use for severity-weighted repeated events. Default `NULL` (unit
+  weights). Implements the SAS `WEIGHT` statement.
 
 - control:
 

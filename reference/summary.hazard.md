@@ -89,7 +89,7 @@ summary(fit_mp)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
 #>   log-lik:      -428.716 
-#>   evaluations: fn=27, gr=5
+#>   evaluations: fn=26, gr=5
 #> 
 #> Coefficients (internal scale):
 #> 

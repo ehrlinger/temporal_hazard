@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,6 +49,16 @@
       <small>Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.4" id="temporalhazard-094">TemporalHazard 0.9.4<a class="anchor" aria-label="anchor" href="#temporalhazard-094"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-9-4">New features<a class="anchor" aria-label="anchor" href="#new-features-0-9-4"></a></h3>
+<ul><li>
+<strong>Observation weights</strong> — <code>weights</code> argument in <code><a href="../reference/hazard.html">hazard()</a></code> applies Fisher weighting to the log-likelihood. Each observation’s contribution is multiplied by its weight, enabling severity-weighted event analyses. Threaded through all distribution-specific likelihood and gradient functions. Implements the SAS <code>WEIGHT</code> statement.</li>
+<li>
+<strong>Repeating events</strong> — <code>Surv(start, stop, event)</code> start-stop notation is now supported for epoch-decomposed longitudinal data. Each epoch contributes <code>H(stop) - H(start)</code> to the likelihood, matching the SAS <code>LCENSOR</code>/<code>STIME</code> mechanism.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.3" id="temporalhazard-093">TemporalHazard 0.9.3<a class="anchor" aria-label="anchor" href="#temporalhazard-093"></a></h2>
 <div class="section level3">

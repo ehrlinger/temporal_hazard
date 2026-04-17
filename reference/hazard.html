@@ -13,7 +13,7 @@ optimize to produce fitted estimates."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,6 +78,7 @@ optimize to produce fitted estimates.</p>
 <span>  dist <span class="op">=</span> <span class="st">"weibull"</span>,</span>
 <span>  phases <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  fit <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  weights <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -142,6 +143,13 @@ phases for a multiphase model (<code>dist = "multiphase"</code>).  See Examples.
 
 <dt id="arg-fit">fit<a class="anchor" aria-label="anchor" href="#arg-fit"></a></dt>
 <dd><p>Logical; if TRUE, fit the model via maximum likelihood (default FALSE).</p></dd>
+
+
+<dt id="arg-weights">weights<a class="anchor" aria-label="anchor" href="#arg-weights"></a></dt>
+<dd><p>Optional numeric vector of observation weights (non-negative).
+Each observation's log-likelihood contribution is multiplied by its weight.
+Use for severity-weighted repeated events. Default <code>NULL</code> (unit weights).
+Implements the SAS <code>WEIGHT</code> statement.</p></dd>
 
 
 <dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
