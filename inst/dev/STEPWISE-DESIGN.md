@@ -157,10 +157,18 @@ For forward entry: fit the candidate, compute
 no other candidate has a smaller ΔAIC.
 
 For backward retention: leave-one-out refit is expensive. Use the
-single-parameter information-matrix approximation
-`ΔAIC ≈ −2·(W_retention) + 2` where W_retention is the Wald χ² statistic
-with df = 1 (exact for scalar coefficients; for multi-df variables fall
-back to a real refit). Variable drops iff ΔAIC_drop < 0.
+likelihood-ratio → Wald approximation
+
+    ΔAIC_drop ≈ W_retention − 2·df
+
+where `W_retention` is the Wald χ² statistic (= z² when df = 1) from
+the current model's vcov. Derivation: with `LR = 2·(logL_current −
+logL_dropped) ≈ W`, we get `ΔAIC_drop = AIC_dropped − AIC_current =
+2·(logL_current − logL_dropped) − 2·df ≈ W − 2·df`. Variable drops iff
+`ΔAIC_drop < 0` (i.e. `W < 2·df`, which for df = 1 is `|z| < √2 ≈ 1.41`).
+Exact for scalar coefficients under the Wald ≈ LR approximation; for
+multi-df variables it remains a good first-order estimate without a
+real refit.
 
 ### 3.2 Forward step
 

@@ -1,24 +1,5 @@
-# Helpers: build fitted objects with known coefficient names for the
-# Wald tests below.  Use the non-formula `time`/`x` path — formula
-# dispatch without explicit `theta` skips fitting silently (see the
-# `fit && !is.null(theta)` branch in hazard_api.R).
-
-.fit_weibull <- function(n = 200L, betas = 0.3, seed = 42L) {
-  set.seed(seed)
-  X <- matrix(rnorm(n * length(betas)), ncol = length(betas))
-  colnames(X) <- paste0("x", seq_len(ncol(X)))
-  lp <- as.numeric(X %*% betas)
-  time <- rexp(n, rate = exp(lp))
-  status <- rep(1L, n)
-  hazard(
-    time   = time,
-    status = status,
-    x      = X,
-    theta  = c(0.5, 1.0, rep(0, ncol(X))),
-    dist   = "weibull",
-    fit    = TRUE
-  )
-}
+# `.fit_weibull()` is defined in `helper-wald.R` and auto-sourced by
+# testthat before any test-*.R files run.
 
 test_that("scalar Wald p-value matches summary.hazard", {
   fit <- .fit_weibull()
