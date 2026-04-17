@@ -1,26 +1,5 @@
-# Fixture with a strong signal and two pure-noise covariates already
-# in the model — the backward step should drop one of the noise vars.
-.fit_overfitted <- function(n = 400L, seed = 101L, signal_beta = 0.8) {
-  set.seed(seed)
-  df <- data.frame(
-    time   = rexp(n, rate = 1),
-    status = rep(1L, n),
-    x1     = rnorm(n),
-    x2     = rnorm(n),
-    x3     = rnorm(n)
-  )
-  df$time <- df$time * exp(-signal_beta * df$x1)
-
-  fit <- hazard(
-    Surv(time, status) ~ x1 + x2 + x3,
-    data = df,
-    theta = c(0.5, 1.0, 0, 0, 0),
-    dist = "weibull",
-    fit = TRUE
-  )
-  list(fit = fit, data = df)
-}
-
+# `.fit_overfitted()` lives in helper-stepwise.R (auto-sourced by
+# testthat).
 
 # .hzr_stepwise_drop_candidates --------------------------------------------
 

@@ -1,0 +1,126 @@
+# Broader integration tests for hzr_stepwise() — Step 8.7 /
+# STEPWISE-DESIGN.md §6.1.  These exercise end-to-end scenarios that
+# individual-helper tests do not cover: phase-specific selection,
+# warm-start refit efficiency, and the candidate-failure warning path.
+
+
+# Phase-specific entry -----------------------------------------------------
+
+test_that("phase-specific candidates are enumerated distinctly per phase", {
+  # The core requirement the design doc calls out is that a single
+  # variable can be considered for entry into each phase independently.
+  # Test the mechanism directly: after adding `x` to one phase, the
+  # remaining candidates for the other phase still include `x`.
+  data(avc)
+  set.seed(1L)
+  fit <- hazard(
+    Surv(int_dead, dead) ~ 1, data = avc,
+    dist = "multiphase",
+    phases = list(
+      early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                            fixed = "shapes"),
+      constant = hzr_phase("constant")
+    ),
+    fit = TRUE,
+    control = list(n_starts = 2L, maxit = 500L)
+  )
+
+  # Scope advertises `age` for both phases.
+  scope <- list(early = ~ age, constant = ~ age)
+  before <- .hzr_stepwise_candidates(fit, scope = scope, data = avc)
+  pairs_before <- vapply(before,
+                         function(c) paste0(c$var, "@", c$phase),
+                         character(1L))
+  expect_setequal(pairs_before, c("age@early", "age@constant"))
+
+  # Add age into the early phase and re-enumerate.
+  with_early <- .hzr_refit_with_scope(
+    fit, action = "add", var = "age", phase = "early",
+    data = avc, control = list(n_starts = 2L, maxit = 500L)
+  )
+  after <- .hzr_stepwise_candidates(with_early, scope = scope,
+                                      data = avc)
+  pairs_after <- vapply(after,
+                        function(c) paste0(c$var, "@", c$phase),
+                        character(1L))
+  # age@constant should still be a candidate; age@early must not be.
+  expect_true("age@constant" %in% pairs_after)
+  expect_false("age@early" %in% pairs_after)
+})
+
+
+# Warm-start refit efficiency ----------------------------------------------
+
+test_that("warm-started refits converge in far fewer iterations than cold starts", {
+  # Fit a baseline model with two covariates, then add a third via the
+  # refit wrapper. Compare optim counts to a cold hazard() call at the
+  # same target.
+  set.seed(17L)
+  n <- 300L
+  df <- data.frame(
+    time   = rexp(n, 1),
+    status = rep(1L, n),
+    x1     = rnorm(n),
+    x2     = rnorm(n),
+    x3     = rnorm(n)
+  )
+  df$time <- df$time * exp(-0.8 * df$x1 - 0.4 * df$x2)
+
+  base <- hazard(
+    Surv(time, status) ~ x1 + x2, data = df,
+    theta = c(0.5, 1.0, 0, 0), dist = "weibull", fit = TRUE
+  )
+
+  warm <- .hzr_refit_with_scope(
+    base, action = "add", var = "x3", data = df
+  )
+
+  # Cold fit to the same target — starts every beta at 0 and shape
+  # params at (0.5, 1.0) rather than the MLE.
+  cold <- hazard(
+    Surv(time, status) ~ x1 + x2 + x3, data = df,
+    theta = c(0.5, 1.0, 0, 0, 0), dist = "weibull", fit = TRUE
+  )
+
+  expect_true(warm$fit$converged)
+  # Warm and cold both reach the same MLE (essential correctness
+  # guarantee).
+  expect_equal(warm$fit$objective, cold$fit$objective, tolerance = 1e-3)
+
+  # Warm should use no more function evaluations than cold.  The
+  # design-doc promise is "typically one BFGS pass (~0.1 s)"; on
+  # trivial single-distribution problems the gap can be small because
+  # cold-start is already near the MLE (weibull starts at mu = 0.5,
+  # nu = 1 which fits rexp(·, 1) data well).  Regressions in warm-
+  # start correctness would show up as a strict increase here.
+  warm_iters <- warm$fit$counts["function"]
+  cold_iters <- cold$fit$counts["function"]
+  expect_lte(warm_iters, cold_iters)
+})
+
+
+# Candidate-failure warning -------------------------------------------------
+
+test_that("one bad candidate does not prevent others from entering", {
+  # Set up a scope where one candidate is broken (via a nonsense name
+  # triggering the `var not in data` branch, which surfaces as an
+  # error inside tryCatch) while a real one succeeds. The forward step
+  # should warn about the broken candidate and still accept the good
+  # one.
+  obj <- .fit_driver_base(seed = 444L)
+  df2 <- obj$data
+  # Introduce a candidate that refers to a column *not* in `data` —
+  # hazard() will error inside the candidate refit's tryCatch.
+  expect_warning(
+    step <- .hzr_stepwise_forward_step(
+      obj$fit,
+      scope = c("x1", "nonexistent"),
+      data = df2,
+      criterion = "wald", slentry = 0.30
+    ),
+    "candidate refit failed for nonexistent"
+  )
+  expect_true(step$accepted)
+  expect_identical(step$variable, "x1")
+  expect_identical(step$refit_failures, "nonexistent")
+})

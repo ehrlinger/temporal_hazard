@@ -1,27 +1,5 @@
-# Fixture: 1 strong signal (x1) + 3 noise covariates (x2, x3, x4),
-# base fit is intercept-only.  Forward-biased scenarios start here.
-.fit_driver_base <- function(n = 500L, seed = 911L, signal_beta = 0.9) {
-  set.seed(seed)
-  df <- data.frame(
-    time   = rexp(n, rate = 1),
-    status = rep(1L, n),
-    x1     = rnorm(n),
-    x2     = rnorm(n),
-    x3     = rnorm(n),
-    x4     = rnorm(n)
-  )
-  df$time <- df$time * exp(-signal_beta * df$x1)
-
-  fit <- hazard(
-    Surv(time, status) ~ 1,
-    data = df,
-    theta = c(0.5, 1.0),
-    dist = "weibull",
-    fit = TRUE
-  )
-  list(fit = fit, data = df)
-}
-
+# `.fit_driver_base()` lives in helper-stepwise.R (auto-sourced by
+# testthat) so it can be shared with the integration tests.
 
 # Return class and shape ----------------------------------------------------
 
