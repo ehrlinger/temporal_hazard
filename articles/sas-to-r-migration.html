@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -481,8 +481,217 @@ CONSTANT INC_SURG=1.375285, ORIFICE=3.11765, STATUS=1.054988;</code></pre>
 <code>SELECTION</code><a class="anchor" aria-label="anchor" href="#selection"></a>
 </h3>
 <pre class="sas"><code>SELECTION SLE=0.2 SLS=0.1;</code></pre>
-<p>Stepwise variable selection is <strong>not implemented</strong> in <code>TemporalHazard</code>. For now, resolve the final variable set outside the package and then fit the confirmed model directly in R.</p>
-<hr></section></section><section class="level2"><h2 id="full-worked-example-avc-death-after-repair">Full worked example: AVC death after repair<a class="anchor" aria-label="anchor" href="#full-worked-example-avc-death-after-repair"></a>
+<p><code>TemporalHazard</code> now ships <code><a href="../reference/hzr_stepwise.html">hzr_stepwise()</a></code>, which implements forward, backward, and two-way stepwise selection with SAS-style SLENTRY / SLSTAY thresholds, phase-specific entry for multiphase models, and a MOVE oscillation guard. FAST-screening (Lawless-Singhal approximate Wald updates) is not yet implemented; every candidate currently gets a full refit. See <code><a href="../reference/hzr_stepwise.html">?hzr_stepwise</a></code> for the full option list.</p>
+<hr></section></section><section class="level2"><h2 id="sas-macro-equivalents">SAS macro equivalents<a class="anchor" aria-label="anchor" href="#sas-macro-equivalents"></a>
+</h2>
+<p>The legacy SAS distribution ships a suite of macros for nonparametric baselines, goodness-of-fit diagnostics, bootstrap inference, and variable calibration that sit alongside <code>PROC HAZARD</code>. Each has an R equivalent in <code>TemporalHazard</code>:</p>
+<table class="table caption-top">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead><tr class="header">
+<th style="text-align: left;">SAS macro</th>
+<th style="text-align: left;">R function</th>
+<th style="text-align: left;">Purpose</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>kaplan.sas</code></td>
+<td style="text-align: left;"><code><a href="../reference/hzr_kaplan.html">hzr_kaplan()</a></code></td>
+<td style="text-align: left;">KM survival with logit-transformed exact CL</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">
+<code>nelsonl.sas</code> / <code>nelsont.sas</code>
+</td>
+<td style="text-align: left;"><code><a href="../reference/hzr_nelson.html">hzr_nelson()</a></code></td>
+<td style="text-align: left;">Nelson cumulative hazard with lognormal CL</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>hazplot.sas</code></td>
+<td style="text-align: left;"><code><a href="../reference/hzr_gof.html">hzr_gof()</a></code></td>
+<td style="text-align: left;">Parametric vs. KM overlay + CoE goodness-of-fit</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>deciles.hazard.sas</code></td>
+<td style="text-align: left;"><code><a href="../reference/hzr_deciles.html">hzr_deciles()</a></code></td>
+<td style="text-align: left;">Decile-of-risk calibration + chi-square GOF</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">
+<code>logit.sas</code> / <code>logitgr.sas</code>
+</td>
+<td style="text-align: left;"><code><a href="../reference/hzr_calibrate.html">hzr_calibrate()</a></code></td>
+<td style="text-align: left;">Quantile-group calibration (logit / Gompertz / Cox link)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>bootstrap.hazard.sas</code></td>
+<td style="text-align: left;"><code><a href="../reference/hzr_bootstrap.html">hzr_bootstrap()</a></code></td>
+<td style="text-align: left;">Bootstrap resampling + summary</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>markov.sas</code></td>
+<td style="text-align: left;"><code><a href="../reference/hzr_competing_risks.html">hzr_competing_risks()</a></code></td>
+<td style="text-align: left;">Aalen-Johansen competing-risks incidence</td>
+</tr>
+</tbody>
+</table>
+<p>Minimal illustrations on the AVC dataset follow. The <code><a href="../articles/inference-diagnostics.html">vignette("inference-diagnostics")</a></code> walkthrough builds these into a full analysis workflow.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival" class="external-link">survival</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">avc</span><span class="op">)</span></span>
+<span><span class="va">avc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">avc</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Base parametric fit for downstream diagnostics</span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hazard.html">hazard</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">int_dead</span>, <span class="va">dead</span><span class="op">)</span> <span class="op">~</span> <span class="va">age</span> <span class="op">+</span> <span class="va">status</span> <span class="op">+</span> <span class="va">mal</span> <span class="op">+</span> <span class="va">com_iv</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">avc</span>, dist <span class="op">=</span> <span class="st">"weibull"</span>,</span>
+<span>  theta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>mu <span class="op">=</span> <span class="fl">0.2</span>, nu <span class="op">=</span> <span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  fit <span class="op">=</span> <span class="cn">TRUE</span>, control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">km</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hzr_kaplan.html">hzr_kaplan</a></span><span class="op">(</span>time <span class="op">=</span> <span class="va">avc</span><span class="op">$</span><span class="va">int_dead</span>, status <span class="op">=</span> <span class="va">avc</span><span class="op">$</span><span class="va">dead</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">km</span>, <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Kaplan-Meier estimate with logit confidence limits</span></span>
+<span><span class="co">#&gt; Events: 14  | Time points: 4 </span></span>
+<span><span class="co">#&gt; Survival range: 0.9541 to 0.9836 </span></span>
+<span><span class="co">#&gt; RMST at last event: 0.016 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;         time n_risk n_event n_censor survival std_err cl_lower cl_upper cumhaz</span></span>
+<span><span class="co">#&gt;  0.001368954    305       5        0   0.9836  0.0073   0.9612   0.9932 0.0165</span></span>
+<span><span class="co">#&gt;  0.002737907    300       2        0   0.9770  0.0086   0.9527   0.9890 0.0232</span></span>
+<span><span class="co">#&gt;  0.008213721    298       2        0   0.9705  0.0097   0.9443   0.9846 0.0300</span></span>
+<span><span class="co">#&gt;  0.016427440    296       5        0   0.9541  0.0120   0.9240   0.9726 0.0470</span></span>
+<span><span class="co">#&gt;   hazard density   life</span></span>
+<span><span class="co">#&gt;  12.0744 11.9752 0.0014</span></span>
+<span><span class="co">#&gt;   4.8862  4.7901 0.0027</span></span>
+<span><span class="co">#&gt;   1.2298  1.1975 0.0081</span></span>
+<span><span class="co">#&gt;   2.0741  1.9959 0.0160</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">nel</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hzr_nelson.html">hzr_nelson</a></span><span class="op">(</span>time <span class="op">=</span> <span class="va">avc</span><span class="op">$</span><span class="va">int_dead</span>, event <span class="op">=</span> <span class="va">avc</span><span class="op">$</span><span class="va">dead</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">nel</span>, <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Nelson cumulative hazard estimate with lognormal CL</span></span>
+<span><span class="co">#&gt; Events: 14  | Time points: 4 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;         time n_risk n_event weight_sum cumhaz std_err cl_lower cl_upper  hazard</span></span>
+<span><span class="co">#&gt;  0.001368954    305       5          5 0.0164  0.0033   0.0109   0.0237 11.9752</span></span>
+<span><span class="co">#&gt;  0.002737907    300       2          2 0.0231  0.0047   0.0153   0.0335  4.8699</span></span>
+<span><span class="co">#&gt;  0.008213721    298       2          2 0.0298  0.0057   0.0201   0.0425  1.2256</span></span>
+<span><span class="co">#&gt;  0.016427440    296       5          5 0.0467  0.0067   0.0350   0.0610  2.0565</span></span>
+<span><span class="co">#&gt;  cum_events</span></span>
+<span><span class="co">#&gt;           5</span></span>
+<span><span class="co">#&gt;           7</span></span>
+<span><span class="co">#&gt;           9</span></span>
+<span><span class="co">#&gt;          14</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/hzr_gof.html">hzr_gof</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Goodness-of-fit: observed vs. expected events</span></span>
+<span><span class="co">#&gt; Distribution: weibull  | n = 305 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Total observed events: 68 </span></span>
+<span><span class="co">#&gt; Total expected events: 50.433 </span></span>
+<span><span class="co">#&gt; Final residual (E - O): -17.567 </span></span>
+<span><span class="co">#&gt; Conservation ratio (E/O): 0.742 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Use plot columns: time, km_surv, par_surv, cum_observed, cum_expected, residual</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hzr_deciles.html">hzr_deciles</a></span><span class="op">(</span><span class="va">fit</span>, time <span class="op">=</span> <span class="fl">120</span>, groups <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Decile-of-risk calibration at time = 120 </span></span>
+<span><span class="co">#&gt; Included 86 observations (excluded 219 censored before horizon).</span></span>
+<span><span class="co">#&gt; 10 groups, 66 observed events, 33.7 expected</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  group n events expected observed_rate expected_rate chi_sq  p_value</span></span>
+<span><span class="co">#&gt;      1 8      1    0.458         0.125        0.0573  0.641 0.424000</span></span>
+<span><span class="co">#&gt;      2 9      2    0.973         0.222        0.1080  1.080 0.298000</span></span>
+<span><span class="co">#&gt;      3 8      5    1.410         0.625        0.1760  9.170 0.002460</span></span>
+<span><span class="co">#&gt;      4 9      7    2.310         0.778        0.2570  9.530 0.002030</span></span>
+<span><span class="co">#&gt;      5 9      9    2.890         1.000        0.3210 12.900 0.000321</span></span>
+<span><span class="co">#&gt;      6 8      7    3.300         0.875        0.4120  4.160 0.041400</span></span>
+<span><span class="co">#&gt;      7 9      9    4.200         1.000        0.4670  5.480 0.019200</span></span>
+<span><span class="co">#&gt;      8 8      8    4.300         1.000        0.5380  3.180 0.074700</span></span>
+<span><span class="co">#&gt;      9 9      9    6.140         1.000        0.6820  1.330 0.249000</span></span>
+<span><span class="co">#&gt;     10 9      9    7.690         1.000        0.8540  0.224 0.636000</span></span>
+<span><span class="co">#&gt;  mean_survival mean_cumhaz</span></span>
+<span><span class="co">#&gt;          0.943      0.0591</span></span>
+<span><span class="co">#&gt;          0.892      0.1150</span></span>
+<span><span class="co">#&gt;          0.824      0.1940</span></span>
+<span><span class="co">#&gt;          0.743      0.2970</span></span>
+<span><span class="co">#&gt;          0.679      0.3870</span></span>
+<span><span class="co">#&gt;          0.588      0.5320</span></span>
+<span><span class="co">#&gt;          0.533      0.6300</span></span>
+<span><span class="co">#&gt;          0.462      0.7720</span></span>
+<span><span class="co">#&gt;          0.318      1.1700</span></span>
+<span><span class="co">#&gt;          0.146      2.0100</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Overall: chi-sq = 47.7 on 9 df, p = 2.86e-07</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/hzr_calibrate.html">hzr_calibrate</a></span><span class="op">(</span><span class="va">avc</span><span class="op">$</span><span class="va">age</span>, <span class="va">avc</span><span class="op">$</span><span class="va">dead</span>, groups <span class="op">=</span> <span class="fl">10</span>, link <span class="op">=</span> <span class="st">"logit"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Variable calibration (logit link, 10 groups)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  group  n events    mean     min     max  prob link_value</span></span>
+<span><span class="co">#&gt;      1 30     11   3.519   1.051   5.388 0.367     -0.547</span></span>
+<span><span class="co">#&gt;      2 31     11   8.665   5.421  11.532 0.355     -0.598</span></span>
+<span><span class="co">#&gt;      3 30     13  15.194  11.631  18.497 0.433     -0.268</span></span>
+<span><span class="co">#&gt;      4 31     11  23.077  18.990  27.828 0.355     -0.598</span></span>
+<span><span class="co">#&gt;      5 30      7  43.544  28.124  57.167 0.233     -1.190</span></span>
+<span><span class="co">#&gt;      6 31      3  72.066  59.730  86.408 0.097     -2.234</span></span>
+<span><span class="co">#&gt;      7 30      2 101.154  86.507 117.522 0.067     -2.639</span></span>
+<span><span class="co">#&gt;      8 31      3 162.739 121.169 203.733 0.097     -2.234</span></span>
+<span><span class="co">#&gt;      9 30      4 247.051 205.343 297.140 0.133     -1.872</span></span>
+<span><span class="co">#&gt;     10 31      3 530.623 324.573 790.981 0.097     -2.234</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/hzr_bootstrap.html">hzr_bootstrap</a></span><span class="op">(</span><span class="va">fit</span>, n_boot <span class="op">=</span> <span class="fl">20</span><span class="op">)</span>  <span class="co"># small for vignette build</span></span>
+<span><span class="co">#&gt; Bootstrap inference for hazard model</span></span>
+<span><span class="co">#&gt; Replicates: 20 successful, 0 failed</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;  parameter  n pct   mean     sd     min    max ci_lower ci_upper</span></span>
+<span><span class="co">#&gt;         mu 20 100 0.0000 0.0000  0.0000 0.0000   0.0000   0.0000</span></span>
+<span><span class="co">#&gt;         nu 20 100 0.2446 0.0170  0.2222 0.2866   0.2229   0.2798</span></span>
+<span><span class="co">#&gt;            80 400 0.4756 0.3931 -0.2049 1.3490  -0.0349   1.2302</span></span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">valves</span><span class="op">)</span></span>
+<span><span class="co"># Synthesize a competing-risks indicator for illustration.</span></span>
+<span><span class="va">valves</span><span class="op">$</span><span class="va">ev</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">valves</span>, <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">dead</span> <span class="op">==</span> <span class="fl">1</span>, <span class="fl">1L</span>,</span>
+<span>                                   <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">pve</span> <span class="op">==</span> <span class="fl">1</span>,  <span class="fl">2L</span>,</span>
+<span>                                   <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">reop</span> <span class="op">==</span> <span class="fl">1</span>, <span class="fl">3L</span>, <span class="fl">0L</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/hzr_competing_risks.html">hzr_competing_risks</a></span><span class="op">(</span><span class="va">valves</span><span class="op">$</span><span class="va">int_dead</span>, <span class="va">valves</span><span class="op">$</span><span class="va">ev</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Competing risks cumulative incidence</span></span>
+<span><span class="co">#&gt; Event types: 3  | Time points: 4 </span></span>
+<span><span class="co">#&gt; Final survival: 0.9941 </span></span>
+<span><span class="co">#&gt; Final incid_1 : 0.0059 </span></span>
+<span><span class="co">#&gt; Final incid_2 : 0 </span></span>
+<span><span class="co">#&gt; Final incid_3 : 0 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     time n_risk n_event_1 n_event_2 n_event_3 n_censor   surv incid_1 incid_2</span></span>
+<span><span class="co">#&gt;  0.00068   1533         1         0         0        0 0.9993  0.0007       0</span></span>
+<span><span class="co">#&gt;  0.00137   1532         4         0         0        0 0.9967  0.0033       0</span></span>
+<span><span class="co">#&gt;  0.00171   1528         1         0         0        0 0.9961  0.0039       0</span></span>
+<span><span class="co">#&gt;  0.00205   1527         3         0         0        0 0.9941  0.0059       0</span></span>
+<span><span class="co">#&gt;  incid_3 se_surv   se_1 se_2 se_3</span></span>
+<span><span class="co">#&gt;        0  0.0007 0.0007    0    0</span></span>
+<span><span class="co">#&gt;        0  0.0015 0.0015    0    0</span></span>
+<span><span class="co">#&gt;        0  0.0016 0.0016    0    0</span></span>
+<span><span class="co">#&gt;        0  0.0020 0.0020    0    0</span></span></code></pre></div>
+</div>
+<hr></section><section class="level2"><h2 id="full-worked-example-avc-death-after-repair">Full worked example: AVC death after repair<a class="anchor" aria-label="anchor" href="#full-worked-example-avc-death-after-repair"></a>
 </h2>
 <p>This mirrors the final multivariable model from <code>examples/hm.death.AVC.sas</code> in the reference C repository.</p>
 <section class="level3"><h3 id="sas-original">SAS (original)<a class="anchor" aria-label="anchor" href="#sas-original"></a>
@@ -500,7 +709,7 @@ PROC HAZARD DATA=AVCS P CONSERVE OUTHAZ=OUTEST CONDITION=14 QUASI;
 </section><section class="level3"><h3 id="r-equivalent-current-runnable-translation-pattern">R equivalent (current runnable translation pattern)<a class="anchor" aria-label="anchor" href="#r-equivalent-current-runnable-translation-pattern"></a>
 </h3>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Assumed: avcs is a data.frame read from the AVC flat file</span></span>
 <span><span class="co"># (same variables as the SAS DATA step)</span></span>
 <span></span>
@@ -652,15 +861,55 @@ PROC HAZARD DATA=AVCS P CONSERVE OUTHAZ=OUTEST CONDITION=14 QUASI;
 </h2>
 <p><code><a href="../reference/predict.hazard.html">predict.hazard()</a></code> currently supports two output types:</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Linear predictor (X %*% theta)</span></span>
 <span><span class="va">eta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"linear_predictor"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Hazard scale (exp(eta))</span></span>
 <span><span class="va">hz</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"hazard"</span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>From M2 onward, <code>"survival"</code> and <code>"cumulative_hazard"</code> types will be added to mirror the <code>P</code> (predict/print) option in <code>PROC HAZARD</code>.</p>
-<hr></section><section class="level2"><h2 id="rcpp-acceleration-note">Rcpp acceleration note<a class="anchor" aria-label="anchor" href="#rcpp-acceleration-note"></a>
+<p><code>"survival"</code> and <code>"cumulative_hazard"</code> types are also supported, mirroring the <code>P</code> (predict/print) option in <code>PROC HAZARD</code>. Pass <code>decompose = TRUE</code> for multiphase fits to get per-phase contributions.</p>
+<hr></section><section class="level2"><h2 id="known-limitations-vs--sas-hazard">Known limitations vs. SAS HAZARD<a class="anchor" aria-label="anchor" href="#known-limitations-vs--sas-hazard"></a>
+</h2>
+<p>A SAS HAZARD veteran migrating to <code>TemporalHazard</code> should be aware of the following scope limits as of v0.9.5. Detailed status per feature is tracked in <code>inst/dev/SAS-PARITY-GAP-ANALYSIS.md</code>.</p>
+<section class="level3"><h3 id="observation-weights-weight-statement">Observation weights (<code>WEIGHT</code> statement)<a class="anchor" aria-label="anchor" href="#observation-weights-weight-statement"></a>
+</h3>
+<ul>
+<li>
+<strong>Supported:</strong> <code>dist = "weibull"</code> and <code>dist = "multiphase"</code> (LL and analytic gradient).</li>
+<li>
+<strong>Not yet supported:</strong> <code>dist = "exponential"</code>, <code>"log-logistic"</code>, <code>"log-normal"</code>. <code><a href="../reference/hazard.html">hazard()</a></code> raises an explicit error rather than returning a silently unweighted fit.</li>
+<li>
+<strong>Caveat for multiphase:</strong> the Conservation of Events optimiser trick auto-disables when weights are not all 1. Fits are still correct; they just take the full-dimensional optimisation path.</li>
+<li>Tracked: <code>DEVELOPMENT-PLAN.md</code> Phase 4e.</li>
+</ul></section><section class="level3"><h3 id="repeating-events-counting-process-notation">Repeating events / counting-process notation<a class="anchor" aria-label="anchor" href="#repeating-events-counting-process-notation"></a>
+</h3>
+<ul>
+<li>
+<strong>Supported:</strong> <code>Surv(time, status)</code> (standard right-censoring), <code>Surv(time1, time2, type = "interval2")</code> (interval censoring), <code>Surv(0, t, d)</code> (trivial start-stop form, equivalent to right censoring).</li>
+<li>
+<strong>Not yet supported:</strong> <code>Surv(start, stop, event)</code> with any <code>start &gt; 0</code>. The parser accepts it, but the downstream likelihood currently scores every row as <code>H(stop)</code> instead of <code>H(stop) - H(start)</code>. <code><a href="../reference/hazard.html">hazard()</a></code> errors out to prevent a silently wrong fit. The SAS <code>LCENSOR</code>/<code>STIME</code> mechanism maps onto this notation in principle.</li>
+<li>Tracked: <code>DEVELOPMENT-PLAN.md</code> Phase 4f.</li>
+</ul></section><section class="level3"><h3 id="stepwise-variable-selection-selection-statement">Stepwise variable selection (<code>SELECTION</code> statement)<a class="anchor" aria-label="anchor" href="#stepwise-variable-selection-selection-statement"></a>
+</h3>
+<ul>
+<li>
+<strong>Supported:</strong> <code><a href="../reference/hzr_stepwise.html">hzr_stepwise()</a></code> implements forward / backward / two-way stepwise with SAS-style SLENTRY / SLSTAY thresholds, per-phase entry for multiphase, and a MOVE oscillation guard.</li>
+<li>
+<strong>Not yet supported:</strong> FAST-screening (Lawless-Singhal approximate Wald updates). Every candidate currently gets a full refit.</li>
+</ul></section><section class="level3"><h3 id="prediction-confidence-limits">Prediction confidence limits<a class="anchor" aria-label="anchor" href="#prediction-confidence-limits"></a>
+</h3>
+<ul>
+<li>
+<strong>Supported:</strong> point predictions for every type (<code>hazard</code>, <code>linear_predictor</code>, <code>survival</code>, <code>cumulative_hazard</code>, plus <code>decompose = TRUE</code> for multiphase).</li>
+<li>
+<strong>Not yet supported:</strong> delta-method standard errors / confidence limits on prediction curves (the C reference has <code>hzp_calc_haz_CL.c</code>, <code>hzp_calc_srv_CL.c</code>). Use <code><a href="../reference/hzr_bootstrap.html">hzr_bootstrap()</a></code> + <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> for prediction-level CIs today.</li>
+</ul></section><section class="level3"><h3 id="output-datasets-outest-outvcov">Output datasets (<code>OUTEST=</code>, <code>OUTVCOV=</code>)<a class="anchor" aria-label="anchor" href="#output-datasets-outest-outvcov"></a>
+</h3>
+<ul>
+<li>The R equivalents are <code>coef(fit)</code> and <code>vcov(fit)</code> in memory; there is no automatic dataset-export mode. Write them to disk yourself if you need one.</li>
+</ul>
+<hr></section></section><section class="level2"><h2 id="rcpp-acceleration-note">Rcpp acceleration note<a class="anchor" aria-label="anchor" href="#rcpp-acceleration-note"></a>
 </h2>
 <p><code>TemporalHazard</code> is currently pure R. If profiling against large real datasets reveals bottlenecks in the likelihood kernel or optimizer inner loop, those specific functions will be re-implemented with Rcpp. The public interface (<code><a href="../reference/hazard.html">hazard()</a></code>, <code><a href="../reference/predict.hazard.html">predict.hazard()</a></code>, etc.) will not change.</p>
 </section><section class="level2 unnumbered"><h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>

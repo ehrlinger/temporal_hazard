@@ -35,8 +35,8 @@ hzr_phase_cumhaz(
 
 - type:
 
-  Phase type: `"cdf"` (early — uses \\G(t)\\), `"hazard"` (late — uses
-  cumulative hazard from \\h(t)\\), or `"constant"` (flat rate — \\\Phi
+  Phase type: `"cdf"` (early – uses \\G(t)\\), `"hazard"` (late – uses
+  cumulative hazard from \\h(t)\\), or `"constant"` (flat rate – \\\Phi
   = t\\).
 
 ## Value

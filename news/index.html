@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,13 +50,39 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.5" id="temporalhazard-095">TemporalHazard 0.9.5<a class="anchor" aria-label="anchor" href="#temporalhazard-095"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-9-5">New features<a class="anchor" aria-label="anchor" href="#new-features-0-9-5"></a></h3>
+<ul><li>
+<strong>Stepwise covariate selection</strong> — <code><a href="../reference/hzr_stepwise.html">hzr_stepwise()</a></code> runs forward, backward, or two-way stepwise selection on an existing <code>hazard</code> fit using Wald p-values or AIC deltas as the entry / retention criterion. Phase-specific entry is supported for multiphase models: a covariate can enter one phase and not another. Defaults match SAS <code>PROC HAZARD</code> (<code>SLENTRY = 0.30</code>, <code>SLSTAY = 0.20</code>); AIC mode uses <code>ΔAIC &lt; 0</code> uniformly. SAS-style <code>MOVE</code> oscillation guard freezes variables that enter + exit more than <code>max_move</code> times. Returns an object of class <code>c("hzr_stepwise", "hazard")</code> with a <code>$steps</code> selection trace, scope record, and elapsed timer. Implements the core algorithm from C HAZARD <code>stepw.c</code> / <code>backw.c</code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-9-5">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-5"></a></h3>
+<ul><li>
+<strong>Multiphase convergence after weights/repeating-events merge</strong> — restored multiphase optimization that regressed in 0.9.4: three interacting defects in the new <code>weights</code> threading (dup-arg collision in the multiphase / Weibull closures, positional-arg corruption in every distribution’s gradient call) made every optimizer iteration error silently inside <code>tryCatch</code>. Diagnosed and fixed via commit 73b4657.</li>
+<li>
+<strong>Weibull analytic gradient now applies <code>weights</code></strong> — both <code>.hzr_gradient_weibull()</code> and the <code>grad_internal</code> closure inside <code>.hzr_optim_weibull()</code> accepted <code>weights</code> as a formal but did not apply it to the score vector. The optimizer still converged via line search on the (weighted) log-likelihood, but the gradient direction was wrong and the final gradient norm did not go to zero. Both gradient paths now weight the event indicator and cumulative hazard building blocks. Fits with integer weights reproduce the equivalent row-duplicated fit to optimizer tolerance.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="scope-change-0-9-5">Scope change<a class="anchor" aria-label="anchor" href="#scope-change-0-9-5"></a></h3>
+<ul><li>
+<code>weights</code> is now only accepted for <code>dist = "weibull"</code> and <code>dist = "multiphase"</code>. The 0.9.4 NEWS claimed weights were threaded through all distribution-specific likelihoods; in fact the exponential, log-logistic, and log-normal single-distribution paths accepted the formal but never applied it, so the fit was silently unweighted. <code><a href="../reference/hazard.html">hazard()</a></code> now raises an explicit error when <code>weights</code> is supplied with one of those distributions rather than returning an unweighted fit. Full support for the remaining single-dist paths is tracked in <code>inst/dev/DEVELOPMENT-PLAN.md</code> Phase 4e.</li>
+<li>
+<strong>Conservation of Events is auto-disabled when weights are not all 1.</strong> <code><a href="../reference/dot-hzr_conserve_events.html">.hzr_conserve_events()</a></code> receives the weighted event count as its target but sums per-phase cumulative hazards across rows <em>without</em> applying weights, so Turner’s adjustment comes out on a mismatched scale. The multiphase optimizer now detects non-unit weights and skips the CoE dimension reduction, falling through to the (correctly weighted) full-dimensional path. Fits are still correct; they just don’t benefit from the one-parameter analytical closed-form solve. Weighted CoE wire-up is tracked alongside the other weights completion work in <code>inst/dev/DEVELOPMENT-PLAN.md</code> Phase 4e.</li>
+<li>
+<strong>Repeating-events / counting-process notation narrowed.</strong> <code>Surv(start, stop, event)</code> with <code>start &gt; 0</code> is no longer accepted by <code><a href="../reference/hazard.html">hazard()</a></code>. The 0.9.4 NEWS claimed each epoch contributed <code>H(stop) - H(start)</code> to the likelihood, but downstream likelihoods only read <code>time_lower</code> for interval-censored rows (<code>status == 2</code>); counting-process rows (<code>status</code> in <code>{0, 1}</code>) were silently scored with <code>H(stop)</code> alone, so any fit with nonzero entry times was silently wrong. <code><a href="../reference/hazard.html">hazard()</a></code> now raises an explicit error. The trivial case <code>Surv(0, t, d)</code> – equivalent to <code>Surv(t, d)</code> – continues to work. Full wire-up of <code>H(stop) - H(start)</code> for all distribution paths is tracked in <code>inst/dev/DEVELOPMENT-PLAN.md</code> Phase 4f.</li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.4" id="temporalhazard-094">TemporalHazard 0.9.4<a class="anchor" aria-label="anchor" href="#temporalhazard-094"></a></h2>
 <div class="section level3">
 <h3 id="new-features-0-9-4">New features<a class="anchor" aria-label="anchor" href="#new-features-0-9-4"></a></h3>
 <ul><li>
-<strong>Observation weights</strong> — <code>weights</code> argument in <code><a href="../reference/hazard.html">hazard()</a></code> applies Fisher weighting to the log-likelihood. Each observation’s contribution is multiplied by its weight, enabling severity-weighted event analyses. Threaded through all distribution-specific likelihood and gradient functions. Implements the SAS <code>WEIGHT</code> statement.</li>
+<strong>Observation weights</strong> — <code>weights</code> argument in <code><a href="../reference/hazard.html">hazard()</a></code> applies Fisher weighting to the log-likelihood for <code>dist = "weibull"</code> and <code>dist = "multiphase"</code>. Each observation’s contribution is multiplied by its weight, enabling severity-weighted event analyses. Implements the SAS <code>WEIGHT</code> statement. <em>The original 0.9.4 entry claimed coverage of all distribution paths; the 0.9.5 patch corrected the claim and fixed a gradient wire-up bug in the Weibull path.</em>
+</li>
 <li>
-<strong>Repeating events</strong> — <code>Surv(start, stop, event)</code> start-stop notation is now supported for epoch-decomposed longitudinal data. Each epoch contributes <code>H(stop) - H(start)</code> to the likelihood, matching the SAS <code>LCENSOR</code>/<code>STIME</code> mechanism.</li>
+<strong>Repeating events</strong> — <code>Surv(start, stop, event)</code> start-stop notation is parsed. <em>The original 0.9.4 entry claimed each epoch contributed <code>H(stop) - H(start)</code> to the likelihood, but the downstream likelihoods never applied the lower bound for counting-process rows; the 0.9.5 patch narrowed the feature to the trivial <code>start = 0</code> case and added an explicit error for nonzero starts.</em>
+</li>
 </ul></div>
 </div>
     <div class="section level2">
@@ -103,9 +129,9 @@
 <ul><li>
 <code><a href="../reference/summary.hazard.html">summary.hazard()</a></code> now correctly reports standard errors when some parameters are fixed. Previously, <code>anyNA(vcov)</code> rejected the entire variance-covariance matrix when fixed parameters had NA entries.</li>
 <li>
-<code>print.summary.hazard()</code> coefficient table now shows the correct label for G3 phases (was printing empty parentheses).</li>
+<code><a href="../reference/print.summary.hazard.html">print.summary.hazard()</a></code> coefficient table now shows the correct label for G3 phases (was printing empty parentheses).</li>
 <li>
-<code>print.summary.hazard()</code> phase listing now uses the phase name in CDF labels (e.g., “cdf (late risk)”) instead of hardcoded “early risk”.</li>
+<code><a href="../reference/print.summary.hazard.html">print.summary.hazard()</a></code> phase listing now uses the phase name in CDF labels (e.g., “cdf (late risk)”) instead of hardcoded “early risk”.</li>
 <li>SAS missing value markers (<code>.</code>) in CSV datasets are now handled via <code>na.strings = c("NA", ".")</code> in <code>data-raw/make_data.R</code>, preventing numeric columns from being read as character.</li>
 </ul></div>
 <div class="section level3">

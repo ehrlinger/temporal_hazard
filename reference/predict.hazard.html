@@ -9,7 +9,7 @@ types including linear predictor, hazard, survival probability, and cumulative h
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,8 +84,8 @@ column, or time will be taken from the fitted object's data.</p></dd>
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
-<dd><p>Prediction type:</p><ul><li><p><code>"linear_predictor"</code>: Linear predictor η = x·β (not available for multiphase)</p></li>
-<li><p><code>"hazard"</code>: Hazard scale exp(η) (not available for multiphase)</p></li>
+<dd><p>Prediction type:</p><ul><li><p><code>"linear_predictor"</code>: Linear predictor eta = x*beta (not available for multiphase)</p></li>
+<li><p><code>"hazard"</code>: Hazard scale exp(eta) (not available for multiphase)</p></li>
 <li><p><code>"survival"</code>: Survival probability S(t|x) = exp(-H(t|x))</p></li>
 <li><p><code>"cumulative_hazard"</code>: Cumulative hazard H(t|x) at event times</p></li>
 </ul></dd>
@@ -107,7 +107,7 @@ total.  Ignored for single-distribution models.  Default <code>FALSE</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>For Weibull models with survival or cumulative_hazard predictions:</p><ul><li><p>Cumulative hazard: H(t|x) = (μ·t)^ν · exp(η)</p></li>
+    <p>For Weibull models with survival or cumulative_hazard predictions:</p><ul><li><p>Cumulative hazard: H(t|x) = (mu*t)^nu * exp(eta)</p></li>
 <li><p>Survival: S(t|x) = exp(-H(t|x))</p></li>
 </ul><p>Time values must be positive and finite. If newdata contains a <code>time</code> column,
 it will be used; otherwise, the time vector from the fitted object is used.
@@ -126,7 +126,7 @@ workflows including decomposed hazard plots and patient-specific curves.</p></di
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># ── Basic predictions ────────────────────────────────────────────────</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># -- Basic predictions ------------------------------------------------</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="hazard.html">hazard</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">0.3</span><span class="op">)</span>, status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">50</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>              theta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">1.0</span><span class="op">)</span>, dist <span class="op">=</span> <span class="st">"weibull"</span>, fit <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
@@ -144,7 +144,7 @@ workflows including decomposed hazard plots and patient-specific curves.</p></di
 <span class="r-in"><span>        type <span class="op">=</span> <span class="st">"cumulative_hazard"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.2244716 0.5138491 1.5356737</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># ── Patient-specific survival curves ─────────────────────────────────</span></span></span>
+<span class="r-in"><span><span class="co"># -- Patient-specific survival curves ---------------------------------</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1001</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">n</span>   <span class="op">&lt;-</span> <span class="fl">180</span></span></span>
 <span class="r-in"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
@@ -179,7 +179,7 @@ workflows including decomposed hazard plots and patient-specific curves.</p></di
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3  3.0  75    4     1 0.5046535        0.68388317</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="co"># ── Grouped survival curves ───────────────────────────────────────</span></span></span>
+<span class="r-in"><span><span class="co"># -- Grouped survival curves ---------------------------------------</span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"ggplot2"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
@@ -218,7 +218,7 @@ workflows including decomposed hazard plots and patient-specific curves.</p></di
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
-<span class="r-in"><span><span class="co"># ── Multiphase predictions with decomposition ────────────────────</span></span></span>
+<span class="r-in"><span><span class="co"># -- Multiphase predictions with decomposition --------------------</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">n</span>   <span class="op">&lt;-</span> <span class="fl">200</span></span></span>
 <span class="r-in"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>

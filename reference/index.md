@@ -16,6 +16,7 @@
 ## Multiphase phases
 
 - [`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
+  [`print(`*`<hzr_phase>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
   : Specify a single hazard phase
 - [`is_hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/is_hzr_phase.md)
   : Test if an object is an hzr_phase
@@ -23,6 +24,31 @@
   : Cumulative hazard contribution from a single phase
 - [`hzr_phase_hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase_hazard.md)
   : Instantaneous hazard contribution from a single phase
+
+## Variable selection
+
+- [`hzr_stepwise()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_stepwise.md)
+  : Stepwise covariate selection for a parametric hazard model
+
+- [`print(`*`<hzr_stepwise>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_stepwise.md)
+  :
+
+  Print method for `hzr_stepwise`
+
+- [`summary(`*`<hzr_stepwise>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/summary.hzr_stepwise.md)
+  :
+
+  Summary method for `hzr_stepwise`
+
+- [`as.data.frame(`*`<hzr_stepwise>`*`)`](https://ehrlinger.github.io/temporal_hazard/reference/as.data.frame.hzr_stepwise.md)
+  :
+
+  Coerce an `hzr_stepwise` result to its selection trace
+
+- [`stepwise_trace()`](https://ehrlinger.github.io/temporal_hazard/reference/stepwise_trace.md)
+  :
+
+  Extract the captured console trace from an `hzr_stepwise` fit
 
 ## Decomposition
 

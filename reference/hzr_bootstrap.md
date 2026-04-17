@@ -61,13 +61,13 @@ A list with class `"hzr_bootstrap"` containing:
 
 - replicates:
 
-  Data frame with columns `replicate`, `parameter`, and `estimate` — one
+  Data frame with columns `replicate`, `parameter`, and `estimate` – one
   row per parameter per successful replicate.
 
 - summary:
 
   Data frame with columns `parameter`, `n`, `pct`, `mean`, `sd`, `min`,
-  `max`, `ci_lower`, `ci_upper` — one row per parameter.
+  `max`, `ci_lower`, `ci_upper` – one row per parameter.
 
 - n_success:
 

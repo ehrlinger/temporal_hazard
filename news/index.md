@@ -1,19 +1,98 @@
 # Changelog
 
+## TemporalHazard 0.9.5
+
+### New features
+
+- **Stepwise covariate selection** —
+  [`hzr_stepwise()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_stepwise.md)
+  runs forward, backward, or two-way stepwise selection on an existing
+  `hazard` fit using Wald p-values or AIC deltas as the entry /
+  retention criterion. Phase-specific entry is supported for multiphase
+  models: a covariate can enter one phase and not another. Defaults
+  match SAS `PROC HAZARD` (`SLENTRY = 0.30`, `SLSTAY = 0.20`); AIC mode
+  uses `ΔAIC < 0` uniformly. SAS-style `MOVE` oscillation guard freezes
+  variables that enter + exit more than `max_move` times. Returns an
+  object of class `c("hzr_stepwise", "hazard")` with a `$steps`
+  selection trace, scope record, and elapsed timer. Implements the core
+  algorithm from C HAZARD `stepw.c` / `backw.c`.
+
+### Bug fixes
+
+- **Multiphase convergence after weights/repeating-events merge** —
+  restored multiphase optimization that regressed in 0.9.4: three
+  interacting defects in the new `weights` threading (dup-arg collision
+  in the multiphase / Weibull closures, positional-arg corruption in
+  every distribution’s gradient call) made every optimizer iteration
+  error silently inside `tryCatch`. Diagnosed and fixed via commit
+  73b4657.
+- **Weibull analytic gradient now applies `weights`** — both
+  `.hzr_gradient_weibull()` and the `grad_internal` closure inside
+  `.hzr_optim_weibull()` accepted `weights` as a formal but did not
+  apply it to the score vector. The optimizer still converged via line
+  search on the (weighted) log-likelihood, but the gradient direction
+  was wrong and the final gradient norm did not go to zero. Both
+  gradient paths now weight the event indicator and cumulative hazard
+  building blocks. Fits with integer weights reproduce the equivalent
+  row-duplicated fit to optimizer tolerance.
+
+### Scope change
+
+- `weights` is now only accepted for `dist = "weibull"` and
+  `dist = "multiphase"`. The 0.9.4 NEWS claimed weights were threaded
+  through all distribution-specific likelihoods; in fact the
+  exponential, log-logistic, and log-normal single-distribution paths
+  accepted the formal but never applied it, so the fit was silently
+  unweighted.
+  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+  now raises an explicit error when `weights` is supplied with one of
+  those distributions rather than returning an unweighted fit. Full
+  support for the remaining single-dist paths is tracked in
+  `inst/dev/DEVELOPMENT-PLAN.md` Phase 4e.
+- **Conservation of Events is auto-disabled when weights are not all
+  1.**
+  [`.hzr_conserve_events()`](https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_conserve_events.md)
+  receives the weighted event count as its target but sums per-phase
+  cumulative hazards across rows *without* applying weights, so Turner’s
+  adjustment comes out on a mismatched scale. The multiphase optimizer
+  now detects non-unit weights and skips the CoE dimension reduction,
+  falling through to the (correctly weighted) full-dimensional path.
+  Fits are still correct; they just don’t benefit from the one-parameter
+  analytical closed-form solve. Weighted CoE wire-up is tracked
+  alongside the other weights completion work in
+  `inst/dev/DEVELOPMENT-PLAN.md` Phase 4e.
+- **Repeating-events / counting-process notation narrowed.**
+  `Surv(start, stop, event)` with `start > 0` is no longer accepted by
+  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md).
+  The 0.9.4 NEWS claimed each epoch contributed `H(stop) - H(start)` to
+  the likelihood, but downstream likelihoods only read `time_lower` for
+  interval-censored rows (`status == 2`); counting-process rows
+  (`status` in `{0, 1}`) were silently scored with `H(stop)` alone, so
+  any fit with nonzero entry times was silently wrong.
+  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+  now raises an explicit error. The trivial case `Surv(0, t, d)` –
+  equivalent to `Surv(t, d)` – continues to work. Full wire-up of
+  `H(stop) - H(start)` for all distribution paths is tracked in
+  `inst/dev/DEVELOPMENT-PLAN.md` Phase 4f.
+
 ## TemporalHazard 0.9.4
 
 ### New features
 
 - **Observation weights** — `weights` argument in
   [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
-  applies Fisher weighting to the log-likelihood. Each observation’s
-  contribution is multiplied by its weight, enabling severity-weighted
-  event analyses. Threaded through all distribution-specific likelihood
-  and gradient functions. Implements the SAS `WEIGHT` statement.
+  applies Fisher weighting to the log-likelihood for `dist = "weibull"`
+  and `dist = "multiphase"`. Each observation’s contribution is
+  multiplied by its weight, enabling severity-weighted event analyses.
+  Implements the SAS `WEIGHT` statement. *The original 0.9.4 entry
+  claimed coverage of all distribution paths; the 0.9.5 patch corrected
+  the claim and fixed a gradient wire-up bug in the Weibull path.*
 - **Repeating events** — `Surv(start, stop, event)` start-stop notation
-  is now supported for epoch-decomposed longitudinal data. Each epoch
-  contributes `H(stop) - H(start)` to the likelihood, matching the SAS
-  `LCENSOR`/`STIME` mechanism.
+  is parsed. *The original 0.9.4 entry claimed each epoch contributed
+  `H(stop) - H(start)` to the likelihood, but the downstream likelihoods
+  never applied the lower bound for counting-process rows; the 0.9.5
+  patch narrowed the feature to the trivial `start = 0` case and added
+  an explicit error for nonzero starts.*
 
 ## TemporalHazard 0.9.3
 
@@ -89,10 +168,12 @@
   now correctly reports standard errors when some parameters are fixed.
   Previously, `anyNA(vcov)` rejected the entire variance-covariance
   matrix when fixed parameters had NA entries.
-- `print.summary.hazard()` coefficient table now shows the correct label
-  for G3 phases (was printing empty parentheses).
-- `print.summary.hazard()` phase listing now uses the phase name in CDF
-  labels (e.g., “cdf (late risk)”) instead of hardcoded “early risk”.
+- [`print.summary.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/print.summary.hazard.md)
+  coefficient table now shows the correct label for G3 phases (was
+  printing empty parentheses).
+- [`print.summary.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/print.summary.hazard.md)
+  phase listing now uses the phase name in CDF labels (e.g., “cdf (late
+  risk)”) instead of hardcoded “early risk”.
 - SAS missing value markers (`.`) in CSV datasets are now handled via
   `na.strings = c("NA", ".")` in `data-raw/make_data.R`, preventing
   numeric columns from being read as character.

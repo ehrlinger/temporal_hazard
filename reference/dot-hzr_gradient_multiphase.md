@@ -68,5 +68,5 @@ for shape parameters (`log_t_half`, `nu`, `m`).
 
 ## Value
 
-Numeric vector of length `length(theta)` — the gradient. Returns a zero
+Numeric vector of length `length(theta)` – the gradient. Returns a zero
 vector if any component is non-finite (guards optimizer).

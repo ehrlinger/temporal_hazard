@@ -313,9 +313,10 @@ transformations (log, quadratic) may improve the fit.
 
 ## 5 Step 4: Multivariable model
 
-Enter the significant covariates into the two-phase hazard model. With
-the current package, variable selection is done manually — identify the
-promising covariates from screening, then fit the full model.
+### 5.1 4a. Manual specification
+
+Enter the significant covariates from screening into the two-phase
+hazard model directly.
 
 ``` r
 fit_mv <- hazard(
@@ -369,6 +370,97 @@ The coefficient table shows phase-specific covariate effects. A positive
 coefficient means higher hazard (worse prognosis). Interpretation:
 covariates scale the phase-specific hazard multiplicatively via exp(x \*
 beta).
+
+### 5.2 4b. Automated stepwise selection
+
+The manual approach works when screening has already narrowed the
+candidate pool, but with a larger pool it helps to let the model choose.
+[`hzr_stepwise()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_stepwise.md)
+runs forward, backward, or two-way selection against an existing
+`hazard` fit, scoring candidates with Wald p-values or ΔAIC. Defaults
+match SAS `PROC HAZARD` (`SLENTRY = 0.30`, `SLSTAY = 0.20`).
+
+We start from a baseline with no covariates, offer the same screened
+candidate pool, and let the algorithm decide. For multiphase models the
+scope is a named list of one-sided formulas keyed by phase, so each
+phase can advertise its own candidate set; stepping operates per
+`(variable, phase)` pair, letting a covariate enter one phase and not
+another. Single-distribution models accept either a flat one-sided
+formula or a character vector of names.
+
+``` r
+base_mp <- hazard(
+  survival::Surv(int_dead, dead) ~ 1,
+  data   = avc,
+  dist   = "multiphase",
+  phases = list(
+    early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                          fixed = "shapes"),
+    constant = hzr_phase("constant")
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 3, maxit = 500)
+)
+
+fit_step <- hzr_stepwise(
+  base_mp,
+  scope     = list(
+    early    = ~ age + status + mal + com_iv,
+    constant = ~ age + status + mal + com_iv
+  ),
+  data      = avc,
+  direction = "both",
+  criterion = "wald",
+  trace     = FALSE,
+  control   = list(n_starts = 2, maxit = 500)
+)
+fit_step
+#> Stepwise selection (direction = both, criterion = wald, slentry = 0.30, slstay = 0.20)
+#> 
+#> Step 1: ENTER  status  into  early   (p = 0.000)
+#> Step 2: ENTER  mal  into  early   (p = 0.000)
+#> Step 3: ENTER  com_iv  into  early   (p = 0.000)
+#> Step 4: ENTER  age  into  early   (p = 0.034)
+#> Step 5: ENTER  status  into  constant   (p = 0.064)
+#> (no further action after 5 steps)
+#> 
+#> Final model: 5 covariates, logLik = -192.10, AIC = 396.21
+```
+
+The `$steps` table records every accepted action with its Wald statistic
+and p-value:
+
+``` r
+fit_step$steps[, c("step_num", "action", "variable", "phase",
+                   "p_value", "aic")]
+#>   step_num action variable    phase      p_value      aic
+#> 1        1  enter   status    early 0.000000e+00 422.9675
+#> 2        2  enter      mal    early 1.352419e-33 416.6295
+#> 3        3  enter   com_iv    early 1.190955e-30 399.0333
+#> 4        4  enter      age    early 3.361826e-02 397.3463
+#> 5        5  enter   status constant 6.358883e-02 396.2062
+```
+
+The final model is the fit at the top of the object, reachable through
+the usual hazard accessors:
+
+``` r
+logLik_manual <- fit_mv$fit$objective
+logLik_step   <- fit_step$fit$objective
+c(manual = logLik_manual, stepwise = logLik_step,
+  aic_manual = 2 * length(fit_mv$fit$theta) - 2 * logLik_manual,
+  aic_step   = 2 * length(fit_step$fit$theta) - 2 * logLik_step)
+#>     manual   stepwise aic_manual   aic_step 
+#>  -190.8075  -192.1031   407.6150   404.2062
+```
+
+When the screening and stepwise agree on the same covariate set the
+log-likelihoods match exactly; when stepwise selects a leaner model AIC
+drops. For an AIC-driven run use `criterion = "aic"`; for a forward-only
+sweep `direction = "forward"`. See
+[`?hzr_stepwise`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_stepwise.md)
+for the full argument surface including `force_in`, `force_out`, and the
+`max_move` oscillation guard.
 
 ## 6 Step 5: Prediction
 

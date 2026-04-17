@@ -40,7 +40,7 @@ for bootstrap CIs and diagnostics.
 ## Examples
 
 ``` r
-# ── Single-phase Weibull summary ────────────────────────────────────
+# -- Single-phase Weibull summary ------------------------------------
 fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 summary(fit)
@@ -59,7 +59,7 @@ summary(fit)
 #> nu 0.8182644 0.1251257 6.539537 6.170969e-11
 
 # \donttest{
-# ── Multiphase model summary ────────────────────────────────────────
+# -- Multiphase model summary ----------------------------------------
 set.seed(42)
 n   <- 200
 dat <- data.frame(

@@ -21,6 +21,9 @@ hzr_phase(
   formula = NULL,
   fixed = character(0)
 )
+
+# S3 method for class 'hzr_phase'
+print(x, ...)
 ```
 
 ## Arguments
@@ -80,6 +83,14 @@ hzr_phase(
   values; only `mu` (and covariates) are estimated. Ignored for
   `"constant"` phases. This mirrors the SAS/C HAZARD workflow where
   shapes are typically fixed and only scale parameters are estimated.
+
+- x:
+
+  An `hzr_phase` object (for `print.hzr_phase()`).
+
+- ...:
+
+  Additional arguments (ignored).
 
 ## Value
 

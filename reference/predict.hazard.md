@@ -33,10 +33,10 @@ predict(
 
   Prediction type:
 
-  - `"linear_predictor"`: Linear predictor η = x·β (not available for
-    multiphase)
+  - `"linear_predictor"`: Linear predictor eta = x\*beta (not available
+    for multiphase)
 
-  - `"hazard"`: Hazard scale exp(η) (not available for multiphase)
+  - `"hazard"`: Hazard scale exp(eta) (not available for multiphase)
 
   - `"survival"`: Survival probability S(t\|x) = exp(-H(t\|x))
 
@@ -60,7 +60,7 @@ Numeric vector of predictions.
 
 For Weibull models with survival or cumulative_hazard predictions:
 
-- Cumulative hazard: H(t\|x) = (μ·t)^ν · exp(η)
+- Cumulative hazard: H(t\|x) = (mu\*t)^nu \* exp(eta)
 
 - Survival: S(t\|x) = exp(-H(t\|x))
 
@@ -87,7 +87,7 @@ patient-specific curves.
 ## Examples
 
 ``` r
-# ── Basic predictions ────────────────────────────────────────────────
+# -- Basic predictions ------------------------------------------------
 set.seed(1)
 fit <- hazard(time = rexp(50, 0.3), status = rep(1L, 50),
               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
@@ -105,7 +105,7 @@ predict(fit, newdata = data.frame(time = c(1, 2, 5)),
         type = "cumulative_hazard")
 #> [1] 0.2244716 0.5138491 1.5356737
 
-# ── Patient-specific survival curves ─────────────────────────────────
+# -- Patient-specific survival curves ---------------------------------
 set.seed(1001)
 n   <- 180
 dat <- data.frame(
@@ -140,7 +140,7 @@ new_patients
 #> 3  3.0  75    4     1 0.5046535        0.68388317
 
 # \donttest{
-# ── Grouped survival curves ───────────────────────────────────────
+# -- Grouped survival curves ---------------------------------------
 if (requireNamespace("ggplot2", quietly = TRUE)) {
   library(ggplot2)
 
@@ -179,7 +179,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
 # }
 
 # \donttest{
-# ── Multiphase predictions with decomposition ────────────────────
+# -- Multiphase predictions with decomposition --------------------
 set.seed(42)
 n   <- 200
 dat <- data.frame(

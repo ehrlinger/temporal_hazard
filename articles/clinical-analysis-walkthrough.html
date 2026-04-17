@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.4</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.5</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -396,7 +396,10 @@ Figure 5: LOESS smooth: age vs. mortality probability
 </section></section><section class="level2" data-number="5"><h2 data-number="5" id="step-4-multivariable-model">
 <span class="header-section-number">5</span> Step 4: Multivariable model<a class="anchor" aria-label="anchor" href="#step-4-multivariable-model"></a>
 </h2>
-<p>Enter the significant covariates into the two-phase hazard model. With the current package, variable selection is done manually — identify the promising covariates from screening, then fit the full model.</p>
+<section class="level3" data-number="5.1"><h3 data-number="5.1" id="a--manual-specification">
+<span class="header-section-number">5.1</span> 4a. Manual specification<a class="anchor" aria-label="anchor" href="#a--manual-specification"></a>
+</h3>
+<p>Enter the significant covariates from screening into the two-phase hazard model directly.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_mv</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hazard.html">hazard</a></span><span class="op">(</span></span>
@@ -446,7 +449,75 @@ Figure 5: LOESS smooth: age vs. mortality probability
 <span><span class="co">#&gt;   com_iv -1.0598349603 1.211734851 -0.8746426 0.38176838</span></span></code></pre></div>
 </div>
 <p>The coefficient table shows phase-specific covariate effects. A positive coefficient means higher hazard (worse prognosis). Interpretation: covariates scale the phase-specific hazard multiplicatively via exp(x * beta).</p>
-</section><section class="level2" data-number="6"><h2 data-number="6" id="step-5-prediction">
+</section><section class="level3" data-number="5.2"><h3 data-number="5.2" id="b--automated-stepwise-selection">
+<span class="header-section-number">5.2</span> 4b. Automated stepwise selection<a class="anchor" aria-label="anchor" href="#b--automated-stepwise-selection"></a>
+</h3>
+<p>The manual approach works when screening has already narrowed the candidate pool, but with a larger pool it helps to let the model choose. <code><a href="../reference/hzr_stepwise.html">hzr_stepwise()</a></code> runs forward, backward, or two-way selection against an existing <code>hazard</code> fit, scoring candidates with Wald p-values or ΔAIC. Defaults match SAS <code>PROC HAZARD</code> (<code>SLENTRY = 0.30</code>, <code>SLSTAY = 0.20</code>).</p>
+<p>We start from a baseline with no covariates, offer the same screened candidate pool, and let the algorithm decide. For multiphase models the scope is a named list of one-sided formulas keyed by phase, so each phase can advertise its own candidate set; stepping operates per <code>(variable, phase)</code> pair, letting a covariate enter one phase and not another. Single-distribution models accept either a flat one-sided formula or a character vector of names.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">base_mp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hazard.html">hazard</a></span><span class="op">(</span></span>
+<span>  <span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">int_dead</span>, <span class="va">dead</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>,</span>
+<span>  data   <span class="op">=</span> <span class="va">avc</span>,</span>
+<span>  dist   <span class="op">=</span> <span class="st">"multiphase"</span>,</span>
+<span>  phases <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    early    <span class="op">=</span> <span class="fu"><a href="../reference/hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"cdf"</span>, t_half <span class="op">=</span> <span class="fl">0.5</span>, nu <span class="op">=</span> <span class="fl">1</span>, m <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>                          fixed <span class="op">=</span> <span class="st">"shapes"</span><span class="op">)</span>,</span>
+<span>    constant <span class="op">=</span> <span class="fu"><a href="../reference/hzr_phase.html">hzr_phase</a></span><span class="op">(</span><span class="st">"constant"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  fit     <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">3</span>, maxit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fit_step</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hzr_stepwise.html">hzr_stepwise</a></span><span class="op">(</span></span>
+<span>  <span class="va">base_mp</span>,</span>
+<span>  scope     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    early    <span class="op">=</span> <span class="op">~</span> <span class="va">age</span> <span class="op">+</span> <span class="va">status</span> <span class="op">+</span> <span class="va">mal</span> <span class="op">+</span> <span class="va">com_iv</span>,</span>
+<span>    constant <span class="op">=</span> <span class="op">~</span> <span class="va">age</span> <span class="op">+</span> <span class="va">status</span> <span class="op">+</span> <span class="va">mal</span> <span class="op">+</span> <span class="va">com_iv</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  data      <span class="op">=</span> <span class="va">avc</span>,</span>
+<span>  direction <span class="op">=</span> <span class="st">"both"</span>,</span>
+<span>  criterion <span class="op">=</span> <span class="st">"wald"</span>,</span>
+<span>  trace     <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  control   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">2</span>, maxit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">fit_step</span></span>
+<span><span class="co">#&gt; Stepwise selection (direction = both, criterion = wald, slentry = 0.30, slstay = 0.20)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Step 1: ENTER  status  into  early   (p = 0.000)</span></span>
+<span><span class="co">#&gt; Step 2: ENTER  mal  into  early   (p = 0.000)</span></span>
+<span><span class="co">#&gt; Step 3: ENTER  com_iv  into  early   (p = 0.000)</span></span>
+<span><span class="co">#&gt; Step 4: ENTER  age  into  early   (p = 0.034)</span></span>
+<span><span class="co">#&gt; Step 5: ENTER  status  into  constant   (p = 0.064)</span></span>
+<span><span class="co">#&gt; (no further action after 5 steps)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Final model: 5 covariates, logLik = -192.10, AIC = 396.21</span></span></code></pre></div>
+</div>
+<p>The <code>$steps</code> table records every accepted action with its Wald statistic and p-value:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_step</span><span class="op">$</span><span class="va">steps</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"step_num"</span>, <span class="st">"action"</span>, <span class="st">"variable"</span>, <span class="st">"phase"</span>,</span>
+<span>                   <span class="st">"p_value"</span>, <span class="st">"aic"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   step_num action variable    phase      p_value      aic</span></span>
+<span><span class="co">#&gt; 1        1  enter   status    early 0.000000e+00 422.9675</span></span>
+<span><span class="co">#&gt; 2        2  enter      mal    early 1.352419e-33 416.6295</span></span>
+<span><span class="co">#&gt; 3        3  enter   com_iv    early 1.190955e-30 399.0333</span></span>
+<span><span class="co">#&gt; 4        4  enter      age    early 3.361826e-02 397.3463</span></span>
+<span><span class="co">#&gt; 5        5  enter   status constant 6.358883e-02 396.2062</span></span></code></pre></div>
+</div>
+<p>The final model is the fit at the top of the object, reachable through the usual hazard accessors:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">logLik_manual</span> <span class="op">&lt;-</span> <span class="va">fit_mv</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">objective</span></span>
+<span><span class="va">logLik_step</span>   <span class="op">&lt;-</span> <span class="va">fit_step</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">objective</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>manual <span class="op">=</span> <span class="va">logLik_manual</span>, stepwise <span class="op">=</span> <span class="va">logLik_step</span>,</span>
+<span>  aic_manual <span class="op">=</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">fit_mv</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span> <span class="op">-</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">logLik_manual</span>,</span>
+<span>  aic_step   <span class="op">=</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">fit_step</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span> <span class="op">-</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">logLik_step</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     manual   stepwise aic_manual   aic_step </span></span>
+<span><span class="co">#&gt;  -190.8075  -192.1031   407.6150   404.2062</span></span></code></pre></div>
+</div>
+<p>When the screening and stepwise agree on the same covariate set the log-likelihoods match exactly; when stepwise selects a leaner model AIC drops. For an AIC-driven run use <code>criterion = "aic"</code>; for a forward-only sweep <code>direction = "forward"</code>. See <code><a href="../reference/hzr_stepwise.html">?hzr_stepwise</a></code> for the full argument surface including <code>force_in</code>, <code>force_out</code>, and the <code>max_move</code> oscillation guard.</p>
+</section></section><section class="level2" data-number="6"><h2 data-number="6" id="step-5-prediction">
 <span class="header-section-number">6</span> Step 5: Prediction<a class="anchor" aria-label="anchor" href="#step-5-prediction"></a>
 </h2>
 <section class="level3" data-number="6.1"><h3 data-number="6.1" id="a--baseline-survival-curve">
@@ -454,7 +525,7 @@ Figure 5: LOESS smooth: age vs. mortality probability
 </h3>
 <p>Generate the survival curve for a reference patient (median age, NYHA class 1, no malalignment, no interventricular communication).</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ref_patient</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  time   <span class="op">=</span> <span class="va">t_grid</span>,</span>
 <span>  age    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">avc</span><span class="op">$</span><span class="va">age</span><span class="op">)</span>,</span>
@@ -490,7 +561,7 @@ Figure 6: Reference patient survival with Kaplan-Meier overlay
 </h3>
 <p>Compare survival curves for a low-risk vs. high-risk patient profile to visualize the effect of covariates on long-term outcome.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">low_risk</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  time   <span class="op">=</span> <span class="va">t_grid</span>,</span>
 <span>  age    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">avc</span><span class="op">$</span><span class="va">age</span>, <span class="fl">0.25</span><span class="op">)</span>,</span>
@@ -545,7 +616,7 @@ Figure 7: Survival by risk profile: low-risk (blue) vs. high-risk (red)
 </h2>
 <p>Partition patients into deciles by predicted risk and compare observed vs. expected event rates. Good calibration means the two track each other. This implements the workflow of the SAS <code>deciles.hazard.sas</code> macro.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hzr_deciles.html">hzr_deciles</a></span><span class="op">(</span><span class="va">fit_mv</span>, time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">avc</span><span class="op">$</span><span class="va">int_dead</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">cal</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Decile-of-risk calibration at time = 170.5826 </span></span>
@@ -578,7 +649,7 @@ Figure 7: Survival by risk profile: low-risk (blue) vs. high-risk (red)
 <span><span class="co">#&gt; Overall: chi-sq = 87.2 on 9 df, p = 5.9e-15</span></span></code></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">cal</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">group</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html" class="external-link">geom_col</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">observed_rate</span><span class="op">)</span>, fill <span class="op">=</span> <span class="st">"#56B4E9"</span>, alpha <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">expected_rate</span><span class="op">)</span>, colour <span class="op">=</span> <span class="st">"#D55E00"</span>, size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span></span>
@@ -608,7 +679,7 @@ Figure 8: Decile calibration: observed (bars) vs. expected (points) event rate
 </h3>
 <p>The conservation-of-events principle states that a well-fitting model should predict the same total number of events as actually observed. <code><a href="../reference/hzr_gof.html">hzr_gof()</a></code> tracks this cumulatively over time — the residual (expected minus observed) should stay near zero.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gof</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hzr_gof.html">hzr_gof</a></span><span class="op">(</span><span class="va">fit_mv</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">gof</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Goodness-of-fit: observed vs. expected events</span></span>
@@ -622,7 +693,7 @@ Figure 8: Decile calibration: observed (bars) vs. expected (points) event rate
 <span><span class="co">#&gt; Use plot columns: time, km_surv, par_surv, cum_observed, cum_expected, residual</span></span></code></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">gof</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">time</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_step</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">km_surv</span> <span class="op">*</span> <span class="fl">100</span><span class="op">)</span>, colour <span class="op">=</span> <span class="st">"#D55E00"</span>, linewidth <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">par_surv</span> <span class="op">*</span> <span class="fl">100</span><span class="op">)</span>, colour <span class="op">=</span> <span class="st">"#0072B2"</span>, linewidth <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span></span>
@@ -641,7 +712,7 @@ Figure 9: Parametric (blue) vs. Kaplan-Meier (orange) survival
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">gof</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">time</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">cum_observed</span><span class="op">)</span>, colour <span class="op">=</span> <span class="st">"#D55E00"</span>, linewidth <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">cum_expected</span><span class="op">)</span>, colour <span class="op">=</span> <span class="st">"#0072B2"</span>,</span>
@@ -660,7 +731,7 @@ Figure 10: Cumulative observed (orange) vs. expected (blue) events
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode cell-code" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">gof</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">time</span>, y <span class="op">=</span> <span class="va">residual</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>linewidth <span class="op">=</span> <span class="fl">0.7</span>, colour <span class="op">=</span> <span class="st">"grey30"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span>, colour <span class="op">=</span> <span class="st">"grey60"</span><span class="op">)</span> <span class="op">+</span></span>

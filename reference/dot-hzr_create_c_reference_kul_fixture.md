@@ -2,7 +2,7 @@
 
 Loads the KUL cardiac surgery dataset from inst/extdata/cabgkul.csv and
 stores it alongside the C HAZARD binary reference output for parity
-testing. This fixture does NOT fit a model — it stores the data and C
+testing. This fixture does NOT fit a model – it stores the data and C
 reference values so that tests can evaluate the R log-likelihood at
 C-estimated parameters and/or fit the model and compare.
 
