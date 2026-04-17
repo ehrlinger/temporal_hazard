@@ -17,5 +17,7 @@
 \description{
 Formatted console display of \code{\link[=summary.hazard]{summary.hazard()}} output: distribution,
 phase list (for multiphase), coefficient table with standard errors,
-and log-likelihood.
+and log-likelihood.  S3 dispatch only -- users call \code{print(summary(fit))}
+rather than invoking this directly.
 }
+\keyword{internal}

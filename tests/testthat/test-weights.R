@@ -215,10 +215,12 @@ test_that("weighted log-likelihood gradient equals numerical gradient", {
 
   # Numerical gradient of the weighted LL
   num_g <- numDeriv::grad(
-    function(th) TemporalHazard:::.hzr_logl_weibull(
-      theta = th, time = df$time, status = df$status,
-      x = xm, weights = w
-    ),
+    function(th) {
+      TemporalHazard:::.hzr_logl_weibull(
+        theta = th, time = df$time, status = df$status,
+        x = xm, weights = w
+      )
+    },
     theta
   )
 

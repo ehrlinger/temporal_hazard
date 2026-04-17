@@ -941,7 +941,17 @@
   # left censoring require a different event-counting formulation.
   coe_supported_data <- all(status %in% c(0, 1))
 
-  if (use_conserve && coe_supported_data && length(phases) >= 2L) {
+  # CoE with non-uniform weights is not yet wired up: `.hzr_conserve_events()`
+  # receives the weighted event count as `total_events` but sums the per-phase
+  # cumhaz across rows *without* applying weights, so Turner's adjustment is
+  # computed on a mismatched scale.  Auto-disable CoE when weights are not
+  # all 1 and let the optimizer fall through to the (correctly weighted)
+  # full-dimensional path.  Tracked in
+  # `inst/dev/DEVELOPMENT-PLAN.md` Phase 4e.
+  coe_supported_weights <- all(weights == 1)
+
+  if (use_conserve && coe_supported_data && coe_supported_weights &&
+        length(phases) >= 2L) {
     total_events <- sum(weights[status == 1])
     if (total_events > 0) {
       # Initial CoE scaling: adjust all log_mu proportionally

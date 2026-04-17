@@ -241,8 +241,12 @@ NULL
 #' dL/d(log alpha) = sum(delta_i) - alpha * sum(t_i^beta * exp(eta_i) / (1 + alpha*t_i^beta*exp(eta_i)))
 #'             = sum(delta_i) - sum(alpha * t_i^beta * exp(eta_i) / (1 + term))
 #'
-#' dL/d(log beta) = sum(delta_i) + sum(delta_i * log(t_i)) - beta * sum(alpha*t_i^beta*log(t_i)*exp(eta_i)/(1 + alpha*t_i^beta*exp(eta_i)))
-#'             = sum(delta_i) + sum(delta_i * log(t_i)) - beta * sum(t_i^beta*log(t_i)/(1 + 1/(alpha*t_i^beta*exp(eta_i))))
+#' dL/d(log beta) = sum(delta_i) + sum(delta_i * log(t_i))
+#'                  - beta * sum(alpha*t_i^beta*log(t_i)*exp(eta_i)
+#'                                 /(1 + alpha*t_i^beta*exp(eta_i)))
+#'                = sum(delta_i) + sum(delta_i * log(t_i))
+#'                  - beta * sum(t_i^beta*log(t_i)
+#'                                 /(1 + 1/(alpha*t_i^beta*exp(eta_i))))
 #'
 #' dL/dbeta_j = sum(delta_i * x_ij) - sum(alpha*t_i^beta*exp(eta_i)*x_ij / (1 + alpha*t_i^beta*exp(eta_i)))
 #'         = t(X) %*% (delta - p)

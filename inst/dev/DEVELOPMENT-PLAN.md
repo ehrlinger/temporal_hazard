@@ -165,14 +165,15 @@ likelihoods only honour `time_lower` for interval-censored
 (`status == 2`) rows, so a nonzero-start epoch would be silently
 scored with `H(stop)` alone rather than `H(stop) - H(start)`.
 
-### 4e. Complete `weights` wire-up for exp / log-logistic / log-normal
+### 4e. Complete `weights` wire-up (exp / log-logistic / log-normal + CoE)
 
 **Priority:** Medium
-**Effort:** Small (each single-distribution likelihood needs weights
-multiplied through every LL term + its analytic gradient)
+**Effort:** Small--Medium
 **Gate:** Remove the `dist %in% c("weibull", "multiphase")` guard
-in `hazard()`, add parity tests in `test-weights.R` covering each
-distribution against the row-duplicated reference fit.
+in `hazard()` *and* the `all(weights == 1)` guard on CoE in
+`R/likelihood-multiphase.R`. Add parity tests in `test-weights.R`
+covering each distribution against the row-duplicated reference fit,
+and re-enable weighted-CoE tests in `test-conservation-of-events.R`.
 
 Tasks:
 
@@ -185,6 +186,12 @@ Tasks:
 4. Remove the error guard in `hazard()`.
 5. Extend `test-weights.R` with per-distribution duplication-parity
    tests.
+6. `.hzr_conserve_events()` -- add a `weights` argument and apply it
+   when summing per-phase cumhaz (`sumcz`, `sumcj`) so the Turner
+   target and predicted-event target are on the same scale.
+7. Remove the `all(weights == 1)` check in the CoE guard at
+   `R/likelihood-multiphase.R:944` and re-enable weighted-CoE parity
+   tests in `test-conservation-of-events.R`.
 
 ### 4f. Complete repeating-events wire-up (counting-process LL)
 

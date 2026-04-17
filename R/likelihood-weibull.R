@@ -405,8 +405,10 @@ NULL
     # Left / interval censoring -> numerical gradient fallback (already weighted
     # because logl_internal propagates weights via the closure).
     if (any(status %in% c(-1, 2))) {
-      obj <- function(th) logl_internal(th, time, status, time_lower,
-                                         time_upper, x, weights = w_use)
+      obj <- function(th) {
+        logl_internal(th, time, status, time_lower, time_upper, x,
+                      weights = w_use)
+      }
       if (requireNamespace("numDeriv", quietly = TRUE))
         return(as.numeric(numDeriv::grad(obj, theta)))
       eps <- 1e-6

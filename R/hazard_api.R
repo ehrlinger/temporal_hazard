@@ -924,10 +924,13 @@ predict.hazard <- function(object, newdata = NULL,
 #'
 #' Compact one-block summary of a fitted `hazard` object: sample size,
 #' number of predictors, distribution, theta vector, and log-likelihood.
+#' S3 dispatch only -- users call `print(fit)` rather than invoking this
+#' directly.
 #'
 #' @param x A `hazard` object returned by [hazard()].
 #' @param ... Additional arguments (ignored).
 #' @return `x`, invisibly.
+#' @keywords internal
 #' @export
 print.hazard <- function(x, ...) {
   n <- length(x$data$time)
@@ -1056,11 +1059,13 @@ summary.hazard <- function(object, ...) {
 #'
 #' Formatted console display of [summary.hazard()] output: distribution,
 #' phase list (for multiphase), coefficient table with standard errors,
-#' and log-likelihood.
+#' and log-likelihood.  S3 dispatch only -- users call `print(summary(fit))`
+#' rather than invoking this directly.
 #'
 #' @param x A `summary.hazard` object returned by [summary.hazard()].
 #' @param ... Additional arguments (ignored).
 #' @return `x`, invisibly.
+#' @keywords internal
 #' @export
 print.summary.hazard <- function(x, ...) {
   if (x$dist == "multiphase" && !is.null(x$phases)) {

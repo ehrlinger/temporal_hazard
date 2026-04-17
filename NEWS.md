@@ -44,6 +44,17 @@
   is supplied with one of those distributions rather than returning
   an unweighted fit. Full support for the remaining single-dist paths
   is tracked in `inst/dev/DEVELOPMENT-PLAN.md` Phase 4e.
+* **Conservation of Events is auto-disabled when weights are not
+  all 1.** `.hzr_conserve_events()` receives the weighted event count
+  as its target but sums per-phase cumulative hazards across rows
+  *without* applying weights, so Turner's adjustment comes out on a
+  mismatched scale. The multiphase optimizer now detects non-unit
+  weights and skips the CoE dimension reduction, falling through to
+  the (correctly weighted) full-dimensional path. Fits are still
+  correct; they just don't benefit from the one-parameter
+  analytical closed-form solve. Weighted CoE wire-up is tracked
+  alongside the other weights completion work in
+  `inst/dev/DEVELOPMENT-PLAN.md` Phase 4e.
 * **Repeating-events / counting-process notation narrowed.**
   `Surv(start, stop, event)` with `start > 0` is no longer accepted
   by `hazard()`. The 0.9.4 NEWS claimed each epoch contributed

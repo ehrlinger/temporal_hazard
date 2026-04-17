@@ -18,7 +18,7 @@ the TemporalHazard R package.
 | Time-varying covariates | Complete | EARLY/CONSTANT/LATE variable lists |
 | Weighted events | Partial | `src/llike/setcoe_obs_loop.c` -- Weibull + multiphase only; exp / log-logistic / log-normal pending (see sec. 5) |
 | Stepwise covariate selection | Planned | `src/vars/stepw.c`, `backw.c`, `swvari.c` |
-| Conservation of Events theorem | Complete | `src/llike/setcoe.c`, `consrv.c` |
+| Conservation of Events theorem | Partial | `src/llike/setcoe.c`, `consrv.c` -- right-censored + unit-weight only; weighted + interval-censored extensions pending (see sec. 7) |
 | Covariance and correlation matrix estimation | Complete | `src/optim/` |
 
 ---
@@ -232,7 +232,28 @@ phase-specific selection and FAST screening are substantial.
 
 ---
 
-## 7. Conservation of Events theorem — Complete (v0.9.3)
+## 7. Conservation of Events theorem -- Partial (v0.9.3, narrowed in v0.9.5)
+
+**Current scope (as of 0.9.5):**
+
+| Data | CoE applied | Notes |
+|:---|:---:|:---|
+| Right-censored + exact event (status in {0, 1}) with weights == 1 | Yes | Matches SAS reference on CABGKUL to within 1 log-likelihood unit |
+| Interval-censored (status == 2) or left-censored (status == -1) | **No** -- auto-disabled | Falls through to full-dim optimizer |
+| Any non-unit weights | **No** -- auto-disabled (v0.9.5) | `.hzr_conserve_events()` receives the weighted event count as target but sums per-phase cumhaz without weights; Turner's adjustment comes out on a mismatched scale. See Phase 4e. |
+
+The CoE guard in `R/likelihood-multiphase.R` is:
+
+```r
+coe_supported_data    <- all(status %in% c(0, 1))
+coe_supported_weights <- all(weights == 1)
+if (use_conserve && coe_supported_data && coe_supported_weights && ...)
+```
+
+Fits on unsupported regimes are correct -- they just don't get the
+one-dimensional closed-form solve and take more optimizer iterations.
+
+
 
 ### What SAS does
 
