@@ -1,3 +1,29 @@
+# TemporalHazard 0.9.5
+
+## New features
+
+* **Stepwise covariate selection** — `hzr_stepwise()` runs forward,
+  backward, or two-way stepwise selection on an existing `hazard` fit
+  using Wald p-values or AIC deltas as the entry / retention criterion.
+  Phase-specific entry is supported for multiphase models: a covariate
+  can enter one phase and not another. Defaults match SAS `PROC HAZARD`
+  (`SLENTRY = 0.30`, `SLSTAY = 0.20`); AIC mode uses `ΔAIC < 0`
+  uniformly. SAS-style `MOVE` oscillation guard freezes variables that
+  enter + exit more than `max_move` times. Returns an object of class
+  `c("hzr_stepwise", "hazard")` with a `$steps` selection trace, scope
+  record, and elapsed timer. Implements the core algorithm from C
+  HAZARD `stepw.c` / `backw.c`.
+
+## Bug fixes
+
+* **Multiphase convergence after weights/repeating-events merge** —
+  restored multiphase optimization that regressed in 0.9.4: three
+  interacting defects in the new `weights` threading (dup-arg
+  collision in the multiphase / Weibull closures, positional-arg
+  corruption in every distribution's gradient call) made every
+  optimizer iteration error silently inside `tryCatch`. Diagnosed and
+  fixed via commit 73b4657.
+
 # TemporalHazard 0.9.4
 
 ## New features
