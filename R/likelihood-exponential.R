@@ -88,9 +88,10 @@ NULL
     theta,
     time,
     status,
-  time_lower = NULL,
-  time_upper = NULL,
+    time_lower = NULL,
+    time_upper = NULL,
     x = NULL,
+    weights = NULL,
     return_gradient = FALSE) {
 
   n <- length(time)
@@ -171,7 +172,10 @@ NULL
   # If gradient requested, compute score vector
   if (return_gradient) {
     grad <- .hzr_gradient_exponential(
-      theta, time, status, time_lower, time_upper, x, eta, cumhaz_event, lambda, log_lambda
+      theta = theta, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper, x = x,
+      eta = eta, cumhaz = cumhaz_event,
+      lambda = lambda, log_lambda = log_lambda
     )
     attr(logl, "gradient") <- grad
   }
@@ -195,9 +199,10 @@ NULL
     theta,
     time,
     status,
-  time_lower = NULL,
-  time_upper = NULL,
+    time_lower = NULL,
+    time_upper = NULL,
     x = NULL,
+    weights = NULL,
     eta = NULL,
     cumhaz = NULL,
     lambda = NULL,
@@ -245,13 +250,13 @@ NULL
 #' @noRd
 .hzr_optim_exponential <- function(
     time, status, time_lower = NULL, time_upper = NULL,
-    x = NULL, theta_start, control = list()) {
+    x = NULL, theta_start, weights = NULL, control = list()) {
   .hzr_optim_generic(
     logl_fn = .hzr_logl_exponential,
     gradient_fn = .hzr_gradient_exponential,
     time = time, status = status,
     time_lower = time_lower, time_upper = time_upper,
-    x = x, theta_start = theta_start,
+    x = x, theta_start = theta_start, weights = weights,
     control = control, use_bounds = FALSE
   )
 }

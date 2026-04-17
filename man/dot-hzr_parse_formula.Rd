@@ -16,7 +16,13 @@ A list with elements: time, status, time_lower, time_upper, x
 }
 \description{
 Extracts time, status, time_lower, time_upper, and predictors from a formula
-of the form Surv(time, status) ~ x1 + x2 + ...
-Supports right-censored, left-censored, and interval-censored data.
+of the form \code{Surv(time, status) ~ x1 + x2 + ...}.
+Supports right-censored, left-censored, interval-censored, and
+counting-process (start-stop) data.
+}
+\details{
+For counting-process (start-stop) data, use \code{Surv(start, stop, event)}.
+The start times are returned as \code{time_lower} and stop times as \code{time},
+enabling the likelihood to compute \code{H(stop) - H(start)} per epoch.
 }
 \keyword{internal}

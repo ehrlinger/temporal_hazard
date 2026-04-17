@@ -93,6 +93,7 @@ NULL
     time_lower = NULL,
     time_upper = NULL,
     x = NULL,
+    weights = NULL,
     dist_name = "weibull",
     return_gradient = FALSE,
     return_hessian = FALSE) {
@@ -100,6 +101,9 @@ NULL
   # Shape parameter count for Weibull
   n_shape <- 2  # mu, nu (scale, shape)
   n <- length(time)
+
+  # Default unit weights
+  if (is.null(weights)) weights <- rep(1, n)
 
   # Extract parameters
   mu <- theta[1]    # scale > 0
@@ -150,31 +154,33 @@ NULL
   idx_left <- status == -1
   idx_interval <- status == 2
 
-  # Exact events: log h(t) + log S(t) = log h(t) - H(t)
+  # Exact events: w * [log h(t) - H(t)]
   ll_event <- if (any(idx_event)) {
-    sum(log(haz_event[idx_event]) - cumhaz_event[idx_event])
+    sum(weights[idx_event] *
+          (log(haz_event[idx_event]) - cumhaz_event[idx_event]))
   } else {
     0
   }
 
-  # Right-censored: log S(t) = -H(t)
+  # Right-censored: w * [-H(t)]
   ll_right <- if (any(idx_right)) {
-    -sum(cumhaz_event[idx_right])
+    -sum(weights[idx_right] * cumhaz_event[idx_right])
   } else {
     0
   }
 
-  # Left-censored: log F(u) = log(1 - S(u)) = log(1 - exp(-H(u)))
+  # Left-censored: w * [log(1 - exp(-H(u)))]
   ll_left <- if (any(idx_left)) {
-    sum(hzr_log1mexp(cumhaz_upper[idx_left]))
+    sum(weights[idx_left] * hzr_log1mexp(cumhaz_upper[idx_left]))
   } else {
     0
   }
 
-  # Interval-censored: log(S(l) - S(u)) = -H(l) + log(1 - exp(-(H(u)-H(l))))
+  # Interval-censored: w * [-H(l) + log(1 - exp(-(H(u)-H(l))))]
   ll_interval <- if (any(idx_interval)) {
     delta_h <- cumhaz_upper[idx_interval] - cumhaz_lower[idx_interval]
-    sum(-cumhaz_lower[idx_interval] + hzr_log1mexp(delta_h))
+    sum(weights[idx_interval] *
+          (-cumhaz_lower[idx_interval] + hzr_log1mexp(delta_h)))
   } else {
     0
   }
@@ -188,8 +194,10 @@ NULL
   # If gradient requested, compute score vector.
   if (return_gradient) {
     grad <- .hzr_gradient_weibull(
-      theta, time, status, time_lower, time_upper, x, eta,
-      cumhaz_event, haz_event, mu, nu, n_shape
+      theta = theta, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper, x = x,
+      eta = eta, cumhaz = cumhaz_event, haz = haz_event,
+      mu = mu, nu = nu, n_shape = n_shape
     )
     attr(logl, "gradient") <- grad
   }
@@ -226,6 +234,7 @@ NULL
     time_lower = NULL,
     time_upper = NULL,
     x = NULL,
+    weights = NULL,
     eta = NULL,
     cumhaz = NULL,
     haz = NULL,
@@ -283,7 +292,7 @@ NULL
 #' @noRd
 .hzr_optim_weibull <- function(
     time, status, time_lower = NULL, time_upper = NULL,
-    x = NULL, theta_start, control = list()) {
+    x = NULL, theta_start, weights = NULL, control = list()) {
 
   # ── Internal reparameterisation ────────────────────────────────────────────
   # The original hazard C code parameterises the cumulative hazard as
@@ -316,18 +325,31 @@ NULL
   phi_start   <- c(alpha_start, psi_start, beta_start)
 
   # ── Internal likelihood: H(t|x) = exp(α + Xβ) · t^exp(ψ) ────────────────
-  logl_internal <- function(theta, time, status, time_lower, time_upper, x, ...) {
+  # `weights` is declared as a formal (with a default of NULL) so that when
+  # .hzr_optim_generic forwards weights via ..., it matches this formal
+  # rather than landing in ... — which would collide with the explicit
+  # `weights =` on the delegated call below.
+  .outer_w <- if (is.null(weights)) rep(1, n) else weights
+
+  logl_internal <- function(theta, time, status, time_lower, time_upper,
+                            x, weights = NULL, ...) {
+    w_use <- if (is.null(weights)) .outer_w else weights
     alpha <- theta[1]
     g     <- exp(theta[2])   # nu = shape
     beta  <- if (p > n_shape) theta[(n_shape + 1):p] else numeric(0)
-    eta   <- if (!is.null(x) && length(beta) > 0) as.numeric(x %*% beta) else rep(0, n)
+    eta   <- if (!is.null(x) && length(beta) > 0) {
+      as.numeric(x %*% beta)
+    } else {
+      rep(0, n)
+    }
 
     # Left / interval censoring: delegate to full Weibull likelihood via
     # the natural-scale function, converting params on the fly.
     if (any(status %in% c(-1, 2))) {
       mu <- exp(alpha / g)
       return(.hzr_logl_weibull(c(mu, g, beta), time, status,
-                               time_lower, time_upper, x, ...))
+                               time_lower, time_upper, x,
+                               weights = w_use, ...))
     }
 
     log_t <- log(pmax(time, .Machine$double.xmin))
@@ -337,14 +359,14 @@ NULL
     idx_right <- status == 0
 
     ll_event <- if (any(idx_event)) {
-      sum(alpha + eta[idx_event] + theta[2] +
-          (g - 1) * log_t[idx_event] - H[idx_event])
+      sum(w_use[idx_event] * (alpha + eta[idx_event] + theta[2] +
+          (g - 1) * log_t[idx_event] - H[idx_event]))
     } else {
       0
     }
 
     ll_right <- if (any(idx_right)) {
-      -sum(H[idx_right])
+      -sum(w_use[idx_right] * H[idx_right])
     } else {
       0
     }
@@ -404,6 +426,7 @@ NULL
     time_lower  = time_lower, time_upper = time_upper,
     x           = x,
     theta_start = phi_start,
+    weights     = weights,
     control     = control,
     use_bounds  = FALSE
   )

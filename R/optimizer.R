@@ -48,6 +48,7 @@ NULL
     time_upper = NULL,
     x = NULL,
     theta_start,
+    weights = NULL,
     control = list(),
     use_bounds = FALSE,
     lower_bounds = NULL) {
@@ -74,7 +75,7 @@ NULL
     ll <- -logl_fn(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper,
-      x = x, return_gradient = FALSE
+      x = x, weights = weights, return_gradient = FALSE
     )
     if (!is.finite(ll)) return(1e10)
     ll
@@ -92,7 +93,8 @@ NULL
     grad <- tryCatch(
       gradient_fn(
         theta = theta, time = time, status = status,
-        time_lower = time_lower, time_upper = time_upper, x = x
+        time_lower = time_lower, time_upper = time_upper,
+        x = x, weights = weights
       ),
       error = function(e) rep(0, length(theta))
     )

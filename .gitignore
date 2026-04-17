@@ -22,3 +22,6 @@ vignettes/*_files/
 *~
 *.swp
 /docs
+/doc/
+/Meta/
+.claude/

@@ -1,8 +1,8 @@
 # SAS HAZARD Parity Gap Analysis
 
-**Date:** 2026-04-14
-**Package version:** 0.9.1
-**Branch:** feature/analytic-gradients
+**Date:** 2026-04-16
+**Package version:** 0.9.4
+**Branch:** feature/weights-repeating-events
 
 This document tracks feature parity between the original C/SAS HAZARD system
 (Blackstone, Naftel, Turner 1986; maintained by Rajeswaran & Ehrlinger) and
@@ -14,11 +14,11 @@ the TemporalHazard R package.
 |:---|:---:|:---|
 | Multi-phase hazard modeling | Complete | `src/llike/`, `src/decomp/` |
 | Right and interval censoring | Complete | `src/llike/setcoe_obs_loop.c` |
-| Repeating events (epoch decomposition) | Planned | `src/llike/setcoe_obs_loop.c` (STIME) |
+| Repeating events (epoch decomposition) | Complete | `src/llike/setcoe_obs_loop.c` (STIME) |
 | Time-varying covariates | Complete | EARLY/CONSTANT/LATE variable lists |
-| Weighted events | Planned | `src/llike/setcoe_obs_loop.c` (weight) |
+| Weighted events | Complete | `src/llike/setcoe_obs_loop.c` (weight) |
 | Stepwise covariate selection | Planned | `src/vars/stepw.c`, `backw.c`, `swvari.c` |
-| Conservation of Events theorem | Planned | `src/llike/setcoe.c`, `consrv.c` |
+| Conservation of Events theorem | Complete | `src/llike/setcoe.c`, `consrv.c` |
 | Covariance and correlation matrix estimation | Complete | `src/optim/` |
 
 ---
@@ -63,7 +63,7 @@ interface handles `Surv(time, status)` for right-censored and
 
 ---
 
-## 3. Repeating events (epoch decomposition) — Planned
+## 3. Repeating events (epoch decomposition) — Complete (v0.9.4)
 
 ### What SAS does
 
@@ -111,7 +111,7 @@ in `hzr_phase()`.
 
 ---
 
-## 5. Weighted events — Planned
+## 5. Weighted events — Complete (v0.9.4)
 
 ### What SAS does
 
@@ -193,7 +193,7 @@ phase-specific selection and FAST screening are substantial.
 
 ---
 
-## 7. Conservation of Events theorem — Planned
+## 7. Conservation of Events theorem — Complete (v0.9.3)
 
 ### What SAS does
 
@@ -264,11 +264,11 @@ Hessian numerical stability.
 
 ## Implementation priority
 
-1. **Conservation of Events** — improves numerical stability for all users;
-   medium effort; high impact on convergence reliability
-2. **Stepwise selection** — critical for exploratory clinical research
+1. **Stepwise selection** — critical for exploratory clinical research
    workflows; large effort; high user-facing impact
-3. **Observation weights** — enables severity-weighted analyses; medium
-   effort; moderate impact
-4. **Repeating events** — the math is already there; small-medium effort;
-   moderate impact for longitudinal studies
+
+Completed:
+- Conservation of Events (v0.9.3) — integrated into multiphase optimizer
+- Observation weights (v0.9.4) — Fisher weighting threaded through likelihood,
+  gradient, and Hessian
+- Repeating events (v0.9.4) — `Surv(start, stop, event)` epoch decomposition

@@ -1,8 +1,13 @@
 #' Parse Surv() formula for hazard modeling
 #'
 #' Extracts time, status, time_lower, time_upper, and predictors from a formula
-#' of the form Surv(time, status) ~ x1 + x2 + ...
-#' Supports right-censored, left-censored, and interval-censored data.
+#' of the form `Surv(time, status) ~ x1 + x2 + ...`.
+#' Supports right-censored, left-censored, interval-censored, and
+#' counting-process (start-stop) data.
+#'
+#' For counting-process (start-stop) data, use `Surv(start, stop, event)`.
+#' The start times are returned as `time_lower` and stop times as `time`,
+#' enabling the likelihood to compute `H(stop) - H(start)` per epoch.
 #'
 #' @param formula A formula object with Surv() on the LHS.
 #' @param data A data frame containing variables referenced in the formula.
@@ -56,6 +61,14 @@
     time_lower <- surv_mat[, 1L]
     time <- surv_mat[, 1L]
     time_upper <- surv_mat[, 2L]
+    status <- surv_mat[, 3L]
+  } else if (surv_type == "counting") {
+    # Start-stop (counting process) format: Surv(start, stop, event)
+    # Used for repeating events / epoch-decomposed longitudinal data.
+    # Each epoch contributes H(stop) - H(start) to the likelihood.
+    time_lower <- surv_mat[, 1L]  # entry (start) time
+    time <- surv_mat[, 2L]        # exit (stop) time
+    time_upper <- NULL
     status <- surv_mat[, 3L]
   } else {
     stop("Unsupported Surv() type: ", surv_type, call. = FALSE)
