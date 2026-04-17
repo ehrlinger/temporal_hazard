@@ -372,6 +372,36 @@ print.summary.hzr_stepwise <- function(x, ...) {
 }
 
 
+#' Coerce an `hzr_stepwise` result to its selection trace
+#'
+#' Returns the `$steps` data frame so downstream tidyverse / data.table
+#' pipelines can work with the trace directly.
+#'
+#' @param x An `hzr_stepwise` object.
+#' @param ... Ignored.
+#' @export
+as.data.frame.hzr_stepwise <- function(x, ...) {
+  x$steps
+}
+
+
+#' Extract the captured console trace from an `hzr_stepwise` fit
+#'
+#' Every run of [hzr_stepwise()] records the header, per-step lines,
+#' and final summary regardless of the `trace` flag.  This accessor
+#' returns the full character vector for display or logging.
+#'
+#' @param fit An `hzr_stepwise` object.
+#' @return Character vector, one element per console line.
+#' @export
+stepwise_trace <- function(fit) {
+  if (!inherits(fit, "hzr_stepwise")) {
+    stop("`fit` must be an `hzr_stepwise` object.", call. = FALSE)
+  }
+  fit$trace_msg
+}
+
+
 # Local shape-count helper that tolerates multiphase as well as single
 # distributions (the shared `.hzr_shape_parameter_count` in
 # parity-helpers only handles the latter).

@@ -278,9 +278,10 @@ transformations (log, quadratic) may improve the fit.
 
 ## Step 4: Multivariable model
 
-Enter the significant covariates into the two-phase hazard model.  With
-the current package, variable selection is done manually --- identify the
-promising covariates from screening, then fit the full model.
+### 4a. Manual specification
+
+Enter the significant covariates from screening into the two-phase
+hazard model directly.
 
 ```{r}
 #| label: multivariable-fit
@@ -303,6 +304,80 @@ The coefficient table shows phase-specific covariate effects.  A positive
 coefficient means higher hazard (worse prognosis).  Interpretation:
 covariates scale the phase-specific hazard multiplicatively via
 exp(x * beta).
+
+### 4b. Automated stepwise selection
+
+The manual approach works when screening has already narrowed the
+candidate pool, but with a larger pool it helps to let the model
+choose.  `hzr_stepwise()` runs forward, backward, or two-way
+selection against an existing `hazard` fit, scoring candidates with
+Wald p-values or ΔAIC.  Defaults match SAS `PROC HAZARD`
+(`SLENTRY = 0.30`, `SLSTAY = 0.20`).
+
+We start from a baseline with no covariates, offer the same screened
+candidate pool, and let the algorithm decide.  The scope is passed as
+a flat character vector (applied to every phase in the multiphase
+model); stepping operates per `(variable, phase)` pair so a covariate
+can enter one phase and not another.
+
+```{r}
+#| label: stepwise-forward
+#| eval: !expr has_pkg
+base_mp <- hazard(
+  survival::Surv(int_dead, dead) ~ 1,
+  data   = avc,
+  dist   = "multiphase",
+  phases = list(
+    early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                          fixed = "shapes"),
+    constant = hzr_phase("constant")
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 3, maxit = 500)
+)
+
+fit_step <- hzr_stepwise(
+  base_mp,
+  scope     = list(
+    early    = ~ age + status + mal + com_iv,
+    constant = ~ age + status + mal + com_iv
+  ),
+  data      = avc,
+  direction = "both",
+  criterion = "wald",
+  trace     = FALSE,
+  control   = list(n_starts = 2, maxit = 500)
+)
+fit_step
+```
+
+The `$steps` table records every accepted action with its Wald
+statistic and p-value:
+
+```{r}
+#| eval: !expr has_pkg
+fit_step$steps[, c("step_num", "action", "variable", "phase",
+                   "p_value", "aic")]
+```
+
+The final model is the fit at the top of the object, reachable
+through the usual hazard accessors:
+
+```{r}
+#| eval: !expr has_pkg
+logLik_manual <- fit_mv$fit$objective
+logLik_step   <- fit_step$fit$objective
+c(manual = logLik_manual, stepwise = logLik_step,
+  aic_manual = 2 * length(fit_mv$fit$theta) - 2 * logLik_manual,
+  aic_step   = 2 * length(fit_step$fit$theta) - 2 * logLik_step)
+```
+
+When the screening and stepwise agree on the same covariate set the
+log-likelihoods match exactly; when stepwise selects a leaner model
+AIC drops.  For an AIC-driven run use `criterion = "aic"`; for a
+forward-only sweep `direction = "forward"`.  See `?hzr_stepwise` for
+the full argument surface including `force_in`, `force_out`, and the
+`max_move` oscillation guard.
 
 ## Step 5: Prediction
 

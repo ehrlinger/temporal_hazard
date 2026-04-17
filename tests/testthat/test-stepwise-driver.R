@@ -221,3 +221,35 @@ test_that("hzr_stepwise requires `data`", {
   expect_error(hzr_stepwise(obj$fit, data = "not a df"),
                "`data` must be a data frame")
 })
+
+
+# Polish helpers -----------------------------------------------------------
+
+test_that("as.data.frame returns the $steps trace", {
+  obj <- .fit_driver_base()
+  res <- hzr_stepwise(
+    obj$fit, scope = ~ x1 + x2, data = obj$data,
+    direction = "forward", criterion = "wald", trace = FALSE
+  )
+  df <- as.data.frame(res)
+  expect_s3_class(df, "data.frame")
+  expect_identical(df, res$steps)
+  expect_true(all(c("step_num", "action", "variable", "phase",
+                    "score", "p_value", "delta_aic") %in% names(df)))
+})
+
+test_that("stepwise_trace returns the captured console lines", {
+  obj <- .fit_driver_base()
+  res <- hzr_stepwise(
+    obj$fit, scope = ~ x1, data = obj$data,
+    direction = "forward", criterion = "wald", trace = FALSE
+  )
+  tr <- stepwise_trace(res)
+  expect_identical(tr, res$trace_msg)
+  expect_true(any(grepl("Stepwise selection", tr)))
+})
+
+test_that("stepwise_trace rejects non-hzr_stepwise input", {
+  expect_error(stepwise_trace(list()),
+               "must be an `hzr_stepwise` object")
+})

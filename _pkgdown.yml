@@ -51,6 +51,8 @@ reference:
       - hzr_stepwise
       - print.hzr_stepwise
       - summary.hzr_stepwise
+      - as.data.frame.hzr_stepwise
+      - stepwise_trace
   - title: Decomposition
     contents:
       - hzr_decompos
