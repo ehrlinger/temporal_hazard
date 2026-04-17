@@ -301,6 +301,192 @@
 # Helpers
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Backward step
+# ---------------------------------------------------------------------------
+
+#' Enumerate the currently-in-model (variable, phase) pairs eligible
+#' for a drop test.
+#'
+#' Force-in variables are *included* in the returned list so their
+#' scores appear in the trace (§2 Q4 of STEPWISE-DESIGN.md); the
+#' forward/backward driver filters them out of the argmax pool via the
+#' `force_in` flag on each row.
+#'
+#' @keywords internal
+#' @noRd
+.hzr_stepwise_drop_candidates <- function(fit) {
+  dist <- fit$spec$dist
+  if (dist == "multiphase") {
+    per_phase <- .hzr_scope_current_vars(fit)
+    out <- list()
+    for (p in names(per_phase)) {
+      for (v in per_phase[[p]]) {
+        out[[length(out) + 1L]] <- list(var = v, phase = p)
+      }
+    }
+    return(out)
+  }
+  vars <- .hzr_scope_current_vars(fit)
+  lapply(vars, function(v) list(var = v, phase = NULL))
+}
+
+
+#' Execute one backward step of stepwise selection
+#'
+#' For each currently-in-model variable, scores drop via
+#' `.hzr_candidate_score(mode = "drop")`.  Force-in variables are
+#' scored and reported but excluded from the drop decision.
+#'
+#' Unlike the forward step there is no per-candidate refit: the Wald
+#' statistic and its AIC approximation both operate on the current
+#' model's vcov.  A single refit fires only after the drop decision
+#' via `.hzr_refit_with_scope()`.
+#'
+#' @param current Fitted `hazard` object.
+#' @param data Data frame used to rebuild the dropped model.
+#' @param criterion Either `"wald"` or `"aic"`.
+#' @param slstay Retention threshold for the Wald criterion (ignored
+#'   when `criterion = "aic"`; the drop rule there is ΔAIC_drop < 0).
+#' @param force_in Character vector of variables that may never be
+#'   dropped.
+#' @param ... Forwarded to `.hzr_refit_with_scope()` for the post-drop
+#'   refit.
+#'
+#' @return A list with the same top-level shape as
+#'   `.hzr_stepwise_forward_step()`, except:
+#'   * `all_scores` gains a logical `force_in` column.
+#'   * The action this represents is a drop, so `accepted = TRUE` means
+#'     the variable was removed from the model.
+#'
+#' @keywords internal
+#' @noRd
+.hzr_stepwise_backward_step <- function(current, data,
+                                         criterion = c("wald", "aic"),
+                                         slstay    = 0.20,
+                                         force_in  = character(),
+                                         ...) {
+  criterion <- match.arg(criterion)
+  if (!inherits(current, "hazard")) {
+    stop("`current` must be a fitted `hazard` object.", call. = FALSE)
+  }
+
+  cands <- .hzr_stepwise_drop_candidates(current)
+
+  empty_scores <- data.frame(
+    variable  = character(),
+    phase     = character(),
+    force_in  = logical(),
+    score     = numeric(),
+    p_value   = numeric(),
+    delta_aic = numeric(),
+    stat      = numeric(),
+    df        = integer(),
+    stringsAsFactors = FALSE
+  )
+
+  null_result <- function(all_scores = empty_scores) {
+    list(
+      accepted  = FALSE,
+      fit       = current,
+      variable  = NA_character_,
+      phase     = NA_character_,
+      score     = NA_real_,
+      p_value   = NA_real_,
+      delta_aic = NA_real_,
+      stat      = NA_real_,
+      df        = NA_integer_,
+      all_scores     = all_scores,
+      refit_failures = character()
+    )
+  }
+
+  if (length(cands) == 0L) {
+    return(null_result())
+  }
+
+  rows <- vector("list", length(cands))
+  for (i in seq_along(cands)) {
+    cand <- cands[[i]]
+    coef_name <- .hzr_candidate_coef_name(current, cand$var, cand$phase)
+
+    s <- .hzr_candidate_score(
+      criterion = criterion, mode = "drop",
+      current = current, names = coef_name
+    )
+
+    rows[[i]] <- data.frame(
+      variable  = cand$var,
+      phase     = cand$phase %||% NA_character_,
+      force_in  = cand$var %in% force_in,
+      score     = s$score,
+      p_value   = s$p_value,
+      delta_aic = s$delta_aic,
+      stat      = s$stat,
+      df        = s$df,
+      stringsAsFactors = FALSE
+    )
+  }
+  all_scores <- do.call(rbind, rows)
+
+  eligible <- which(!all_scores$force_in & !is.na(all_scores$score))
+  if (length(eligible) == 0L) {
+    return(null_result(all_scores))
+  }
+
+  best_idx <- eligible[which.min(all_scores$score[eligible])]
+  best     <- all_scores[best_idx, ]
+
+  threshold_met <- if (criterion == "wald") {
+    best$score < (1 - slstay)          # i.e. p > slstay
+  } else {
+    best$score < 0                     # ΔAIC_drop < 0
+  }
+
+  if (!threshold_met) {
+    return(null_result(all_scores))
+  }
+
+  refitted <- tryCatch(
+    .hzr_refit_with_scope(
+      current, action = "drop",
+      var = best$variable,
+      phase = if (is.na(best$phase)) NULL else best$phase,
+      data = data, ...
+    ),
+    error = function(e) e
+  )
+
+  failure_token <- if (is.na(best$phase)) {
+    best$variable
+  } else {
+    paste0(best$variable, "@", best$phase)
+  }
+
+  if (inherits(refitted, "error") || isFALSE(refitted$fit$converged)) {
+    warning("Stepwise backward: post-drop refit failed for ",
+            failure_token, ".", call. = FALSE)
+    out <- null_result(all_scores)
+    out$refit_failures <- failure_token
+    return(out)
+  }
+
+  list(
+    accepted  = TRUE,
+    fit       = refitted,
+    variable  = best$variable,
+    phase     = best$phase,
+    score     = best$score,
+    p_value   = best$p_value,
+    delta_aic = best$delta_aic,
+    stat      = best$stat,
+    df        = best$df,
+    all_scores     = all_scores,
+    refit_failures = character()
+  )
+}
+
+
 #' Name under which a newly-entered variable appears in coef(fit)
 #'
 #' Canonical naming differs between fit kinds:
