@@ -46,6 +46,11 @@ reference:
       - is_hzr_phase
       - hzr_phase_cumhaz
       - hzr_phase_hazard
+  - title: Variable selection
+    contents:
+      - hzr_stepwise
+      - print.hzr_stepwise
+      - summary.hzr_stepwise
   - title: Decomposition
     contents:
       - hzr_decompos
