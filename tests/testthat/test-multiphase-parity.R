@@ -436,7 +436,10 @@ test_that("Synthetic 3-phase fixture round-trip: parameters recovered", {
                            m = fixture$phases$late$m)
     ),
     fit = TRUE,
-    control = list(n_starts = 3, maxit = 1000, reltol = 1e-8)
+    # This round-trip check validates recovery from a stored converged theta.
+    # Keep optimization deterministic and disable CoE reparameterization,
+    # which can move theta along a near-flat ridge while preserving objective.
+    control = list(n_starts = 1, conserve = FALSE, maxit = 1000, reltol = 1e-8)
   )
 
   expect_true(!is.null(refit$fit))
