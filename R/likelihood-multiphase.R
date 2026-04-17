@@ -1,4 +1,4 @@
-# likelihood-multiphase.R — Multiphase additive hazard likelihood and optimizer
+# likelihood-multiphase.R -- Multiphase additive hazard likelihood and optimizer
 #
 # REFERENCES
 # ----------
@@ -18,11 +18,11 @@
 #   H(t | x) = sum_{j=1}^{J}  mu_j(x) * Phi_j(t; t_half_j, nu_j, m_j)
 #
 # where:
-#   mu_j(x) = exp(alpha_j + x_j * beta_j)  — phase-specific log-linear scale
+#   mu_j(x) = exp(alpha_j + x_j * beta_j)  -- phase-specific log-linear scale
 #   Phi_j(t) depends on phase type:
-#     "cdf"      → G(t)             bounded [0, 1]   (early risk)
-#     "hazard"   → -log(1 - G(t))   monotone incr.   (late risk)
-#     "constant" → t                flat rate         (background)
+#     "cdf"      -> G(t)             bounded [0, 1]   (early risk)
+#     "hazard"   -> -log(1 - G(t))   monotone incr.   (late risk)
+#     "constant" -> t                flat rate         (background)
 #
 # Total hazard:
 #   h(t | x) = sum_j  mu_j(x) * phi_j(t)
@@ -42,11 +42,11 @@
 #
 # FUNCTIONS
 # ---------
-#   .hzr_logl_multiphase()     — log-likelihood
-#   .hzr_optim_multiphase()    — optimizer using .hzr_optim_generic()
-#   .hzr_multiphase_cumhaz()   — compute total H(t|x) from theta + phases
-#   .hzr_multiphase_hazard()   — compute total h(t|x) from theta + phases
-#   .hzr_split_theta()         — split theta into per-phase sub-vectors
+#   .hzr_logl_multiphase()     -- log-likelihood
+#   .hzr_optim_multiphase()    -- optimizer using .hzr_optim_generic()
+#   .hzr_multiphase_cumhaz()   -- compute total H(t|x) from theta + phases
+#   .hzr_multiphase_hazard()   -- compute total h(t|x) from theta + phases
+#   .hzr_split_theta()         -- split theta into per-phase sub-vectors
 
 
 # ============================================================================
@@ -55,9 +55,9 @@
 
 #' Split the full theta vector into per-phase sub-vectors
 #'
-#' @param theta Numeric vector — full parameter vector (internal scale).
+#' @param theta Numeric vector -- full parameter vector (internal scale).
 #' @param phases Named list of validated `hzr_phase` objects.
-#' @param covariate_counts Named integer vector — number of covariates per phase.
+#' @param covariate_counts Named integer vector -- number of covariates per phase.
 #' @return Named list of numeric vectors, one per phase.
 #' @keywords internal
 .hzr_split_theta <- function(theta, phases, covariate_counts) {
@@ -239,7 +239,7 @@
 
 
 # ============================================================================
-# Conservation of Events (CoE) — Turner's theorem
+# Conservation of Events (CoE) -- Turner's theorem
 # ============================================================================
 #
 # For the additive hazard model H(t|x) = Sigma_j mu_j(x) * Phi_j(t),
@@ -468,7 +468,7 @@
 #' (`log_t_half`, `nu`, `m`).
 #'
 #' @inheritParams .hzr_logl_multiphase
-#' @return Numeric vector of length `length(theta)` — the gradient.
+#' @return Numeric vector of length `length(theta)` -- the gradient.
 #'   Returns a zero vector if any component is non-finite (guards optimizer).
 #' @keywords internal
 .hzr_gradient_multiphase <- function(theta, time, status,
@@ -506,7 +506,7 @@
   has_left     <- length(idx_left) > 0
   has_interval <- length(idx_interval) > 0
 
-  # ── Per-phase quantities ──────────────────────────────────────────────────
+  # -- Per-phase quantities --------------------------------------------------
   # We need, for each phase j and each observation i:
   #   mu_j(x_i), Phi_j(t_i), phi_j(t_i), and shape derivatives of Phi and phi
   #
@@ -569,7 +569,7 @@
   # Guard: if total hazard or cumhaz is non-finite, return zero gradient
   if (any(!is.finite(H_t)) || any(!is.finite(h_t))) return(grad)
 
-  # ── Per-observation weight vectors ────────────────────────────────────────
+  # -- Per-observation weight vectors ----------------------------------------
   # dLogl/dH(t_i) depends on observation type:
   #   event:         d/dH [ log h(t) - H(t) ] = -1        (H part)
   #   right-cens:    d/dH [ -H(t) ]            = -1
@@ -603,7 +603,7 @@
     inv_h[idx_event] <- 1 / h_event
   }
 
-  # ── Assemble gradient per phase ───────────────────────────────────────────
+  # -- Assemble gradient per phase -------------------------------------------
   pos <- 1L  # position in the full theta vector
 
   for (j in seq_along(phases)) {
@@ -613,7 +613,7 @@
     Phi_j <- phase_Phi[[j]]
     phi_j <- phase_phi[[j]]
 
-    # ── d(logl) / d(log_mu_j) ──────────────────────────────────────────
+    # -- d(logl) / d(log_mu_j) ------------------------------------------
     # From H part: w_H_i * dH/d(log_mu) = w_H_i * mu_j * Phi_j
     # From h part (events): inv_h_i * dh/d(log_mu) = inv_h_i * mu_j * phi_j
     dlogl_dlog_mu <- sum(w_H * mu_j * Phi_j) +
@@ -649,7 +649,7 @@
     grad[pos] <- dlogl_dlog_mu
     pos <- pos + 1L
 
-    # ── Shape parameters (non-constant phases only) ─────────────────────
+    # -- Shape parameters (non-constant phases only) ---------------------
     if (phases[[nm]]$type %in% c("cdf", "hazard")) {
       pd <- phase_deriv[[j]]
 
@@ -732,7 +732,7 @@
       }
     }
 
-    # ── Covariate coefficients beta_jk ──────────────────────────────────
+    # -- Covariate coefficients beta_jk ----------------------------------
     # dH/d(beta_jk) = x_ik * mu_j_i * Phi_j_i
     # dh/d(beta_jk) = x_ik * mu_j_i * phi_j_i
     if (length(pars$beta) > 0 && !is.null(x_list[[nm]])) {
@@ -759,7 +759,7 @@
     }
   }
 
-  # ── Interval-censored fallback: add correction via finite difference ───
+  # -- Interval-censored fallback: add correction via finite difference ---
   # Interval-censored observations are uncommon; their gradient contribution
   # is added via one-sided numerical difference on the log-likelihood of
   # just those observations.
@@ -941,7 +941,17 @@
   # left censoring require a different event-counting formulation.
   coe_supported_data <- all(status %in% c(0, 1))
 
-  if (use_conserve && coe_supported_data && length(phases) >= 2L) {
+  # CoE with non-uniform weights is not yet wired up: `.hzr_conserve_events()`
+  # receives the weighted event count as `total_events` but sums the per-phase
+  # cumhaz across rows *without* applying weights, so Turner's adjustment is
+  # computed on a mismatched scale.  Auto-disable CoE when weights are not
+  # all 1 and let the optimizer fall through to the (correctly weighted)
+  # full-dimensional path.  Tracked in
+  # `inst/dev/DEVELOPMENT-PLAN.md` Phase 4e.
+  coe_supported_weights <- all(weights == 1)
+
+  if (use_conserve && coe_supported_data && coe_supported_weights &&
+        length(phases) >= 2L) {
     total_events <- sum(weights[status == 1])
     if (total_events > 0) {
       # Initial CoE scaling: adjust all log_mu proportionally
@@ -1137,7 +1147,7 @@
       )
     }
 
-    # Expand vcov to full dimension (NA for fixed params — not estimated)
+    # Expand vcov to full dimension (NA for fixed params -- not estimated)
     if (!is.null(best_result$vcov) && is.matrix(best_result$vcov)) {
       p_full <- length(theta_fixed)
       vcov_full <- matrix(NA_real_, p_full, p_full)

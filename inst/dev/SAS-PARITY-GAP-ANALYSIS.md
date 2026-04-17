@@ -14,11 +14,11 @@ the TemporalHazard R package.
 |:---|:---:|:---|
 | Multi-phase hazard modeling | Complete | `src/llike/`, `src/decomp/` |
 | Right and interval censoring | Complete | `src/llike/setcoe_obs_loop.c` |
-| Repeating events (epoch decomposition) | Complete | `src/llike/setcoe_obs_loop.c` (STIME) |
+| Repeating events (epoch decomposition) | Planned | `src/llike/setcoe_obs_loop.c` (STIME) -- parser accepts `Surv(start, stop, event)` but LL ignores `start` for counting-process rows (see sec. 3) |
 | Time-varying covariates | Complete | EARLY/CONSTANT/LATE variable lists |
-| Weighted events | Complete | `src/llike/setcoe_obs_loop.c` (weight) |
+| Weighted events | Partial | `src/llike/setcoe_obs_loop.c` -- Weibull + multiphase only; exp / log-logistic / log-normal pending (see sec. 5) |
 | Stepwise covariate selection | Planned | `src/vars/stepw.c`, `backw.c`, `swvari.c` |
-| Conservation of Events theorem | Complete | `src/llike/setcoe.c`, `consrv.c` |
+| Conservation of Events theorem | Partial | `src/llike/setcoe.c`, `consrv.c` -- right-censored + unit-weight only; weighted + interval-censored extensions pending (see sec. 7) |
 | Covariance and correlation matrix estimation | Complete | `src/optim/` |
 
 ---
@@ -63,7 +63,7 @@ interface handles `Surv(time, status)` for right-censored and
 
 ---
 
-## 3. Repeating events (epoch decomposition) — Complete (v0.9.4)
+## 3. Repeating events (epoch decomposition) -- Planned (narrowed in v0.9.5)
 
 ### What SAS does
 
@@ -75,24 +75,47 @@ with:
 - `STIME` (left-censoring start time, via `LCENSOR` statement)
 - `TIME` (event or right-censoring time)
 
-The likelihood contribution for an epoch is `CF(T) − CF(STIME)` — the
+The likelihood contribution for an epoch is `CF(T) - CF(STIME)` -- the
 cumulative hazard accrued during that epoch only.
 
-**SAS C reference:** `src/llike/setcoe_obs_loop.c` lines 92–107
+**SAS C reference:** `src/llike/setcoe_obs_loop.c` lines 92-107
 
-### What R has
+### What R has (as of 0.9.5)
 
-The interval-censoring likelihood math is already implemented. Supporting
-repeating events requires:
+- **Parser:** `.hzr_parse_formula()` recognises `Surv(start, stop, event)`
+  and routes `start -> time_lower`, `stop -> time`, `event -> status`.
+  Verified by `test-repeating-events.R`.
+- **Trivial case:** `Surv(0, t, d)` is equivalent to `Surv(t, d)` and
+  produces the same fit on every distribution (also tested).
+- **Nonzero-start case:** `Surv(start, stop, event)` with any
+  `start > 0` is **rejected at `hazard()`** in v0.9.5. The 0.9.4 NEWS
+  claimed epochs contributed `H(stop) - H(start)` to the likelihood,
+  but the downstream likelihoods (Weibull single-dist and multiphase)
+  only honour `time_lower` for interval-censored rows (`status == 2`).
+  Counting-process rows (`status` in {0, 1}) were silently scored as
+  `H(stop)` alone -- an observation at `[1.5, 3.0, event=1]` got the
+  same LL contribution as `[0, 3.0, event=1]`. The sub-case is
+  blocked with an explicit error until the wire-up is finished.
 
-1. Documenting the epoch-decomposition data preparation workflow
-2. Ensuring `Surv(stime, time, status)` start-stop notation is correctly
-   parsed and routed to the interval-censoring likelihood path
-3. Adding a vignette or example demonstrating the workflow
-4. Validating against SAS output on a repeating-events dataset
+### What is still needed (Phase 4f)
 
-**Estimated effort:** Medium — the likelihood is in place; this is primarily
-a data interface and documentation task.
+1. In the Weibull LL (`.hzr_logl_weibull`): swap
+   `cumhaz_event[idx_event] -> cumhaz_event[idx_event] - cumhaz_lower[idx_event]`
+   in the event term and
+   `cumhaz_event[idx_right] -> cumhaz_event[idx_right] - cumhaz_lower[idx_right]`
+   in the right-censored term, honouring `time_lower` for all
+   `status` values, not just `status == 2`.
+2. Same swap in `.hzr_logl_multiphase()`.
+3. Analytic gradient updates (straightforward: all terms pick up an
+   additional `-cumhaz_lower` contribution).
+4. Remove the `hazard()` guard on counting-process data and re-enable
+   the split-invariance tests in `test-repeating-events.R`.
+5. Add a vignette section on epoch-decomposed longitudinal data and a
+   parity test against a SAS reference fit.
+
+**Estimated effort:** Medium. The likelihood math is already in place
+for the interval-censored path; this is a small surgical extension plus
+analytic gradient bookkeeping plus test + doc work.
 
 ---
 
@@ -111,7 +134,23 @@ in `hzr_phase()`.
 
 ---
 
-## 5. Weighted events — Complete (v0.9.4)
+## 5. Weighted events -- Partial
+
+**Status summary (as of 0.9.5):**
+
+| Path | Weighted LL | Weighted gradient | Enforced by `hazard()` |
+|:---|:---:|:---:|:---|
+| `dist = "weibull"` | Yes (0.9.4) | Yes (0.9.5 fix) | Allowed |
+| `dist = "multiphase"` | Yes (0.9.4) | Yes (numDeriv on weighted LL) | Allowed |
+| `dist = "exponential"` | **No** | **No** | `hazard()` errors |
+| `dist = "log-logistic"` | **No** | **No** | `hazard()` errors |
+| `dist = "log-normal"` | **No** | **No** | `hazard()` errors |
+
+The three unfinished single-distribution paths accept `weights` as a
+formal argument for signature consistency but never apply it inside the
+likelihood. Rather than return a silently-unweighted MLE, `hazard()`
+raises an error when `weights` is supplied with one of those
+distributions. Full wire-up is tracked in `DEVELOPMENT-PLAN.md` Phase 8.
 
 ### What SAS does
 
@@ -193,7 +232,28 @@ phase-specific selection and FAST screening are substantial.
 
 ---
 
-## 7. Conservation of Events theorem — Complete (v0.9.3)
+## 7. Conservation of Events theorem -- Partial (v0.9.3, narrowed in v0.9.5)
+
+**Current scope (as of 0.9.5):**
+
+| Data | CoE applied | Notes |
+|:---|:---:|:---|
+| Right-censored + exact event (status in {0, 1}) with weights == 1 | Yes | Matches SAS reference on CABGKUL to within 1 log-likelihood unit |
+| Interval-censored (status == 2) or left-censored (status == -1) | **No** -- auto-disabled | Falls through to full-dim optimizer |
+| Any non-unit weights | **No** -- auto-disabled (v0.9.5) | `.hzr_conserve_events()` receives the weighted event count as target but sums per-phase cumhaz without weights; Turner's adjustment comes out on a mismatched scale. See Phase 4e. |
+
+The CoE guard in `R/likelihood-multiphase.R` is:
+
+```r
+coe_supported_data    <- all(status %in% c(0, 1))
+coe_supported_weights <- all(weights == 1)
+if (use_conserve && coe_supported_data && coe_supported_weights && ...)
+```
+
+Fits on unsupported regimes are correct -- they just don't get the
+one-dimensional closed-form solve and take more optimizer iterations.
+
+
 
 ### What SAS does
 

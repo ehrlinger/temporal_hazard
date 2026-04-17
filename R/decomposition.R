@@ -1,11 +1,11 @@
-# decomposition.R — Generalized temporal decomposition
+# decomposition.R -- Generalized temporal decomposition
 #
 # PURPOSE
 # -------
 # The unified parametric family decompos(t; t_half, nu, m) generates all
 # temporal phase shapes used in multiphase hazard models.  It produces three
-# quantities: G(t) (CDF), g(t) (density — "early" pattern), and h(t) =
-# g(t)/(1-G(t)) (hazard — "late" pattern).
+# quantities: G(t) (CDF), g(t) (density -- "early" pattern), and h(t) =
+# g(t)/(1-G(t)) (hazard -- "late" pattern).
 #
 # Originally introduced by Blackstone, Naftel, and Turner (1986, JASA 81:615)
 # and extended to longitudinal mixed-effects settings by Rajeswaran et al.
@@ -26,7 +26,7 @@
 # B(t) = (exp(delta*t) - 1)/delta that is absorbed by the shape.
 
 # ============================================================================
-# hzr_decompos — core engine
+# hzr_decompos -- core engine
 # ============================================================================
 
 #' Generalized temporal decomposition
@@ -194,7 +194,7 @@ hzr_decompos <- function(time, t_half, nu, m) {
 
 
 # ============================================================================
-# hzr_decompos_g3 — Late-phase (G3) engine
+# hzr_decompos_g3 -- Late-phase (G3) engine
 # ============================================================================
 
 #' Late-phase (G3) temporal decomposition
@@ -202,7 +202,7 @@ hzr_decompos <- function(time, t_half, nu, m) {
 #' Computes the cumulative intensity \eqn{G_3(t)} and its derivative
 #' \eqn{g_3(t) = dG_3/dt} for the late-phase parametric family used in the
 #' original Blackstone C/SAS HAZARD code.  Unlike [hzr_decompos()] (which
-#' computes the early-phase G1 — a bounded CDF), this function can produce
+#' computes the early-phase G1 -- a bounded CDF), this function can produce
 #' **unbounded** values, making it suitable for modelling increasing late risk.
 #'
 #' @section Mathematical form:
@@ -344,9 +344,9 @@ hzr_decompos_g3 <- function(time, tau, gamma, alpha, eta) {
 #' @return Numeric vector: log(1 + exp(x)).
 #' @keywords internal
 .log1pexp <- function(x) {
-  # For large x: log(1+exp(x)) ≈ x
+  # For large x: log(1+exp(x)) ~ x
   # For moderate x: use log1p(exp(x))
-  # For very negative x: log(1+exp(x)) ≈ exp(x)
+  # For very negative x: log(1+exp(x)) ~ exp(x)
   out <- x
   big  <- x > 35
   mid  <- !big & x > -35
@@ -365,7 +365,7 @@ hzr_decompos_g3 <- function(time, tau, gamma, alpha, eta) {
 #' @return Numeric vector: log(exp(x) - 1).
 #' @keywords internal
 .log_expm1 <- function(x) {
-  # For large x: log(exp(x) - 1) ≈ x
+  # For large x: log(exp(x) - 1) ~ x
   # For small positive x: use log(expm1(x)) for accuracy
   out <- x
   big <- x > 35
@@ -374,7 +374,7 @@ hzr_decompos_g3 <- function(time, tau, gamma, alpha, eta) {
 
   out[big] <- x[big]
   out[ok]  <- log(expm1(x[ok]))
-  # For very small x: expm1(x) ≈ x, so log(expm1(x)) ≈ log(x)
+  # For very small x: expm1(x) ~ x, so log(expm1(x)) ~ log(x)
   out[tiny] <- log(pmax(x[tiny], .Machine$double.xmin))
 
   out
@@ -394,9 +394,9 @@ hzr_decompos_g3 <- function(time, tau, gamma, alpha, eta) {
 #' @param t_half Half-life parameter (> 0).
 #' @param nu Time exponent.
 #' @param m Shape parameter.
-#' @param type Phase type: `"cdf"` (early — uses \eqn{G(t)}),
-#'   `"hazard"` (late — uses cumulative hazard from \eqn{h(t)}), or
-#'   `"constant"` (flat rate — \eqn{\Phi = t}).
+#' @param type Phase type: `"cdf"` (early -- uses \eqn{G(t)}),
+#'   `"hazard"` (late -- uses cumulative hazard from \eqn{h(t)}), or
+#'   `"constant"` (flat rate -- \eqn{\Phi = t}).
 #'
 #' @return Numeric vector of cumulative hazard contributions \eqn{\Phi(t)},
 #'   same length as `time`.
@@ -609,7 +609,7 @@ hzr_phase_cumhaz <- function(time, t_half = 1, nu = 1, m = 0,
 
 #' Instantaneous hazard contribution from a single phase
 #'
-#' Computes \eqn{\phi_j(t) = d\Phi_j/dt} for one phase — the derivative of
+#' Computes \eqn{\phi_j(t) = d\Phi_j/dt} for one phase -- the derivative of
 #' the cumulative hazard contribution returned by [hzr_phase_cumhaz()].
 #'
 #' @inheritParams hzr_phase_cumhaz

@@ -19,13 +19,13 @@ Returns a compact summary of a \code{hazard} object, including model metadata,
 fit diagnostics, and coefficient-level statistics when available.
 }
 \examples{
-# ── Single-phase Weibull summary ────────────────────────────────────
+# -- Single-phase Weibull summary ------------------------------------
 fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 summary(fit)
 
 \donttest{
-# ── Multiphase model summary ────────────────────────────────────────
+# -- Multiphase model summary ----------------------------------------
 set.seed(42)
 n   <- 200
 dat <- data.frame(

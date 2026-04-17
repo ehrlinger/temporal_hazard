@@ -1,4 +1,4 @@
-# phase-spec.R — Phase specification for multiphase hazard models
+# phase-spec.R -- Phase specification for multiphase hazard models
 #
 # PURPOSE
 # -------
@@ -242,6 +242,9 @@ hzr_phase <- function(type = c("cdf", "hazard", "constant", "g3"),
 # S3 methods
 # ============================================================================
 
+#' @rdname hzr_phase
+#' @param x An `hzr_phase` object (for `print.hzr_phase()`).
+#' @param ... Additional arguments (ignored).
 #' @export
 print.hzr_phase <- function(x, ...) {
   label <- switch(x$type,

@@ -160,3 +160,159 @@ test_that(".hzr_conserve_events adjusts theta correctly", {
   # Other params should be unchanged
   expect_equal(theta_adj[1:4], theta[1:4])
 })
+
+# ===========================================================================
+# CoE parity: reduced-dim CoE and full-dim optimization find same optimum
+# ===========================================================================
+#
+# CoE is a dimension-reduction technique -- one phase's log_mu is solved
+# analytically at each iteration instead of numerically optimized.  The
+# log-likelihood function is unchanged, so the MLE should be identical
+# (up to optimizer tolerance) whether CoE is on or off.
+
+test_that("CoE and non-CoE find the same optimum on right-censored data", {
+  skip_on_cran()
+  set.seed(101)
+  data(cabgkul, package = "TemporalHazard")
+  small <- cabgkul[1:60, ]
+
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.2, nu = 1, m = 1,
+                           fixed = "shapes"),
+    constant = hzr_phase("constant")
+  )
+
+  fit_coe <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data = small, dist = "multiphase", phases = phases,
+    fit = TRUE,
+    control = list(n_starts = 3, maxit = 500, conserve = TRUE)
+  )
+  fit_no_coe <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data = small, dist = "multiphase", phases = phases,
+    fit = TRUE,
+    control = list(n_starts = 3, maxit = 500, conserve = FALSE)
+  )
+
+  expect_equal(fit_coe$fit$objective, fit_no_coe$fit$objective,
+               tolerance = 1e-2)
+})
+
+# ===========================================================================
+# CoE with interval-censored data auto-disables cleanly
+# ===========================================================================
+
+test_that("CoE auto-disables (no error) when any observation is interval-censored", {
+  # Per likelihood-multiphase.R the CoE guard is:
+  #   coe_supported_data <- all(status %in% c(0, 1))
+  # Interval-censored data (status == 2) therefore falls through to the
+  # full-dimensional optimizer.  This test asserts the fit runs to a
+  # finite log-likelihood.  It does not claim the Turner conservation
+  # property holds for interval data -- that extension is tracked as
+  # part of Phase 4e.
+  skip_on_cran()
+  set.seed(13)
+  n <- 30
+  lo <- runif(n, 0.1, 1.5)
+  hi <- lo + runif(n, 0.1, 0.5)
+  df <- data.frame(lo = lo, hi = hi)
+
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1,
+                           fixed = "shapes"),
+    constant = hzr_phase("constant")
+  )
+
+  fit <- hazard(
+    survival::Surv(lo, hi, type = "interval2") ~ 1,
+    data = df, dist = "multiphase", phases = phases,
+    fit = TRUE,
+    control = list(n_starts = 2, maxit = 300)
+  )
+  expect_true(is.finite(fit$fit$objective))
+})
+
+# ===========================================================================
+# CoE auto-disables for non-unit weights
+# ===========================================================================
+#
+# `.hzr_conserve_events()` takes the weighted event count as `total_events`
+# but computes the per-phase cumhaz sums *without* applying row weights, so
+# Turner's adjustment comes out on a mismatched scale when weights aren't
+# all 1. The optimizer was narrowed in v0.9.5 to auto-disable CoE in that
+# regime and fall through to the (correctly weighted) full-dim path.
+#
+# Under that narrowing, a weighted fit on D must match the unweighted fit
+# on the row-duplicated dataset expand(D, w) -- the same invariant as
+# test-weights.R, repeated here with a multiphase model to prove that
+# (a) CoE is indeed disabled with w != 1, and (b) the weighted LL path
+# is consistent end-to-end with duplication.
+
+test_that("weighted multiphase fit matches the row-duplicated fit (CoE auto-off for w != 1)", {
+  skip_on_cran()
+  set.seed(42)
+  data(cabgkul, package = "TemporalHazard")
+  small <- cabgkul[1:40, ]
+  w <- sample(1:2, nrow(small), replace = TRUE)
+  idx <- rep(seq_len(nrow(small)), times = w)
+  dup <- small[idx, ]
+
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.2, nu = 1, m = 1,
+                           fixed = "shapes"),
+    constant = hzr_phase("constant")
+  )
+
+  # Force CoE off on both sides so the comparison isolates weighted LL
+  # equivalence rather than the CoE vs non-CoE dimension trick.
+  fit_w <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data = small, dist = "multiphase", phases = phases,
+    weights = w, fit = TRUE,
+    control = list(n_starts = 2, maxit = 300, conserve = FALSE)
+  )
+  fit_dup <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data = dup, dist = "multiphase", phases = phases,
+    fit = TRUE,
+    control = list(n_starts = 2, maxit = 300, conserve = FALSE)
+  )
+
+  expect_equal(fit_w$fit$objective, fit_dup$fit$objective, tolerance = 1e-3)
+  expect_equal(unname(coef(fit_w)), unname(coef(fit_dup)), tolerance = 1e-2)
+})
+
+test_that("CoE auto-disabled when default conserve=TRUE meets non-unit weights", {
+  # With weights != 1 the optimizer should behave identically to an
+  # explicit `conserve = FALSE` run.  We check by comparing
+  # log-likelihoods (coefficients may differ by trivially small amounts
+  # due to multi-start RNG), not by inspecting optimizer internals.
+  skip_on_cran()
+  set.seed(77)
+  data(cabgkul, package = "TemporalHazard")
+  small <- cabgkul[1:40, ]
+  w <- sample(1:2, nrow(small), replace = TRUE)
+
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.2, nu = 1, m = 1,
+                           fixed = "shapes"),
+    constant = hzr_phase("constant")
+  )
+
+  fit_default <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data = small, dist = "multiphase", phases = phases,
+    weights = w, fit = TRUE,
+    control = list(n_starts = 2, maxit = 300)  # conserve default TRUE
+  )
+  fit_explicit_off <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data = small, dist = "multiphase", phases = phases,
+    weights = w, fit = TRUE,
+    control = list(n_starts = 2, maxit = 300, conserve = FALSE)
+  )
+
+  expect_equal(fit_default$fit$objective, fit_explicit_off$fit$objective,
+               tolerance = 1e-3)
+})

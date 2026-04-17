@@ -21,8 +21,8 @@ column, or time will be taken from the fitted object's data.}
 
 \item{type}{Prediction type:
 \itemize{
-\item \code{"linear_predictor"}: Linear predictor η = x·β (not available for multiphase)
-\item \code{"hazard"}: Hazard scale exp(η) (not available for multiphase)
+\item \code{"linear_predictor"}: Linear predictor eta = x*beta (not available for multiphase)
+\item \code{"hazard"}: Hazard scale exp(eta) (not available for multiphase)
 \item \code{"survival"}: Survival probability S(t|x) = exp(-H(t|x))
 \item \code{"cumulative_hazard"}: Cumulative hazard H(t|x) at event times
 }}
@@ -43,7 +43,7 @@ types including linear predictor, hazard, survival probability, and cumulative h
 \details{
 For Weibull models with survival or cumulative_hazard predictions:
 \itemize{
-\item Cumulative hazard: H(t|x) = (μ·t)^ν · exp(η)
+\item Cumulative hazard: H(t|x) = (mu*t)^nu * exp(eta)
 \item Survival: S(t|x) = exp(-H(t|x))
 }
 
@@ -54,7 +54,7 @@ or \code{"hazard"} also require time values (via \code{newdata$time} or fitted-t
 so window-specific coefficients can be selected.
 }
 \examples{
-# ── Basic predictions ────────────────────────────────────────────────
+# -- Basic predictions ------------------------------------------------
 set.seed(1)
 fit <- hazard(time = rexp(50, 0.3), status = rep(1L, 50),
               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
@@ -62,7 +62,7 @@ predict(fit, type = "survival")
 predict(fit, newdata = data.frame(time = c(1, 2, 5)),
         type = "cumulative_hazard")
 
-# ── Patient-specific survival curves ─────────────────────────────────
+# -- Patient-specific survival curves ---------------------------------
 set.seed(1001)
 n   <- 180
 dat <- data.frame(
@@ -93,7 +93,7 @@ new_patients$cumulative_hazard <- cumhaz
 new_patients
 
 \donttest{
-# ── Grouped survival curves ───────────────────────────────────────
+# -- Grouped survival curves ---------------------------------------
 if (requireNamespace("ggplot2", quietly = TRUE)) {
   library(ggplot2)
 
@@ -131,7 +131,7 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
 }
 
 \donttest{
-# ── Multiphase predictions with decomposition ────────────────────
+# -- Multiphase predictions with decomposition --------------------
 set.seed(42)
 n   <- 200
 dat <- data.frame(

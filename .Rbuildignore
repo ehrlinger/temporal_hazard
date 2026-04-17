@@ -2,6 +2,7 @@
 ^\.git$
 ^\.github$
 ^\.claude$
+^\.codegraph$
 ^tools$
 ^inst/extdata/\.gitkeep$
 ^inst/fixtures/\.gitkeep$

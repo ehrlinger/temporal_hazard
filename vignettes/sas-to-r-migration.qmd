@@ -195,9 +195,93 @@ fit <- hazard(
 SELECTION SLE=0.2 SLS=0.1;
 ```
 
-Stepwise variable selection is **not implemented** in `TemporalHazard`. For now,
-resolve the final variable set outside the package and then fit the confirmed
-model directly in R.
+`TemporalHazard` now ships `hzr_stepwise()`, which implements forward,
+backward, and two-way stepwise selection with SAS-style SLENTRY /
+SLSTAY thresholds, phase-specific entry for multiphase models, and a
+MOVE oscillation guard.  FAST-screening (Lawless-Singhal approximate
+Wald updates) is not yet implemented; every candidate currently gets a
+full refit.  See `?hzr_stepwise` for the full option list.
+
+---
+
+## SAS macro equivalents
+
+The legacy SAS distribution ships a suite of macros for nonparametric
+baselines, goodness-of-fit diagnostics, bootstrap inference, and
+variable calibration that sit alongside `PROC HAZARD`.  Each has an R
+equivalent in `TemporalHazard`:
+
+| SAS macro | R function | Purpose |
+|:---|:---|:---|
+| `kaplan.sas` | `hzr_kaplan()` | KM survival with logit-transformed exact CL |
+| `nelsonl.sas` / `nelsont.sas` | `hzr_nelson()` | Nelson cumulative hazard with lognormal CL |
+| `hazplot.sas` | `hzr_gof()` | Parametric vs. KM overlay + CoE goodness-of-fit |
+| `deciles.hazard.sas` | `hzr_deciles()` | Decile-of-risk calibration + chi-square GOF |
+| `logit.sas` / `logitgr.sas` | `hzr_calibrate()` | Quantile-group calibration (logit / Gompertz / Cox link) |
+| `bootstrap.hazard.sas` | `hzr_bootstrap()` | Bootstrap resampling + summary |
+| `markov.sas` | `hzr_competing_risks()` | Aalen-Johansen competing-risks incidence |
+
+Minimal illustrations on the AVC dataset follow.  The
+`vignette("inference-diagnostics")` walkthrough builds these into a
+full analysis workflow.
+
+```{r}
+#| label: macro-demos-setup
+library(survival)
+data(avc)
+avc <- na.omit(avc)
+
+# Base parametric fit for downstream diagnostics
+fit <- hazard(
+  Surv(int_dead, dead) ~ age + status + mal + com_iv,
+  data = avc, dist = "weibull",
+  theta = c(mu = 0.2, nu = 1, rep(0, 4)),
+  fit = TRUE, control = list(maxit = 500)
+)
+```
+
+```{r}
+#| label: kaplan-demo
+km <- hzr_kaplan(time = avc$int_dead, status = avc$dead)
+head(km, 4)
+```
+
+```{r}
+#| label: nelson-demo
+nel <- hzr_nelson(time = avc$int_dead, event = avc$dead)
+head(nel, 4)
+```
+
+```{r}
+#| label: gof-demo
+head(hzr_gof(fit), 4)
+```
+
+```{r}
+#| label: deciles-demo
+hzr_deciles(fit, time = 120, groups = 10)
+```
+
+```{r}
+#| label: calibrate-demo
+hzr_calibrate(avc$age, avc$dead, groups = 10, link = "logit")
+```
+
+```{r}
+#| label: bootstrap-demo
+set.seed(1)
+hzr_bootstrap(fit, n_boot = 20)  # small for vignette build
+```
+
+```{r}
+#| label: competing-demo
+data(valves)
+# Synthesize a competing-risks indicator for illustration.
+valves$ev <- with(valves, ifelse(dead == 1, 1L,
+                                   ifelse(pve == 1,  2L,
+                                   ifelse(reop == 1, 3L, 0L))))
+head(hzr_competing_risks(valves$int_dead, valves$ev), 4)
+```
 
 ---
 
@@ -323,8 +407,66 @@ eta <- predict(fit, type = "linear_predictor")
 hz  <- predict(fit, type = "hazard")
 ```
 
-From M2 onward, `"survival"` and `"cumulative_hazard"` types will be added to
-mirror the `P` (predict/print) option in `PROC HAZARD`.
+`"survival"` and `"cumulative_hazard"` types are also supported, mirroring
+the `P` (predict/print) option in `PROC HAZARD`.  Pass `decompose = TRUE`
+for multiphase fits to get per-phase contributions.
+
+---
+
+## Known limitations vs. SAS HAZARD
+
+A SAS HAZARD veteran migrating to `TemporalHazard` should be aware of
+the following scope limits as of v0.9.5.  Detailed status per feature is
+tracked in `inst/dev/SAS-PARITY-GAP-ANALYSIS.md`.
+
+### Observation weights (`WEIGHT` statement)
+
+- **Supported:** `dist = "weibull"` and `dist = "multiphase"` (LL and
+  analytic gradient).
+- **Not yet supported:** `dist = "exponential"`, `"log-logistic"`,
+  `"log-normal"`.  `hazard()` raises an explicit error rather than
+  returning a silently unweighted fit.
+- **Caveat for multiphase:** the Conservation of Events optimiser trick
+  auto-disables when weights are not all 1.  Fits are still correct;
+  they just take the full-dimensional optimisation path.
+- Tracked: `DEVELOPMENT-PLAN.md` Phase 4e.
+
+### Repeating events / counting-process notation
+
+- **Supported:** `Surv(time, status)` (standard right-censoring),
+  `Surv(time1, time2, type = "interval2")` (interval censoring),
+  `Surv(0, t, d)` (trivial start-stop form, equivalent to right
+  censoring).
+- **Not yet supported:** `Surv(start, stop, event)` with any `start > 0`.
+  The parser accepts it, but the downstream likelihood currently scores
+  every row as `H(stop)` instead of `H(stop) - H(start)`.  `hazard()`
+  errors out to prevent a silently wrong fit.  The SAS `LCENSOR`/`STIME`
+  mechanism maps onto this notation in principle.
+- Tracked: `DEVELOPMENT-PLAN.md` Phase 4f.
+
+### Stepwise variable selection (`SELECTION` statement)
+
+- **Supported:** `hzr_stepwise()` implements forward / backward /
+  two-way stepwise with SAS-style SLENTRY / SLSTAY thresholds,
+  per-phase entry for multiphase, and a MOVE oscillation guard.
+- **Not yet supported:** FAST-screening (Lawless-Singhal approximate
+  Wald updates).  Every candidate currently gets a full refit.
+
+### Prediction confidence limits
+
+- **Supported:** point predictions for every type
+  (`hazard`, `linear_predictor`, `survival`, `cumulative_hazard`,
+  plus `decompose = TRUE` for multiphase).
+- **Not yet supported:** delta-method standard errors / confidence
+  limits on prediction curves (the C reference has
+  `hzp_calc_haz_CL.c`, `hzp_calc_srv_CL.c`).  Use `hzr_bootstrap()` +
+  `predict()` for prediction-level CIs today.
+
+### Output datasets (`OUTEST=`, `OUTVCOV=`)
+
+- The R equivalents are `coef(fit)` and `vcov(fit)` in memory; there
+  is no automatic dataset-export mode.  Write them to disk yourself if
+  you need one.
 
 ---
 

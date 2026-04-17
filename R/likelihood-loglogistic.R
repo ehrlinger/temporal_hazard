@@ -2,52 +2,52 @@
 #' @keywords internal
 NULL
 
-# likelihood-loglogistic.R — Log-logistic parametric hazard likelihood, gradient, and optimizer
+# likelihood-loglogistic.R -- Log-logistic parametric hazard likelihood, gradient, and optimizer
 #
 # MODEL
 # -----
 # Log-logistic proportional-odds model (commonly used in actuarial work):
 #
-#   h(t | x)  = α β t^(β−1) exp(η) / (1 + α t^β exp(η))   hazard
-#   H(t | x)  = log(1 + α t^β exp(η))               cumulative hazard
-#   S(t | x)  = 1 / (1 + α t^β exp(η))              survival
+#   h(t | x)  = alpha beta t^(beta-1) exp(eta) / (1 + alpha t^beta exp(eta))   hazard
+#   H(t | x)  = log(1 + alpha t^beta exp(eta))               cumulative hazard
+#   S(t | x)  = 1 / (1 + alpha t^beta exp(eta))              survival
 #
-# where α > 0 (scale), β > 0 (shape), η = x β (linear predictor).
+# where alpha > 0 (scale), beta > 0 (shape), eta = x beta (linear predictor).
 #
-# When β = 1, the hazard function is monotone decreasing.  When β > 1 it
+# When beta = 1, the hazard function is monotone decreasing.  When beta > 1 it
 # has a single interior maximum (unimodal), which makes the log-logistic
 # useful for modelling failure rates that rise then fall over time.
 #
 # THETA LAYOUT
 # ------------
-#   theta[1]   = log(α)   (unconstrained; α recovered via exp())
-#   theta[2]   = log(β)   (unconstrained; β recovered via exp())
-#   theta[3:p] = β_coef   (covariate coefficients; unrestricted)
+#   theta[1]   = log(alpha)   (unconstrained; alpha recovered via exp())
+#   theta[2]   = log(beta)   (unconstrained; beta recovered via exp())
+#   theta[3:p] = beta_coef   (covariate coefficients; unrestricted)
 #
 # KEY GRADIENT NOTE
 # -----------------
-# Let pw_i = term_i / (1 + term_i) where term_i = α t_i^β exp(η_i)
-# and let w_i = (1 + δ_i) · pw_i  (events get weight 2, censored get 1).
+# Let pw_i = term_i / (1 + term_i) where term_i = alpha t_i^beta exp(eta_i)
+# and let w_i = (1 + delta_i) * pw_i  (events get weight 2, censored get 1).
 #
-#   dL/d(log α) = sum(δ) − sum(w)
-#   dL/d(log β) = sum(δ) + β · [sum(δ · log t) − sum(w · log t)]
-#   dL/dβ_j     = t(X) %*% (δ − w)
+#   dL/d(log alpha) = sum(delta) - sum(w)
+#   dL/d(log beta) = sum(delta) + beta * [sum(delta * log t) - sum(w * log t)]
+#   dL/dbeta_j     = t(X) %*% (delta - w)
 #
-# The (1+δ) weighting arises because events contribute both log h(t) and
+# The (1+delta) weighting arises because events contribute both log h(t) and
 # log S(t), each of which depends on log(1 + term).  Censored observations
 # contribute only log S(t).
 #
 # FUNCTIONS
 # ---------
-#   .hzr_logl_loglogistic()     — log-likelihood (optionally returning gradient)
-#   .hzr_gradient_loglogistic() — analytical score vector
-#   .hzr_optim_loglogistic()    — unconstrained BFGS wrapper
+#   .hzr_logl_loglogistic()     -- log-likelihood (optionally returning gradient)
+#   .hzr_gradient_loglogistic() -- analytical score vector
+#   .hzr_optim_loglogistic()    -- unconstrained BFGS wrapper
 
 #' Log-Logistic Parametric Hazard Likelihood
 #'
 #' Evaluate the log-likelihood and its derivatives for log-logistic hazard models.
 #' The log-logistic distribution is more flexible than exponential with separate
-#' scale (α) and shape (β) parameters.
+#' scale (alpha) and shape (beta) parameters.
 #'
 #' @keywords internal
 
@@ -57,8 +57,8 @@ NULL
 #' parametric hazard model with optional linear-predictor covariates.
 #'
 #' @param theta Vector of parameters:
-#'   theta\[1\] = log(α) where α > 0 is the scale parameter
-#'   theta\[2\] = log(β) where β > 0 is the shape parameter
+#'   theta\[1\] = log(alpha) where alpha > 0 is the scale parameter
+#'   theta\[2\] = log(beta) where beta > 0 is the shape parameter
 #'   theta\[3:length\]: Covariate coefficients (linear on log-scale of cumulative hazard)
 #'
 #' @param time Numeric vector of follow-up times (n)
@@ -67,7 +67,7 @@ NULL
 #'   Defaults to time if NULL.
 #' @param time_upper Optional numeric upper bound vector for left/interval-censored rows.
 #'   Defaults to time if NULL.
-#' @param x Design matrix of covariates (n × p_coef); NULL for no covariates
+#' @param x Design matrix of covariates (n x p_coef); NULL for no covariates
 #' @param return_gradient Logical; if TRUE, attach gradient vector as attribute
 #'
 #' @return Scalar log-likelihood value. If return_gradient = TRUE, gradient vector
@@ -170,8 +170,8 @@ NULL
   idx_interval <- status == 2
 
   # Exact event: log f = log h + log S
-  # f(t|x) = α β t^(β-1) exp(η) / (1 + α t^β exp(η))²
-  # log f  = log α + log β + (β-1) log t + η - 2 log(1 + term)
+  # f(t|x) = alpha beta t^(beta-1) exp(eta) / (1 + alpha t^beta exp(eta))^2
+  # log f  = log alpha + log beta + (beta-1) log t + eta - 2 log(1 + term)
   ll_event <- if (any(idx_event)) {
     sum(
       log_alpha + log_beta + (beta - 1) * log(time[idx_event]) +
@@ -235,17 +235,21 @@ NULL
 #'   \eqn{L = \sum(\delta_i * [\log(\alpha) + \log(\beta) + (\beta-1)
 #'   *\log(t_i)]) - \sum(\log(1 + \alpha*t_i^\beta*\exp(\eta_i)))}
 #'
-#' Let p_i = α·t_i^β·exp(η_i) / (1 + α·t_i^β·exp(η_i)) = probability of event at t_i
+#' Let p_i = alpha*t_i^beta*exp(eta_i) / (1 + alpha*t_i^beta*exp(eta_i)) = probability of event at t_i
 #'
 #' Derivatives (using chain rule and reparameterization):
-#' dL/d(log α) = sum(δ_i) - α * sum(t_i^β * exp(η_i) / (1 + α*t_i^β*exp(η_i)))
-#'             = sum(δ_i) - sum(α * t_i^β * exp(η_i) / (1 + term))
+#' dL/d(log alpha) = sum(delta_i) - alpha * sum(t_i^beta * exp(eta_i) / (1 + alpha*t_i^beta*exp(eta_i)))
+#'             = sum(delta_i) - sum(alpha * t_i^beta * exp(eta_i) / (1 + term))
 #'
-#' dL/d(log β) = sum(δ_i) + sum(δ_i * log(t_i)) - β * sum(α*t_i^β*log(t_i)*exp(η_i)/(1 + α*t_i^β*exp(η_i)))
-#'             = sum(δ_i) + sum(δ_i * log(t_i)) - β * sum(t_i^β*log(t_i)/(1 + 1/(α*t_i^β*exp(η_i))))
+#' dL/d(log beta) = sum(delta_i) + sum(delta_i * log(t_i))
+#'                  - beta * sum(alpha*t_i^beta*log(t_i)*exp(eta_i)
+#'                                 /(1 + alpha*t_i^beta*exp(eta_i)))
+#'                = sum(delta_i) + sum(delta_i * log(t_i))
+#'                  - beta * sum(t_i^beta*log(t_i)
+#'                                 /(1 + 1/(alpha*t_i^beta*exp(eta_i))))
 #'
-#' dL/dβ_j = sum(δ_i * x_ij) - sum(α*t_i^β*exp(η_i)*x_ij / (1 + α*t_i^β*exp(η_i)))
-#'         = t(X) %*% (δ - p)
+#' dL/dbeta_j = sum(delta_i * x_ij) - sum(alpha*t_i^beta*exp(eta_i)*x_ij / (1 + alpha*t_i^beta*exp(eta_i)))
+#'         = t(X) %*% (delta - p)
 #'
 #' @noRd
 .hzr_gradient_loglogistic <- function(
@@ -289,18 +293,18 @@ NULL
     term <- alpha * (time ^ beta) * exp(eta)
   }
 
-  # pw_i = term_i / (1 + term_i), w_i = (1 + δ_i) * pw_i
+  # pw_i = term_i / (1 + term_i), w_i = (1 + delta_i) * pw_i
   pw <- term / (1 + term)
   w <- (1 + status) * pw
 
-  # dL/d(log α) = sum(δ) - sum(w)
+  # dL/d(log alpha) = sum(delta) - sum(w)
   grad[1] <- sum(status) - sum(w)
 
-  # dL/d(log β) = sum(δ) + β * [sum(δ * log t) - sum(w * log t)]
+  # dL/d(log beta) = sum(delta) + beta * [sum(delta * log t) - sum(w * log t)]
   log_t <- log(time)
   grad[2] <- sum(status) + beta * (sum(status * log_t) - sum(w * log_t))
 
-  # dL/dβ_j = t(X) %*% (δ - w)
+  # dL/dbeta_j = t(X) %*% (delta - w)
   if (p > 2 && !is.null(x)) {
     residual <- status - w
     grad[3:p] <- as.numeric(crossprod(x, residual))
