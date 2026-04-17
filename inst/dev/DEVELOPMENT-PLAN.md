@@ -146,35 +146,25 @@ Tasks:
 7. User-facing API: `hzr_stepwise()` or `step.hazard()` method
 8. Selection trace printing/reporting
 
-### 4c. Observation Weights
+### 4c. Observation Weights — COMPLETE (v0.9.4)
 
-**Priority:** Medium
-**Effort:** Medium
-**Impact:** Enables severity-weighted analyses
+`weights` argument on `hazard()` applies Fisher weighting to the
+log-likelihood. Threaded through all distribution-specific likelihood,
+gradient, and Hessian functions, and through the multiphase optimizer
+and Conservation-of-Events adjustment. Implements the SAS `WEIGHT`
+statement.
 
-Tasks:
-1. Add `weights` argument to `hazard()` (numeric vector)
-2. Thread through all distribution-specific log-likelihood functions
-3. Thread through gradient functions
-4. Update Hessian computation
-5. Integrate with CoE theorem extension
-6. Validate against SAS output
+### 4d. Repeating Events (Epoch Decomposition) — COMPLETE (v0.9.4)
 
-### 4d. Repeating Events (Epoch Decomposition)
+`Surv(start, stop, event)` counting-process notation is now parsed as
+epoch-decomposed longitudinal data. Each epoch contributes
+`H(stop) − H(start)` to the likelihood, matching the SAS
+`LCENSOR`/`STIME` mechanism.
 
-**Priority:** Medium
-**Effort:** Small-medium
-**Impact:** Enables longitudinal recurrent event analyses
+### 4b scheduling note
 
-The likelihood math for start-stop intervals is already implemented via
-interval censoring. The main work is data interface and documentation.
-
-Tasks:
-1. Ensure `Surv(stime, time, status)` start-stop notation is correctly
-   parsed and routed to interval-censoring likelihood path
-2. Document the epoch-decomposition data preparation workflow
-3. Add a vignette or example demonstrating repeating events
-4. Validate against SAS output on a repeating-events dataset
+With 4a, 4c, and 4d complete, stepwise covariate selection is the sole
+remaining SAS-parity gap. Design captured in `STEPWISE-DESIGN.md`.
 
 ---
 
