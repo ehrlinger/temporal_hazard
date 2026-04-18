@@ -41,11 +41,13 @@
   }
 
   # Count free parameters.  Multiphase fits with `fixed = "shapes"`
-  # expose a free_mask (stored as `fixed_mask` in fit_state) — when
-  # present, use it; otherwise assume every theta entry is free.
+  # expose `fixed_mask` in fit_state, where TRUE marks a parameter held
+  # fixed during optimisation (see `.hzr_optim_multiphase()`:
+  # `best_result$fixed_mask <- !free_mask`).  Count only the FALSE
+  # entries toward k; fall back to length(theta) when no mask is set.
   mask <- fit$fit$fixed_mask
   k <- if (!is.null(mask) && length(mask) == length(fit$fit$theta)) {
-    sum(as.logical(mask))   # mask element TRUE == free
+    sum(!as.logical(mask))  # fixed_mask element TRUE == fixed
   } else {
     length(fit$fit$theta)
   }

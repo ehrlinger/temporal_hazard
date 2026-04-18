@@ -373,8 +373,13 @@ test_that("3-covariate phase does not emit mu_j * phi_j recycling warning", {
   # .hzr_multiphase_cumhaz() / .hzr_multiphase_hazard().  The avc dataset
   # has 5 NAs in inc_surg, so a 3-covariate phase referencing it would
   # produce a 305-row design matrix against a 310-row time vector.
-  skip_if_not(exists("avc"))
-  data(avc, package = "TemporalHazard")
+  skip_if_not(
+    tryCatch({
+      data("avc", package = "TemporalHazard", envir = environment())
+      exists("avc", inherits = FALSE)
+    }, error = function(e) FALSE),
+    "avc dataset not available"
+  )
 
   expect_no_warning(
     fit <- hazard(
