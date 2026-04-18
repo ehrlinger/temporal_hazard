@@ -828,6 +828,13 @@
   phases <- .hzr_validate_phases(phases)
 
   # --- Resolve per-phase design matrices and covariate counts ----------------
+  # Build phase-specific design matrices with na.action = na.pass so that
+  # rows with NA covariates are preserved (not silently dropped).  We then
+  # align all observation-aligned inputs (time, status, weights, …) by
+  # removing any row that has NA in any phase's design matrix.  Without this
+  # alignment, model.matrix()'s default na.omit shortens x_j relative to
+  # time, and mu_j * phi_j emits a vector-recycling warning on every
+  # likelihood evaluation.
   x_list <- vector("list", length(phases))
   names(x_list) <- names(phases)
   covariate_counts <- setNames(integer(length(phases)), names(phases))
@@ -835,8 +842,15 @@
   for (nm in names(phases)) {
     ph <- phases[[nm]]
     if (!is.null(ph$formula) && !is.null(data)) {
-      # Phase-specific formula: build design matrix from data
-      x_j <- stats::model.matrix(ph$formula, data = data)[, -1L, drop = FALSE]
+      # Phase-specific formula: build design matrix from data.  We route
+      # through model.frame(na.action = na.pass) explicitly because
+      # model.matrix() consults getOption("na.action") when it constructs
+      # the frame internally, which defaults to na.omit and silently drops
+      # rows with NA covariates.
+      mf_j <- stats::model.frame(ph$formula, data = data,
+                                   na.action = stats::na.pass)
+      x_j <- stats::model.matrix(ph$formula, data = mf_j)[, -1L,
+                                                           drop = FALSE]
       x_list[[nm]] <- x_j
       covariate_counts[[nm]] <- ncol(x_j)
     } else if (!is.null(x)) {
@@ -846,6 +860,36 @@
     } else {
       x_list[[nm]] <- NULL
       covariate_counts[[nm]] <- 0L
+    }
+  }
+
+  # Align rows: drop any observation with an NA in any phase-specific design
+  # matrix (or a row-count mismatch relative to time).
+  n_time <- length(time)
+  drop_rows <- logical(n_time)
+  for (nm in names(phases)) {
+    xm <- x_list[[nm]]
+    if (is.null(xm) || ncol(xm) == 0L) next
+    if (nrow(xm) != n_time) {
+      stop("Design matrix for phase '", nm, "' has ", nrow(xm),
+           " rows but length(time) is ", n_time,
+           ". Check that 'data' matches 'time'/'status'.", call. = FALSE)
+    }
+    drop_rows <- drop_rows |
+      apply(xm, 1L, function(row) any(is.na(row)))
+  }
+  if (any(drop_rows)) {
+    keep <- !drop_rows
+    time   <- time[keep]
+    status <- status[keep]
+    if (!is.null(time_lower)) time_lower <- time_lower[keep]
+    if (!is.null(time_upper)) time_upper <- time_upper[keep]
+    if (!is.null(weights))    weights    <- weights[keep]
+    if (!is.null(x))          x          <- x[keep, , drop = FALSE]
+    for (nm in names(phases)) {
+      if (!is.null(x_list[[nm]])) {
+        x_list[[nm]] <- x_list[[nm]][keep, , drop = FALSE]
+      }
     }
   }
 

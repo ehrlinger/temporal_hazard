@@ -16,6 +16,24 @@ test_that(".hzr_aic returns NA when logLik is not available", {
   expect_true(is.na(.hzr_aic(fit)))
 })
 
+test_that(".hzr_aic counts only FREE parameters when fixed_mask is set", {
+  # Multiphase fits expose fixed_mask where TRUE == FIXED (see
+  # .hzr_optim_multiphase).  Simulate a fit with 8 theta entries of
+  # which 3 are held fixed; k should be 5, not 8 (and not 3).
+  fake <- structure(
+    list(
+      fit = list(
+        theta      = setNames(seq_len(8), paste0("p", 1:8)),
+        objective  = -100,
+        fixed_mask = c(FALSE, TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, FALSE)
+      )
+    ),
+    class = "hazard"
+  )
+  # 5 free params → AIC = -2*(-100) + 2*5 = 210
+  expect_equal(.hzr_aic(fake), 210)
+})
+
 # Wald / entry -------------------------------------------------------------
 
 test_that("Wald entry score equals candidate's p-value", {
