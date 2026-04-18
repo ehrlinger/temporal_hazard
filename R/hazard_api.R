@@ -370,19 +370,6 @@ hazard <- function(formula = NULL,
     stop("'dist' must be a non-empty character scalar.", call. = FALSE)
   }
 
-  # Fisher weighting is currently only wired into the Weibull and multiphase
-  # likelihoods (and their gradients).  The exponential / log-logistic /
-  # log-normal single-distribution paths accept `weights` as a formal but do
-  # not apply it, so accepting the argument silently would return an
-  # unweighted fit -- worse than rejecting up front.  Tracked in
-  # inst/dev/DEVELOPMENT-PLAN.md Phase 8.
-  if (!is.null(weights) && !(dist %in% c("weibull", "multiphase"))) {
-    stop("'weights' is currently only supported for dist = 'weibull' or ",
-         "dist = 'multiphase'. Support for dist = '", dist, "' is deferred ",
-         "to a later release; see `NEWS.md`.",
-         call. = FALSE)
-  }
-
   if (!is.list(control)) {
     stop("'control' must be a list.", call. = FALSE)
   }

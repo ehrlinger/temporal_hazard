@@ -1,3 +1,24 @@
+# TemporalHazard 0.9.6
+
+## New features
+
+* **`weights` now supported for all distributions** — Phase 4e of the
+  development plan lands. The exponential, log-logistic, and
+  log-normal likelihoods and their analytic gradients now apply row
+  weights to every censoring term (event, right-censored,
+  left-censored, interval-censored). The 0.9.5 guard in `hazard()`
+  that rejected `weights` for `dist %in% c("exponential",
+  "loglogistic", "lognormal")` has been removed. Fits with integer
+  weights reproduce the row-duplicated fit to optimizer tolerance
+  across all five distributions.
+* **Conservation of Events now honours weights.**
+  `.hzr_conserve_events()` and `.hzr_select_fixmu_phase()` take an
+  optional `weights` argument; the multiphase optimizer threads it
+  through so per-phase cumulative hazards are summed on the same
+  scale as the (weighted) observed event count. CoE no longer
+  auto-disables when weights are non-uniform — the dimension
+  reduction stays on and the MLE matches the full-dim path.
+
 # TemporalHazard 0.9.5
 
 ## New features

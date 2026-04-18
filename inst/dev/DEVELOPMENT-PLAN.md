@@ -146,14 +146,17 @@ Tasks:
 7. User-facing API: `hzr_stepwise()` or `step.hazard()` method
 8. Selection trace printing/reporting
 
-### 4c. Observation Weights -- PARTIAL (v0.9.4 + v0.9.5 Weibull gradient fix)
+### 4c. Observation Weights -- COMPLETE (v0.9.6)
 
 `weights` argument on `hazard()` applies Fisher weighting to the
-log-likelihood for `dist = "weibull"` and `dist = "multiphase"`.
-Threaded through both likelihoods, the multiphase Conservation-of-Events
-adjustment, and (as of 0.9.5) the Weibull analytic gradient.
-`hazard()` raises an explicit error when `weights` is supplied with
-`dist` in `{"exponential", "log-logistic", "log-normal"}`.
+log-likelihood across all five distributions (Weibull, exponential,
+log-logistic, log-normal, multiphase). Threaded through every
+distribution's likelihood and analytic gradient, the multiphase
+Conservation-of-Events adjustment (`.hzr_conserve_events()` weights
+per-phase cumhaz sums so Turner's adjustment is on the same scale as
+the weighted event count), and the numerical-gradient fallbacks for
+mixed censoring. Integer weights reproduce the row-duplicated fit to
+optimizer tolerance for every distribution.
 
 ### 4d. Repeating Events (Epoch Decomposition) -- PARTIAL (narrowed in v0.9.5)
 
@@ -165,33 +168,23 @@ likelihoods only honour `time_lower` for interval-censored
 (`status == 2`) rows, so a nonzero-start epoch would be silently
 scored with `H(stop)` alone rather than `H(stop) - H(start)`.
 
-### 4e. Complete `weights` wire-up (exp / log-logistic / log-normal + CoE)
+### 4e. Complete `weights` wire-up (exp / log-logistic / log-normal + CoE) -- COMPLETE (v0.9.6)
 
-**Priority:** Medium
-**Effort:** Small--Medium
-**Gate:** Remove the `dist %in% c("weibull", "multiphase")` guard
-in `hazard()` *and* the `all(weights == 1)` guard on CoE in
-`R/likelihood-multiphase.R`. Add parity tests in `test-weights.R`
-covering each distribution against the row-duplicated reference fit,
-and re-enable weighted-CoE tests in `test-conservation-of-events.R`.
+Every LL term in `R/likelihood-exponential.R`,
+`R/likelihood-loglogistic.R`, and `R/likelihood-lognormal.R` now
+multiplies by `weights[idx_*]`; analytic gradients use weighted
+building blocks (`w * status`, `w * cumhaz`, `w * (1+delta) * pw`
+for log-logistic, `w * (1-delta) * mills` for log-normal). Numerical
+gradient fallbacks forward `weights` through. The
+`dist %in% c("weibull", "multiphase")` guard in `hazard()` has been
+removed.
 
-Tasks:
-
-1. `R/likelihood-exponential.R` -- multiply every LL term by
-   `weights[idx_*]`; update analytic gradient to use weighted building
-   blocks (`w * status`, `w * cumhaz`).
-2. Same for `R/likelihood-loglogistic.R` and `R/likelihood-lognormal.R`.
-3. Thread `weights` from `.hzr_optim_*` into each distribution's
-   `grad_internal` closure (mirroring the Weibull fix from 0.9.5).
-4. Remove the error guard in `hazard()`.
-5. Extend `test-weights.R` with per-distribution duplication-parity
-   tests.
-6. `.hzr_conserve_events()` -- add a `weights` argument and apply it
-   when summing per-phase cumhaz (`sumcz`, `sumcj`) so the Turner
-   target and predicted-event target are on the same scale.
-7. Remove the `all(weights == 1)` check in the CoE guard at
-   `R/likelihood-multiphase.R:944` and re-enable weighted-CoE parity
-   tests in `test-conservation-of-events.R`.
+`.hzr_conserve_events()` and `.hzr_select_fixmu_phase()` take an
+optional `weights` argument applied to per-phase cumhaz sums; the
+`all(weights == 1)` guard on CoE in `R/likelihood-multiphase.R` is
+gone. Duplication-parity tests for each distribution are in
+`test-weights.R`; weighted-CoE parity (CoE on and off) lives in
+`test-conservation-of-events.R`.
 
 ### 4f. Complete repeating-events wire-up (counting-process LL)
 
@@ -222,10 +215,10 @@ Tasks:
 
 ### 4b scheduling note
 
-With 4a, 4b, and 4c/4d narrowed, the remaining SAS-parity gaps are:
-`weights` completion (4e), repeating-events wire-up (4f), and the
-stepwise enhancements (FAST screening, multi-step MOVE trace) tracked
-separately.
+With 4a, 4b, 4c, and 4e complete and 4d narrowed, the remaining
+SAS-parity gaps are: repeating-events wire-up (4f), prediction
+confidence limits (4g), and the stepwise enhancements (FAST screening,
+multi-step MOVE trace) tracked separately.
 
 ---
 

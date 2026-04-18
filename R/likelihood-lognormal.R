@@ -117,6 +117,9 @@ NULL
 
   n <- length(time)
 
+  # Default unit weights
+  if (is.null(weights)) weights <- rep(1, n)
+
   # Extract parameters
   mu <- theta[1]          # Location (unrestricted)
   log_sigma <- theta[2]   # Log-scale (unrestricted)
@@ -153,29 +156,30 @@ NULL
   idx_left <- status == -1
   idx_interval <- status == 2
 
-  # Event: log f(t)
+  # Event: w * log f(t)
   ll_event <- if (any(idx_event)) {
-    sum(log_phi_z[idx_event] - log_sigma - log_t[idx_event])
+    sum(weights[idx_event] *
+          (log_phi_z[idx_event] - log_sigma - log_t[idx_event]))
   } else {
     0
   }
 
-  # Right-censored: log S(t)
+  # Right-censored: w * log S(t)
   ll_right <- if (any(idx_right)) {
-    sum(log_surv[idx_right])
+    sum(weights[idx_right] * log_surv[idx_right])
   } else {
     0
   }
 
-  # Left-censored: log F(u)
+  # Left-censored: w * log F(u)
   ll_left <- if (any(idx_left)) {
     z_u <- (log(upper[idx_left]) - eta[idx_left]) / sigma
-    sum(pnorm(z_u, log.p = TRUE))
+    sum(weights[idx_left] * pnorm(z_u, log.p = TRUE))
   } else {
     0
   }
 
-  # Interval-censored: log(F(u) - F(l)) with positivity guard.
+  # Interval-censored: w * log(F(u) - F(l)) with positivity guard.
   ll_interval <- if (any(idx_interval)) {
     z_l <- (log(lower[idx_interval]) - eta[idx_interval]) / sigma
     z_u <- (log(upper[idx_interval]) - eta[idx_interval]) / sigma
@@ -183,7 +187,7 @@ NULL
     f_u <- pnorm(z_u)
     diff_f <- f_u - f_l
     if (any(diff_f <= 0)) return(Inf)
-    sum(log(diff_f))
+    sum(weights[idx_interval] * log(diff_f))
   } else {
     0
   }
@@ -198,6 +202,7 @@ NULL
     grad <- .hzr_gradient_lognormal(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper, x = x,
+      weights = weights,
       eta = eta, sigma = sigma, log_sigma = log_sigma,
       z = z, log_phi_z = log_phi_z, log_surv = log_surv
     )
@@ -239,9 +244,14 @@ NULL
   p <- length(theta)
   grad <- numeric(p)
 
+  # Default unit weights -- keep gradient consistent with the LL when weights
+  # are omitted.
+  if (is.null(weights)) weights <- rep(1, n)
+
   # Mixed-censoring score uses numerical differentiation for robustness.
   if (any(status %in% c(-1, 2))) {
-    return(.hzr_numeric_grad_lognormal(theta, time, status, time_lower, time_upper, x))
+    return(.hzr_numeric_grad_lognormal(theta, time, status, time_lower,
+                                        time_upper, x, weights = weights))
   }
 
   # Recompute if not provided
@@ -263,29 +273,32 @@ NULL
     log_surv <- pnorm(-z, log.p = TRUE)
   }
 
-  # Inverse Mills ratio: w_i = phi(z_i) / Phi(-z_i)
-  # Computed in log scale for numerical stability, then exponentiating
-  log_w <- log_phi_z - log_surv
-  w <- exp(log_w)  # Safe: log_surv can be -Inf when Phi(-z) -> 0 (z -> +Inf)
-  # Handle case where log_surv = -Inf (z very large -> all censored obs have w -> Inf)
-  # But this only matters for censored obs. For events, w is not used in dL/dmu.
-  # Clamp to prevent Inf * 0 issues.
-  w <- pmin(w, 1e6)
+  # Inverse Mills ratio: mills_i = phi(z_i) / Phi(-z_i)
+  # Computed in log scale for numerical stability, then exponentiating.
+  log_mills <- log_phi_z - log_surv
+  mills <- exp(log_mills)  # Safe: log_surv can be -Inf when Phi(-z) -> 0 (z -> +Inf)
+  # Clamp to prevent Inf * 0 issues when z is very large.
+  mills <- pmin(mills, 1e6)
 
   censored <- 1 - status  # (1 - delta_i)
 
+  # Weighted per-row building blocks. Every term below is the unweighted form
+  # with `delta`, `(1-delta)*mills` etc. multiplied by `weights`.
+  w_status <- weights * status
+  w_censmills <- weights * censored * mills
+
   # ===== Gradient w.r.t. mu =====
-  # dL/dmu = (1/sigma) * [sum(delta_i * z_i) + sum((1-delta_i) * w_i)]
-  grad[1] <- (sum(status * z) + sum(censored * w)) / sigma
+  # dL/dmu = (1/sigma) * sum(w * [delta * z + (1-delta) * mills])
+  grad[1] <- (sum(w_status * z) + sum(w_censmills)) / sigma
 
   # ===== Gradient w.r.t. log(sigma) =====
-  # dL/d(log sigma) = sum(delta_i * (z_i^2 - 1)) + sum((1-delta_i) * w_i * z_i)
-  grad[2] <- sum(status * (z^2 - 1)) + sum(censored * w * z)
+  # dL/d(log sigma) = sum(w * delta * (z^2 - 1)) + sum(w * (1-delta) * mills * z)
+  grad[2] <- sum(w_status * (z^2 - 1)) + sum(w_censmills * z)
 
   # ===== Gradient w.r.t. covariate beta =====
-  # dL/dbeta_j = (1/sigma) * sum([delta_i * z_i + (1-delta_i) * w_i] * x_ij)
+  # dL/dbeta_j = (1/sigma) * sum(w * [delta * z + (1-delta) * mills] * x_ij)
   if (p > 2 && !is.null(x)) {
-    score_i <- (status * z + censored * w) / sigma
+    score_i <- (w_status * z + w_censmills) / sigma
     grad[3:p] <- as.numeric(crossprod(x, score_i))
   }
 
@@ -306,7 +319,9 @@ NULL
   )
 }
 
-.hzr_numeric_grad_lognormal <- function(theta, time, status, time_lower = NULL, time_upper = NULL, x = NULL) {
+.hzr_numeric_grad_lognormal <- function(theta, time, status,
+                                          time_lower = NULL, time_upper = NULL,
+                                          x = NULL, weights = NULL) {
   # Reuse log-likelihood as scalar objective and differentiate numerically.
   objective <- function(par) {
     .hzr_logl_lognormal(
@@ -316,6 +331,7 @@ NULL
       time_lower = time_lower,
       time_upper = time_upper,
       x = x,
+      weights = weights,
       return_gradient = FALSE
     )
   }

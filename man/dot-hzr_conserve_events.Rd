@@ -13,7 +13,8 @@
   phases,
   covariate_counts,
   x_list,
-  total_events
+  total_events,
+  weights = NULL
 )
 }
 \arguments{
@@ -33,7 +34,12 @@
 
 \item{x_list}{Named list of per-phase design matrices.}
 
-\item{total_events}{Numeric: sum of observed events (precomputed).}
+\item{total_events}{Numeric: sum of observed events (precomputed, weighted
+when \code{weights} is supplied).}
+
+\item{weights}{Optional numeric vector of row weights (length n). Defaults to
+unit weights. Applied when summing per-phase cumhaz so Turner's adjustment
+is computed on the same scale as \code{total_events}.}
 }
 \value{
 Updated theta vector with fixmu phase's log_mu adjusted.

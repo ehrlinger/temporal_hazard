@@ -4,7 +4,15 @@
 \alias{.hzr_select_fixmu_phase}
 \title{Select the phase whose log_mu will be solved by conservation}
 \usage{
-.hzr_select_fixmu_phase(theta, time, status, phases, covariate_counts, x_list)
+.hzr_select_fixmu_phase(
+  theta,
+  time,
+  status,
+  phases,
+  covariate_counts,
+  x_list,
+  weights = NULL
+)
 }
 \arguments{
 \item{theta}{Full parameter vector (internal scale).}
@@ -18,6 +26,10 @@
 \item{covariate_counts}{Named integer vector.}
 
 \item{x_list}{Named list of per-phase design matrices.}
+
+\item{weights}{Optional numeric vector of row weights (length n). Defaults to
+unit weights. Applied when summing per-phase cumhaz so that selection
+happens on the same scale as the (weighted) observed event count.}
 }
 \value{
 Character: name of the phase to fix.

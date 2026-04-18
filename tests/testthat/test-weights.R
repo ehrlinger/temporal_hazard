@@ -255,3 +255,200 @@ test_that("a zero weight drops the row's contribution to the likelihood", {
   )
   expect_equal(ll_w, ll_drop, tolerance = 1e-12)
 })
+
+# ---------------------------------------------------------------------------
+# Per-distribution duplication-parity for exp / log-logistic / log-normal
+# (wired up in v0.9.6 as part of Phase 4e).
+# ---------------------------------------------------------------------------
+
+test_that("integer weights match row duplication (exponential LL)", {
+  df <- make_toy()
+  n <- nrow(df)
+  w <- sample(1:3, n, replace = TRUE)
+  idx <- rep(seq_len(n), times = w)
+  theta <- c(log_lambda = log(0.6), beta = 0.25)
+  xm <- matrix(df$x, ncol = 1)
+
+  ll_w <- TemporalHazard:::.hzr_logl_exponential(
+    theta = theta, time = df$time, status = df$status,
+    x = xm, weights = w
+  )
+  ll_dup <- TemporalHazard:::.hzr_logl_exponential(
+    theta = theta, time = df$time[idx], status = df$status[idx],
+    x = matrix(df$x[idx], ncol = 1), weights = rep(1, sum(w))
+  )
+  expect_equal(ll_w, ll_dup, tolerance = 1e-10)
+})
+
+test_that("integer weights match row duplication (log-logistic LL)", {
+  df <- make_toy()
+  n <- nrow(df)
+  w <- sample(1:3, n, replace = TRUE)
+  idx <- rep(seq_len(n), times = w)
+  theta <- c(log_alpha = log(0.6), log_beta = log(1.2), beta = 0.25)
+  xm <- matrix(df$x, ncol = 1)
+
+  ll_w <- TemporalHazard:::.hzr_logl_loglogistic(
+    theta = theta, time = df$time, status = df$status,
+    x = xm, weights = w
+  )
+  ll_dup <- TemporalHazard:::.hzr_logl_loglogistic(
+    theta = theta, time = df$time[idx], status = df$status[idx],
+    x = matrix(df$x[idx], ncol = 1), weights = rep(1, sum(w))
+  )
+  expect_equal(ll_w, ll_dup, tolerance = 1e-10)
+})
+
+test_that("integer weights match row duplication (log-normal LL)", {
+  df <- make_toy()
+  n <- nrow(df)
+  w <- sample(1:3, n, replace = TRUE)
+  idx <- rep(seq_len(n), times = w)
+  theta <- c(mu = 0, log_sigma = log(1), beta = 0.25)
+  xm <- matrix(df$x, ncol = 1)
+
+  ll_w <- TemporalHazard:::.hzr_logl_lognormal(
+    theta = theta, time = df$time, status = df$status,
+    x = xm, weights = w
+  )
+  ll_dup <- TemporalHazard:::.hzr_logl_lognormal(
+    theta = theta, time = df$time[idx], status = df$status[idx],
+    x = matrix(df$x[idx], ncol = 1), weights = rep(1, sum(w))
+  )
+  expect_equal(ll_w, ll_dup, tolerance = 1e-10)
+})
+
+# Analytic gradients for exp / log-logistic / log-normal match numerical
+# gradients of the weighted LL.  Catches the "accepts formal but never
+# applies it" pattern in the analytic score path.
+
+test_that("weighted exponential gradient equals numerical gradient", {
+  skip_if_not_installed("numDeriv")
+  df <- make_toy()
+  w <- sample(1:3, nrow(df), replace = TRUE)
+  theta <- c(log_lambda = log(0.6), beta = 0.25)
+  xm <- matrix(df$x, ncol = 1)
+
+  num_g <- numDeriv::grad(
+    function(th) {
+      TemporalHazard:::.hzr_logl_exponential(
+        theta = th, time = df$time, status = df$status,
+        x = xm, weights = w
+      )
+    },
+    theta
+  )
+  ana_g <- TemporalHazard:::.hzr_gradient_exponential(
+    theta = theta, time = df$time, status = df$status,
+    x = xm, weights = w
+  )
+  expect_equal(as.numeric(ana_g), num_g, tolerance = 1e-5)
+})
+
+test_that("weighted log-logistic gradient equals numerical gradient", {
+  skip_if_not_installed("numDeriv")
+  df <- make_toy()
+  w <- sample(1:3, nrow(df), replace = TRUE)
+  theta <- c(log_alpha = log(0.6), log_beta = log(1.2), beta = 0.25)
+  xm <- matrix(df$x, ncol = 1)
+
+  num_g <- numDeriv::grad(
+    function(th) {
+      TemporalHazard:::.hzr_logl_loglogistic(
+        theta = th, time = df$time, status = df$status,
+        x = xm, weights = w
+      )
+    },
+    theta
+  )
+  ana_g <- TemporalHazard:::.hzr_gradient_loglogistic(
+    theta = theta, time = df$time, status = df$status,
+    x = xm, weights = w
+  )
+  expect_equal(as.numeric(ana_g), num_g, tolerance = 1e-5)
+})
+
+test_that("weighted log-normal gradient equals numerical gradient", {
+  skip_if_not_installed("numDeriv")
+  df <- make_toy()
+  w <- sample(1:3, nrow(df), replace = TRUE)
+  theta <- c(mu = 0, log_sigma = log(1), beta = 0.25)
+  xm <- matrix(df$x, ncol = 1)
+
+  num_g <- numDeriv::grad(
+    function(th) {
+      TemporalHazard:::.hzr_logl_lognormal(
+        theta = th, time = df$time, status = df$status,
+        x = xm, weights = w
+      )
+    },
+    theta
+  )
+  ana_g <- TemporalHazard:::.hzr_gradient_lognormal(
+    theta = theta, time = df$time, status = df$status,
+    x = xm, weights = w
+  )
+  expect_equal(as.numeric(ana_g), num_g, tolerance = 1e-5)
+})
+
+# End-to-end: weighted fit == duplicated-row fit for each distribution.
+
+test_that("fit with integer weights matches the duplicated-row fit (exponential)", {
+  skip_on_cran()
+  df <- make_toy()
+  n <- nrow(df)
+  w <- sample(1:3, n, replace = TRUE)
+  df_exp <- expand_rows(df, w)
+
+  fit_w <- hazard(
+    survival::Surv(time, status) ~ x, data = df,
+    dist = "exponential", weights = w, fit = TRUE
+  )
+  fit_dup <- hazard(
+    survival::Surv(time, status) ~ x, data = df_exp,
+    dist = "exponential", fit = TRUE
+  )
+
+  expect_equal(coef(fit_w), coef(fit_dup), tolerance = 1e-3)
+  expect_equal(fit_w$fit$objective, fit_dup$fit$objective, tolerance = 1e-4)
+})
+
+test_that("fit with integer weights matches the duplicated-row fit (log-logistic)", {
+  skip_on_cran()
+  df <- make_toy()
+  n <- nrow(df)
+  w <- sample(1:3, n, replace = TRUE)
+  df_exp <- expand_rows(df, w)
+
+  fit_w <- hazard(
+    survival::Surv(time, status) ~ x, data = df,
+    dist = "loglogistic", weights = w, fit = TRUE
+  )
+  fit_dup <- hazard(
+    survival::Surv(time, status) ~ x, data = df_exp,
+    dist = "loglogistic", fit = TRUE
+  )
+
+  expect_equal(coef(fit_w), coef(fit_dup), tolerance = 1e-3)
+  expect_equal(fit_w$fit$objective, fit_dup$fit$objective, tolerance = 1e-4)
+})
+
+test_that("fit with integer weights matches the duplicated-row fit (log-normal)", {
+  skip_on_cran()
+  df <- make_toy()
+  n <- nrow(df)
+  w <- sample(1:3, n, replace = TRUE)
+  df_exp <- expand_rows(df, w)
+
+  fit_w <- hazard(
+    survival::Surv(time, status) ~ x, data = df,
+    dist = "lognormal", weights = w, fit = TRUE
+  )
+  fit_dup <- hazard(
+    survival::Surv(time, status) ~ x, data = df_exp,
+    dist = "lognormal", fit = TRUE
+  )
+
+  expect_equal(coef(fit_w), coef(fit_dup), tolerance = 1e-3)
+  expect_equal(fit_w$fit$objective, fit_dup$fit$objective, tolerance = 1e-4)
+})
