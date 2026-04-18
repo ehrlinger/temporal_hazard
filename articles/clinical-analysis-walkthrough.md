@@ -436,7 +436,7 @@ fit_step$steps[, c("step_num", "action", "variable", "phase",
 #>   step_num action variable    phase      p_value      aic
 #> 1        1  enter   status    early 0.000000e+00 422.9675
 #> 2        2  enter      mal    early 1.352419e-33 416.6295
-#> 3        3  enter   com_iv    early 1.190955e-30 399.0333
+#> 3        3  enter   com_iv    early 1.203429e-30 399.0333
 #> 4        4  enter      age    early 3.363559e-02 397.3463
 #> 5        5  enter   status constant 6.358883e-02 396.2062
 ```
