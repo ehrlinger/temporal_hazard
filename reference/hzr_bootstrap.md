@@ -102,9 +102,10 @@ print(bs)
 #> Bootstrap inference for hazard model
 #> Replicates: 50 successful, 0 failed
 #> 
-#>  parameter   n pct   mean     sd     min    max ci_lower ci_upper
-#>         mu  50 100 0.0004 0.0004  0.0000 0.0023   0.0000   0.0013
-#>         nu  50 100 0.2219 0.0144  0.1963 0.2618   0.1986   0.2462
-#>            100 200 0.4201 0.4687 -0.0129 1.3909  -0.0114   1.2998
+#>  parameter  n pct    mean     sd     min     max ci_lower ci_upper
+#>         mu 50 100  0.0004 0.0004  0.0000  0.0023   0.0000   0.0013
+#>         nu 50 100  0.2219 0.0144  0.1963  0.2618   0.1986   0.2462
+#>        age 50 100 -0.0062 0.0028 -0.0129 -0.0022  -0.0125  -0.0029
+#>        mal 50 100  0.8464 0.2701  0.2673  1.3909   0.4337   1.3471
 # }
 ```

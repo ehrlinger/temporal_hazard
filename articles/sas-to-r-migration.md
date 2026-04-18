@@ -358,10 +358,13 @@ hzr_bootstrap(fit, n_boot = 20)  # small for vignette build
 #> Bootstrap inference for hazard model
 #> Replicates: 20 successful, 0 failed
 #> 
-#>  parameter  n pct   mean     sd     min    max ci_lower ci_upper
-#>         mu 20 100 0.0000 0.0000  0.0000 0.0000   0.0000   0.0000
-#>         nu 20 100 0.2446 0.0170  0.2222 0.2866   0.2229   0.2798
-#>            80 400 0.4756 0.3931 -0.2049 1.3490  -0.0349   1.2302
+#>  parameter  n pct    mean     sd     min    max ci_lower ci_upper
+#>         mu 20 100  0.0000 0.0000  0.0000 0.0000   0.0000   0.0000
+#>         nu 20 100  0.2446 0.0170  0.2222 0.2866   0.2229   0.2798
+#>        age 20 100 -0.0029 0.0016 -0.0070 0.0002  -0.0061  -0.0003
+#>     status 20 100  0.7035 0.2262  0.3252 1.0922   0.3475   1.0776
+#>        mal 20 100  0.4622 0.3263 -0.2049 0.9676  -0.1302   0.9326
+#>     com_iv 20 100  0.7395 0.3402  0.0776 1.3490   0.1436   1.3182
 ```
 
 ``` r

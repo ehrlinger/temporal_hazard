@@ -262,10 +262,13 @@ print(boot)
 #> Bootstrap inference for hazard model
 #> Replicates: 30 successful, 0 failed
 #> 
-#>  parameter   n pct   mean     sd     min    max ci_lower ci_upper
-#>         mu  30 100 0.0000 0.0000  0.0000 0.0000   0.0000   0.0000
-#>         nu  30 100 0.2174 0.0603  0.0004 0.2668   0.0012   0.2587
-#>            120 400 0.5004 0.4462 -0.4065 2.0954  -0.0104   1.3189
+#>  parameter  n pct    mean     sd     min    max ci_lower ci_upper
+#>         mu 30 100  0.0000 0.0000  0.0000 0.0000   0.0000   0.0000
+#>         nu 30 100  0.2174 0.0603  0.0004 0.2668   0.0012   0.2587
+#>        age 30 100 -0.0025 0.0024 -0.0100 0.0026  -0.0079   0.0011
+#>     status 30 100  0.6778 0.1666  0.2712 1.0751   0.3792   0.9582
+#>        mal 30 100  0.4165 0.3526 -0.4065 0.9703  -0.3595   0.9447
+#>     com_iv 30 100  0.9099 0.4358  0.0609 2.0954   0.2661   2.0265
 ```
 
 The parameter-level CIs above come directly from the bootstrap
