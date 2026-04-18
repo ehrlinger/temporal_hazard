@@ -37,9 +37,9 @@ replicate (default 1.0 for full bootstrap; < 1 for bagging).}
 A list with class \code{"hzr_bootstrap"} containing:
 \describe{
 \item{replicates}{Data frame with columns \code{replicate}, \code{parameter},
-and \code{estimate} — one row per parameter per successful replicate.}
+and \code{estimate} -- one row per parameter per successful replicate.}
 \item{summary}{Data frame with columns \code{parameter}, \code{n}, \code{pct},
-\code{mean}, \code{sd}, \code{min}, \code{max}, \code{ci_lower}, \code{ci_upper} — one row per
+\code{mean}, \code{sd}, \code{min}, \code{max}, \code{ci_lower}, \code{ci_upper} -- one row per
 parameter.}
 \item{n_success}{Number of successfully converged replicates.}
 \item{n_failed}{Number of replicates that failed to converge.}

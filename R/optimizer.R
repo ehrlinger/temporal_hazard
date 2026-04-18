@@ -2,7 +2,7 @@
 #' @keywords internal
 NULL
 
-# optimizer.R — Generic parametric hazard optimizer
+# optimizer.R -- Generic parametric hazard optimizer
 #
 # Consolidates the common optimization pattern shared across all distributions.
 # Each distribution provides its own log-likelihood and gradient functions;

@@ -3,24 +3,24 @@
 #' @keywords internal
 NULL
 
-# hazard_api.R — Primary user-facing API for TemporalHazard
+# hazard_api.R -- Primary user-facing API for TemporalHazard
 #
 # This file contains the main entry points:
-#   hazard()         — construct and optionally fit a parametric hazard model
-#   predict.hazard() — generate predictions from a fitted hazard object
-#   print.hazard()   — compact S3 print method
-#   coef.hazard()    — extract fitted parameter vector
-#   vcov.hazard()    — extract variance-covariance matrix
+#   hazard()         -- construct and optionally fit a parametric hazard model
+#   predict.hazard() -- generate predictions from a fitted hazard object
+#   print.hazard()   -- compact S3 print method
+#   coef.hazard()    -- extract fitted parameter vector
+#   vcov.hazard()    -- extract variance-covariance matrix
 #
 # DISTRIBUTION PARAMETERIZATION CONVENTIONS
 # -----------------------------------------
 # Each distribution stores a flattened theta vector.  Shape/scale parameters
-# always come first; covariate coefficients (β) follow:
+# always come first; covariate coefficients (beta) follow:
 #
-#   Weibull:     theta = [mu, nu, β₁, β₂, ...]      mu>0, nu>0
-#   Exponential: theta = [log(λ), β₁, β₂, ...]      λ>0 via exp()
-#   Loglogistic: theta = [log(α), log(β), β₁, ...]   α>0, β>0 via exp()
-#   Lognormal:   theta = [μ, log(σ), β₁, β₂, ...]   σ>0 via exp(); AFT model
+#   Weibull:     theta = [mu, nu, beta_1, beta_2, ...]      mu>0, nu>0
+#   Exponential: theta = [log(lambda), beta_1, beta_2, ...]      lambda>0 via exp()
+#   Loglogistic: theta = [log(alpha), log(beta), beta_1, ...]   alpha>0, beta>0 via exp()
+#   Lognormal:   theta = [mu, log(sigma), beta_1, beta_2, ...]   sigma>0 via exp(); AFT model
 #
 # ADDING A NEW DISTRIBUTION
 # -------------------------
@@ -92,7 +92,7 @@ NULL
 #'   engines remain unchanged.
 #'
 #' @examples
-#' # ── Univariable Weibull ──────────────────────────────────────────────
+#' # -- Univariable Weibull ----------------------------------------------
 #' set.seed(1)
 #' time   <- rexp(50, rate = 0.3)
 #' status <- sample(0:1, 50, replace = TRUE, prob = c(0.3, 0.7))
@@ -100,7 +100,7 @@ NULL
 #'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 #' summary(fit)
 #'
-#' # ── Formula interface with covariates ────────────────────────────────
+#' # -- Formula interface with covariates --------------------------------
 #' set.seed(1001)
 #' n   <- 180
 #' dat <- data.frame(
@@ -122,7 +122,7 @@ NULL
 #' summary(fit2)
 #'
 #' \donttest{
-#' # ── Parametric survival with Kaplan-Meier overlay ─────────────────
+#' # -- Parametric survival with Kaplan-Meier overlay -----------------
 #' if (requireNamespace("ggplot2", quietly = TRUE)) {
 #'   library(ggplot2)
 #'
@@ -155,7 +155,7 @@ NULL
 #' }
 #'
 #' \donttest{
-#' # ── Multiphase model (two phases) ─────────────────────────────────
+#' # -- Multiphase model (two phases) ---------------------------------
 #' fit_mp <- hazard(
 #'   survival::Surv(time, status) ~ 1,
 #'   data   = dat,
@@ -171,7 +171,7 @@ NULL
 #' )
 #' summary(fit_mp)
 #'
-#' # ── Per-phase decomposed cumulative hazard ────────────────────────
+#' # -- Per-phase decomposed cumulative hazard ------------------------
 #' if (requireNamespace("ggplot2", quietly = TRUE)) {
 #'   t_grid <- seq(0.01, max(dat$time), length.out = 100)
 #'   decomp <- predict(fit_mp, newdata = data.frame(time = t_grid),
@@ -255,6 +255,30 @@ hazard <- function(formula = NULL,
     time_lower <- parsed$time_lower
     time_upper <- parsed$time_upper
     x <- parsed$x
+
+    # Counting-process (start-stop) notation: the parser maps `start` to
+    # `time_lower` and `stop` to `time`, but the downstream likelihoods
+    # currently only honour `time_lower` for interval-censored rows
+    # (`status == 2`).  For counting-process rows (`status` in {0, 1})
+    # with a nonzero entry time the contribution should be
+    # `H(stop) - H(start)`; at present it is just `H(stop)`, producing a
+    # silently wrong fit.  Block the unsupported sub-case up front --
+    # `Surv(0, t, d)` is equivalent to `Surv(t, d)` and is allowed to
+    # pass through.  Full wire-up is tracked in
+    # `inst/dev/DEVELOPMENT-PLAN.md` Phase 4f.
+    if (!is.null(parsed$surv_type) && parsed$surv_type == "counting" &&
+          any(time_lower > 0)) {
+      stop(
+        "Counting-process (start-stop) notation `Surv(start, stop, event)` ",
+        "with nonzero start times is not yet supported: the likelihood ",
+        "currently computes H(stop) rather than H(stop) - H(start), which ",
+        "would produce a silently wrong fit. Workarounds: (1) use ",
+        "`Surv(time, status)` on right-censored data; (2) for ",
+        "interval-censored data use `Surv(time1, time2, type = \"interval2\")`. ",
+        "Full wire-up is tracked in `inst/dev/DEVELOPMENT-PLAN.md` Phase 4f.",
+        call. = FALSE
+      )
+    }
   }
 
   # After formula dispatch, require time and status
@@ -346,6 +370,19 @@ hazard <- function(formula = NULL,
     stop("'dist' must be a non-empty character scalar.", call. = FALSE)
   }
 
+  # Fisher weighting is currently only wired into the Weibull and multiphase
+  # likelihoods (and their gradients).  The exponential / log-logistic /
+  # log-normal single-distribution paths accept `weights` as a formal but do
+  # not apply it, so accepting the argument silently would return an
+  # unweighted fit -- worse than rejecting up front.  Tracked in
+  # inst/dev/DEVELOPMENT-PLAN.md Phase 8.
+  if (!is.null(weights) && !(dist %in% c("weibull", "multiphase"))) {
+    stop("'weights' is currently only supported for dist = 'weibull' or ",
+         "dist = 'multiphase'. Support for dist = '", dist, "' is deferred ",
+         "to a later release; see `NEWS.md`.",
+         call. = FALSE)
+  }
+
   if (!is.list(control)) {
     stop("'control' must be a list.", call. = FALSE)
   }
@@ -373,14 +410,14 @@ hazard <- function(formula = NULL,
 
   # fit_state holds the result of optimization (or just starting values if fit=FALSE).
   # Fields:
-  #   theta     — parameter vector (starting values before fit; MLE estimates after)
-  #   converged — TRUE if optimizer reported convergence (code 0); NA if not fitted
-  #   objective — log-likelihood at theta; NA_real_ if not fitted
-  #   se        — standard errors (sqrt of vcov diagonal); NULL / NA if unavailable
-  #   gradient  — score vector at solution (populated by some optimizers); NULL otherwise
-  #   vcov      — variance-covariance matrix; NA if Hessian not invertible
-  #   counts    — c(fn, gr) evaluation counts from optim()
-  #   message   — convergence message string from optim()
+  #   theta     -- parameter vector (starting values before fit; MLE estimates after)
+  #   converged -- TRUE if optimizer reported convergence (code 0); NA if not fitted
+  #   objective -- log-likelihood at theta; NA_real_ if not fitted
+  #   se        -- standard errors (sqrt of vcov diagonal); NULL / NA if unavailable
+  #   gradient  -- score vector at solution (populated by some optimizers); NULL otherwise
+  #   vcov      -- variance-covariance matrix; NA if Hessian not invertible
+  #   counts    -- c(fn, gr) evaluation counts from optim()
+  #   message   -- convergence message string from optim()
   fit_state <- list(
     theta = theta,
     converged = NA,
@@ -414,7 +451,7 @@ hazard <- function(formula = NULL,
     sqrt(d)
   }
 
-  # Distribution dispatch — select the distribution-specific optimizer and fit.
+  # Distribution dispatch -- select the distribution-specific optimizer and fit.
   if (fit && dist == "multiphase") {
     # Multiphase: theta_start is optional (assembled from phase specs if NULL)
     optim_result <- .hzr_run_fit_safely(.hzr_optim_multiphase(
@@ -465,12 +502,12 @@ hazard <- function(formula = NULL,
   }
 
   # Assemble the hazard S3 object.
-  # $call       — captured call for reproducibility / print
-  # $spec       — model specification (dist, control)
-  # $data       — raw data stored for default predict() / refit
-  # $fit        — optimisation results (see fit_state fields above)
-  # $legacy_args — pass-through ... args for SAS-migration parity
-  # $engine     — implementation tag ("native-r-m2")
+  # $call       -- captured call for reproducibility / print
+  # $spec       -- model specification (dist, control)
+  # $data       -- raw data stored for default predict() / refit
+  # $fit        -- optimisation results (see fit_state fields above)
+  # $legacy_args -- pass-through ... args for SAS-migration parity
+  # $engine     -- implementation tag ("native-r-m2")
   obj <- list(
     call = match.call(),
     spec = list(dist = dist, control = control, time_windows = time_windows,
@@ -502,8 +539,8 @@ hazard <- function(formula = NULL,
 #'   time (e.g., "survival", "cumulative_hazard"), newdata should include a `time`
 #'   column, or time will be taken from the fitted object's data.
 #' @param type Prediction type:
-#'   - `"linear_predictor"`: Linear predictor η = x·β (not available for multiphase)
-#'   - `"hazard"`: Hazard scale exp(η) (not available for multiphase)
+#'   - `"linear_predictor"`: Linear predictor eta = x*beta (not available for multiphase)
+#'   - `"hazard"`: Hazard scale exp(eta) (not available for multiphase)
 #'   - `"survival"`: Survival probability S(t|x) = exp(-H(t|x))
 #'   - `"cumulative_hazard"`: Cumulative hazard H(t|x) at event times
 #' @param decompose Logical; if `TRUE` and the model is multiphase, return a
@@ -513,7 +550,7 @@ hazard <- function(formula = NULL,
 #'
 #' @details
 #' For Weibull models with survival or cumulative_hazard predictions:
-#' - Cumulative hazard: H(t|x) = (μ·t)^ν · exp(η)
+#' - Cumulative hazard: H(t|x) = (mu*t)^nu * exp(eta)
 #' - Survival: S(t|x) = exp(-H(t|x))
 #'
 #' Time values must be positive and finite. If newdata contains a `time` column,
@@ -524,7 +561,7 @@ hazard <- function(formula = NULL,
 #'
 #' @return Numeric vector of predictions.
 #' @examples
-#' # ── Basic predictions ────────────────────────────────────────────────
+#' # -- Basic predictions ------------------------------------------------
 #' set.seed(1)
 #' fit <- hazard(time = rexp(50, 0.3), status = rep(1L, 50),
 #'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
@@ -532,7 +569,7 @@ hazard <- function(formula = NULL,
 #' predict(fit, newdata = data.frame(time = c(1, 2, 5)),
 #'         type = "cumulative_hazard")
 #'
-#' # ── Patient-specific survival curves ─────────────────────────────────
+#' # -- Patient-specific survival curves ---------------------------------
 #' set.seed(1001)
 #' n   <- 180
 #' dat <- data.frame(
@@ -563,7 +600,7 @@ hazard <- function(formula = NULL,
 #' new_patients
 #'
 #' \donttest{
-#' # ── Grouped survival curves ───────────────────────────────────────
+#' # -- Grouped survival curves ---------------------------------------
 #' if (requireNamespace("ggplot2", quietly = TRUE)) {
 #'   library(ggplot2)
 #'
@@ -601,7 +638,7 @@ hazard <- function(formula = NULL,
 #' }
 #'
 #' \donttest{
-#' # ── Multiphase predictions with decomposition ────────────────────
+#' # -- Multiphase predictions with decomposition --------------------
 #' set.seed(42)
 #' n   <- 200
 #' dat <- data.frame(
@@ -657,9 +694,9 @@ predict.hazard <- function(object, newdata = NULL,
   # -----------------------------------------------------------------------
   # Predictions that do NOT need time (linear_predictor, hazard)
   # -----------------------------------------------------------------------
-  # These predictions work purely through the linear predictor η = X β.
-  # Shape parameters are stripped from theta; only covariate β's are used.
-  # hazard returns exp(η), which is the relative-hazard multiplier (not the
+  # These predictions work purely through the linear predictor eta = X beta.
+  # Shape parameters are stripped from theta; only covariate beta's are used.
+  # hazard returns exp(eta), which is the relative-hazard multiplier (not the
   # baseline conditional hazard, which would require time + distribution).
   if (type %in% c("hazard", "linear_predictor")) {
     if (object$spec$dist == "multiphase") {
@@ -707,7 +744,7 @@ predict.hazard <- function(object, newdata = NULL,
 
     if (is.null(x)) {
       if (length(theta) <= n_shape) {
-        # Univariable model: no covariates, η = 0
+        # Univariable model: no covariates, eta = 0
         if (is.null(n_pred)) n_pred <- length(object$data$time)
         eta <- rep(0, n_pred)
       } else {
@@ -734,14 +771,14 @@ predict.hazard <- function(object, newdata = NULL,
   # -----------------------------------------------------------------------
   # Each distribution computes H(t|x) in its own way; all then share the
   # same final return statements:
-  #   cumulative_hazard → return(cumhaz)
-  #   survival          → return(exp(-cumhaz))
+  #   cumulative_hazard -> return(cumhaz)
+  #   survival          -> return(exp(-cumhaz))
   #
-  # EXCEPTION: log-normal uses a direct Φ(−z) formula for survival and
+  # EXCEPTION: log-normal uses a direct Phi(-z) formula for survival and
   # returns early inside its branch, bypassing the shared return below.
-  # This is because the log-normal is an AFT model where H(t) = −log Φ(−z)
+  # This is because the log-normal is an AFT model where H(t) = -log Phi(-z)
   # is numerically better computed directly from the normal CDF rather than
-  # via exp(−H).
+  # via exp(-H).
   if (type %in% c("survival", "cumulative_hazard")) {
     supported <- c("weibull", "exponential", "loglogistic", "lognormal", "multiphase")
     if (!object$spec$dist %in% supported) {
@@ -883,6 +920,17 @@ predict.hazard <- function(object, newdata = NULL,
 }
 
 
+#' Print method for fitted hazard models
+#'
+#' Compact one-block summary of a fitted `hazard` object: sample size,
+#' number of predictors, distribution, theta vector, and log-likelihood.
+#' S3 dispatch only -- users call `print(fit)` rather than invoking this
+#' directly.
+#'
+#' @param x A `hazard` object returned by [hazard()].
+#' @param ... Additional arguments (ignored).
+#' @return `x`, invisibly.
+#' @keywords internal
 #' @export
 print.hazard <- function(x, ...) {
   n <- length(x$data$time)
@@ -915,13 +963,13 @@ print.hazard <- function(x, ...) {
 #' @param ... Unused; for S3 compatibility.
 #' @return An object of class `summary.hazard`.
 #' @examples
-#' # ── Single-phase Weibull summary ────────────────────────────────────
+#' # -- Single-phase Weibull summary ------------------------------------
 #' fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
 #'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 #' summary(fit)
 #'
 #' \donttest{
-#' # ── Multiphase model summary ────────────────────────────────────────
+#' # -- Multiphase model summary ----------------------------------------
 #' set.seed(42)
 #' n   <- 200
 #' dat <- data.frame(
@@ -1007,6 +1055,17 @@ summary.hazard <- function(object, ...) {
   out
 }
 
+#' Print method for hazard summary objects
+#'
+#' Formatted console display of [summary.hazard()] output: distribution,
+#' phase list (for multiphase), coefficient table with standard errors,
+#' and log-likelihood.  S3 dispatch only -- users call `print(summary(fit))`
+#' rather than invoking this directly.
+#'
+#' @param x A `summary.hazard` object returned by [summary.hazard()].
+#' @param ... Additional arguments (ignored).
+#' @return `x`, invisibly.
+#' @keywords internal
 #' @export
 print.summary.hazard <- function(x, ...) {
   if (x$dist == "multiphase" && !is.null(x$phases)) {
@@ -1183,7 +1242,7 @@ vcov.hazard <- function(object, ...) {
 #'
 #' Example with two predictors and one cut point:
 #' - input columns: `x1`, `x2`
-#' - windows: `(−Inf, c1]`, `(c1, Inf)`
+#' - windows: `(-Inf, c1]`, `(c1, Inf)`
 #' - output columns: `x1_w1`, `x2_w1`, `x1_w2`, `x2_w2`
 #'
 #' @param x Numeric predictor matrix/data.frame.

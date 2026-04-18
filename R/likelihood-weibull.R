@@ -2,33 +2,33 @@
 #' @keywords internal
 NULL
 
-# likelihood-weibull.R — Weibull parametric hazard likelihood, gradient, and optimizer
+# likelihood-weibull.R -- Weibull parametric hazard likelihood, gradient, and optimizer
 #
 # MODEL
 # -----
 # Proportional-hazards (PH) parameterization:
 #
-#   h(t | x)  = μ ν t^(ν−1) exp(η)         hazard
-#   H(t | x)  = (μ t)^ν exp(η)              cumulative hazard
-#   S(t | x)  = exp(−H(t | x))              survival
+#   h(t | x)  = mu nu t^(nu-1) exp(eta)         hazard
+#   H(t | x)  = (mu t)^nu exp(eta)              cumulative hazard
+#   S(t | x)  = exp(-H(t | x))              survival
 #
-# where μ > 0 (scale), ν > 0 (shape), η = x β (linear predictor).
+# where mu > 0 (scale), nu > 0 (shape), eta = x beta (linear predictor).
 #
 # THETA LAYOUT
 # ------------
-#   theta[1] = μ   (must be > 0; enforced by L-BFGS-B lower bound)
-#   theta[2] = ν   (must be > 0; enforced by L-BFGS-B lower bound)
-#   theta[3:p] = β (covariate coefficients; unrestricted)
+#   theta[1] = mu   (must be > 0; enforced by L-BFGS-B lower bound)
+#   theta[2] = nu   (must be > 0; enforced by L-BFGS-B lower bound)
+#   theta[3:p] = beta (covariate coefficients; unrestricted)
 #
 # Note: unlike the other distributions, Weibull optimises on the natural scale
 # and uses L-BFGS-B with lower = 1e-6 instead of log-reparameterisation.
-# This preserves direct interpretability of the μ/ν estimates.
+# This preserves direct interpretability of the mu/nu estimates.
 #
 # FUNCTIONS
 # ---------
-#   .hzr_logl_weibull()     — log-likelihood (optionally returning gradient)
-#   .hzr_gradient_weibull() — analytical score vector
-#   .hzr_optim_weibull()    — L-BFGS-B wrapper with post-fit Hessian SE
+#   .hzr_logl_weibull()     -- log-likelihood (optionally returning gradient)
+#   .hzr_gradient_weibull() -- analytical score vector
+#   .hzr_optim_weibull()    -- L-BFGS-B wrapper with post-fit Hessian SE
 
 #' Weibull Parametric Hazard Likelihood
 #'
@@ -53,7 +53,7 @@ NULL
 #'   Defaults to time if NULL.
 #' @param time_upper Optional numeric upper bound vector for left/interval-censored rows.
 #'   Defaults to time if NULL.
-#' @param x Design matrix of covariates (n × p_coef); NULL for no covariates
+#' @param x Design matrix of covariates (n x p_coef); NULL for no covariates
 #' @param dist_name Character name of baseline distribution ("weibull", etc.)
 #' @param return_gradient Logical; if TRUE, attach gradient vector as attribute
 #' @param return_hessian Logical; if TRUE, attach Hessian matrix as attribute
@@ -246,10 +246,15 @@ NULL
   p <- length(theta)
   grad <- numeric(p)
 
+  # Default unit weights -- keep gradient consistent with the LL when weights
+  # are omitted.
+  if (is.null(weights)) weights <- rep(1, n)
+
   # Interval/left censoring currently uses a robust numerical gradient fallback.
   # The closed-form derivatives for these terms are deferred to a later pass.
   if (any(status %in% c(-1, 2))) {
-    return(.hzr_numeric_grad_weibull(theta, time, status, time_lower, time_upper, x))
+    return(.hzr_numeric_grad_weibull(theta, time, status, time_lower,
+                                       time_upper, x, weights = weights))
   }
 
   # Sanity check: if eta, cumhaz, haz not provided, compute them
@@ -269,20 +274,27 @@ NULL
     cumhaz <- (mu * time) ^ nu * exp(eta)
   }
 
+  # Weighted event indicator and weighted cumhaz are the building blocks:
+  # every term below is the unweighted form with `status` -> `weights*status`
+  # and `cumhaz` -> `weights*cumhaz`.
+  w_status <- weights * status
+  w_cumhaz <- weights * cumhaz
+
   # ===== Gradient w.r.t. mu (scale parameter) =====
-  # dL/dmu = sum(delta / mu) - (nu / mu) * sum(H)
-  grad[1] <- sum(status) / mu - (nu / mu) * sum(cumhaz)
+  # dL/dmu = sum(w * delta / mu) - (nu / mu) * sum(w * H)
+  grad[1] <- sum(w_status) / mu - (nu / mu) * sum(w_cumhaz)
 
   # ===== Gradient w.r.t. nu (shape parameter) =====
-  # dL/dnu = sum(delta / nu) + sum(delta * log(t)) - sum(log(mu*t) * H)
-  grad[2] <- sum(status) / nu + sum(status * log(time)) - sum(log(mu * time) * cumhaz)
+  # dL/dnu = sum(w * delta / nu) + sum(w * delta * log(t))
+  #          - sum(log(mu*t) * w * H)
+  grad[2] <- sum(w_status) / nu +
+             sum(w_status * log(time)) -
+             sum(log(mu * time) * w_cumhaz)
 
   # ===== Gradient w.r.t. beta (covariate coefficients) =====
   if (n_shape < p && !is.null(x)) {
-    # Compute residual: delta - cumulative hazard
-    residual <- status - cumhaz
-
-    # dL/dbeta = t(X) %*% (delta - H)
+    # dL/dbeta = t(X) %*% (w * (delta - H))
+    residual <- w_status - w_cumhaz
     grad[3:p] <- as.numeric(crossprod(x, residual))
   }
 
@@ -294,40 +306,40 @@ NULL
     time, status, time_lower = NULL, time_upper = NULL,
     x = NULL, theta_start, weights = NULL, control = list()) {
 
-  # ── Internal reparameterisation ────────────────────────────────────────────
+  # -- Internal reparameterisation --------------------------------------------
   # The original hazard C code parameterises the cumulative hazard as
   #
-  #     H(t | x) = exp(α + Xβ) · t^γ
+  #     H(t | x) = exp(alpha + Xbeta) * t^gamma
   #
-  # where α is a free intercept, γ = exp(ψ) is the shape, and β enters
-  # the same log-hazard-rate space as α.  This decouples scale from shape
+  # where alpha is a free intercept, gamma = exp(psi) is the shape, and beta enters
+  # the same log-hazard-rate space as alpha.  This decouples scale from shape
   # and avoids the degenerate ridge that appears when covariates with large
-  # means (e.g. age ≈ 62) interact with the (log mu, log nu) parameterisation.
+  # means (e.g. age ~ 62) interact with the (log mu, log nu) parameterisation.
   #
-  # We optimise over φ = (α, ψ, β₁, …) — all unconstrained — then
-  # back-transform to the user-facing (μ, ν, β) scale:
+  # We optimise over phi = (alpha, psi, beta_1, ...) -- all unconstrained -- then
+  # back-transform to the user-facing (mu, nu, beta) scale:
   #
-  #     ν = exp(ψ)      μ = exp(α / ν)
+  #     nu = exp(psi)      mu = exp(alpha / nu)
   #
-  # and apply the delta method for the variance–covariance matrix.
-  # ──────────────────────────────────────────────────────────────────────────
+  # and apply the delta method for the variance-covariance matrix.
+  # --------------------------------------------------------------------------
 
   n_shape <- 2L
   p <- length(theta_start)
   n <- length(time)
 
-  # ── Convert user theta (mu, nu, beta) → internal (alpha, psi, beta) ──────
+  # -- Convert user theta (mu, nu, beta) -> internal (alpha, psi, beta) ------
   mu_start    <- unname(theta_start[1])
   nu_start    <- unname(theta_start[2])
-  alpha_start <- nu_start * log(mu_start)   # α = ν · log(μ)
-  psi_start   <- log(nu_start)              # ψ = log(ν)
+  alpha_start <- nu_start * log(mu_start)   # alpha = nu * log(mu)
+  psi_start   <- log(nu_start)              # psi = log(nu)
   beta_start  <- if (p > n_shape) unname(theta_start[(n_shape + 1):p]) else numeric(0)
   phi_start   <- c(alpha_start, psi_start, beta_start)
 
-  # ── Internal likelihood: H(t|x) = exp(α + Xβ) · t^exp(ψ) ────────────────
+  # -- Internal likelihood: H(t|x) = exp(alpha + Xbeta) * t^exp(psi) ----------------
   # `weights` is declared as a formal (with a default of NULL) so that when
   # .hzr_optim_generic forwards weights via ..., it matches this formal
-  # rather than landing in ... — which would collide with the explicit
+  # rather than landing in ... -- which would collide with the explicit
   # `weights =` on the delegated call below.
   .outer_w <- if (is.null(weights)) rep(1, n) else weights
 
@@ -376,17 +388,27 @@ NULL
     logl
   }
 
-  # ── Internal gradient ─────────────────────────────────────────────────────
-  grad_internal <- function(theta, time, status, time_lower, time_upper, x, ...) {
+  # -- Internal gradient -----------------------------------------------------
+  # `weights` is captured from the enclosing optim frame via `.outer_w`
+  # (same trick used by logl_internal above) so the analytic gradient stays
+  # consistent with the weighted LL whether or not .hzr_optim_generic
+  # forwards the argument via ...
+  grad_internal <- function(theta, time, status, time_lower, time_upper, x,
+                            weights = NULL, ...) {
+    w_use <- if (is.null(weights)) .outer_w else weights
     alpha <- theta[1]
     psi   <- theta[2]
     g     <- exp(psi)
     beta  <- if (p > n_shape) theta[(n_shape + 1):p] else numeric(0)
     eta   <- if (!is.null(x) && length(beta) > 0) as.numeric(x %*% beta) else rep(0, n)
 
-    # Left / interval censoring → numerical gradient fallback.
+    # Left / interval censoring -> numerical gradient fallback (already weighted
+    # because logl_internal propagates weights via the closure).
     if (any(status %in% c(-1, 2))) {
-      obj <- function(th) logl_internal(th, time, status, time_lower, time_upper, x)
+      obj <- function(th) {
+        logl_internal(th, time, status, time_lower, time_upper, x,
+                      weights = w_use)
+      }
       if (requireNamespace("numDeriv", quietly = TRUE))
         return(as.numeric(numDeriv::grad(obj, theta)))
       eps <- 1e-6
@@ -404,21 +426,29 @@ NULL
     H     <- exp(alpha + eta) * (time ^ g)
     grad  <- numeric(p)
 
-    # dL/dα = n_events − Σ H
-    grad[1] <- sum(status) - sum(H)
+    # Weighted building blocks (w * delta, w * H).  Every term below is the
+    # unweighted form with `status` -> `w * status` and `H` -> `w * H`.
+    w_status <- w_use * status
+    w_H      <- w_use * H
 
-    # dL/dψ = n_events + g · Σ_events log(t) − g · Σ H·log(t)
-    grad[2] <- sum(status) + g * sum(status * log_t) - g * sum(H * log_t)
+    # dL/dalpha = sum(w * delta) - sum(w * H)
+    grad[1] <- sum(w_status) - sum(w_H)
 
-    # dL/dβ_j = X_j'(δ − H)
+    # dL/dpsi = sum(w * delta) + g * sum(w * delta * log(t))
+    #          - g * sum(w * H * log(t))
+    grad[2] <- sum(w_status) +
+               g * sum(w_status * log_t) -
+               g * sum(w_H * log_t)
+
+    # dL/dbeta_j = X_j' (w * (delta - H))
     if (p > n_shape && !is.null(x)) {
-      grad[(n_shape + 1):p] <- as.numeric(crossprod(x, status - H))
+      grad[(n_shape + 1):p] <- as.numeric(crossprod(x, w_status - w_H))
     }
 
     grad
   }
 
-  # ── Optimise (all unconstrained) ──────────────────────────────────────────
+  # -- Optimise (all unconstrained) ------------------------------------------
   result <- .hzr_optim_generic(
     logl_fn     = logl_internal,
     gradient_fn = grad_internal,
@@ -431,7 +461,7 @@ NULL
     use_bounds  = FALSE
   )
 
-  # ── Back-transform to natural scale (μ, ν, β) ────────────────────────────
+  # -- Back-transform to natural scale (mu, nu, beta) ----------------------------
   alpha_hat <- result$par[1]
   psi_hat   <- result$par[2]
   nu_hat    <- exp(psi_hat)
@@ -440,11 +470,11 @@ NULL
 
   result$par <- setNames(c(mu_hat, nu_hat, beta_hat), names(theta_start))
 
-  # Delta method: Cov(μ, ν, β) = J · Cov(α, ψ, β) · Jᵀ
+  # Delta method: Cov(mu, nu, beta) = J * Cov(alpha, psi, beta) * J^T
   #
-  #   dμ/dα = μ / ν             dμ/dψ = −μ α / ν
-  #   dν/dα = 0                 dν/dψ = ν
-  #   dβ/dα = 0                 dβ/dψ = 0         dβ/dβ = I
+  #   dmu/dalpha = mu / nu             dmu/dpsi = -mu alpha / nu
+  #   dnu/dalpha = 0                 dnu/dpsi = nu
+  #   dbeta/dalpha = 0                 dbeta/dpsi = 0         dbeta/dbeta = I
   if (is.matrix(result$vcov) && !anyNA(result$vcov)) {
     J <- diag(p)
     J[1, 1] <- mu_hat / nu_hat
@@ -457,7 +487,9 @@ NULL
   result
 }
 
-.hzr_numeric_grad_weibull <- function(theta, time, status, time_lower = NULL, time_upper = NULL, x = NULL) {
+.hzr_numeric_grad_weibull <- function(theta, time, status, time_lower = NULL,
+                                       time_upper = NULL, x = NULL,
+                                       weights = NULL) {
   objective <- function(par) {
     .hzr_logl_weibull(
       theta = par,
@@ -466,6 +498,7 @@ NULL
       time_lower = time_lower,
       time_upper = time_upper,
       x = x,
+      weights = weights,
       return_gradient = FALSE
     )
   }

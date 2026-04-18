@@ -1,4 +1,4 @@
-# stepwise-refit.R — Scope-mutating refit wrapper for stepwise selection.
+# stepwise-refit.R -- Scope-mutating refit wrapper for stepwise selection.
 #
 # Step 8.4 of STEPWISE-DESIGN.md (shared with the forward-step driver).
 # Given a current fit plus a single scope mutation (add/drop a variable,
@@ -19,6 +19,15 @@
 # intricate (per-phase layout with optional fixed shapes) and deferred
 # to a future optimisation; the Conservation-of-Events adjustment and
 # multi-start loop make re-initialisation cheap enough for v1.
+#
+# Scope for v1: **main effects only**. A term like a multi-level
+# factor or a spline that expands to several coefficients would break
+# the one-zero-per-add / one-index-per-drop theta layout. The upstream
+# guard in .hzr_candidate_coef_name() errors on such terms before the
+# refit fires, so callers via hzr_stepwise() never reach this function
+# with an expanding term. Anyone calling .hzr_refit_with_scope()
+# directly should pre-expand factors and splines into explicit main
+# effects.
 
 #' Refit a hazard model with a single scope mutation applied
 #'

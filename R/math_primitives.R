@@ -1,4 +1,4 @@
-# math_primitives.R — Numerically stable elementary functions
+# math_primitives.R -- Numerically stable elementary functions
 #
 # PURPOSE
 # -------

@@ -33,7 +33,7 @@
 #'      main = "AVC: Kaplan-Meier survival estimate")
 #'
 #' \donttest{
-#' # Two-phase hazard fit (early CDF + constant — what AVC supports)
+#' # Two-phase hazard fit (early CDF + constant -- what AVC supports)
 #' fit <- hazard(
 #'   survival::Surv(int_dead, dead) ~ 1, data = avc,
 #'   dist = "multiphase",

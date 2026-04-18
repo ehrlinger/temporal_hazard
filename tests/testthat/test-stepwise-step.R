@@ -1,28 +1,5 @@
-# Shared test fixture: formula-based single-distribution fit with a
-# known significant covariate and a noise covariate in `data`.
-.fit_stepwise_base <- function(n = 400L, seed = 101L,
-                                signal_beta = 0.8) {
-  set.seed(seed)
-  df <- data.frame(
-    time   = rexp(n, rate = 1),
-    status = rep(1L, n),
-    x1     = rnorm(n),   # candidate in data, strong effect
-    x2     = rnorm(n),   # candidate in data, no effect
-    x3     = rnorm(n)    # candidate in data, no effect
-  )
-  # Apply signal to x1
-  df$time <- df$time * exp(-signal_beta * df$x1)
-
-  fit <- hazard(
-    Surv(time, status) ~ 1,
-    data = df,
-    theta = c(0.5, 1.0),
-    dist = "weibull",
-    fit = TRUE
-  )
-  list(fit = fit, data = df)
-}
-
+# `.fit_stepwise_base()` lives in helper-stepwise.R (auto-sourced by
+# testthat).
 
 # .hzr_refit_with_scope -----------------------------------------------------
 

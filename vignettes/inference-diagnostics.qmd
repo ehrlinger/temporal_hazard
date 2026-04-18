@@ -92,6 +92,50 @@ to mortality, guiding decisions about transformations (log, polynomial) before
 the hazard model.
 
 
+### Quantile calibration with `hzr_calibrate()`
+
+`hzr_calibrate()` bins a continuous covariate into quantile groups and
+applies the logit / Gompertz / Cox link transform, so you can eyeball
+whether the covariate-outcome relationship is linear on the chosen link
+scale.  It corresponds to the SAS `logit.sas` / `logitgr.sas` macros.
+
+```{r}
+#| label: calibrate-age
+age_cal <- hzr_calibrate(
+  x      = avc$age,
+  event  = avc$dead,
+  groups = 10,
+  link   = "logit"
+)
+print(age_cal)
+```
+
+A roughly linear trend across groups means the logit link is
+appropriate; strong curvature flags the need for a transform (for
+example, polynomial or log).
+
+## Nonparametric baselines
+
+Before fitting the parametric model, run a Kaplan-Meier or Nelson
+baseline.  `hzr_kaplan()` returns KM with logit-transformed confidence
+limits (more accurate in the tails than Greenwood), along with interval
+hazard rate, density, and restricted mean survival time.  `hzr_nelson()`
+returns the Wayne Nelson cumulative hazard estimator with lognormal
+confidence limits.
+
+```{r}
+#| label: km-baseline
+km <- hzr_kaplan(time = avc$int_dead, status = avc$dead, conf_level = 0.95)
+print(km)
+```
+
+```{r}
+#| label: nelson-baseline
+nel <- hzr_nelson(time = avc$int_dead, event = avc$dead, conf_level = 0.95)
+print(nel)
+```
+
+
 ## Bootstrap confidence intervals
 
 Bootstrap resampling is the primary uncertainty quantification method in the
@@ -118,105 +162,87 @@ base_nd <- data.frame(time = t_grid, age = median(avc$age),
 surv_point <- predict(fit, newdata = base_nd, type = "survival")
 ```
 
+`hzr_bootstrap()` wraps the resample-and-refit loop: it returns a long
+data frame of per-replicate coefficient estimates (`$replicates`) and a
+parameter-level summary (mean, SD, 95 % percentile CI) in `$summary`.
+It corresponds to the SAS `bootstrap.hazard.sas` and
+`bootstrap.summary.sas` macros.
+
 ```{r}
 #| label: bootstrap
 set.seed(42)
-n_boot <- 50  # kept small for vignette build time
-
-boot_surv <- matrix(NA_real_, nrow = n_boot, ncol = length(t_grid))
-
-for (b in seq_len(n_boot)) {
-  idx    <- sample(nrow(avc), replace = TRUE)
-  boot_d <- avc[idx, ]
-
-  boot_fit <- tryCatch(
-    hazard(
-      Surv(int_dead, dead) ~ age + status + mal + com_iv,
-      data    = boot_d,
-      dist    = "weibull",
-      theta   = coef(fit),
-      fit     = TRUE,
-      control = list(maxit = 300)
-    ),
-    error = function(e) NULL
-  )
-
-  if (!is.null(boot_fit)) {
-    boot_surv[b, ] <- predict(boot_fit, newdata = base_nd,
-                               type = "survival")
-  }
-}
-
-# Remove failed replicates
-ok <- !is.na(boot_surv[, 1])
-boot_surv <- boot_surv[ok, , drop = FALSE]
-message(sum(ok), " of ", n_boot, " bootstrap replicates converged")
+boot <- hzr_bootstrap(fit, n_boot = 30)  # kept small for vignette build time
+print(boot)
 ```
+
+The parameter-level CIs above come directly from the bootstrap
+distribution.  Prediction-level CIs (on the survival curve or hazard
+profile) require pivoting `boot$replicates` to wide format and
+evaluating the parametric survival formula once per replicate.  That
+workflow is out of scope for this section, but the building blocks are
+all in the returned object.
+
+
+## Goodness-of-fit overlay
+
+`hzr_gof()` computes parametric predictions against the nonparametric
+Kaplan-Meier estimator and the Conservation-of-Events observed-vs-
+expected event counts.  It corresponds to the SAS `hazplot.sas` macro.
 
 ```{r}
-#| label: fig-bootstrap
-#| fig-cap: "Parametric survival with bootstrap 95% confidence interval"
-#| fig-width: 7
-#| fig-height: 4.5
-ci_lo <- apply(boot_surv, 2, quantile, probs = 0.025) * 100
-ci_hi <- apply(boot_surv, 2, quantile, probs = 0.975) * 100
-
-ci_df <- data.frame(time = t_grid,
-                    survival = surv_point * 100,
-                    lower = ci_lo, upper = ci_hi)
-
-km     <- survfit(Surv(int_dead, dead) ~ 1, data = avc)
-km_df  <- data.frame(time = km$time, survival = km$surv * 100)
-
-ggplot() +
-  geom_ribbon(data = ci_df, aes(time, ymin = lower, ymax = upper),
-              fill = "grey75", alpha = 0.5) +
-  geom_step(data = km_df, aes(time, survival, colour = "Kaplan-Meier"),
-            linewidth = 0.5) +
-  geom_line(data = ci_df, aes(time, survival, colour = "Parametric"),
-            linewidth = 1) +
-  scale_colour_manual(values = c("Parametric" = "#0072B2",
-                                 "Kaplan-Meier" = "#D55E00")) +
-  scale_y_continuous(limits = c(0, 100)) +
-  labs(x = "Months after AVC repair", y = "Freedom from death (%)",
-       colour = NULL) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+#| label: gof-summary
+gof <- hzr_gof(fit)
+print(gof)
 ```
 
+The observed vs. expected ratio (printed at the bottom) is the
+Conservation-of-Events check: a well-specified model recovers the event
+count exactly, so a ratio close to 1 is what we want.  Ratios well
+above or below 1 flag either a misspecified shape or a covariate that
+isn't really linear on the log-hazard scale.
 
-## Decile-of-risk validation
 
-A standard model diagnostic: partition patients into deciles of predicted risk
-and compare observed vs. predicted event rates.  Good calibration means the
-two track each other.
+## Decile-of-risk calibration
+
+`hzr_deciles()` partitions patients into deciles of predicted risk at a
+chosen time point and compares observed with expected event counts
+decile-by-decile, returning a chi-square goodness-of-fit test.  It
+corresponds to the SAS `deciles.hazard.sas` macro.
+
+```{r}
+#| label: deciles
+deciles <- hzr_deciles(fit, time = 120, groups = 10)
+print(deciles)
+```
+
+The chi-square test statistic and p-value summarise whether the
+observed decile-by-decile event counts are consistent with what the
+parametric model predicts.  A good visual check is to plot the two
+columns side by side:
 
 ```{r}
 #| label: fig-deciles
-#| fig-cap: "Observed vs. predicted mortality by decile of risk"
+#| fig-cap: "Observed vs. expected mortality by decile of risk"
 #| fig-width: 7
 #| fig-height: 4.5
-# Linear predictor = log-relative-hazard for each patient
-lp <- predict(fit, type = "linear_predictor")
-
-# Create deciles (handle ties gracefully)
-decile <- cut(rank(lp, ties.method = "average"),
-              breaks = quantile(rank(lp, ties.method = "average"),
-                                probs = seq(0, 1, by = 0.1)),
-              include.lowest = TRUE, labels = 1:10)
-
-cal <- aggregate(avc$dead, by = list(Decile = decile), FUN = mean)
-names(cal)[2] <- "observed"
-cal$Decile <- as.integer(as.character(cal$Decile))
-
-ggplot(cal, aes(Decile, observed)) +
-  geom_col(fill = "#56B4E9", alpha = 0.7) +
-  geom_hline(yintercept = mean(avc$dead), linetype = "dashed",
-             colour = "grey40") +
-  scale_x_continuous(breaks = 1:10) +
+decile_df <- as.data.frame(deciles)
+cal_long <- rbind(
+  data.frame(group = decile_df$group,
+             rate  = decile_df$observed_rate,
+             Series = "Observed"),
+  data.frame(group = decile_df$group,
+             rate  = decile_df$expected_rate,
+             Series = "Expected")
+)
+ggplot(cal_long, aes(group, rate, fill = Series)) +
+  geom_col(position = position_dodge(width = 0.7), alpha = 0.8) +
+  scale_fill_manual(values = c("Observed" = "#56B4E9",
+                                "Expected" = "#E69F00")) +
+  scale_x_continuous(breaks = seq_len(nrow(decile_df))) +
   scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
-  labs(x = "Risk decile (1 = lowest)", y = "Observed mortality rate") +
-  theme_minimal()
+  labs(x = "Risk decile (1 = lowest)", y = "Mortality rate", fill = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
 ```
 
 
@@ -285,14 +311,20 @@ statistically meaningful.
 
 The complete HAZARD analysis sequence, now implemented in TemporalHazard:
 
-1. **Exploratory screening** (`glm`) --- identify covariate transformations
-   and functional forms
-2. **Kaplan-Meier baseline** (`survfit`) --- nonparametric reference curve
+1. **Exploratory screening** (`glm`, `hzr_calibrate()`) --- identify
+   covariate transformations and functional forms
+2. **Nonparametric baselines** (`hzr_kaplan()`, `hzr_nelson()`) ---
+   reference KM / Nelson cumulative hazard estimators
 3. **Fit hazard model** (`hazard()`) --- parametric shape + covariates
 4. **Predict & visualize** (`predict()`) --- survival, hazard, risk profiles
-5. **Bootstrap CIs** --- uncertainty quantification via resampling
-6. **Sensitivity analysis** --- compare scenarios across covariate settings
-7. **Decile validation** --- calibration check
+5. **Goodness-of-fit overlay** (`hzr_gof()`) --- parametric vs. KM +
+   Conservation-of-Events check
+6. **Bootstrap CIs** (`hzr_bootstrap()`) --- uncertainty quantification
+   via resampling
+7. **Sensitivity analysis** (`predict()` on covariate profiles) ---
+   compare scenarios across risk factors
+8. **Decile calibration** (`hzr_deciles()`) --- chi-square observed
+   vs. expected by risk decile
 
 See `vignette("getting-started")` for the minimal workflow and
 `vignette("fitting-hazard-models")` for the model-fitting details.

@@ -2,57 +2,57 @@
 #' @keywords internal
 NULL
 
-# likelihood-lognormal.R — Log-normal parametric hazard likelihood, gradient, and optimizer
+# likelihood-lognormal.R -- Log-normal parametric hazard likelihood, gradient, and optimizer
 #
 # MODEL
 # -----
 # Accelerated Failure Time (AFT) log-normal model:
 #
-#   log(T_i) ~ Normal(η_i, σ²)   where η_i = μ + x_i β
+#   log(T_i) ~ Normal(eta_i, sigma^2)   where eta_i = mu + x_i beta
 #
-#   z_i       = (log(t_i) − η_i) / σ          standardised residual
-#   S(t | x)  = Φ(−z_i)                        survival  (normal CDF)
-#   f(t | x)  = φ(z_i) / (σ t_i)              density
-#   h(t | x)  = φ(z_i) / (σ t_i Φ(−z_i))     hazard
-#   H(t | x)  = −log Φ(−z_i)                  cumulative hazard
+#   z_i       = (log(t_i) - eta_i) / sigma          standardised residual
+#   S(t | x)  = Phi(-z_i)                        survival  (normal CDF)
+#   f(t | x)  = phi(z_i) / (sigma t_i)              density
+#   h(t | x)  = phi(z_i) / (sigma t_i Phi(-z_i))     hazard
+#   H(t | x)  = -log Phi(-z_i)                  cumulative hazard
 #
-# where μ ∈ ℝ (location), σ > 0 (scale), η_i = μ + x_i β (AFT predictor).
+# where mu in R (location), sigma > 0 (scale), eta_i = mu + x_i beta (AFT predictor).
 #
 # AFT vs PH DISTINCTION
 # ---------------------
 # Unlike Weibull / exponential / log-logistic (PH models), covariates in the
 # AFT parameterisation *shift the log-time distribution*.  The linear predictor
-# adds to μ (location), not to log-hazard.  Consequently:
+# adds to mu (location), not to log-hazard.  Consequently:
 #
-#   • predict() "linear_predictor" returns β (same interface as PH)
-#   • predict() "survival" returns Φ(−z) directly (NOT exp(−H))
-#   • predict() "cumulative_hazard" returns −log Φ(−z)
+#   * predict() "linear_predictor" returns beta (same interface as PH)
+#   * predict() "survival" returns Phi(-z) directly (NOT exp(-H))
+#   * predict() "cumulative_hazard" returns -log Phi(-z)
 #
 # See the EXCEPTION note in hazard_api.R's predict() section banner.
 #
 # THETA LAYOUT
 # ------------
-#   theta[1]   = μ         (location; unrestricted)
-#   theta[2]   = log(σ)   (unconstrained; σ recovered via exp())
-#   theta[3:p] = β        (covariate AFT coefficients; unrestricted)
+#   theta[1]   = mu         (location; unrestricted)
+#   theta[2]   = log(sigma)   (unconstrained; sigma recovered via exp())
+#   theta[3:p] = beta        (covariate AFT coefficients; unrestricted)
 #
-# GRADIENT (let w_i = φ(z_i)/Φ(−z_i), the inverse Mills ratio)
+# GRADIENT (let w_i = phi(z_i)/Phi(-z_i), the inverse Mills ratio)
 # ---------------------------------------------------------------
-#   dL/dμ          = (1/σ) · [sum(δ z) + sum((1−δ) w)]
-#   dL/d(log σ)    = sum(δ(z²−1)) + sum((1−δ) w z)
-#   dL/dβ_j        = (1/σ) · sum([δ z + (1−δ) w] · x_j)
+#   dL/dmu          = (1/sigma) * [sum(delta z) + sum((1-delta) w)]
+#   dL/d(log sigma)    = sum(delta(z^2-1)) + sum((1-delta) w z)
+#   dL/dbeta_j        = (1/sigma) * sum([delta z + (1-delta) w] * x_j)
 #
 # FUNCTIONS
 # ---------
-#   .hzr_logl_lognormal()     — log-likelihood (optionally returning gradient)
-#   .hzr_gradient_lognormal() — analytical score vector
-#   .hzr_optim_lognormal()    — unconstrained BFGS wrapper
+#   .hzr_logl_lognormal()     -- log-likelihood (optionally returning gradient)
+#   .hzr_gradient_lognormal() -- analytical score vector
+#   .hzr_optim_lognormal()    -- unconstrained BFGS wrapper
 
 #' Log-Normal Parametric Hazard Likelihood
 #'
 #' Evaluate the log-likelihood and its derivatives for log-normal hazard models.
 #' The log-normal is an AFT (accelerated failure time) model with separate
-#' location (μ) and scale (σ) parameters.
+#' location (mu) and scale (sigma) parameters.
 #'
 #' @keywords internal
 
@@ -62,8 +62,8 @@ NULL
 #' parametric hazard model with optional linear-predictor covariates.
 #'
 #' @param theta Vector of parameters:
-#'   theta\[1\] = μ (location, unrestricted)
-#'   theta\[2\] = log(σ) where σ > 0 is the scale parameter
+#'   theta\[1\] = mu (location, unrestricted)
+#'   theta\[2\] = log(sigma) where sigma > 0 is the scale parameter
 #'   theta\[3:length\]: Covariate coefficients (AFT parameterization: add to location)
 #'
 #' @param time Numeric vector of follow-up times (n)
@@ -72,7 +72,7 @@ NULL
 #'   Defaults to time if NULL.
 #' @param time_upper Optional numeric upper bound vector for left/interval-censored rows.
 #'   Defaults to time if NULL.
-#' @param x Design matrix of covariates (n × p_coef); NULL for no covariates
+#' @param x Design matrix of covariates (n x p_coef); NULL for no covariates
 #' @param return_gradient Logical; if TRUE, attach gradient vector as attribute
 #'
 #' @return Scalar log-likelihood value. If return_gradient = TRUE, gradient vector
@@ -81,7 +81,7 @@ NULL
 #' @details
 #' The log-normal hazard model uses AFT parameterization:
 #'
-#' z_i = (log(t_i) - η_i) / σ, where η_i = μ + x_i β
+#' z_i = (log(t_i) - eta_i) / sigma, where eta_i = mu + x_i beta
 #'
 #' Survival function:
 #' \deqn{S(t | x) = \Phi(-z_i)}
@@ -122,7 +122,7 @@ NULL
   log_sigma <- theta[2]   # Log-scale (unrestricted)
   sigma <- exp(log_sigma) # Always positive
 
-  # Covariate coefficients (if any) — AFT parameterization: add to location
+  # Covariate coefficients (if any) -- AFT parameterization: add to location
   if (!is.null(x)) {
     if (is.null(attr(x, "dimnames")[[2]])) {
       colnames(x) <- paste0("beta_", seq_len(ncol(x)))
@@ -211,8 +211,8 @@ NULL
 #'
 #' Computes the score vector of the log-normal log-likelihood w.r.t. all parameters.
 #'
-#' Let z_i = (log(t_i) - η_i) / σ, where η_i = μ + x_i β
-#' Let w_i = φ(z_i) / Φ(-z_i) (inverse Mills ratio)
+#' Let z_i = (log(t_i) - eta_i) / sigma, where eta_i = mu + x_i beta
+#' Let w_i = phi(z_i) / Phi(-z_i) (inverse Mills ratio)
 #'
 #' Derivatives:
 #' \eqn{dL/d\mu = (1/\sigma) * [\sum(\delta_i * z_i) + \sum((1 - \delta_i) * w_i)]}
@@ -263,27 +263,27 @@ NULL
     log_surv <- pnorm(-z, log.p = TRUE)
   }
 
-  # Inverse Mills ratio: w_i = φ(z_i) / Φ(-z_i)
+  # Inverse Mills ratio: w_i = phi(z_i) / Phi(-z_i)
   # Computed in log scale for numerical stability, then exponentiating
   log_w <- log_phi_z - log_surv
-  w <- exp(log_w)  # Safe: log_surv can be -Inf when Φ(-z) → 0 (z → +∞)
-  # Handle case where log_surv = -Inf (z very large → all censored obs have w → ∞)
-  # But this only matters for censored obs. For events, w is not used in dL/dμ.
+  w <- exp(log_w)  # Safe: log_surv can be -Inf when Phi(-z) -> 0 (z -> +Inf)
+  # Handle case where log_surv = -Inf (z very large -> all censored obs have w -> Inf)
+  # But this only matters for censored obs. For events, w is not used in dL/dmu.
   # Clamp to prevent Inf * 0 issues.
   w <- pmin(w, 1e6)
 
-  censored <- 1 - status  # (1 - δ_i)
+  censored <- 1 - status  # (1 - delta_i)
 
-  # ===== Gradient w.r.t. μ =====
-  # dL/dμ = (1/σ) * [sum(δ_i * z_i) + sum((1-δ_i) * w_i)]
+  # ===== Gradient w.r.t. mu =====
+  # dL/dmu = (1/sigma) * [sum(delta_i * z_i) + sum((1-delta_i) * w_i)]
   grad[1] <- (sum(status * z) + sum(censored * w)) / sigma
 
-  # ===== Gradient w.r.t. log(σ) =====
-  # dL/d(log σ) = sum(δ_i * (z_i² - 1)) + sum((1-δ_i) * w_i * z_i)
+  # ===== Gradient w.r.t. log(sigma) =====
+  # dL/d(log sigma) = sum(delta_i * (z_i^2 - 1)) + sum((1-delta_i) * w_i * z_i)
   grad[2] <- sum(status * (z^2 - 1)) + sum(censored * w * z)
 
-  # ===== Gradient w.r.t. covariate β =====
-  # dL/dβ_j = (1/σ) * sum([δ_i * z_i + (1-δ_i) * w_i] * x_ij)
+  # ===== Gradient w.r.t. covariate beta =====
+  # dL/dbeta_j = (1/sigma) * sum([delta_i * z_i + (1-delta_i) * w_i] * x_ij)
   if (p > 2 && !is.null(x)) {
     score_i <- (status * z + censored * w) / sigma
     grad[3:p] <- as.numeric(crossprod(x, score_i))
