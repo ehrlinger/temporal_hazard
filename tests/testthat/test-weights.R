@@ -452,3 +452,122 @@ test_that("fit with integer weights matches the duplicated-row fit (log-normal)"
   expect_equal(coef(fit_w), coef(fit_dup), tolerance = 1e-3)
   expect_equal(fit_w$fit$objective, fit_dup$fit$objective, tolerance = 1e-4)
 })
+
+# ---------------------------------------------------------------------------
+# Mixed-censoring (status == -1 and status == 2) duplication-parity for
+# exp / log-logistic / log-normal.  The weighted LL now applies row
+# weights to the left-censored term `log(1 - exp(-H(u)))` and the
+# interval-censored term `log(F(u) - F(l))` as well; these tests
+# exercise those newly weighted branches.
+# ---------------------------------------------------------------------------
+
+make_mixed <- function(seed = 23) {
+  set.seed(seed)
+  n <- 24
+  x <- rnorm(n)
+  t <- runif(n, 0.1, 2.0)
+  # 10 events, 4 right-censored, 5 left-censored, 5 interval-censored
+  status <- c(rep(1L, 10), rep(0L, 4), rep(-1L, 5), rep(2L, 5))
+  # Interval bounds must be strictly positive with lower < upper.
+  # Left-censored rows set time_upper = time; non-interval rows set
+  # time_lower = time (ignored by the LL except on interval rows).
+  time_lower <- t
+  time_upper <- t
+  idx_iv <- which(status == 2)
+  time_lower[idx_iv] <- t[idx_iv]
+  time_upper[idx_iv] <- t[idx_iv] + runif(length(idx_iv), 0.05, 0.3)
+  list(time = t, status = status, x = x,
+       time_lower = time_lower, time_upper = time_upper)
+}
+
+test_that("weighted LL matches duplicated-row LL under mixed censoring (exponential)", {
+  m <- make_mixed()
+  n <- length(m$time)
+  w <- sample(1:3, n, replace = TRUE)
+  idx <- rep(seq_len(n), times = w)
+  theta <- c(log_lambda = log(0.5), beta = 0.2)
+  xm <- matrix(m$x, ncol = 1)
+
+  ll_w <- TemporalHazard:::.hzr_logl_exponential(
+    theta = theta, time = m$time, status = m$status,
+    time_lower = m$time_lower, time_upper = m$time_upper,
+    x = xm, weights = w
+  )
+  ll_dup <- TemporalHazard:::.hzr_logl_exponential(
+    theta = theta,
+    time = m$time[idx], status = m$status[idx],
+    time_lower = m$time_lower[idx], time_upper = m$time_upper[idx],
+    x = matrix(m$x[idx], ncol = 1), weights = rep(1, sum(w))
+  )
+  expect_equal(ll_w, ll_dup, tolerance = 1e-10)
+})
+
+test_that("weighted LL matches duplicated-row LL under mixed censoring (log-logistic)", {
+  m <- make_mixed()
+  n <- length(m$time)
+  w <- sample(1:3, n, replace = TRUE)
+  idx <- rep(seq_len(n), times = w)
+  theta <- c(log_alpha = log(0.5), log_beta = log(1.1), beta = 0.2)
+  xm <- matrix(m$x, ncol = 1)
+
+  ll_w <- TemporalHazard:::.hzr_logl_loglogistic(
+    theta = theta, time = m$time, status = m$status,
+    time_lower = m$time_lower, time_upper = m$time_upper,
+    x = xm, weights = w
+  )
+  ll_dup <- TemporalHazard:::.hzr_logl_loglogistic(
+    theta = theta,
+    time = m$time[idx], status = m$status[idx],
+    time_lower = m$time_lower[idx], time_upper = m$time_upper[idx],
+    x = matrix(m$x[idx], ncol = 1), weights = rep(1, sum(w))
+  )
+  expect_equal(ll_w, ll_dup, tolerance = 1e-10)
+})
+
+test_that("weighted LL matches duplicated-row LL under mixed censoring (log-normal)", {
+  m <- make_mixed()
+  n <- length(m$time)
+  w <- sample(1:3, n, replace = TRUE)
+  idx <- rep(seq_len(n), times = w)
+  theta <- c(mu = 0, log_sigma = log(1), beta = 0.2)
+  xm <- matrix(m$x, ncol = 1)
+
+  ll_w <- TemporalHazard:::.hzr_logl_lognormal(
+    theta = theta, time = m$time, status = m$status,
+    time_lower = m$time_lower, time_upper = m$time_upper,
+    x = xm, weights = w
+  )
+  ll_dup <- TemporalHazard:::.hzr_logl_lognormal(
+    theta = theta,
+    time = m$time[idx], status = m$status[idx],
+    time_lower = m$time_lower[idx], time_upper = m$time_upper[idx],
+    x = matrix(m$x[idx], ncol = 1), weights = rep(1, sum(w))
+  )
+  expect_equal(ll_w, ll_dup, tolerance = 1e-10)
+})
+
+test_that("zero weight drops the row's contribution across mixed censoring (log-normal)", {
+  # Targeted sanity check of the per-term weighting: zeroing one row of each
+  # censoring flavour must equal dropping those rows entirely.
+  m <- make_mixed()
+  n <- length(m$time)
+  w <- rep(1, n)
+  # Zero out one event, one RC, one left, one interval row.
+  w[c(1, 11, 15, 20)] <- 0
+  keep <- w > 0
+  theta <- c(mu = 0, log_sigma = log(1), beta = 0.2)
+  xm <- matrix(m$x, ncol = 1)
+
+  ll_w <- TemporalHazard:::.hzr_logl_lognormal(
+    theta = theta, time = m$time, status = m$status,
+    time_lower = m$time_lower, time_upper = m$time_upper,
+    x = xm, weights = w
+  )
+  ll_drop <- TemporalHazard:::.hzr_logl_lognormal(
+    theta = theta,
+    time = m$time[keep], status = m$status[keep],
+    time_lower = m$time_lower[keep], time_upper = m$time_upper[keep],
+    x = xm[keep, , drop = FALSE], weights = rep(1, sum(keep))
+  )
+  expect_equal(ll_w, ll_drop, tolerance = 1e-12)
+})
