@@ -158,15 +158,13 @@ the weighted event count), and the numerical-gradient fallbacks for
 mixed censoring. Integer weights reproduce the row-duplicated fit to
 optimizer tolerance for every distribution.
 
-### 4d. Repeating Events (Epoch Decomposition) -- PARTIAL (narrowed in v0.9.5)
+### 4d. Repeating Events (Epoch Decomposition) -- COMPLETE (v0.9.7)
 
 `Surv(start, stop, event)` is parsed (start -> time_lower, stop -> time,
-event -> status). The trivial case `Surv(0, t, d)` fits identically to
-`Surv(t, d)` on all distributions. Counting-process data with any
-`start > 0` is rejected by `hazard()` in v0.9.5: the downstream
-likelihoods only honour `time_lower` for interval-censored
-(`status == 2`) rows, so a nonzero-start epoch would be silently
-scored with `H(stop)` alone rather than `H(stop) - H(start)`.
+event -> status) and scored as `H(stop) - H(start)` per epoch in the
+Weibull and multiphase likelihoods. The trivial `Surv(0, t, d)` case
+degenerates to `H(stop)` and recovers the plain-Surv fit exactly. Full
+wire-up is tracked under 4f below.
 
 ### 4e. Complete `weights` wire-up (exp / log-logistic / log-normal + CoE) -- COMPLETE (v0.9.6)
 
@@ -186,39 +184,28 @@ gone. Duplication-parity tests for each distribution are in
 `test-weights.R`; weighted-CoE parity (CoE on and off) lives in
 `test-conservation-of-events.R`.
 
-### 4f. Complete repeating-events wire-up (counting-process LL)
+### 4f. Complete repeating-events wire-up (counting-process LL) -- COMPLETE (v0.9.7)
 
-**Priority:** Medium
-**Effort:** Small--Medium
-**Gate:** Remove the counting-process-with-start>0 guard in
-`hazard()`, re-enable the split-invariance tests in
-`test-repeating-events.R`.
+`.hzr_logl_weibull()` and `.hzr_logl_multiphase()` apply
+`H(stop) - H(start)` to event and right-censored terms via a
+`cumhaz_start` term that is zero when no `time_lower` is supplied
+(plain-Surv path). Analytic gradients for both distributions add the
+matching `-d H(start)/d theta` contributions (Weibull closed-form;
+multiphase per-phase `Phi_j(start)` and shape derivatives, reusing
+the existing G3 finite-difference machinery). The `hazard()` guard on
+`start > 0` is removed; the three split-invariance tests in
+`test-repeating-events.R` are live.
 
-Tasks:
-
-1. `R/likelihood-weibull.R` (`.hzr_logl_weibull`) -- in the event and
-   right-censored terms, replace `cumhaz_event[idx]` with
-   `cumhaz_event[idx] - cumhaz_lower[idx]` so the contribution is
-   `H(stop) - H(start)` per SAS. The existing `cumhaz_lower` is already
-   computed for interval-censored rows and just needs to flow into the
-   other paths.
-2. Same for `R/likelihood-multiphase.R` (`.hzr_logl_multiphase`).
-3. Analytic gradient updates: the derivatives of the event and
-   right-censored terms pick up an extra `-d/dtheta cumhaz_lower`
-   contribution; implementation mirrors the `cumhaz` derivative code
-   already in place.
-4. Remove the `hazard()` guard on counting-process data.
-5. Re-enable (remove `skip()` from) the split-invariance tests in
-   `test-repeating-events.R`.
-6. Add a vignette section on epoch-decomposed longitudinal data.
-7. SAS parity test against a repeating-events reference fit.
+Remaining follow-ups (low priority): vignette section on
+epoch-decomposed longitudinal data, and a SAS-parity fixture for a
+counting-process reference fit.
 
 ### 4b scheduling note
 
-With 4a, 4b, 4c, and 4e complete and 4d narrowed, the remaining
-SAS-parity gaps are: repeating-events wire-up (4f), prediction
-confidence limits (4g), and the stepwise enhancements (FAST screening,
-multi-step MOVE trace) tracked separately.
+With 4a, 4b, 4c, 4d, 4e, and 4f complete, the remaining SAS-parity
+gaps are: prediction confidence limits (4g) and the stepwise
+enhancements (FAST screening, multi-step MOVE trace) tracked
+separately.
 
 ---
 

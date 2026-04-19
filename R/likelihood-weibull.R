@@ -149,22 +149,30 @@ NULL
   cumhaz_lower <- (mu * lower) ^ nu * exp(eta)
   cumhaz_upper <- (mu * upper) ^ nu * exp(eta)
 
+  # Counting-process entry-time cumulative hazard (H(start)) for
+  # event/right-censored rows.  When `time_lower` is NULL the entry time is
+  # implicitly 0 and H(start) = 0, recovering the plain-Surv likelihood.
+  start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+  cumhaz_start <- (mu * start_vec) ^ nu * exp(eta)
+
   idx_event <- status == 1
   idx_right <- status == 0
   idx_left <- status == -1
   idx_interval <- status == 2
 
-  # Exact events: w * [log h(t) - H(t)]
+  # Exact events: w * [log h(stop) - (H(stop) - H(start))]
   ll_event <- if (any(idx_event)) {
     sum(weights[idx_event] *
-          (log(haz_event[idx_event]) - cumhaz_event[idx_event]))
+          (log(haz_event[idx_event]) -
+             (cumhaz_event[idx_event] - cumhaz_start[idx_event])))
   } else {
     0
   }
 
-  # Right-censored: w * [-H(t)]
+  # Right-censored: w * [-(H(stop) - H(start))]
   ll_right <- if (any(idx_right)) {
-    -sum(weights[idx_right] * cumhaz_event[idx_right])
+    -sum(weights[idx_right] *
+           (cumhaz_event[idx_right] - cumhaz_start[idx_right]))
   } else {
     0
   }
@@ -274,27 +282,37 @@ NULL
     cumhaz <- (mu * time) ^ nu * exp(eta)
   }
 
-  # Weighted event indicator and weighted cumhaz are the building blocks:
-  # every term below is the unweighted form with `status` -> `weights*status`
-  # and `cumhaz` -> `weights*cumhaz`.
+  # Counting-process entry-time cumulative hazard; H(start) = 0 when no
+  # `time_lower` supplied (plain right-censored data).
+  start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+  cumhaz_start <- (mu * start_vec) ^ nu * exp(eta)
+
+  # Weighted building blocks: each per-row contribution below is the
+  # unweighted form scaled by `weights`, and the cumulative-hazard term is
+  # the epoch difference `H(stop) - H(start)` (degenerates to `H(stop)` when
+  # start = 0).
   w_status <- weights * status
-  w_cumhaz <- weights * cumhaz
+  w_cumhaz_net <- weights * (cumhaz - cumhaz_start)
 
   # ===== Gradient w.r.t. mu (scale parameter) =====
-  # dL/dmu = sum(w * delta / mu) - (nu / mu) * sum(w * H)
-  grad[1] <- sum(w_status) / mu - (nu / mu) * sum(w_cumhaz)
+  # dH(t)/dmu = (nu / mu) * H(t), so dL/dmu picks up a matching
+  # contribution at start: -(nu/mu) * (H(stop) - H(start)).
+  grad[1] <- sum(w_status) / mu - (nu / mu) * sum(w_cumhaz_net)
 
   # ===== Gradient w.r.t. nu (shape parameter) =====
-  # dL/dnu = sum(w * delta / nu) + sum(w * delta * log(t))
-  #          - sum(log(mu*t) * w * H)
+  # dH(t)/dnu = log(mu*t) * H(t).  When start = 0, H(start) = 0 and the
+  # log(mu*start) term is undefined; `ifelse` picks the well-defined 0
+  # limit there.
+  log_mu_start <- ifelse(start_vec > 0, log(mu * start_vec), 0)
+  d_nu_start <- weights * log_mu_start * cumhaz_start
   grad[2] <- sum(w_status) / nu +
              sum(w_status * log(time)) -
-             sum(log(mu * time) * w_cumhaz)
+             (sum(log(mu * time) * weights * cumhaz) - sum(d_nu_start))
 
   # ===== Gradient w.r.t. beta (covariate coefficients) =====
   if (n_shape < p && !is.null(x)) {
-    # dL/dbeta = t(X) %*% (w * (delta - H))
-    residual <- w_status - w_cumhaz
+    # dL/dbeta = t(X) %*% (w * (delta - (H(stop) - H(start))))
+    residual <- w_status - w_cumhaz_net
     grad[3:p] <- as.numeric(crossprod(x, residual))
   }
 
@@ -367,18 +385,23 @@ NULL
     log_t <- log(pmax(time, .Machine$double.xmin))
     H     <- exp(alpha + eta) * (time ^ g)
 
+    # Counting-process entry-time H(start); zero when no `time_lower` given.
+    start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+    H_start   <- exp(alpha + eta) * (start_vec ^ g)
+
     idx_event <- status == 1
     idx_right <- status == 0
 
     ll_event <- if (any(idx_event)) {
       sum(w_use[idx_event] * (alpha + eta[idx_event] + theta[2] +
-          (g - 1) * log_t[idx_event] - H[idx_event]))
+          (g - 1) * log_t[idx_event] -
+          (H[idx_event] - H_start[idx_event])))
     } else {
       0
     }
 
     ll_right <- if (any(idx_right)) {
-      -sum(w_use[idx_right] * H[idx_right])
+      -sum(w_use[idx_right] * (H[idx_right] - H_start[idx_right]))
     } else {
       0
     }
@@ -424,25 +447,35 @@ NULL
 
     log_t <- log(pmax(time, .Machine$double.xmin))
     H     <- exp(alpha + eta) * (time ^ g)
+
+    # H(start) for counting-process rows; zero when time_lower is NULL or
+    # start == 0.  `log_t_start` is only used where start > 0 (guarded below)
+    # since log(0) = -Inf would otherwise propagate NaNs through the score.
+    start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+    H_start   <- exp(alpha + eta) * (start_vec ^ g)
+    log_t_start <- ifelse(start_vec > 0, log(pmax(start_vec, .Machine$double.xmin)), 0)
+
     grad  <- numeric(p)
 
-    # Weighted building blocks (w * delta, w * H).  Every term below is the
-    # unweighted form with `status` -> `w * status` and `H` -> `w * H`.
-    w_status <- w_use * status
-    w_H      <- w_use * H
+    # Weighted building blocks.  Every term below is the unweighted form with
+    # `status` -> `w * status` and `H` -> `w * (H(stop) - H(start))`.
+    w_status   <- w_use * status
+    w_H_net    <- w_use * (H - H_start)
+    w_H        <- w_use * H
+    w_H_start  <- w_use * H_start
 
-    # dL/dalpha = sum(w * delta) - sum(w * H)
-    grad[1] <- sum(w_status) - sum(w_H)
+    # dL/dalpha = sum(w * delta) - sum(w * (H(stop) - H(start)))
+    grad[1] <- sum(w_status) - sum(w_H_net)
 
-    # dL/dpsi = sum(w * delta) + g * sum(w * delta * log(t))
-    #          - g * sum(w * H * log(t))
+    # dL/dpsi = sum(w * delta) + g * sum(w * delta * log(stop))
+    #          - g * [sum(w * H(stop) * log(stop)) - sum(w * H(start) * log(start))]
     grad[2] <- sum(w_status) +
                g * sum(w_status * log_t) -
-               g * sum(w_H * log_t)
+               g * (sum(w_H * log_t) - sum(w_H_start * log_t_start))
 
-    # dL/dbeta_j = X_j' (w * (delta - H))
+    # dL/dbeta_j = X_j' (w * (delta - (H(stop) - H(start))))
     if (p > n_shape && !is.null(x)) {
-      grad[(n_shape + 1):p] <- as.numeric(crossprod(x, w_status - w_H))
+      grad[(n_shape + 1):p] <- as.numeric(crossprod(x, w_status - w_H_net))
     }
 
     grad

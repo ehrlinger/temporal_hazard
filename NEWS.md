@@ -1,3 +1,26 @@
+# TemporalHazard 0.9.7
+
+## New features
+
+* **Counting-process / repeating-events likelihood wired up** — Phase 4f
+  of the development plan lands. `Surv(start, stop, event)` with any
+  `start > 0` is now accepted. The Weibull and multiphase log-likelihoods
+  apply `H(stop) - H(start)` to event and right-censored terms; the
+  trivial `start = 0` case degenerates to `H(stop)` and recovers the
+  plain-Surv fit exactly. Splitting each row into contiguous epochs
+  preserves both the log-likelihood and the MLE to optimizer tolerance
+  (split-invariance).
+* **Weibull + multiphase analytic gradients handle H(start).** The
+  closed-form Weibull score adds a `-d H(start)/d theta` term per row
+  (guarded at `start = 0`). The multiphase analytic gradient computes
+  per-phase `Phi_j(start)` and its shape derivatives, then adds
+  `+w_H_start * mu_j * dPhi_j(start)` to each parameter's score; G3
+  phase derivatives at `start` use the same finite-difference machinery
+  as at `stop`.
+* **0.9.5 narrowing removed.** The `hazard()` guard that rejected
+  counting-process `Surv(start, stop, event)` with any `start > 0` is
+  gone.
+
 # TemporalHazard 0.9.6
 
 ## New features
