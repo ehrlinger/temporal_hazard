@@ -510,6 +510,15 @@ hazard <- function(formula = NULL,
 #' @param decompose Logical; if `TRUE` and the model is multiphase, return a
 #'   data frame with per-phase cumulative hazard contributions alongside the
 #'   total.  Ignored for single-distribution models.  Default `FALSE`.
+#' @param se.fit Logical; if `TRUE`, compute delta-method standard errors and
+#'   confidence limits for each prediction.  The return value becomes a data
+#'   frame with columns `fit`, `se.fit`, `lower`, `upper`.  Default `FALSE`.
+#'   CLs are computed on the log-hazard / log-cumhaz scale and on the
+#'   log(-log(survival)) scale so lower/upper stay inside the valid range
+#'   of each prediction type; `linear_predictor` uses symmetric natural-scale
+#'   CLs.  Not compatible with `decompose = TRUE`.
+#' @param level Numeric confidence level in `(0, 1)`; default `0.95`.
+#'   Only used when `se.fit = TRUE`.
 #' @param ... Unused; included for S3 compatibility.
 #'
 #' @details
@@ -646,13 +655,30 @@ hazard <- function(formula = NULL,
 predict.hazard <- function(object, newdata = NULL,
                            type = c("hazard", "linear_predictor",
                                     "survival", "cumulative_hazard"),
-                           decompose = FALSE, ...) {
+                           decompose = FALSE,
+                           se.fit = FALSE, level = 0.95, ...) {
   type <- match.arg(type)
   theta <- object$fit$theta
   time_windows <- object$spec$time_windows
 
   if (is.null(theta)) {
     stop("No coefficients ('theta') are available in 'object'.", call. = FALSE)
+  }
+
+  if (!is.logical(se.fit) || length(se.fit) != 1L || is.na(se.fit)) {
+    stop("'se.fit' must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (se.fit) {
+    if (!is.numeric(level) || length(level) != 1L ||
+          is.na(level) || level <= 0 || level >= 1) {
+      stop("'level' must be a single number in (0, 1).", call. = FALSE)
+    }
+    if (decompose) {
+      stop("'se.fit = TRUE' with 'decompose = TRUE' is not supported. ",
+           "Request point predictions first (decompose = TRUE, ",
+           "se.fit = FALSE), then compute CLs separately on the total.",
+           call. = FALSE)
+    }
   }
 
   # -----------------------------------------------------------------------
@@ -725,9 +751,27 @@ predict.hazard <- function(object, newdata = NULL,
     }
 
     if (type == "linear_predictor") {
-      return(eta)
+      if (!se.fit) return(eta)
+      diff_fn <- function(th) {
+        if (is.null(x)) return(rep(0, length(eta)))
+        n_shape <- .hzr_shape_parameter_count(object$spec$dist)
+        beta_cand <- if (length(th) > n_shape) th[(n_shape + 1):length(th)] else th
+        as.numeric(x %*% beta_cand)
+      }
+      return(.hzr_predict_with_se(object = object, type = "linear_predictor",
+                                    time = NULL, x = x, level = level,
+                                    diff_fn = diff_fn))
     }
-    return(exp(eta))
+    if (!se.fit) return(exp(eta))
+    diff_fn <- function(th) {
+      if (is.null(x)) return(rep(1, length(eta)))
+      n_shape <- .hzr_shape_parameter_count(object$spec$dist)
+      beta_cand <- if (length(th) > n_shape) th[(n_shape + 1):length(th)] else th
+      exp(as.numeric(x %*% beta_cand))
+    }
+    return(.hzr_predict_with_se(object = object, type = "hazard",
+                                  time = NULL, x = x, level = level,
+                                  diff_fn = diff_fn))
   }
 
   # -----------------------------------------------------------------------
@@ -787,6 +831,17 @@ predict.hazard <- function(object, newdata = NULL,
             x_list[[nm]] <- NULL
           }
         }
+      }
+
+      if (se.fit) {
+        diff_fn <- function(th) {
+          .hzr_multiphase_cumhaz(pred_time, th, phases, cov_counts, x_list)
+        }
+        return(.hzr_predict_with_se(
+          object = object, type = type, time = pred_time,
+          x_list = x_list, cov_counts = cov_counts, phases = phases,
+          level = level, diff_fn = diff_fn
+        ))
       }
 
       result <- .hzr_multiphase_cumhaz(
@@ -853,29 +908,61 @@ predict.hazard <- function(object, newdata = NULL,
     }
 
     # Dispatch cumulative hazard computation by distribution.
-    # Log-normal is an AFT model and returns survival/cumhaz directly.
-    if (object$spec$dist == "weibull") {
-      mu <- theta[1]
-      nu <- theta[2]
-      if (mu <= 0 || nu <= 0) stop("Weibull shape parameters (mu, nu) must be positive.", call. = FALSE)
-      cumhaz <- (mu * time) ^ nu * exp(eta)
-    } else if (object$spec$dist == "exponential") {
-      lambda <- exp(theta[1])
-      cumhaz <- lambda * time * exp(eta)
-    } else if (object$spec$dist == "loglogistic") {
-      alpha <- exp(theta[1])
-      beta_shape <- exp(theta[2])
-      cumhaz <- log(1 + alpha * (time ^ beta_shape) * exp(eta))
-    } else if (object$spec$dist == "lognormal") {
-      mu <- theta[1]
-      sigma <- exp(theta[2])
-      # AFT: covariates shift the location
-      eta_aft <- if (!is.null(x) && ncol(x) > 0) mu + as.numeric(x %*% beta_coef) else rep(mu, length(time))
-      z <- (log(time) - eta_aft) / sigma
-      if (type == "survival") return(pnorm(-z))
-      return(-pnorm(-z, log.p = TRUE))
+    # Log-normal is an AFT model, so H is derived from the standardised
+    # residual z = (log t - mu - x beta) / sigma.  For se.fit we define a
+    # closure `cumhaz_of` that computes H for any candidate theta -- this
+    # is the delta-method target for both "cumulative_hazard" and
+    # "survival" predictions.
+    dist_lbl <- object$spec$dist
+    has_cov <- !is.null(x) && ncol(x) > 0
+
+    # Preserve the pre-0.9.8 stop() behaviour on an ill-conditioned MLE.
+    # The closures below return NA on negative shape parameters so numeric
+    # jacobian perturbations stay robust, but we want a clean error at the
+    # point estimate itself.
+    if (dist_lbl == "weibull" && (theta[1] <= 0 || theta[2] <= 0)) {
+      stop("Weibull shape parameters (mu, nu) must be positive.", call. = FALSE)
     }
 
+    cumhaz_of <- if (dist_lbl == "weibull") {
+      function(th) {
+        if (th[1] <= 0 || th[2] <= 0) return(rep(NA_real_, length(time)))
+        beta_cand <- if (length(th) > 2) th[3:length(th)] else numeric(0)
+        eta_cand <- if (has_cov) as.numeric(x %*% beta_cand) else rep(0, length(time))
+        (th[1] * time) ^ th[2] * exp(eta_cand)
+      }
+    } else if (dist_lbl == "exponential") {
+      function(th) {
+        beta_cand <- if (length(th) > 1) th[2:length(th)] else numeric(0)
+        eta_cand <- if (has_cov) as.numeric(x %*% beta_cand) else rep(0, length(time))
+        exp(th[1]) * time * exp(eta_cand)
+      }
+    } else if (dist_lbl == "loglogistic") {
+      function(th) {
+        beta_cand <- if (length(th) > 2) th[3:length(th)] else numeric(0)
+        eta_cand <- if (has_cov) as.numeric(x %*% beta_cand) else rep(0, length(time))
+        log(1 + exp(th[1]) * (time ^ exp(th[2])) * exp(eta_cand))
+      }
+    } else if (dist_lbl == "lognormal") {
+      function(th) {
+        beta_cand <- if (length(th) > 2) th[3:length(th)] else numeric(0)
+        # AFT: covariates shift the location.
+        eta_aft <- if (has_cov) th[1] + as.numeric(x %*% beta_cand) else rep(th[1], length(time))
+        z <- (log(time) - eta_aft) / exp(th[2])
+        -pnorm(-z, log.p = TRUE)
+      }
+    } else {
+      stop("Unknown distribution '", dist_lbl, "'.", call. = FALSE)
+    }
+
+    if (se.fit) {
+      return(.hzr_predict_with_se(
+        object = object, type = type, time = time, x = x,
+        level = level, diff_fn = cumhaz_of
+      ))
+    }
+
+    cumhaz <- cumhaz_of(theta)
     if (type == "cumulative_hazard") return(cumhaz)
     return(exp(-cumhaz))
   }

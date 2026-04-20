@@ -200,12 +200,39 @@ Remaining follow-ups (low priority): vignette section on
 epoch-decomposed longitudinal data, and a SAS-parity fixture for a
 counting-process reference fit.
 
+### 4g. Prediction confidence limits (delta method) -- COMPLETE (v0.9.8)
+
+`predict.hazard()` takes `se.fit = FALSE, level = 0.95`.  When
+`se.fit = TRUE`, the return value is a data frame with columns
+`fit`, `se.fit`, `lower`, `upper`.  Per-row SEs come from the delta
+method: `se_i = sqrt( (J V J^T)_{ii} )` where `J[i, ] = d eta_i / d theta`
+and `V = vcov(theta_hat)`.
+
+* **Jacobians.** Closed-form for Weibull
+  (`.hzr_predict_jacobian_weibull()`) and multiphase
+  (`.hzr_predict_jacobian_multiphase()`, reusing
+  `.hzr_phase_derivatives()` / `.hzr_g3_phase_derivatives()`);
+  `numDeriv::jacobian()` fallback for exponential / log-logistic /
+  log-normal via a per-call cumhaz closure.
+* **Scale.** `hazard` and `cumulative_hazard` use log-scale CLs;
+  `survival` uses `log(-log(S)) = log H` CLs so 0 <= lower <= upper
+  <= 1; `linear_predictor` is symmetric on the natural scale.  Matches
+  SAS `hzp_calc_haz_CL.c` / `hzp_calc_srv_CL.c`.
+* **Fixed parameters.** `fixed = "shapes"` and CoE leave NA rows/cols
+  in the expanded vcov.  The sandwich restricts to the free-parameter
+  submatrix and zero-indexes the corresponding Jacobian columns, so
+  CLs reflect only free-parameter uncertainty.
+* **Backward compat.** `se.fit = FALSE` preserves the pre-0.9.8
+  scalar-vector return shape.  `decompose = TRUE` with `se.fit = TRUE`
+  is rejected with a clean error.
+
 ### 4b scheduling note
 
-With 4a, 4b, 4c, 4d, 4e, and 4f complete, the remaining SAS-parity
-gaps are: prediction confidence limits (4g) and the stepwise
-enhancements (FAST screening, multi-step MOVE trace) tracked
-separately.
+With 4a, 4b, 4c, 4d, 4e, 4f, and 4g complete, the remaining SAS-parity
+gaps are: density / quantile prediction types, `OUTEST` / `OUTVCOV`
+dataset export, `anova.hazard()` S3 method, `NOCOV` / `NOCOR` summary
+flags, and the stepwise enhancements (FAST screening, multi-step MOVE
+trace) tracked separately.
 
 ---
 
