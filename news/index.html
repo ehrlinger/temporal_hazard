@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.6</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.7</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,6 +49,18 @@
       <small>Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.7" id="temporalhazard-097">TemporalHazard 0.9.7<a class="anchor" aria-label="anchor" href="#temporalhazard-097"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-9-7">New features<a class="anchor" aria-label="anchor" href="#new-features-0-9-7"></a></h3>
+<ul><li>
+<strong>Counting-process / repeating-events likelihood wired up</strong> — Phase 4f of the development plan lands. <code>Surv(start, stop, event)</code> with any <code>start &gt; 0</code> is now accepted. The Weibull and multiphase log-likelihoods apply <code>H(stop) - H(start)</code> to event and right-censored terms; the trivial <code>start = 0</code> case degenerates to <code>H(stop)</code> and recovers the plain-Surv fit exactly. Splitting each row into contiguous epochs preserves both the log-likelihood and the MLE to optimizer tolerance (split-invariance).</li>
+<li>
+<strong>Weibull + multiphase analytic gradients handle H(start).</strong> The closed-form Weibull score adds a <code>-d H(start)/d theta</code> term per row (guarded at <code>start = 0</code>). The multiphase analytic gradient computes per-phase <code>Phi_j(start)</code> and its shape derivatives, then adds <code>+w_H_start * mu_j * dPhi_j(start)</code> to each parameter’s score; G3 phase derivatives at <code>start</code> use the same finite-difference machinery as at <code>stop</code>.</li>
+<li>
+<strong>0.9.5 narrowing removed.</strong> The <code><a href="../reference/hazard.html">hazard()</a></code> guard that rejected counting-process <code>Surv(start, stop, event)</code> with any <code>start &gt; 0</code> is gone.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.6" id="temporalhazard-096">TemporalHazard 0.9.6<a class="anchor" aria-label="anchor" href="#temporalhazard-096"></a></h2>
 <div class="section level3">
