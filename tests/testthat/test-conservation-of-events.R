@@ -234,22 +234,17 @@ test_that("CoE auto-disables (no error) when any observation is interval-censore
 })
 
 # ===========================================================================
-# CoE auto-disables for non-unit weights
+# CoE with non-unit weights (wired up in v0.9.6, Phase 4e)
 # ===========================================================================
 #
-# `.hzr_conserve_events()` takes the weighted event count as `total_events`
-# but computes the per-phase cumhaz sums *without* applying row weights, so
-# Turner's adjustment comes out on a mismatched scale when weights aren't
-# all 1. The optimizer was narrowed in v0.9.5 to auto-disable CoE in that
-# regime and fall through to the (correctly weighted) full-dim path.
-#
-# Under that narrowing, a weighted fit on D must match the unweighted fit
-# on the row-duplicated dataset expand(D, w) -- the same invariant as
-# test-weights.R, repeated here with a multiphase model to prove that
-# (a) CoE is indeed disabled with w != 1, and (b) the weighted LL path
-# is consistent end-to-end with duplication.
+# Prior to 0.9.6, `.hzr_conserve_events()` summed per-phase cumhaz without
+# applying row weights, so Turner's adjustment was on a mismatched scale
+# vs the (weighted) observed event count.  CoE therefore auto-disabled
+# when any weight != 1.  As of 0.9.6, weights are threaded into
+# `.hzr_conserve_events()` / `.hzr_select_fixmu_phase()` and CoE stays on
+# for weighted fits.  Duplication parity is the acceptance criterion.
 
-test_that("weighted multiphase fit matches the row-duplicated fit (CoE auto-off for w != 1)", {
+test_that("weighted multiphase fit matches the row-duplicated fit (CoE off)", {
   skip_on_cran()
   set.seed(42)
   data(cabgkul, package = "TemporalHazard")
@@ -283,11 +278,45 @@ test_that("weighted multiphase fit matches the row-duplicated fit (CoE auto-off 
   expect_equal(unname(coef(fit_w)), unname(coef(fit_dup)), tolerance = 1e-2)
 })
 
-test_that("CoE auto-disabled when default conserve=TRUE meets non-unit weights", {
-  # With weights != 1 the optimizer should behave identically to an
-  # explicit `conserve = FALSE` run.  We check by comparing
-  # log-likelihoods (coefficients may differ by trivially small amounts
-  # due to multi-start RNG), not by inspecting optimizer internals.
+test_that("weighted multiphase fit matches the row-duplicated fit (CoE on)", {
+  skip_on_cran()
+  set.seed(42)
+  data(cabgkul, package = "TemporalHazard")
+  small <- cabgkul[1:40, ]
+  w <- sample(1:2, nrow(small), replace = TRUE)
+  idx <- rep(seq_len(nrow(small)), times = w)
+  dup <- small[idx, ]
+
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.2, nu = 1, m = 1,
+                           fixed = "shapes"),
+    constant = hzr_phase("constant")
+  )
+
+  # CoE enabled on both sides: the weighted fit reduces the dimension on
+  # D, the unweighted fit reduces it on expand(D, w).  The optimum (MLE
+  # and log-likelihood) must match because CoE is a reparameterisation
+  # of the same surface.
+  fit_w <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data = small, dist = "multiphase", phases = phases,
+    weights = w, fit = TRUE,
+    control = list(n_starts = 2, maxit = 300, conserve = TRUE)
+  )
+  fit_dup <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data = dup, dist = "multiphase", phases = phases,
+    fit = TRUE,
+    control = list(n_starts = 2, maxit = 300, conserve = TRUE)
+  )
+
+  expect_equal(fit_w$fit$objective, fit_dup$fit$objective, tolerance = 1e-3)
+  expect_equal(unname(coef(fit_w)), unname(coef(fit_dup)), tolerance = 1e-2)
+})
+
+test_that("CoE default (conserve=TRUE) with weights reaches the same optimum as conserve=FALSE", {
+  # CoE reduces dimension; it does not change the log-likelihood surface.
+  # Both paths must land at the same MLE log-likelihood.
   skip_on_cran()
   set.seed(77)
   data(cabgkul, package = "TemporalHazard")

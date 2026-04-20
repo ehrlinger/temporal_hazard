@@ -96,6 +96,9 @@ NULL
 
   n <- length(time)
 
+  # Default unit weights
+  if (is.null(weights)) weights <- rep(1, n)
+
   # Extract parameters
   log_lambda <- theta[1]
   lambda <- exp(log_lambda)  # Always positive
@@ -134,31 +137,33 @@ NULL
   idx_left <- status == -1
   idx_interval <- status == 2
 
-  # Event: log h(t) + log S(t) = [log(lambda)+eta] - H(t)
+  # Event: w * [log h(t) + log S(t)] = w * [log(lambda)+eta - H(t)]
   ll_event <- if (any(idx_event)) {
-    sum((log_lambda + eta[idx_event]) - cumhaz_event[idx_event])
+    sum(weights[idx_event] *
+          ((log_lambda + eta[idx_event]) - cumhaz_event[idx_event]))
   } else {
     0
   }
 
-  # Right-censored: log S(t) = -H(t)
+  # Right-censored: w * log S(t) = -w * H(t)
   ll_right <- if (any(idx_right)) {
-    -sum(cumhaz_event[idx_right])
+    -sum(weights[idx_right] * cumhaz_event[idx_right])
   } else {
     0
   }
 
-  # Left-censored: log F(u) = log(1 - exp(-H(u)))
+  # Left-censored: w * log(1 - exp(-H(u)))
   ll_left <- if (any(idx_left)) {
-    sum(hzr_log1mexp(cumhaz_upper[idx_left]))
+    sum(weights[idx_left] * hzr_log1mexp(cumhaz_upper[idx_left]))
   } else {
     0
   }
 
-  # Interval-censored: log(S(l)-S(u))
+  # Interval-censored: w * [log(S(l)-S(u))]
   ll_interval <- if (any(idx_interval)) {
     delta_h <- cumhaz_upper[idx_interval] - cumhaz_lower[idx_interval]
-    sum(-cumhaz_lower[idx_interval] + hzr_log1mexp(delta_h))
+    sum(weights[idx_interval] *
+          (-cumhaz_lower[idx_interval] + hzr_log1mexp(delta_h)))
   } else {
     0
   }
@@ -174,6 +179,7 @@ NULL
     grad <- .hzr_gradient_exponential(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper, x = x,
+      weights = weights,
       eta = eta, cumhaz = cumhaz_event,
       lambda = lambda, log_lambda = log_lambda
     )
@@ -212,10 +218,15 @@ NULL
   p <- length(theta)
   grad <- numeric(p)
 
+  # Default unit weights -- keep gradient consistent with the LL when weights
+  # are omitted.
+  if (is.null(weights)) weights <- rep(1, n)
+
   # Numerical fallback for left/interval censoring contributions.
   # Right-censored/event-only rows still use the closed-form score below.
   if (any(status %in% c(-1, 2))) {
-    return(.hzr_numeric_grad_exponential(theta, time, status, time_lower, time_upper, x))
+    return(.hzr_numeric_grad_exponential(theta, time, status, time_lower,
+                                          time_upper, x, weights = weights))
   }
 
   # Recompute if not provided
@@ -233,14 +244,19 @@ NULL
     cumhaz <- lambda * time * exp(eta)
   }
 
+  # Weighted building blocks: every term below is the unweighted form with
+  # `status` -> `w * status` and `cumhaz` -> `w * cumhaz`.
+  w_status <- weights * status
+  w_cumhaz <- weights * cumhaz
+
   # ===== Gradient w.r.t. log(lambda) =====
-  # dL/d(log lambda) = sum(delta) - sum(H) = sum(delta) - sum(lambda * t * exp(eta))
-  grad[1] <- sum(status) - sum(cumhaz)
+  # dL/d(log lambda) = sum(w * delta) - sum(w * H)
+  grad[1] <- sum(w_status) - sum(w_cumhaz)
 
   # ===== Gradient w.r.t. beta (covariate coefficients) =====
   if (p > 1 && !is.null(x)) {
-    # dL/dbeta = t(X) %*% (delta - H)
-    residual <- status - cumhaz
+    # dL/dbeta = t(X) %*% (w * delta - w * H)
+    residual <- w_status - w_cumhaz
     grad[2:p] <- as.numeric(crossprod(x, residual))
   }
 
@@ -261,7 +277,9 @@ NULL
   )
 }
 
-.hzr_numeric_grad_exponential <- function(theta, time, status, time_lower = NULL, time_upper = NULL, x = NULL) {
+.hzr_numeric_grad_exponential <- function(theta, time, status,
+                                            time_lower = NULL, time_upper = NULL,
+                                            x = NULL, weights = NULL) {
   # Reuse log-likelihood as scalar objective and differentiate numerically.
   objective <- function(par) {
     .hzr_logl_exponential(
@@ -271,6 +289,7 @@ NULL
       time_lower = time_lower,
       time_upper = time_upper,
       x = x,
+      weights = weights,
       return_gradient = FALSE
     )
   }

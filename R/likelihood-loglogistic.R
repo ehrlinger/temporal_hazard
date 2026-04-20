@@ -118,6 +118,9 @@ NULL
 
   n <- length(time)
 
+  # Default unit weights
+  if (is.null(weights)) weights <- rep(1, n)
+
   # Extract parameters
   log_alpha <- theta[1]
   log_beta <- theta[2]
@@ -169,40 +172,42 @@ NULL
   idx_left <- status == -1
   idx_interval <- status == 2
 
-  # Exact event: log f = log h + log S
+  # Exact event: w * log f = w * [log h + log S]
   # f(t|x) = alpha beta t^(beta-1) exp(eta) / (1 + alpha t^beta exp(eta))^2
   # log f  = log alpha + log beta + (beta-1) log t + eta - 2 log(1 + term)
   ll_event <- if (any(idx_event)) {
     sum(
-      log_alpha + log_beta + (beta - 1) * log(time[idx_event]) +
-        eta[idx_event] - 2 * log1p(term_event[idx_event])
+      weights[idx_event] *
+        (log_alpha + log_beta + (beta - 1) * log(time[idx_event]) +
+           eta[idx_event] - 2 * log1p(term_event[idx_event]))
     )
   } else {
     0
   }
 
-  # Right-censored: log S = -log(1 + term)
+  # Right-censored: w * log S = -w * log(1 + term)
   ll_right <- if (any(idx_right)) {
-    -sum(log1p(term_event[idx_right]))
+    -sum(weights[idx_right] * log1p(term_event[idx_right]))
   } else {
     0
   }
 
-  # Left-censored: log F = log(term/(1+term))
+  # Left-censored: w * log F = w * log(term/(1+term))
   ll_left <- if (any(idx_left)) {
-    sum(log_term_u[idx_left] - log1p(term_upper[idx_left]))
+    sum(weights[idx_left] *
+          (log_term_u[idx_left] - log1p(term_upper[idx_left])))
   } else {
     0
   }
 
-  # Interval-censored: log(F(u) - F(l)).
+  # Interval-censored: w * log(F(u) - F(l)).
   # We compute on probability scale and then log, with positivity guard.
   ll_interval <- if (any(idx_interval)) {
     p_u <- term_upper[idx_interval] / (1 + term_upper[idx_interval])
     p_l <- term_lower[idx_interval] / (1 + term_lower[idx_interval])
     diff_p <- p_u - p_l
     if (any(diff_p <= 0)) return(Inf)
-    sum(log(diff_p))
+    sum(weights[idx_interval] * log(diff_p))
   } else {
     0
   }
@@ -218,6 +223,7 @@ NULL
     grad <- .hzr_gradient_loglogistic(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper, x = x,
+      weights = weights,
       eta = eta, alpha = alpha, beta = beta,
       log_alpha = log_alpha, log_beta = log_beta, term = term_event
     )
@@ -271,9 +277,14 @@ NULL
   p <- length(theta)
   grad <- numeric(p)
 
+  # Default unit weights -- keep gradient consistent with the LL when weights
+  # are omitted.
+  if (is.null(weights)) weights <- rep(1, n)
+
   # Mixed censoring uses numerical gradient for robustness.
   if (any(status %in% c(-1, 2))) {
-    return(.hzr_numeric_grad_loglogistic(theta, time, status, time_lower, time_upper, x))
+    return(.hzr_numeric_grad_loglogistic(theta, time, status, time_lower,
+                                          time_upper, x, weights = weights))
   }
 
   # Recompute if not provided
@@ -293,20 +304,23 @@ NULL
     term <- alpha * (time ^ beta) * exp(eta)
   }
 
-  # pw_i = term_i / (1 + term_i), w_i = (1 + delta_i) * pw_i
+  # pw_i = term_i / (1 + term_i), wm_i = weights_i * (1 + delta_i) * pw_i
+  # (wm is the weighted Mills building block used in every derivative term.)
   pw <- term / (1 + term)
-  w <- (1 + status) * pw
+  w_status <- weights * status
+  wm <- weights * (1 + status) * pw
 
-  # dL/d(log alpha) = sum(delta) - sum(w)
-  grad[1] <- sum(status) - sum(w)
+  # dL/d(log alpha) = sum(w * delta) - sum(wm)
+  grad[1] <- sum(w_status) - sum(wm)
 
-  # dL/d(log beta) = sum(delta) + beta * [sum(delta * log t) - sum(w * log t)]
+  # dL/d(log beta) = sum(w * delta) + beta * [sum(w * delta * log t) - sum(wm * log t)]
   log_t <- log(time)
-  grad[2] <- sum(status) + beta * (sum(status * log_t) - sum(w * log_t))
+  grad[2] <- sum(w_status) +
+             beta * (sum(w_status * log_t) - sum(wm * log_t))
 
-  # dL/dbeta_j = t(X) %*% (delta - w)
+  # dL/dbeta_j = t(X) %*% (w * delta - wm)
   if (p > 2 && !is.null(x)) {
-    residual <- status - w
+    residual <- w_status - wm
     grad[3:p] <- as.numeric(crossprod(x, residual))
   }
 
@@ -327,7 +341,9 @@ NULL
   )
 }
 
-.hzr_numeric_grad_loglogistic <- function(theta, time, status, time_lower = NULL, time_upper = NULL, x = NULL) {
+.hzr_numeric_grad_loglogistic <- function(theta, time, status,
+                                            time_lower = NULL, time_upper = NULL,
+                                            x = NULL, weights = NULL) {
   # Reuse log-likelihood as scalar objective and differentiate numerically.
   objective <- function(par) {
     .hzr_logl_loglogistic(
@@ -337,6 +353,7 @@ NULL
       time_lower = time_lower,
       time_upper = time_upper,
       x = x,
+      weights = weights,
       return_gradient = FALSE
     )
   }

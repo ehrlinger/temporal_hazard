@@ -284,15 +284,20 @@
 #' @param phases Named list of validated `hzr_phase` objects.
 #' @param covariate_counts Named integer vector.
 #' @param x_list Named list of per-phase design matrices.
+#' @param weights Optional numeric vector of row weights (length n). Defaults to
+#'   unit weights. Applied when summing per-phase cumhaz so that selection
+#'   happens on the same scale as the (weighted) observed event count.
 #' @return Character: name of the phase to fix.
 #' @keywords internal
 .hzr_select_fixmu_phase <- function(theta, time, status,
-                                     phases, covariate_counts, x_list) {
+                                     phases, covariate_counts, x_list,
+                                     weights = NULL) {
   decomp <- .hzr_multiphase_cumhaz(time, theta, phases,
                                      covariate_counts, x_list,
                                      per_phase = TRUE)
+  if (is.null(weights)) weights <- rep(1, length(time))
   phase_sums <- vapply(names(phases), function(nm) {
-    sum(decomp[[nm]])
+    sum(weights * decomp[[nm]])
   }, numeric(1))
 
   names(which.max(phase_sums))
@@ -315,23 +320,29 @@
 #' @param phases Named list of validated `hzr_phase` objects.
 #' @param covariate_counts Named integer vector.
 #' @param x_list Named list of per-phase design matrices.
-#' @param total_events Numeric: sum of observed events (precomputed).
+#' @param total_events Numeric: sum of observed events (precomputed, weighted
+#'   when `weights` is supplied).
+#' @param weights Optional numeric vector of row weights (length n). Defaults to
+#'   unit weights. Applied when summing per-phase cumhaz so Turner's adjustment
+#'   is computed on the same scale as `total_events`.
 #' @return Updated theta vector with fixmu phase's log_mu adjusted.
 #' @keywords internal
 .hzr_conserve_events <- function(theta, fixmu_phase, fixmu_pos,
                                   time, status,
                                   phases, covariate_counts, x_list,
-                                  total_events) {
+                                  total_events, weights = NULL) {
   # Compute per-phase cumulative hazard contributions
   decomp <- .hzr_multiphase_cumhaz(time, theta, phases,
                                      covariate_counts, x_list,
                                      per_phase = TRUE)
 
-  # Total predicted events (sum of cumhaz across all observations)
-  sumcz <- sum(decomp$total)
+  if (is.null(weights)) weights <- rep(1, length(time))
 
-  # Contribution from the fixmu phase alone
-  sumcj <- sum(decomp[[fixmu_phase]])
+  # Total predicted events (weighted sum of cumhaz across all observations)
+  sumcz <- sum(weights * decomp$total)
+
+  # Weighted contribution from the fixmu phase alone
+  sumcj <- sum(weights * decomp[[fixmu_phase]])
 
   if (sumcj <= 0 || !is.finite(sumcj)) return(theta)
 
@@ -473,12 +484,13 @@
 #' @keywords internal
 .hzr_gradient_multiphase <- function(theta, time, status,
                                       time_lower = NULL, time_upper = NULL,
-                                      x = NULL,
+                                      x = NULL, weights = NULL,
                                       phases, covariate_counts, x_list,
                                       ...) {
   n <- length(time)
   p <- length(theta)
   grad <- numeric(p)
+  if (is.null(weights)) weights <- rep(1, n)
 
   # Feasibility check
   theta_split <- .hzr_split_theta(theta, phases, covariate_counts)
@@ -579,10 +591,11 @@
   # For events, there's also the d/d[theta] of log h(t):
   #   d(log h) / d(theta_j) = (1/h) * dh/d(theta_j)
 
-  # Weight for the cumulative hazard part: w_H_i = dLogl / dH(t_i)
+  # Weight for the cumulative hazard part at `time[i]`: w_H_i = dLogl/dH(t_i),
+  # scaled by Fisher weights so the score matches the weighted log-likelihood.
   w_H <- numeric(n)
-  w_H[idx_event] <- -1
-  w_H[idx_right] <- -1
+  w_H[idx_event] <- -weights[idx_event]
+  w_H[idx_right] <- -weights[idx_right]
 
   if (has_left) {
     H_upper <- .hzr_multiphase_cumhaz(upper, theta, phases, covariate_counts,
@@ -590,17 +603,17 @@
     # d/dH log(1 - exp(-H)) = exp(-H) / (1 - exp(-H))
     exp_neg_H_u <- exp(-H_upper[idx_left])
     one_minus   <- pmax(1 - exp_neg_H_u, .Machine$double.xmin)
-    w_H[idx_left] <- exp_neg_H_u / one_minus
+    w_H[idx_left] <- weights[idx_left] * (exp_neg_H_u / one_minus)
     # Left-censored uses H(upper), not H(time), so we handle below
   }
 
-  # Weight for the instantaneous hazard part (events only): 1/h(t_i)
-  # This multiplies dh/d(theta_j)
+  # Weight for the instantaneous hazard part (events only): w_i / h(t_i).
+  # This multiplies dh/d(theta_j).
   inv_h <- numeric(n)
   if (length(idx_event) > 0) {
     h_event <- h_t[idx_event]
     h_event <- pmax(h_event, .Machine$double.xmin)
-    inv_h[idx_event] <- 1 / h_event
+    inv_h[idx_event] <- weights[idx_event] / h_event
   }
 
   # -- Assemble gradient per phase -------------------------------------------
@@ -761,16 +774,18 @@
 
   # -- Interval-censored fallback: add correction via finite difference ---
   # Interval-censored observations are uncommon; their gradient contribution
-  # is added via one-sided numerical difference on the log-likelihood of
-  # just those observations.
+  # is added via one-sided numerical difference on the weighted
+  # log-likelihood of just those observations.
   if (has_interval) {
+    w_iv <- weights[idx_interval]
     logl_iv <- function(th) {
       cumhaz_l <- .hzr_multiphase_cumhaz(lower, th, phases, covariate_counts,
                                           x_list)
       cumhaz_u <- .hzr_multiphase_cumhaz(upper, th, phases, covariate_counts,
                                           x_list)
       delta <- cumhaz_u[idx_interval] - cumhaz_l[idx_interval]
-      sum(-cumhaz_l[idx_interval] + hzr_log1mexp(delta))
+      sum(w_iv *
+            (-cumhaz_l[idx_interval] + hzr_log1mexp(delta)))
     }
     eps_rel <- sqrt(.Machine$double.eps)
     ll0_iv <- logl_iv(theta)
@@ -949,22 +964,24 @@
     grad <- .hzr_gradient_multiphase(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper, x = x,
+      weights = weights,
       phases = phases, covariate_counts = covariate_counts, x_list = x_list
     )
 
     # Fallback: if gradient is all zero (e.g. at infeasible point), try
-    # numerical gradient to keep optimizer moving
+    # numerical gradient of the *weighted* LL to keep optimizer moving.
     if (all(grad == 0)) {
       eps_rel <- sqrt(.Machine$double.eps)
       p <- length(theta)
       ll0 <- logl_fn_unwrapped(theta, time, status, time_lower,
-                                time_upper, x, ...)
+                                time_upper, x, weights = weights, ...)
       for (i in seq_len(p)) {
         h_i <- eps_rel * max(abs(theta[i]), 1)
         theta_plus <- theta
         theta_plus[i] <- theta_plus[i] + h_i
         ll_plus <- logl_fn_unwrapped(theta_plus, time, status,
-                                      time_lower, time_upper, x, ...)
+                                      time_lower, time_upper, x,
+                                      weights = weights, ...)
         grad[i] <- (ll_plus - ll0) / h_i
       }
     }
@@ -985,25 +1002,16 @@
   # left censoring require a different event-counting formulation.
   coe_supported_data <- all(status %in% c(0, 1))
 
-  # CoE with non-uniform weights is not yet wired up: `.hzr_conserve_events()`
-  # receives the weighted event count as `total_events` but sums the per-phase
-  # cumhaz across rows *without* applying weights, so Turner's adjustment is
-  # computed on a mismatched scale.  Auto-disable CoE when weights are not
-  # all 1 and let the optimizer fall through to the (correctly weighted)
-  # full-dimensional path.  Tracked in
-  # `inst/dev/DEVELOPMENT-PLAN.md` Phase 4e.
-  coe_supported_weights <- all(weights == 1)
-
-  if (use_conserve && coe_supported_data && coe_supported_weights &&
-        length(phases) >= 2L) {
+  if (use_conserve && coe_supported_data && length(phases) >= 2L) {
     total_events <- sum(weights[status == 1])
     if (total_events > 0) {
-      # Initial CoE scaling: adjust all log_mu proportionally
+      # Initial CoE scaling: adjust all log_mu proportionally (weighted sums
+      # so the scaling is consistent with total_events).
       decomp_init <- .hzr_multiphase_cumhaz(
         time, theta_start, phases, covariate_counts, x_list,
         per_phase = TRUE
       )
-      sumcz_init <- sum(decomp_init$total)
+      sumcz_init <- sum(weights * decomp_init$total)
       if (sumcz_init > 0 && is.finite(sumcz_init)) {
         init_factor <- log(total_events / sumcz_init)
         if (is.finite(init_factor)) {
@@ -1014,16 +1022,18 @@
         }
       }
 
-      # Select fixmu phase (largest cumhaz contributor after scaling)
+      # Select fixmu phase (largest weighted cumhaz contributor after scaling)
       fixmu_phase <- .hzr_select_fixmu_phase(
-        theta_start, time, status, phases, covariate_counts, x_list
+        theta_start, time, status, phases, covariate_counts, x_list,
+        weights = weights
       )
       fixmu_pos <- log_mu_positions[[fixmu_phase]]
 
       # Apply precise CoE adjustment to the fixmu phase
       theta_start <- .hzr_conserve_events(
         theta_start, fixmu_phase, fixmu_pos,
-        time, status, phases, covariate_counts, x_list, total_events
+        time, status, phases, covariate_counts, x_list, total_events,
+        weights = weights
       )
 
       # Wrap logl and gradient: apply CoE before each evaluation
@@ -1032,7 +1042,8 @@
                           time_upper, x, weights = NULL, ...) {
         theta <- .hzr_conserve_events(
           theta, fixmu_phase, fixmu_pos,
-          time, status, phases, covariate_counts, x_list, total_events
+          time, status, phases, covariate_counts, x_list, total_events,
+          weights = weights
         )
         logl_fn_pre_coe(theta, time, status, time_lower,
                         time_upper, x, weights = weights, ...)
@@ -1043,7 +1054,8 @@
                               time_upper, x, weights = NULL, ...) {
         theta <- .hzr_conserve_events(
           theta, fixmu_phase, fixmu_pos,
-          time, status, phases, covariate_counts, x_list, total_events
+          time, status, phases, covariate_counts, x_list, total_events,
+          weights = weights
         )
         gradient_fn_pre_coe(theta, time, status, time_lower,
                             time_upper, x, weights = weights, ...)
@@ -1187,7 +1199,8 @@
     if (use_conserve && !is.null(fixmu_pos)) {
       best_result$par <- .hzr_conserve_events(
         best_result$par, fixmu_phase, fixmu_pos,
-        time, status, phases, covariate_counts, x_list, total_events
+        time, status, phases, covariate_counts, x_list, total_events,
+        weights = weights
       )
     }
 
