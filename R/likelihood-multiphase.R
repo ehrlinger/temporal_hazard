@@ -420,23 +420,37 @@
   cumhaz <- .hzr_multiphase_cumhaz(time, theta, phases, covariate_counts, x_list)
   if (any(!is.finite(cumhaz))) return(-Inf)
 
+  # Counting-process entry-time cumulative hazard; H(start) = 0 when no
+  # `time_lower` supplied (plain right-censored data).  For status in
+  # {0, 1}, the contribution becomes H(stop) - H(start); for status == 2,
+  # this value is unused (interval-censoring handled separately below).
+  if (is.null(time_lower)) {
+    cumhaz_start <- rep(0, n)
+  } else {
+    cumhaz_start <- .hzr_multiphase_cumhaz(time_lower, theta, phases,
+                                             covariate_counts, x_list)
+    if (any(!is.finite(cumhaz_start))) return(-Inf)
+  }
+
   # Instantaneous hazard at event times (only needed for exact events)
   idx_event <- status == 1
 
   logl <- 0
 
-  # Exact events: w * [log h(t) - H(t)]
+  # Exact events: w * [log h(stop) - (H(stop) - H(start))]
   if (any(idx_event)) {
     haz <- .hzr_multiphase_hazard(time, theta, phases, covariate_counts, x_list)
     if (any(!is.finite(haz[idx_event])) || any(haz[idx_event] <= 0)) return(-Inf)
     logl <- logl + sum(weights[idx_event] *
-                         (log(haz[idx_event]) - cumhaz[idx_event]))
+                         (log(haz[idx_event]) -
+                            (cumhaz[idx_event] - cumhaz_start[idx_event])))
   }
 
-  # Right-censored: w * [-H(t)]
+  # Right-censored: w * [-(H(stop) - H(start))]
   idx_right <- status == 0
   if (any(idx_right)) {
-    logl <- logl - sum(weights[idx_right] * cumhaz[idx_right])
+    logl <- logl - sum(weights[idx_right] *
+                         (cumhaz[idx_right] - cumhaz_start[idx_right]))
   }
 
   # Left-censored: w * [log(1 - exp(-H(u)))]
@@ -532,10 +546,18 @@
 
   # Storage for per-phase intermediate quantities
   n_phases <- length(phases)
-  phase_mu    <- vector("list", n_phases)  # mu_j(x_i) for each i
-  phase_Phi   <- vector("list", n_phases)  # Phi_j(t_i) for each i
-  phase_phi   <- vector("list", n_phases)  # phi_j(t_i) for each i
-  phase_deriv <- vector("list", n_phases)  # full derivative list from .hzr_phase_derivatives
+  phase_mu         <- vector("list", n_phases)  # mu_j(x_i) for each i
+  phase_Phi        <- vector("list", n_phases)  # Phi_j(t_i) for each i
+  phase_phi        <- vector("list", n_phases)  # phi_j(t_i) for each i
+  phase_deriv      <- vector("list", n_phases)  # derivative list at time
+  phase_Phi_start  <- vector("list", n_phases)  # Phi_j(start_i), if needed
+  phase_deriv_start <- vector("list", n_phases) # derivative list at start
+  # Whether to actually compute start-time quantities for the gradient.
+  # Without any counting-process rows (time_lower = NULL or all zeros with
+  # status in {0, 1}) these additions are identically zero and we can skip.
+  need_start <- !is.null(time_lower) &&
+                any(time_lower > 0 & status %in% c(0L, 1L))
+  start_vec <- if (need_start) time_lower else NULL
 
   for (j in seq_along(phases)) {
     nm <- names(phases)[j]
@@ -550,7 +572,7 @@
     mu_j <- exp(eta_j)
     phase_mu[[j]] <- mu_j
 
-    # Phi_j, phi_j, and shape derivatives
+    # Phi_j, phi_j, and shape derivatives at observation time
     if (phases[[nm]]$type == "constant") {
       phase_Phi[[j]] <- time
       phase_phi[[j]] <- rep(1, n)
@@ -572,6 +594,30 @@
       phase_Phi[[j]]   <- pd$Phi
       phase_phi[[j]]   <- pd$phi
       phase_deriv[[j]] <- pd
+    }
+
+    # Matching quantities at start_vec -- only Phi_j and its shape
+    # derivatives matter for the H(start) gradient contribution.
+    if (need_start) {
+      if (phases[[nm]]$type == "constant") {
+        phase_Phi_start[[j]] <- start_vec
+        phase_deriv_start[[j]] <- NULL
+      } else if (phases[[nm]]$type == "g3") {
+        tau_j <- exp(pars$log_tau)
+        d3s <- hzr_decompos_g3(start_vec, tau = tau_j, gamma = pars$gamma,
+                                 alpha = pars$alpha, eta = pars$eta)
+        phase_Phi_start[[j]] <- d3s$G3
+        phase_deriv_start[[j]] <- .hzr_g3_phase_derivatives(
+          start_vec, tau = tau_j, gamma = pars$gamma,
+          alpha = pars$alpha, eta = pars$eta)
+      } else {
+        t_half_j <- exp(pars$log_t_half)
+        pds <- .hzr_phase_derivatives(start_vec, t_half = t_half_j,
+                                        nu = pars$nu, m = pars$m,
+                                        type = phases[[nm]]$type)
+        phase_Phi_start[[j]]   <- pds$Phi
+        phase_deriv_start[[j]] <- pds
+      }
     }
 
     H_t <- H_t + mu_j * phase_Phi[[j]]
@@ -607,6 +653,16 @@
     # Left-censored uses H(upper), not H(time), so we handle below
   }
 
+  # H(start) contribution for counting-process rows (status in {0, 1}).
+  # Per-row contribution is `+H(start_i)` inside the log-likelihood, so
+  # the derivative w.r.t. theta picks up `+weights_i * dH(start)/dtheta`.
+  has_start <- !is.null(time_lower) && any(time_lower > 0 & status %in% c(0L, 1L))
+  w_H_start <- numeric(n)
+  if (has_start) {
+    w_H_start[idx_event] <- weights[idx_event]
+    w_H_start[idx_right] <- weights[idx_right]
+  }
+
   # Weight for the instantaneous hazard part (events only): w_i / h(t_i).
   # This multiplies dh/d(theta_j).
   inv_h <- numeric(n)
@@ -625,12 +681,20 @@
     mu_j  <- phase_mu[[j]]
     Phi_j <- phase_Phi[[j]]
     phi_j <- phase_phi[[j]]
+    Phi_j_start <- phase_Phi_start[[j]]  # NULL when need_start = FALSE
 
     # -- d(logl) / d(log_mu_j) ------------------------------------------
     # From H part: w_H_i * dH/d(log_mu) = w_H_i * mu_j * Phi_j
     # From h part (events): inv_h_i * dh/d(log_mu) = inv_h_i * mu_j * phi_j
     dlogl_dlog_mu <- sum(w_H * mu_j * Phi_j) +
                      sum(inv_h[idx_event] * mu_j[idx_event] * phi_j[idx_event])
+
+    # Counting-process entry-time contribution: +H(start) inside the LL,
+    # so its derivative picks up +w_H_start * dH(start)/d(log_mu).
+    if (need_start) {
+      dlogl_dlog_mu <- dlogl_dlog_mu +
+        sum(w_H_start * mu_j * Phi_j_start)
+    }
 
     # Left-censored: uses H(upper), need separate Phi_j evaluation there
     if (has_left) {
@@ -675,14 +739,19 @@
           type = phases[[nm]]$type)
       }
 
+      pd_start <- if (need_start) phase_deriv_start[[j]] else NULL
+
       # For each shape param s in {log_t_half, nu, m}:
       shape_derivs <- list(
         list(dPhi = pd$dPhi_dlog_thalf, dphi = pd$dphi_dlog_thalf,
-             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dlog_thalf),
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dlog_thalf,
+             dPhi_start = if (!is.null(pd_start)) pd_start$dPhi_dlog_thalf),
         list(dPhi = pd$dPhi_dnu,        dphi = pd$dphi_dnu,
-             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dnu),
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dnu,
+             dPhi_start = if (!is.null(pd_start)) pd_start$dPhi_dnu),
         list(dPhi = pd$dPhi_dm,         dphi = pd$dphi_dm,
-             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dm)
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dm,
+             dPhi_start = if (!is.null(pd_start)) pd_start$dPhi_dm)
       )
 
       for (s in seq_along(shape_derivs)) {
@@ -691,6 +760,12 @@
 
         dlogl_ds <- sum(w_H * mu_j * dPhi_ds) +
                     sum(inv_h[idx_event] * mu_j[idx_event] * dphi_ds[idx_event])
+
+        # Counting-process start contribution: +w_H_start * mu * dPhi(start)
+        if (need_start && !is.null(shape_derivs[[s]]$dPhi_start)) {
+          dlogl_ds <- dlogl_ds +
+            sum(w_H_start * mu_j * shape_derivs[[s]]$dPhi_start)
+        }
 
         # Left-censoring correction: swap dPhi at time for dPhi at upper
         if (has_left && !is.null(shape_derivs[[s]]$dPhi_upper)) {
@@ -714,16 +789,22 @@
           alpha = pars$alpha, eta = pars$eta)
       }
 
+      pd_start <- if (need_start) phase_deriv_start[[j]] else NULL
+
       # For each shape param s in {log_tau, gamma, alpha, eta}:
       shape_derivs <- list(
         list(dPhi = pd$dPhi_dlog_tau, dphi = pd$dphi_dlog_tau,
-             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dlog_tau),
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dlog_tau,
+             dPhi_start = if (!is.null(pd_start)) pd_start$dPhi_dlog_tau),
         list(dPhi = pd$dPhi_dgamma,   dphi = pd$dphi_dgamma,
-             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dgamma),
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dgamma,
+             dPhi_start = if (!is.null(pd_start)) pd_start$dPhi_dgamma),
         list(dPhi = pd$dPhi_dalpha,   dphi = pd$dphi_dalpha,
-             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dalpha),
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_dalpha,
+             dPhi_start = if (!is.null(pd_start)) pd_start$dPhi_dalpha),
         list(dPhi = pd$dPhi_deta,     dphi = pd$dphi_deta,
-             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_deta)
+             dPhi_upper = if (!is.null(pd_upper)) pd_upper$dPhi_deta,
+             dPhi_start = if (!is.null(pd_start)) pd_start$dPhi_deta)
       )
 
       for (s in seq_along(shape_derivs)) {
@@ -732,6 +813,12 @@
 
         dlogl_ds <- sum(w_H * mu_j * dPhi_ds) +
                     sum(inv_h[idx_event] * mu_j[idx_event] * dphi_ds[idx_event])
+
+        # Counting-process start contribution
+        if (need_start && !is.null(shape_derivs[[s]]$dPhi_start)) {
+          dlogl_ds <- dlogl_ds +
+            sum(w_H_start * mu_j * shape_derivs[[s]]$dPhi_start)
+        }
 
         # Left-censoring correction: swap dPhi at time for dPhi at upper
         if (has_left && !is.null(shape_derivs[[s]]$dPhi_upper)) {
@@ -755,6 +842,12 @@
         dlogl_dbeta <- sum(w_H * x_k * mu_j * Phi_j) +
                        sum(inv_h[idx_event] * x_k[idx_event] *
                            mu_j[idx_event] * phi_j[idx_event])
+
+        # Counting-process start contribution: +w_H_start * x_k * mu_j * Phi_start
+        if (need_start) {
+          dlogl_dbeta <- dlogl_dbeta +
+            sum(w_H_start * x_k * mu_j * Phi_j_start)
+        }
 
         if (has_left) {
           dlogl_dbeta <- dlogl_dbeta +

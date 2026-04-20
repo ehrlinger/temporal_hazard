@@ -70,13 +70,9 @@ split_epochs <- function(df, split_frac = 0.5) {
 
 # The two split-invariance tests below are the canonical check that
 # `H(stop) - H(start)` is actually applied to counting-process rows.
-# They are deferred: v0.9.5 narrowed the feature to `start = 0` only
-# (see NEWS "Repeating-events narrowed" and
-# `inst/dev/DEVELOPMENT-PLAN.md` Phase 4f). When the wire-up lands,
-# remove the skip() calls and re-enable the expectations.
+# Wired up in v0.9.6 (Phase 4f).
 
 test_that("splitting each row into two epochs preserves Weibull log-lik", {
-  skip("deferred: requires Phase 4f wire-up of H(stop) - H(start) in counting-process LL")
   df <- make_toy_rc()
   df_split <- split_epochs(df, split_frac = 0.3)
 
@@ -98,7 +94,6 @@ test_that("splitting each row into two epochs preserves Weibull log-lik", {
 })
 
 test_that("splitting each row into two epochs preserves multiphase log-lik", {
-  skip("deferred: requires Phase 4f wire-up of H(stop) - H(start) in counting-process LL")
   df <- make_toy_rc()
   df_split <- split_epochs(df, split_frac = 0.4)
 
@@ -106,7 +101,10 @@ test_that("splitting each row into two epochs preserves multiphase log-lik", {
     early    = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1, fixed = "shapes"),
     constant = hzr_phase("constant")
   )
-  theta <- c(-4, log(0.3), 0, 0, -3, 0.1, 0.05)
+  # Theta layout: [log_mu_e, log_thalf, nu, m, beta_e, log_mu_c, beta_c].
+  # Match the phase spec's nu = m = 1 so the decomposition case dispatch
+  # hits Case 1 (m > 0, nu > 0); otherwise nu = m = 0 lands in a gap.
+  theta <- c(-4, log(0.3), 1, 1, -3, 0.1, 0.05)
 
   ll_orig <- TemporalHazard:::.hzr_logl_multiphase(
     theta = theta, time = df$time, status = df$status,
@@ -154,7 +152,6 @@ test_that("Surv(start, stop, event) routes start -> time_lower in formula parser
 # ---------------------------------------------------------------------------
 
 test_that("Weibull fit on split-epoch data matches unsplit fit", {
-  skip("deferred: requires Phase 4f wire-up of H(stop) - H(start) in counting-process LL")
   df <- make_toy_rc()
   df_split <- split_epochs(df, split_frac = 0.35)
 
@@ -172,25 +169,11 @@ test_that("Weibull fit on split-epoch data matches unsplit fit", {
 })
 
 # ---------------------------------------------------------------------------
-# Guard: counting-process with nonzero start times is rejected
+# Counting-process data with nonzero starts is now accepted (v0.9.6)
 # ---------------------------------------------------------------------------
-# This is the user-visible contract for v0.9.5: rather than silently
-# returning a mis-scored fit, hazard() errors out. When Phase 4f lands,
-# remove this test along with the guard in hazard_api.R.
-
-test_that("hazard() rejects counting-process Surv with any start > 0", {
-  df <- data.frame(
-    start = c(0.0, 0.5, 0.0, 1.2),
-    stop  = c(1.5, 2.0, 3.0, 3.5),
-    event = c(1, 0, 1, 0),
-    x     = c(0.1, 0.2, 0.3, 0.4)
-  )
-  expect_error(
-    hazard(survival::Surv(start, stop, event) ~ x,
-           data = df, dist = "weibull"),
-    "Counting-process"
-  )
-})
+# The v0.9.5 narrowing rejected `Surv(start, stop, event)` with any
+# `start > 0`; v0.9.6 wires `H(stop) - H(start)` into the Weibull and
+# multiphase likelihoods, so the guard is gone.
 
 test_that("hazard() accepts counting-process Surv when every start is 0", {
   df <- data.frame(

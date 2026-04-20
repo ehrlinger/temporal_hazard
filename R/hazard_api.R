@@ -256,29 +256,6 @@ hazard <- function(formula = NULL,
     time_upper <- parsed$time_upper
     x <- parsed$x
 
-    # Counting-process (start-stop) notation: the parser maps `start` to
-    # `time_lower` and `stop` to `time`, but the downstream likelihoods
-    # currently only honour `time_lower` for interval-censored rows
-    # (`status == 2`).  For counting-process rows (`status` in {0, 1})
-    # with a nonzero entry time the contribution should be
-    # `H(stop) - H(start)`; at present it is just `H(stop)`, producing a
-    # silently wrong fit.  Block the unsupported sub-case up front --
-    # `Surv(0, t, d)` is equivalent to `Surv(t, d)` and is allowed to
-    # pass through.  Full wire-up is tracked in
-    # `inst/dev/DEVELOPMENT-PLAN.md` Phase 4f.
-    if (!is.null(parsed$surv_type) && parsed$surv_type == "counting" &&
-          any(time_lower > 0)) {
-      stop(
-        "Counting-process (start-stop) notation `Surv(start, stop, event)` ",
-        "with nonzero start times is not yet supported: the likelihood ",
-        "currently computes H(stop) rather than H(stop) - H(start), which ",
-        "would produce a silently wrong fit. Workarounds: (1) use ",
-        "`Surv(time, status)` on right-censored data; (2) for ",
-        "interval-censored data use `Surv(time1, time2, type = \"interval2\")`. ",
-        "Full wire-up is tracked in `inst/dev/DEVELOPMENT-PLAN.md` Phase 4f.",
-        call. = FALSE
-      )
-    }
   }
 
   # After formula dispatch, require time and status
