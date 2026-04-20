@@ -484,12 +484,13 @@
 #' @keywords internal
 .hzr_gradient_multiphase <- function(theta, time, status,
                                       time_lower = NULL, time_upper = NULL,
-                                      x = NULL,
+                                      x = NULL, weights = NULL,
                                       phases, covariate_counts, x_list,
                                       ...) {
   n <- length(time)
   p <- length(theta)
   grad <- numeric(p)
+  if (is.null(weights)) weights <- rep(1, n)
 
   # Feasibility check
   theta_split <- .hzr_split_theta(theta, phases, covariate_counts)
@@ -590,10 +591,11 @@
   # For events, there's also the d/d[theta] of log h(t):
   #   d(log h) / d(theta_j) = (1/h) * dh/d(theta_j)
 
-  # Weight for the cumulative hazard part: w_H_i = dLogl / dH(t_i)
+  # Weight for the cumulative hazard part at `time[i]`: w_H_i = dLogl/dH(t_i),
+  # scaled by Fisher weights so the score matches the weighted log-likelihood.
   w_H <- numeric(n)
-  w_H[idx_event] <- -1
-  w_H[idx_right] <- -1
+  w_H[idx_event] <- -weights[idx_event]
+  w_H[idx_right] <- -weights[idx_right]
 
   if (has_left) {
     H_upper <- .hzr_multiphase_cumhaz(upper, theta, phases, covariate_counts,
@@ -601,17 +603,17 @@
     # d/dH log(1 - exp(-H)) = exp(-H) / (1 - exp(-H))
     exp_neg_H_u <- exp(-H_upper[idx_left])
     one_minus   <- pmax(1 - exp_neg_H_u, .Machine$double.xmin)
-    w_H[idx_left] <- exp_neg_H_u / one_minus
+    w_H[idx_left] <- weights[idx_left] * (exp_neg_H_u / one_minus)
     # Left-censored uses H(upper), not H(time), so we handle below
   }
 
-  # Weight for the instantaneous hazard part (events only): 1/h(t_i)
-  # This multiplies dh/d(theta_j)
+  # Weight for the instantaneous hazard part (events only): w_i / h(t_i).
+  # This multiplies dh/d(theta_j).
   inv_h <- numeric(n)
   if (length(idx_event) > 0) {
     h_event <- h_t[idx_event]
     h_event <- pmax(h_event, .Machine$double.xmin)
-    inv_h[idx_event] <- 1 / h_event
+    inv_h[idx_event] <- weights[idx_event] / h_event
   }
 
   # -- Assemble gradient per phase -------------------------------------------
@@ -772,16 +774,18 @@
 
   # -- Interval-censored fallback: add correction via finite difference ---
   # Interval-censored observations are uncommon; their gradient contribution
-  # is added via one-sided numerical difference on the log-likelihood of
-  # just those observations.
+  # is added via one-sided numerical difference on the weighted
+  # log-likelihood of just those observations.
   if (has_interval) {
+    w_iv <- weights[idx_interval]
     logl_iv <- function(th) {
       cumhaz_l <- .hzr_multiphase_cumhaz(lower, th, phases, covariate_counts,
                                           x_list)
       cumhaz_u <- .hzr_multiphase_cumhaz(upper, th, phases, covariate_counts,
                                           x_list)
       delta <- cumhaz_u[idx_interval] - cumhaz_l[idx_interval]
-      sum(-cumhaz_l[idx_interval] + hzr_log1mexp(delta))
+      sum(w_iv *
+            (-cumhaz_l[idx_interval] + hzr_log1mexp(delta)))
     }
     eps_rel <- sqrt(.Machine$double.eps)
     ll0_iv <- logl_iv(theta)
@@ -960,22 +964,24 @@
     grad <- .hzr_gradient_multiphase(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper, x = x,
+      weights = weights,
       phases = phases, covariate_counts = covariate_counts, x_list = x_list
     )
 
     # Fallback: if gradient is all zero (e.g. at infeasible point), try
-    # numerical gradient to keep optimizer moving
+    # numerical gradient of the *weighted* LL to keep optimizer moving.
     if (all(grad == 0)) {
       eps_rel <- sqrt(.Machine$double.eps)
       p <- length(theta)
       ll0 <- logl_fn_unwrapped(theta, time, status, time_lower,
-                                time_upper, x, ...)
+                                time_upper, x, weights = weights, ...)
       for (i in seq_len(p)) {
         h_i <- eps_rel * max(abs(theta[i]), 1)
         theta_plus <- theta
         theta_plus[i] <- theta_plus[i] + h_i
         ll_plus <- logl_fn_unwrapped(theta_plus, time, status,
-                                      time_lower, time_upper, x, ...)
+                                      time_lower, time_upper, x,
+                                      weights = weights, ...)
         grad[i] <- (ll_plus - ll0) / h_i
       }
     }

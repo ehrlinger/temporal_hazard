@@ -19,6 +19,21 @@
   auto-disables when weights are non-uniform — the dimension
   reduction stays on and the MLE matches the full-dim path.
 
+## Bug fixes
+
+* **Multiphase analytic gradient now applies `weights`.**
+  `.hzr_gradient_multiphase()` accepted neither `weights` nor its
+  downstream equivalents: the per-row score weights `w_H` / `inv_h`
+  were set to ±1 and the interval-censored finite-difference
+  correction summed an unweighted LL. Weighted multiphase fits
+  therefore optimised a weighted objective with an unweighted score;
+  BFGS line search still converged near the correct MLE but the
+  final gradient norm did not go to zero. All three paths now honour
+  row weights, and the optimizer's `gradient_fn` wrapper (including
+  the all-zero numeric fallback and the CoE wrapper) forwards
+  `weights` consistently. Regression test covers weighted analytic
+  vs numerical gradient parity. Surfaced by Copilot review on PR #18.
+
 # TemporalHazard 0.9.5
 
 ## New features

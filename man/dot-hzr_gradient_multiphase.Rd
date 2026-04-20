@@ -11,6 +11,7 @@
   time_lower = NULL,
   time_upper = NULL,
   x = NULL,
+  weights = NULL,
   phases,
   covariate_counts,
   x_list,

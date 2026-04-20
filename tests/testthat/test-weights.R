@@ -546,6 +546,48 @@ test_that("weighted LL matches duplicated-row LL under mixed censoring (log-norm
   expect_equal(ll_w, ll_dup, tolerance = 1e-10)
 })
 
+test_that("weighted multiphase analytic gradient matches numerical gradient", {
+  # `.hzr_gradient_multiphase()` must apply `weights` to the per-row score
+  # (w_H, inv_h, and the interval-censored finite-difference correction).
+  # Prior to 0.9.6 it ignored the argument, so weighted multiphase fits
+  # optimized a weighted objective with an unweighted gradient -- the fit
+  # still converged near the right MLE via line search but the final
+  # gradient norm did not go to zero.  This test would have caught it.
+  skip_if_not_installed("numDeriv")
+
+  set.seed(31)
+  n <- 40
+  t <- runif(n, 0.1, 3)
+  status <- rbinom(n, 1, 0.45)
+  w <- sample(1:3, n, replace = TRUE)
+
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1, fixed = "shapes"),
+    constant = hzr_phase("constant")
+  )
+  cov_counts <- c(early = 0L, constant = 0L)
+  x_list <- list(early = NULL, constant = NULL)
+  # [log_mu_e, log_thalf, nu, m, log_mu_c]
+  theta <- c(-4, log(0.3), 1, 1, -3)
+
+  num_g <- numDeriv::grad(
+    function(th) {
+      TemporalHazard:::.hzr_logl_multiphase(
+        theta = th, time = t, status = status,
+        phases = phases, covariate_counts = cov_counts,
+        x_list = x_list, weights = w
+      )
+    },
+    theta
+  )
+  ana_g <- TemporalHazard:::.hzr_gradient_multiphase(
+    theta = theta, time = t, status = status,
+    weights = w,
+    phases = phases, covariate_counts = cov_counts, x_list = x_list
+  )
+  expect_equal(as.numeric(ana_g), num_g, tolerance = 1e-4)
+})
+
 test_that("zero weight drops the row's contribution across mixed censoring (log-normal)", {
   # Targeted sanity check of the per-term weighting: zeroing one row of each
   # censoring flavour must equal dropping those rows entirely.
