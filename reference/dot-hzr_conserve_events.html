@@ -9,7 +9,7 @@ log_mu so that total predicted events = total observed events."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -68,7 +68,8 @@ log_mu so that total predicted events = total observed events.</p>
 <span>  <span class="va">phases</span>,</span>
 <span>  <span class="va">covariate_counts</span>,</span>
 <span>  <span class="va">x_list</span>,</span>
-<span>  <span class="va">total_events</span></span>
+<span>  <span class="va">total_events</span>,</span>
+<span>  weights <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -109,7 +110,14 @@ log_mu so that total predicted events = total observed events.</p>
 
 
 <dt id="arg-total-events">total_events<a class="anchor" aria-label="anchor" href="#arg-total-events"></a></dt>
-<dd><p>Numeric: sum of observed events (precomputed).</p></dd>
+<dd><p>Numeric: sum of observed events (precomputed, weighted
+when <code>weights</code> is supplied).</p></dd>
+
+
+<dt id="arg-weights">weights<a class="anchor" aria-label="anchor" href="#arg-weights"></a></dt>
+<dd><p>Optional numeric vector of row weights (length n). Defaults to
+unit weights. Applied when summing per-phase cumhaz so Turner's adjustment
+is computed on the same scale as <code>total_events</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

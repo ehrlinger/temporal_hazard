@@ -6,7 +6,15 @@ hazard, matching the C HAZARD SETCOE strategy.
 ## Usage
 
 ``` r
-.hzr_select_fixmu_phase(theta, time, status, phases, covariate_counts, x_list)
+.hzr_select_fixmu_phase(
+  theta,
+  time,
+  status,
+  phases,
+  covariate_counts,
+  x_list,
+  weights = NULL
+)
 ```
 
 ## Arguments
@@ -34,6 +42,12 @@ hazard, matching the C HAZARD SETCOE strategy.
 - x_list:
 
   Named list of per-phase design matrices.
+
+- weights:
+
+  Optional numeric vector of row weights (length n). Defaults to unit
+  weights. Applied when summing per-phase cumhaz so that selection
+  happens on the same scale as the (weighted) observed event count.
 
 ## Value
 

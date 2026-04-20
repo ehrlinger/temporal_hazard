@@ -1,5 +1,45 @@
 # Changelog
 
+## TemporalHazard 0.9.6
+
+### New features
+
+- **`weights` now supported for all distributions** — Phase 4e of the
+  development plan lands. The exponential, log-logistic, and log-normal
+  likelihoods and their analytic gradients now apply row weights to
+  every censoring term (event, right-censored, left-censored,
+  interval-censored). The 0.9.5 guard in
+  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+  that rejected `weights` for
+  `dist %in% c("exponential", "loglogistic", "lognormal")` has been
+  removed. Fits with integer weights reproduce the row-duplicated fit to
+  optimizer tolerance across all five distributions.
+- **Conservation of Events now honours weights.**
+  [`.hzr_conserve_events()`](https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_conserve_events.md)
+  and
+  [`.hzr_select_fixmu_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_select_fixmu_phase.md)
+  take an optional `weights` argument; the multiphase optimizer threads
+  it through so per-phase cumulative hazards are summed on the same
+  scale as the (weighted) observed event count. CoE no longer
+  auto-disables when weights are non-uniform — the dimension reduction
+  stays on and the MLE matches the full-dim path.
+
+### Bug fixes
+
+- **Multiphase analytic gradient now applies `weights`.**
+  [`.hzr_gradient_multiphase()`](https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_gradient_multiphase.md)
+  accepted neither `weights` nor its downstream equivalents: the per-row
+  score weights `w_H` / `inv_h` were set to ±1 and the interval-censored
+  finite-difference correction summed an unweighted LL. Weighted
+  multiphase fits therefore optimised a weighted objective with an
+  unweighted score; BFGS line search still converged near the correct
+  MLE but the final gradient norm did not go to zero. All three paths
+  now honour row weights, and the optimizer’s `gradient_fn` wrapper
+  (including the all-zero numeric fallback and the CoE wrapper) forwards
+  `weights` consistently. Regression test covers weighted analytic vs
+  numerical gradient parity. Surfaced by Copilot review on PR
+  [\#18](https://github.com/ehrlinger/temporal_hazard/issues/18).
+
 ## TemporalHazard 0.9.5
 
 ### New features

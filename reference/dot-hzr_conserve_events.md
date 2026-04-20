@@ -15,7 +15,8 @@ log_mu so that total predicted events = total observed events.
   phases,
   covariate_counts,
   x_list,
-  total_events
+  total_events,
+  weights = NULL
 )
 ```
 
@@ -55,7 +56,14 @@ log_mu so that total predicted events = total observed events.
 
 - total_events:
 
-  Numeric: sum of observed events (precomputed).
+  Numeric: sum of observed events (precomputed, weighted when `weights`
+  is supplied).
+
+- weights:
+
+  Optional numeric vector of row weights (length n). Defaults to unit
+  weights. Applied when summing per-phase cumhaz so Turner's adjustment
+  is computed on the same scale as `total_events`.
 
 ## Value
 

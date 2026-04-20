@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.5</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.6</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,6 +49,21 @@
       <small>Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.6" id="temporalhazard-096">TemporalHazard 0.9.6<a class="anchor" aria-label="anchor" href="#temporalhazard-096"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-9-6">New features<a class="anchor" aria-label="anchor" href="#new-features-0-9-6"></a></h3>
+<ul><li>
+<strong><code>weights</code> now supported for all distributions</strong> — Phase 4e of the development plan lands. The exponential, log-logistic, and log-normal likelihoods and their analytic gradients now apply row weights to every censoring term (event, right-censored, left-censored, interval-censored). The 0.9.5 guard in <code><a href="../reference/hazard.html">hazard()</a></code> that rejected <code>weights</code> for <code>dist %in% c("exponential",   "loglogistic", "lognormal")</code> has been removed. Fits with integer weights reproduce the row-duplicated fit to optimizer tolerance across all five distributions.</li>
+<li>
+<strong>Conservation of Events now honours weights.</strong> <code><a href="../reference/dot-hzr_conserve_events.html">.hzr_conserve_events()</a></code> and <code><a href="../reference/dot-hzr_select_fixmu_phase.html">.hzr_select_fixmu_phase()</a></code> take an optional <code>weights</code> argument; the multiphase optimizer threads it through so per-phase cumulative hazards are summed on the same scale as the (weighted) observed event count. CoE no longer auto-disables when weights are non-uniform — the dimension reduction stays on and the MLE matches the full-dim path.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-9-6">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-6"></a></h3>
+<ul><li>
+<strong>Multiphase analytic gradient now applies <code>weights</code>.</strong> <code><a href="../reference/dot-hzr_gradient_multiphase.html">.hzr_gradient_multiphase()</a></code> accepted neither <code>weights</code> nor its downstream equivalents: the per-row score weights <code>w_H</code> / <code>inv_h</code> were set to ±1 and the interval-censored finite-difference correction summed an unweighted LL. Weighted multiphase fits therefore optimised a weighted objective with an unweighted score; BFGS line search still converged near the correct MLE but the final gradient norm did not go to zero. All three paths now honour row weights, and the optimizer’s <code>gradient_fn</code> wrapper (including the all-zero numeric fallback and the CoE wrapper) forwards <code>weights</code> consistently. Regression test covers weighted analytic vs numerical gradient parity. Surfaced by Copilot review on PR <a href="https://github.com/ehrlinger/temporal_hazard/issues/18" class="external-link">#18</a>.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.5" id="temporalhazard-095">TemporalHazard 0.9.5<a class="anchor" aria-label="anchor" href="#temporalhazard-095"></a></h2>
 <div class="section level3">
