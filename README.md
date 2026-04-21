@@ -44,13 +44,16 @@ adjustment, prediction, and extrapolation.
 | Feature | Status |
 |:---|:---:|
 | Multi-phase hazard modeling (early, constant, late phases) | :white_check_mark: |
-| Right censoring and interval censoring | :white_check_mark: |
-| Repeating events (epoch decomposition) | :construction: |
-| Time-varying covariates | :white_check_mark: |
-| Weighted events | :construction: |
-| Automatic stepwise covariate selection (forward, backward, stepwise) | :construction: |
+| Five parametric distributions (Weibull, exponential, log-logistic, log-normal, multiphase) | :white_check_mark: |
+| Right, left, interval, and counting-process censoring | :white_check_mark: |
+| Repeating events (epoch decomposition via `Surv(start, stop, event)`) | :white_check_mark: |
+| Time-varying covariates (piecewise windows) | :white_check_mark: |
+| Weighted events across all distributions | :white_check_mark: |
+| Automatic stepwise covariate selection (forward, backward, stepwise; Wald or AIC) | :white_check_mark: |
 | Conservation of Events theorem for numerically stable parameter estimation | :white_check_mark: |
 | Covariance and correlation matrix estimation | :white_check_mark: |
+| Delta-method confidence limits on `predict()` (`se.fit = TRUE`) | :white_check_mark: |
+| Seven `hzr_*` utility functions (Kaplan-Meier, Nelson, GOF, deciles, calibration, bootstrap, competing risks) | :white_check_mark: |
 
 :white_check_mark: = implemented | :construction: = planned
 
