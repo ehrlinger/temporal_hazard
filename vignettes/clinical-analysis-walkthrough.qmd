@@ -68,17 +68,32 @@ Before fitting any parametric model, establish the empirical survival curve
 using the Kaplan-Meier estimator.  This is the benchmark against which all
 parametric fits will be compared.
 
+`hzr_kaplan()` wraps `survival::survfit()` and adds logit-transformed exact
+confidence limits that respect the `[0, 1]` boundary --- more accurate in
+the tails than the default Greenwood intervals.  This matches the SAS
+`kaplan.sas` macro output structure.
+
+```{r}
+#| label: km-life-table
+km <- hzr_kaplan(time = avc$int_dead, status = avc$dead)
+head(km)
+```
+
+The returned data frame is the life table: one row per event time with
+`n_risk`, `n_event`, `survival`, logit-transformed 95% CLs
+(`cl_lower` / `cl_upper`), and a KM-based cumulative hazard
+(`-log(survival)` --- use `hzr_nelson()` if you need the Nelson-Aalen
+estimator instead).  Plotting just requires the survival column:
+
 ```{r}
 #| label: fig-km-baseline
 #| fig-cap: "Kaplan-Meier survival estimate for AVC patients (n = 310)"
 #| eval: !expr has_pkg && has_ggplot2
-km <- survival::survfit(survival::Surv(int_dead, dead) ~ 1, data = avc)
-
 km_df <- data.frame(
   time     = km$time,
-  survival = km$surv * 100,
-  lower    = km$lower * 100,
-  upper    = km$upper * 100
+  survival = km$survival * 100,
+  lower    = km$cl_lower * 100,
+  upper    = km$cl_upper * 100
 )
 
 ggplot(km_df, aes(time, survival)) +
@@ -257,24 +272,40 @@ screen_results
 ### 3b. Functional form assessment
 
 For continuous covariates that appear significant, examine whether the
-relationship with outcome is linear on the logit scale using LOESS
-smoothing.  Non-linear patterns suggest a transformation may be needed.
+relationship with outcome is monotone on the logit scale.  `hzr_calibrate()`
+implements the SAS `logit.sas` / `logitgr.sas` macros: bin the continuous
+covariate into quantile groups, compute the observed event rate per bin,
+and transform it to the logit scale.
 
 ```{r}
-#| label: fig-loess-age
-#| fig-cap: "LOESS smooth: age vs. mortality probability"
+#| label: age-calibrate
+cal_age <- hzr_calibrate(x = avc$age, event = avc$dead,
+                          groups = 10, link = "logit")
+cal_age
+```
+
+Plot the logit-transformed event rate against the bin centre (`mean`
+column).  A straight line means the covariate can enter the model
+untransformed; monotone-but-curved shapes suggest a log or square-root
+transform; U-shapes call for a quadratic term.
+
+```{r}
+#| label: fig-calibrate-age
+#| fig-cap: "Decile calibration: age vs. logit(P(death))"
 #| eval: !expr has_pkg && has_ggplot2
-ggplot(avc, aes(age, dead)) +
-  geom_point(alpha = 0.2, size = 1) +
-  geom_smooth(method = "loess", formula = y ~ x, se = TRUE,
-              colour = "#0072B2", fill = "#0072B2", alpha = 0.2) +
-  labs(x = "Age at repair (months)", y = "P(death)") +
+ggplot(cal_age, aes(mean, link_value)) +
+  geom_point(size = 3, colour = "#0072B2") +
+  geom_line(colour = "#0072B2", alpha = 0.4) +
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE,
+              colour = "#D55E00", linetype = "dashed") +
+  labs(x = "Age at repair (months, decile midpoint)",
+       y = "logit(P(death))") +
   theme_minimal()
 ```
 
-If the LOESS curve is roughly linear (or monotone), the covariate can enter
-the model untransformed.  S-shaped or U-shaped curves suggest
-transformations (log, quadratic) may improve the fit.
+The blue points are the observed decile logits; the dashed red line is a
+linear reference.  Deviations from linearity flag where a transform is
+warranted.
 
 ## Step 4: Multivariable model
 
@@ -388,9 +419,15 @@ the full argument surface including `force_in`, `force_out`, and the
 Generate the survival curve for a reference patient (median age, NYHA
 class 1, no malalignment, no interventricular communication).
 
+`predict(..., se.fit = TRUE)` adds a delta-method standard error and 95%
+confidence band around every prediction (log(-log) scale for survival so
+the band is guaranteed to lie in `[0, 1]`).  This is the parametric
+analogue of the KM confidence limits from Step 1 --- a patient-specific
+uncertainty estimate the nonparametric curve cannot provide.
+
 ```{r}
 #| label: fig-prediction
-#| fig-cap: "Reference patient survival with Kaplan-Meier overlay"
+#| fig-cap: "Reference patient survival with 95% delta-method CI and KM overlay"
 #| eval: !expr has_pkg && has_ggplot2
 ref_patient <- data.frame(
   time   = t_grid,
@@ -401,13 +438,22 @@ ref_patient <- data.frame(
 )
 
 surv_ref <- predict(fit_mv, newdata = ref_patient,
-                    type = "survival") * 100
+                    type = "survival", se.fit = TRUE)
+
+ref_df <- data.frame(
+  time     = t_grid,
+  survival = surv_ref$fit * 100,
+  lower    = surv_ref$lower * 100,
+  upper    = surv_ref$upper * 100
+)
 
 ggplot() +
   geom_step(data = km_df, aes(time, survival),
             colour = "#D55E00", linewidth = 0.6, alpha = 0.7) +
-  geom_line(data = data.frame(time = t_grid, survival = surv_ref),
-            aes(time, survival), colour = "#0072B2", linewidth = 0.8) +
+  geom_ribbon(data = ref_df, aes(time, ymin = lower, ymax = upper),
+              fill = "#0072B2", alpha = 0.15) +
+  geom_line(data = ref_df, aes(time, survival),
+            colour = "#0072B2", linewidth = 0.8) +
   labs(x = "Months after AVC repair", y = "Survival (%)") +
   coord_cartesian(ylim = c(0, 100)) +
   theme_minimal()
@@ -438,25 +484,38 @@ high_risk <- data.frame(
   com_iv = 1
 )
 
-surv_lo <- predict(fit_mv, newdata = low_risk, type = "survival") * 100
-surv_hi <- predict(fit_mv, newdata = high_risk, type = "survival") * 100
+surv_lo <- predict(fit_mv, newdata = low_risk,
+                   type = "survival", se.fit = TRUE)
+surv_hi <- predict(fit_mv, newdata = high_risk,
+                   type = "survival", se.fit = TRUE)
 
 sens_df <- data.frame(
-  time = rep(t_grid, 2),
-  survival = c(surv_lo, surv_hi),
-  profile = rep(c("Low risk", "High risk"), each = length(t_grid))
+  time     = rep(t_grid, 2),
+  survival = c(surv_lo$fit, surv_hi$fit) * 100,
+  lower    = c(surv_lo$lower, surv_hi$lower) * 100,
+  upper    = c(surv_lo$upper, surv_hi$upper) * 100,
+  profile  = rep(c("Low risk", "High risk"), each = length(t_grid))
 )
 
-ggplot(sens_df, aes(time, survival, colour = profile)) +
+ggplot(sens_df, aes(time, survival, colour = profile, fill = profile)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper),
+              alpha = 0.15, colour = NA) +
   geom_line(linewidth = 0.8) +
   scale_colour_manual(values = c("Low risk" = "#0072B2",
                                   "High risk" = "#D55E00")) +
+  scale_fill_manual(values = c("Low risk" = "#0072B2",
+                                "High risk" = "#D55E00")) +
   labs(x = "Months after AVC repair", y = "Survival (%)",
-       colour = NULL) +
+       colour = NULL, fill = NULL) +
   coord_cartesian(ylim = c(0, 100)) +
   theme_minimal() +
   theme(legend.position = "bottom")
 ```
+
+Non-overlapping confidence bands between the two profiles indicate the
+risk-factor combination is well-identified; overlap around the bands'
+centre-of-mass flags where the model can't distinguish the profiles with
+the available sample size.
 
 ## Step 6: Validation --- decile-of-risk calibration
 

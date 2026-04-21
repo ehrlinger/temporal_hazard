@@ -130,6 +130,71 @@ ggplot() +
   theme(legend.position = "bottom")
 ```
 
+## Confidence limits on predictions
+
+As of v0.9.8, `predict.hazard()` accepts `se.fit = TRUE` (default `FALSE`)
+and `level = 0.95` to return delta-method standard errors and
+confidence limits alongside the point estimate.  The return value
+changes shape: a plain numeric vector with `se.fit = FALSE`, a data
+frame with columns `fit`, `se.fit`, `lower`, and `upper` with
+`se.fit = TRUE`.
+
+```{r}
+#| label: pred-with-se
+# Build a clean newdata frame (the earlier chunk appended result
+# columns to `profile`, which would confuse predict()'s column count).
+profile_ci <- data.frame(
+  time   = t_grid,
+  age    = median(avc$age),
+  status = 2,
+  mal    = 0,
+  com_iv = 0
+)
+surv_ci <- predict(fit, newdata = profile_ci,
+                   type = "survival", se.fit = TRUE, level = 0.95)
+head(surv_ci)
+```
+
+Confidence limits use SAS-matched transformations: log-scale for
+`hazard` and `cumulative_hazard` (keeps the lower bound positive), and
+`log(-log(S))` for `survival` (keeps the interval in `[0, 1]`).  The
+linear predictor uses symmetric natural-scale CLs.
+
+```{r}
+#| label: fig-surv-ci
+#| fig-cap: "Parametric survival with 95% delta-method confidence band"
+#| fig-width: 7
+#| fig-height: 4.5
+ci_df <- data.frame(
+  time     = profile_ci$time,
+  survival = surv_ci$fit * 100,
+  lower    = surv_ci$lower * 100,
+  upper    = surv_ci$upper * 100
+)
+
+ggplot() +
+  geom_step(data = km_df, aes(time, survival, colour = "Kaplan-Meier"),
+            linewidth = 0.5) +
+  geom_ribbon(data = ci_df,
+              aes(time, ymin = lower, ymax = upper),
+              fill = "#0072B2", alpha = 0.15) +
+  geom_line(data = ci_df,
+            aes(time, survival, colour = "Parametric + 95% CI"),
+            linewidth = 1) +
+  scale_colour_manual(
+    values = c("Parametric + 95% CI" = "#0072B2",
+               "Kaplan-Meier"        = "#D55E00")
+  ) +
+  scale_y_continuous(limits = c(0, 100)) +
+  labs(x = "Months after repair", y = "Freedom from death (%)",
+       colour = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+Weibull and multiphase use a closed-form Jacobian.  Exponential,
+log-logistic, and log-normal use `numDeriv::jacobian()` on a per-call
+cumulative-hazard closure --- identical results, just slightly slower.
 
 ## Decomposed multiphase hazard
 
