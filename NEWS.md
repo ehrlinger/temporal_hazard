@@ -1,3 +1,26 @@
+# TemporalHazard 0.9.8
+
+## New features
+
+* **Delta-method confidence limits on `predict.hazard()`** — Phase 4g of
+  the development plan lands. Two new arguments: `se.fit = FALSE` and
+  `level = 0.95`. When `se.fit = TRUE`, the return value becomes a
+  data frame with columns `fit`, `se.fit`, `lower`, `upper`.
+  - **Weibull and multiphase use closed-form Jacobians**
+    (`dH/dtheta`, `dexp(eta)/dtheta`, `deta/dtheta`); exponential /
+    log-logistic / log-normal fall back to `numDeriv::jacobian` on a
+    per-call cumhaz closure.
+  - **Transforms match SAS HAZARD** (`hzp_calc_haz_CL.c` /
+    `hzp_calc_srv_CL.c`): `hazard` and `cumulative_hazard` use
+    log-scale CLs; `survival` uses log(-log S) CLs (equivalent to
+    log-cumhaz) so 0 <= lower <= upper <= 1; `linear_predictor` is
+    symmetric on the natural scale.
+  - **Fixed-shape / CoE multiphase fits produce meaningful CLs** — the
+    delta-method sandwich is restricted to the free-parameter submatrix
+    of `vcov`, treating fixed parameters as known-with-zero-variance.
+  - Backward compatible: `se.fit = FALSE` (default) preserves the
+    pre-0.9.8 scalar-vector / decompose-data-frame return shape.
+
 # TemporalHazard 0.9.7
 
 ## New features

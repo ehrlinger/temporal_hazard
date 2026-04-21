@@ -9,6 +9,8 @@
   newdata = NULL,
   type = c("hazard", "linear_predictor", "survival", "cumulative_hazard"),
   decompose = FALSE,
+  se.fit = FALSE,
+  level = 0.95,
   ...
 )
 }
@@ -30,6 +32,17 @@ column, or time will be taken from the fitted object's data.}
 \item{decompose}{Logical; if \code{TRUE} and the model is multiphase, return a
 data frame with per-phase cumulative hazard contributions alongside the
 total.  Ignored for single-distribution models.  Default \code{FALSE}.}
+
+\item{se.fit}{Logical; if \code{TRUE}, compute delta-method standard errors and
+confidence limits for each prediction.  The return value becomes a data
+frame with columns \code{fit}, \code{se.fit}, \code{lower}, \code{upper}.  Default \code{FALSE}.
+CLs are computed on the log-hazard / log-cumhaz scale and on the
+log(-log(survival)) scale so lower/upper stay inside the valid range
+of each prediction type; \code{linear_predictor} uses symmetric natural-scale
+CLs.  Not compatible with \code{decompose = TRUE}.}
+
+\item{level}{Numeric confidence level in \verb{(0, 1)}; default \code{0.95}.
+Only used when \code{se.fit = TRUE}.}
 
 \item{...}{Unused; included for S3 compatibility.}
 }
