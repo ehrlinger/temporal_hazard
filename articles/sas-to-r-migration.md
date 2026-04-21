@@ -524,37 +524,9 @@ mirroring the `P` (predict/print) option in `PROC HAZARD`. Pass
 ## Known limitations vs. SAS HAZARD
 
 A SAS HAZARD veteran migrating to `TemporalHazard` should be aware of
-the following scope limits as of v0.9.5. Detailed status per feature is
-tracked in `inst/dev/SAS-PARITY-GAP-ANALYSIS.md`.
-
-### Observation weights (`WEIGHT` statement)
-
-- **Supported:** `dist = "weibull"` and `dist = "multiphase"` (LL and
-  analytic gradient).
-- **Not yet supported:** `dist = "exponential"`, `"log-logistic"`,
-  `"log-normal"`.
-  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
-  raises an explicit error rather than returning a silently unweighted
-  fit.
-- **Caveat for multiphase:** the Conservation of Events optimiser trick
-  auto-disables when weights are not all 1. Fits are still correct; they
-  just take the full-dimensional optimisation path.
-- Tracked: `DEVELOPMENT-PLAN.md` Phase 4e.
-
-### Repeating events / counting-process notation
-
-- **Supported:** `Surv(time, status)` (standard right-censoring),
-  `Surv(time1, time2, type = "interval2")` (interval censoring),
-  `Surv(0, t, d)` (trivial start-stop form, equivalent to right
-  censoring).
-- **Not yet supported:** `Surv(start, stop, event)` with any
-  `start > 0`. The parser accepts it, but the downstream likelihood
-  currently scores every row as `H(stop)` instead of
-  `H(stop) - H(start)`.
-  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
-  errors out to prevent a silently wrong fit. The SAS `LCENSOR`/`STIME`
-  mechanism maps onto this notation in principle.
-- Tracked: `DEVELOPMENT-PLAN.md` Phase 4f.
+the following scope limits as of v0.9.8. Detailed status per feature is
+tracked in `inst/dev/SAS-PARITY-GAP-ANALYSIS.md` and
+`inst/dev/DEVELOPMENT-PLAN.md`.
 
 ### Stepwise variable selection (`SELECTION` statement)
 
@@ -564,25 +536,52 @@ tracked in `inst/dev/SAS-PARITY-GAP-ANALYSIS.md`.
   SLENTRY / SLSTAY thresholds, per-phase entry for multiphase, and a
   MOVE oscillation guard.
 - **Not yet supported:** FAST-screening (Lawless-Singhal approximate
-  Wald updates). Every candidate currently gets a full refit.
+  Wald updates). Every candidate currently gets a full refit, which is
+  slower but always correct.
 
-### Prediction confidence limits
+### Per-phase time-varying windows
 
-- **Supported:** point predictions for every type (`hazard`,
-  `linear_predictor`, `survival`, `cumulative_hazard`, plus
-  `decompose = TRUE` for multiphase).
-- **Not yet supported:** delta-method standard errors / confidence
-  limits on prediction curves (the C reference has `hzp_calc_haz_CL.c`,
-  `hzp_calc_srv_CL.c`). Use
-  [`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md) +
-  [`predict()`](https://rdrr.io/r/stats/predict.html) for
-  prediction-level CIs today.
+- **Supported:** `time_windows` applies one piecewise-constant cut-point
+  set across all covariates.
+- **Not yet supported:** distinct `EARLY`/`LATE` window sets per phase.
+  Workaround: expand the design matrix manually before calling
+  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md).
 
 ### Output datasets (`OUTEST=`, `OUTVCOV=`)
 
 - The R equivalents are `coef(fit)` and `vcov(fit)` in memory; there is
-  no automatic dataset-export mode. Write them to disk yourself if you
-  need one.
+  no automatic dataset-export mode.
+  [`saveRDS()`](https://rdrr.io/r/base/readRDS.html) them yourself if
+  you need an on-disk artefact.
+
+### Density / quantile prediction types
+
+- [`predict.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/predict.hazard.md)
+  covers `hazard`, `cumulative_hazard`, `survival`, and
+  `linear_predictor`. Density and quantile (median survival) types are
+  not wired up; derive them from `cumulative_hazard` and `survival`
+  predictions if needed.
+
+### Previously listed gaps that have since been closed
+
+For users migrating from older TemporalHazard versions or reading older
+SAS parity notes:
+
+- **`weights` on all distributions** — shipped v0.9.6. Weibull,
+  exponential, log-logistic, log-normal, and multiphase all honour
+  observation weights end-to-end (LL + analytic gradient + multiphase
+  Conservation of Events).
+- **`Surv(start, stop, event)` with `start > 0`** — shipped v0.9.7.
+  Counting-process rows contribute `H(stop) - H(start)` for Weibull and
+  multiphase. The previous
+  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+  guard against non-zero starts is gone.
+- **Delta-method prediction confidence limits** — shipped v0.9.8. Use
+  `predict(..., se.fit = TRUE, level = 0.95)` to get a data frame with
+  `fit`, `se.fit`, `lower`, and `upper` per row. Closed-form Jacobian
+  for Weibull and multiphase,
+  [`numDeriv::jacobian`](https://rdrr.io/pkg/numDeriv/man/jacobian.html)
+  fallback for exponential / log-logistic / log-normal.
 
 ------------------------------------------------------------------------
 

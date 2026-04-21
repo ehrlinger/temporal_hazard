@@ -107,7 +107,82 @@ ggplot() +
 
 Figure 2: Weibull parametric survival vs. Kaplan-Meier (AVC death)
 
-## 4 Decomposed multiphase hazard
+## 4 Confidence limits on predictions
+
+As of v0.9.8,
+[`predict.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/predict.hazard.md)
+accepts `se.fit = TRUE` (default `FALSE`) and `level = 0.95` to return
+delta-method standard errors and confidence limits alongside the point
+estimate. The return value changes shape: a plain numeric vector with
+`se.fit = FALSE`, a data frame with columns `fit`, `se.fit`, `lower`,
+and `upper` with `se.fit = TRUE`.
+
+``` r
+# Build a clean newdata frame (the earlier chunk appended result
+# columns to `profile`, which would confuse predict()'s column count).
+profile_ci <- data.frame(
+  time   = t_grid,
+  age    = median(avc$age),
+  status = 2,
+  mal    = 0,
+  com_iv = 0
+)
+surv_ci <- predict(fit, newdata = profile_ci,
+                   type = "survival", se.fit = TRUE, level = 0.95)
+head(surv_ci)
+#>         fit      se.fit     lower     upper
+#> 1 0.9840245 0.005670665 0.9683980 0.9919560
+#> 2 0.9552402 0.013469177 0.9217319 0.9745990
+#> 3 0.9475408 0.015528659 0.9095625 0.9698327
+#> 4 0.9424348 0.016905898 0.9015154 0.9666641
+#> 5 0.9385173 0.017970625 0.8953492 0.9642310
+#> 6 0.9352997 0.018851038 0.8902883 0.9622320
+```
+
+Confidence limits use SAS-matched transformations: log-scale for
+`hazard` and `cumulative_hazard` (keeps the lower bound positive), and
+`log(-log(S))` for `survival` (keeps the interval in `[0, 1]`). The
+linear predictor uses symmetric natural-scale CLs.
+
+``` r
+ci_df <- data.frame(
+  time     = profile_ci$time,
+  survival = surv_ci$fit * 100,
+  lower    = surv_ci$lower * 100,
+  upper    = surv_ci$upper * 100
+)
+
+ggplot() +
+  geom_step(data = km_df, aes(time, survival, colour = "Kaplan-Meier"),
+            linewidth = 0.5) +
+  geom_ribbon(data = ci_df,
+              aes(time, ymin = lower, ymax = upper),
+              fill = "#0072B2", alpha = 0.15) +
+  geom_line(data = ci_df,
+            aes(time, survival, colour = "Parametric + 95% CI"),
+            linewidth = 1) +
+  scale_colour_manual(
+    values = c("Parametric + 95% CI" = "#0072B2",
+               "Kaplan-Meier"        = "#D55E00")
+  ) +
+  scale_y_continuous(limits = c(0, 100)) +
+  labs(x = "Months after repair", y = "Freedom from death (%)",
+       colour = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+![](prediction-visualization_files/figure-html/fig-surv-ci-1.png)
+
+Figure 3: Parametric survival with 95% delta-method confidence band
+
+Weibull and multiphase use a closed-form Jacobian. Exponential,
+log-logistic, and log-normal use
+[`numDeriv::jacobian()`](https://rdrr.io/pkg/numDeriv/man/jacobian.html)
+on a per-call cumulative-hazard closure — identical results, just
+slightly slower.
+
+## 5 Decomposed multiphase hazard
 
 The multiphase model decomposes the cumulative hazard into per-phase
 contributions. Using `decompose = TRUE` with
@@ -176,7 +251,7 @@ ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase)) +
 
 ![](prediction-visualization_files/figure-html/fig-decomposed-hazard-1.png)
 
-Figure 3: Additive phase decomposition: total hazard rate (solid) =
+Figure 4: Additive phase decomposition: total hazard rate (solid) =
 early + constant + late (dashed)
 
 The early phase captures the steep post-operative risk that peaks within
@@ -184,7 +259,7 @@ the first year. The constant phase represents ongoing background
 mortality. The late phase captures the gradually increasing risk of late
 attrition.
 
-## 5 Multiphase survival with KM overlay
+## 6 Multiphase survival with KM overlay
 
 ``` r
 surv_mp <- predict(fit_mp, newdata = nd, type = "survival") * 100
@@ -208,9 +283,9 @@ ggplot() +
 
 ![](prediction-visualization_files/figure-html/fig-mp-surv-1.png)
 
-Figure 4: Multiphase parametric survival vs. Kaplan-Meier
+Figure 5: Multiphase parametric survival vs. Kaplan-Meier
 
-## 6 Patient-specific risk profiles
+## 7 Patient-specific risk profiles
 
 The multivariable model generates patient-specific survival curves by
 varying the covariate profile:
@@ -249,12 +324,12 @@ ggplot(curves, aes(time, survival, colour = Profile)) +
 
 ![](prediction-visualization_files/figure-html/fig-risk-profiles-1.png)
 
-Figure 5: Predicted survival by risk profile
+Figure 6: Predicted survival by risk profile
 
 The separation between curves quantifies the prognostic discrimination
 of the model. A wider spread indicates stronger covariate effects.
 
-## 7 Multi-endpoint visualization: valves
+## 8 Multi-endpoint visualization: valves
 
 The `valves` dataset has multiple endpoints that can be visualized
 together:
@@ -285,4 +360,4 @@ ggplot(ep_df, aes(time, survival, colour = Endpoint)) +
 
 ![](prediction-visualization_files/figure-html/fig-valves-endpoints-1.png)
 
-Figure 6: Freedom from death and PVE after valve replacement
+Figure 7: Freedom from death and PVE after valve replacement

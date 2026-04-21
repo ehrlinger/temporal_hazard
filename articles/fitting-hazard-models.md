@@ -163,13 +163,13 @@ summary(fit_mp)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
 #>   log-lik:      -228.029 
-#>   evaluations: fn=32, gr=10
+#>   evaluations: fn=19, gr=6
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
 #>                estimate  std_error    z_stat       p_value
-#>   log_mu     -1.4132735 0.04410012 -32.04693 2.422767e-225
+#>   log_mu     -1.4132735 0.04410013 -32.04692 2.422972e-225
 #>   log_t_half -0.6931472         NA        NA            NA
 #>   nu          1.0000000         NA        NA            NA
 #>   m           1.0000000         NA        NA            NA

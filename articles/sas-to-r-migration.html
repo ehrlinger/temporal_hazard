@@ -874,43 +874,40 @@ PROC HAZARD DATA=AVCS P CONSERVE OUTHAZ=OUTEST CONDITION=14 QUASI;
 <p><code>"survival"</code> and <code>"cumulative_hazard"</code> types are also supported, mirroring the <code>P</code> (predict/print) option in <code>PROC HAZARD</code>. Pass <code>decompose = TRUE</code> for multiphase fits to get per-phase contributions.</p>
 <hr></section><section class="level2"><h2 id="known-limitations-vs--sas-hazard">Known limitations vs. SAS HAZARD<a class="anchor" aria-label="anchor" href="#known-limitations-vs--sas-hazard"></a>
 </h2>
-<p>A SAS HAZARD veteran migrating to <code>TemporalHazard</code> should be aware of the following scope limits as of v0.9.5. Detailed status per feature is tracked in <code>inst/dev/SAS-PARITY-GAP-ANALYSIS.md</code>.</p>
-<section class="level3"><h3 id="observation-weights-weight-statement">Observation weights (<code>WEIGHT</code> statement)<a class="anchor" aria-label="anchor" href="#observation-weights-weight-statement"></a>
-</h3>
-<ul>
-<li>
-<strong>Supported:</strong> <code>dist = "weibull"</code> and <code>dist = "multiphase"</code> (LL and analytic gradient).</li>
-<li>
-<strong>Not yet supported:</strong> <code>dist = "exponential"</code>, <code>"log-logistic"</code>, <code>"log-normal"</code>. <code><a href="../reference/hazard.html">hazard()</a></code> raises an explicit error rather than returning a silently unweighted fit.</li>
-<li>
-<strong>Caveat for multiphase:</strong> the Conservation of Events optimiser trick auto-disables when weights are not all 1. Fits are still correct; they just take the full-dimensional optimisation path.</li>
-<li>Tracked: <code>DEVELOPMENT-PLAN.md</code> Phase 4e.</li>
-</ul></section><section class="level3"><h3 id="repeating-events-counting-process-notation">Repeating events / counting-process notation<a class="anchor" aria-label="anchor" href="#repeating-events-counting-process-notation"></a>
-</h3>
-<ul>
-<li>
-<strong>Supported:</strong> <code>Surv(time, status)</code> (standard right-censoring), <code>Surv(time1, time2, type = "interval2")</code> (interval censoring), <code>Surv(0, t, d)</code> (trivial start-stop form, equivalent to right censoring).</li>
-<li>
-<strong>Not yet supported:</strong> <code>Surv(start, stop, event)</code> with any <code>start &gt; 0</code>. The parser accepts it, but the downstream likelihood currently scores every row as <code>H(stop)</code> instead of <code>H(stop) - H(start)</code>. <code><a href="../reference/hazard.html">hazard()</a></code> errors out to prevent a silently wrong fit. The SAS <code>LCENSOR</code>/<code>STIME</code> mechanism maps onto this notation in principle.</li>
-<li>Tracked: <code>DEVELOPMENT-PLAN.md</code> Phase 4f.</li>
-</ul></section><section class="level3"><h3 id="stepwise-variable-selection-selection-statement">Stepwise variable selection (<code>SELECTION</code> statement)<a class="anchor" aria-label="anchor" href="#stepwise-variable-selection-selection-statement"></a>
+<p>A SAS HAZARD veteran migrating to <code>TemporalHazard</code> should be aware of the following scope limits as of v0.9.8. Detailed status per feature is tracked in <code>inst/dev/SAS-PARITY-GAP-ANALYSIS.md</code> and <code>inst/dev/DEVELOPMENT-PLAN.md</code>.</p>
+<section class="level3"><h3 id="stepwise-variable-selection-selection-statement">Stepwise variable selection (<code>SELECTION</code> statement)<a class="anchor" aria-label="anchor" href="#stepwise-variable-selection-selection-statement"></a>
 </h3>
 <ul>
 <li>
 <strong>Supported:</strong> <code><a href="../reference/hzr_stepwise.html">hzr_stepwise()</a></code> implements forward / backward / two-way stepwise with SAS-style SLENTRY / SLSTAY thresholds, per-phase entry for multiphase, and a MOVE oscillation guard.</li>
 <li>
-<strong>Not yet supported:</strong> FAST-screening (Lawless-Singhal approximate Wald updates). Every candidate currently gets a full refit.</li>
-</ul></section><section class="level3"><h3 id="prediction-confidence-limits">Prediction confidence limits<a class="anchor" aria-label="anchor" href="#prediction-confidence-limits"></a>
+<strong>Not yet supported:</strong> FAST-screening (Lawless-Singhal approximate Wald updates). Every candidate currently gets a full refit, which is slower but always correct.</li>
+</ul></section><section class="level3"><h3 id="per-phase-time-varying-windows">Per-phase time-varying windows<a class="anchor" aria-label="anchor" href="#per-phase-time-varying-windows"></a>
 </h3>
 <ul>
 <li>
-<strong>Supported:</strong> point predictions for every type (<code>hazard</code>, <code>linear_predictor</code>, <code>survival</code>, <code>cumulative_hazard</code>, plus <code>decompose = TRUE</code> for multiphase).</li>
+<strong>Supported:</strong> <code>time_windows</code> applies one piecewise-constant cut-point set across all covariates.</li>
 <li>
-<strong>Not yet supported:</strong> delta-method standard errors / confidence limits on prediction curves (the C reference has <code>hzp_calc_haz_CL.c</code>, <code>hzp_calc_srv_CL.c</code>). Use <code><a href="../reference/hzr_bootstrap.html">hzr_bootstrap()</a></code> + <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> for prediction-level CIs today.</li>
+<strong>Not yet supported:</strong> distinct <code>EARLY</code>/<code>LATE</code> window sets per phase. Workaround: expand the design matrix manually before calling <code><a href="../reference/hazard.html">hazard()</a></code>.</li>
 </ul></section><section class="level3"><h3 id="output-datasets-outest-outvcov">Output datasets (<code>OUTEST=</code>, <code>OUTVCOV=</code>)<a class="anchor" aria-label="anchor" href="#output-datasets-outest-outvcov"></a>
 </h3>
 <ul>
-<li>The R equivalents are <code>coef(fit)</code> and <code>vcov(fit)</code> in memory; there is no automatic dataset-export mode. Write them to disk yourself if you need one.</li>
+<li>The R equivalents are <code>coef(fit)</code> and <code>vcov(fit)</code> in memory; there is no automatic dataset-export mode. <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> them yourself if you need an on-disk artefact.</li>
+</ul></section><section class="level3"><h3 id="density-quantile-prediction-types">Density / quantile prediction types<a class="anchor" aria-label="anchor" href="#density-quantile-prediction-types"></a>
+</h3>
+<ul>
+<li>
+<code><a href="../reference/predict.hazard.html">predict.hazard()</a></code> covers <code>hazard</code>, <code>cumulative_hazard</code>, <code>survival</code>, and <code>linear_predictor</code>. Density and quantile (median survival) types are not wired up; derive them from <code>cumulative_hazard</code> and <code>survival</code> predictions if needed.</li>
+</ul></section><section class="level3"><h3 id="previously-listed-gaps-that-have-since-been-closed">Previously listed gaps that have since been closed<a class="anchor" aria-label="anchor" href="#previously-listed-gaps-that-have-since-been-closed"></a>
+</h3>
+<p>For users migrating from older TemporalHazard versions or reading older SAS parity notes:</p>
+<ul>
+<li>
+<strong><code>weights</code> on all distributions</strong> — shipped v0.9.6. Weibull, exponential, log-logistic, log-normal, and multiphase all honour observation weights end-to-end (LL + analytic gradient + multiphase Conservation of Events).</li>
+<li>
+<strong><code>Surv(start, stop, event)</code> with <code>start &gt; 0</code></strong> — shipped v0.9.7. Counting-process rows contribute <code>H(stop) - H(start)</code> for Weibull and multiphase. The previous <code><a href="../reference/hazard.html">hazard()</a></code> guard against non-zero starts is gone.</li>
+<li>
+<strong>Delta-method prediction confidence limits</strong> — shipped v0.9.8. Use <code>predict(..., se.fit = TRUE, level = 0.95)</code> to get a data frame with <code>fit</code>, <code>se.fit</code>, <code>lower</code>, and <code>upper</code> per row. Closed-form Jacobian for Weibull and multiphase, <code><a href="https://rdrr.io/pkg/numDeriv/man/jacobian.html" class="external-link">numDeriv::jacobian</a></code> fallback for exponential / log-logistic / log-normal.</li>
 </ul>
 <hr></section></section><section class="level2"><h2 id="rcpp-acceleration-note">Rcpp acceleration note<a class="anchor" aria-label="anchor" href="#rcpp-acceleration-note"></a>
 </h2>
