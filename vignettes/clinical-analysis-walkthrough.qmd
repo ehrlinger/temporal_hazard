@@ -81,8 +81,9 @@ head(km)
 
 The returned data frame is the life table: one row per event time with
 `n_risk`, `n_event`, `survival`, logit-transformed 95% CLs
-(`cl_lower` / `cl_upper`), and the Nelson-Aalen cumulative hazard.
-Plotting just requires the survival column:
+(`cl_lower` / `cl_upper`), and a KM-based cumulative hazard
+(`-log(survival)` --- use `hzr_nelson()` if you need the Nelson-Aalen
+estimator instead).  Plotting just requires the survival column:
 
 ```{r}
 #| label: fig-km-baseline
