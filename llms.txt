@@ -39,16 +39,19 @@ estimate from the CABGKUL dataset
 
 ## Key capabilities
 
-| Feature                                                                    | Status |
-|:---------------------------------------------------------------------------|:------:|
-| Multi-phase hazard modeling (early, constant, late phases)                 |   ✅   |
-| Right censoring and interval censoring                                     |   ✅   |
-| Repeating events (epoch decomposition)                                     |   🚧   |
-| Time-varying covariates                                                    |   ✅   |
-| Weighted events                                                            |   🚧   |
-| Automatic stepwise covariate selection (forward, backward, stepwise)       |   🚧   |
-| Conservation of Events theorem for numerically stable parameter estimation |   ✅   |
-| Covariance and correlation matrix estimation                               |   ✅   |
+| Feature                                                                                                       | Status |
+|:--------------------------------------------------------------------------------------------------------------|:------:|
+| Multi-phase hazard modeling (early, constant, late phases)                                                    |   ✅   |
+| Five parametric distributions (Weibull, exponential, log-logistic, log-normal, multiphase)                    |   ✅   |
+| Right, left, interval, and counting-process censoring                                                         |   ✅   |
+| Repeating events (epoch decomposition via `Surv(start, stop, event)`)                                         |   ✅   |
+| Time-varying covariates (piecewise windows)                                                                   |   ✅   |
+| Weighted events across all distributions                                                                      |   ✅   |
+| Automatic stepwise covariate selection (forward, backward, stepwise; Wald or AIC)                             |   ✅   |
+| Conservation of Events theorem for numerically stable parameter estimation                                    |   ✅   |
+| Covariance and correlation matrix estimation                                                                  |   ✅   |
+| Delta-method confidence limits on [`predict()`](https://rdrr.io/r/stats/predict.html) (`se.fit = TRUE`)       |   ✅   |
+| Seven `hzr_*` utility functions (Kaplan-Meier, Nelson, GOF, deciles, calibration, bootstrap, competing risks) |   ✅   |
 
 white_check_mark: = implemented \| 🚧 = planned
 
