@@ -13,6 +13,8 @@ predict(
   newdata = NULL,
   type = c("hazard", "linear_predictor", "survival", "cumulative_hazard"),
   decompose = FALSE,
+  se.fit = FALSE,
+  level = 0.95,
   ...
 )
 ```
@@ -47,6 +49,21 @@ predict(
   Logical; if `TRUE` and the model is multiphase, return a data frame
   with per-phase cumulative hazard contributions alongside the total.
   Ignored for single-distribution models. Default `FALSE`.
+
+- se.fit:
+
+  Logical; if `TRUE`, compute delta-method standard errors and
+  confidence limits for each prediction. The return value becomes a data
+  frame with columns `fit`, `se.fit`, `lower`, `upper`. Default `FALSE`.
+  CLs are computed on the log-hazard / log-cumhaz scale and on the
+  log(-log(survival)) scale so lower/upper stay inside the valid range
+  of each prediction type; `linear_predictor` uses symmetric
+  natural-scale CLs. Not compatible with `decompose = TRUE`.
+
+- level:
+
+  Numeric confidence level in `(0, 1)`; default `0.95`. Only used when
+  `se.fit = TRUE`.
 
 - ...:
 

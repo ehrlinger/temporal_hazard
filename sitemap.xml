@@ -42,6 +42,12 @@
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_phase_n_shape.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_phase_start.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_phase_theta_names.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_predict_cl_from_se.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_predict_jacobian_multiphase.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_predict_jacobian_numeric.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_predict_jacobian_weibull.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_predict_se_from_jacobian.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_predict_with_se.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_select_fixmu_phase.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_split_theta.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_unpack_phase_theta.html</loc></url>
