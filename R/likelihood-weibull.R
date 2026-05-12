@@ -30,12 +30,10 @@ NULL
 #   .hzr_gradient_weibull() -- analytical score vector
 #   .hzr_optim_weibull()    -- L-BFGS-B wrapper with post-fit Hessian SE
 
-#' Weibull Parametric Hazard Likelihood
-#'
-#' Evaluate the log-likelihood and its derivatives for Weibull hazard models.
-#' This is the core mathematical engine for model fitting.
-#'
-#' @keywords internal
+# Weibull Parametric Hazard Likelihood
+#
+# Evaluate the log-likelihood and its derivatives for Weibull hazard models.
+# This is the core mathematical engine for model fitting.
 
 #' Log-likelihood for Weibull hazard with covariates
 #'

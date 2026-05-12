@@ -29,12 +29,10 @@ NULL
 #   .hzr_gradient_exponential() -- analytical score vector
 #   .hzr_optim_exponential()    -- unconstrained BFGS wrapper
 
-#' Exponential Parametric Hazard Likelihood
-#'
-#' Evaluate the log-likelihood and its derivatives for exponential hazard models.
-#' The exponential is the simplest ALT model: constant hazard lambda, no shape parameter.
-#'
-#' @keywords internal
+# Exponential Parametric Hazard Likelihood
+#
+# Evaluate the log-likelihood and its derivatives for exponential hazard models.
+# The exponential is the simplest ALT model: constant hazard lambda, no shape parameter.
 
 #' Log-likelihood for exponential hazard with covariates
 #'

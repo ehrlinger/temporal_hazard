@@ -33,12 +33,10 @@ NULL
 # Until the binary is wired up, parity tests use synthetic R-generated fixtures
 # produced by golden_fixtures.R.
 
-#' Parity Testing Helpers
-#'
-#' Functions to generate golden fixtures from the C reference \code{hazard} binary
-#' and validate R implementation against them.
-#'
-#' @keywords internal
+# Parity Testing Helpers
+#
+# Functions to generate golden fixtures from the C reference hazard binary
+# and validate R implementation against them.
 
 #' Get path to compiled hazard binary
 #'

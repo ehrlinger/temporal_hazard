@@ -43,13 +43,11 @@ NULL
 #   .hzr_gradient_loglogistic() -- analytical score vector
 #   .hzr_optim_loglogistic()    -- unconstrained BFGS wrapper
 
-#' Log-Logistic Parametric Hazard Likelihood
-#'
-#' Evaluate the log-likelihood and its derivatives for log-logistic hazard models.
-#' The log-logistic distribution is more flexible than exponential with separate
-#' scale (alpha) and shape (beta) parameters.
-#'
-#' @keywords internal
+# Log-Logistic Parametric Hazard Likelihood
+#
+# Evaluate the log-likelihood and its derivatives for log-logistic hazard models.
+# The log-logistic distribution is more flexible than exponential with separate
+# scale (alpha) and shape (beta) parameters.
 
 #' Log-likelihood for log-logistic hazard with covariates
 #'

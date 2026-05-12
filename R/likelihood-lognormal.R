@@ -48,13 +48,11 @@ NULL
 #   .hzr_gradient_lognormal() -- analytical score vector
 #   .hzr_optim_lognormal()    -- unconstrained BFGS wrapper
 
-#' Log-Normal Parametric Hazard Likelihood
-#'
-#' Evaluate the log-likelihood and its derivatives for log-normal hazard models.
-#' The log-normal is an AFT (accelerated failure time) model with separate
-#' location (mu) and scale (sigma) parameters.
-#'
-#' @keywords internal
+# Log-Normal Parametric Hazard Likelihood
+#
+# Evaluate the log-likelihood and its derivatives for log-normal hazard models.
+# The log-normal is an AFT (accelerated failure time) model with separate
+# location (mu) and scale (sigma) parameters.
 
 #' Log-likelihood for log-normal hazard with covariates
 #'
