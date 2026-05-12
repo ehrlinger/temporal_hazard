@@ -338,10 +338,12 @@ test_that("optimizer handles two phases (cdf + constant)", {
     bg    = hzr_phase("constant")
   )
 
-  result <- .hzr_optim_multiphase(
-    time = dat$time, status = dat$status,
-    phases = phases,
-    control = list(n_starts = 3, maxit = 1000)
+  result <- suppressWarnings(
+    .hzr_optim_multiphase(
+      time = dat$time, status = dat$status,
+      phases = phases,
+      control = list(n_starts = 3, maxit = 1000)
+    )
   )
 
   expect_true(is.finite(result$value))
