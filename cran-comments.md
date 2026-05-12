@@ -29,16 +29,7 @@ Version 1.0.0 is the production release. Key capabilities:
 
 0 errors | 0 warnings | 1 note
 
-The notes are:
-
-```
-checking CRAN incoming feasibility ...
-  Maintainer: 'John Ehrlinger <john.ehrlinger@gmail.com>'
-
-New submission
-```
-
-This is expected for a new submission.
+### Local macOS check
 
 ```
 checking HTML version of manual ... NOTE
@@ -47,6 +38,29 @@ checking HTML version of manual ... NOTE
 
 The V8 package is not installed in the local check environment. CRAN
 servers have V8 available; this note will not appear there.
+
+### win-builder (R-release, R-devel)
+
+```
+checking CRAN incoming feasibility ... NOTE
+  Maintainer: 'John Ehrlinger <john.ehrlinger@gmail.com>'
+
+  New submission
+
+  Possibly misspelled words in DESCRIPTION:
+    Naftel (11:33)
+    Rajeswaran (20:6)
+    UAB (15:46)
+    al (20:20)
+    et (20:17)
+    multiphase (10:55)
+```
+
+All flagged words are either author surnames from cited references
+(Naftel, Rajeswaran), a widely-used acronym explained in the text
+("University of Alabama at Birmingham (UAB)"), standard Latin
+abbreviation components from "et al.", or an established compound
+technical term (multiphase). None are misspellings.
 
 ## Notes
 
