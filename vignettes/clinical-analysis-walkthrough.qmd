@@ -88,7 +88,7 @@ estimator instead).  Plotting just requires the survival column:
 ```{r}
 #| label: fig-km-baseline
 #| fig-cap: "Kaplan-Meier survival estimate for AVC patients (n = 310)"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 km_df <- data.frame(
   time     = km$time,
   survival = km$survival * 100,
@@ -133,7 +133,7 @@ Kaplan-Meier to see where it fits well and where it doesn't.
 ```{r}
 #| label: fig-weibull-overlay
 #| fig-cap: "Single Weibull vs. Kaplan-Meier"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 t_grid <- seq(0.01, max(avc$int_dead) * 0.9, length.out = 200)
 surv_weib <- predict(fit_weib,
                      newdata = data.frame(time = t_grid),
@@ -182,7 +182,7 @@ preliminary exploration, then scales and covariates are estimated.
 ```{r}
 #| label: fig-multiphase-overlay
 #| fig-cap: "Two-phase parametric model vs. Kaplan-Meier"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 surv_mp <- predict(fit_mp,
                    newdata = data.frame(time = t_grid),
                    type = "survival") * 100
@@ -204,7 +204,7 @@ Visualize the per-phase contributions to the cumulative hazard.
 ```{r}
 #| label: fig-decomposed
 #| fig-cap: "Phase decomposition of cumulative hazard"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 decomp <- predict(fit_mp,
                   newdata = data.frame(time = t_grid),
                   type = "cumulative_hazard",
@@ -292,7 +292,7 @@ transform; U-shapes call for a quadratic term.
 ```{r}
 #| label: fig-calibrate-age
 #| fig-cap: "Decile calibration: age vs. logit(P(death))"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 ggplot(cal_age, aes(mean, link_value)) +
   geom_point(size = 3, colour = "#0072B2") +
   geom_line(colour = "#0072B2", alpha = 0.4) +
@@ -355,7 +355,7 @@ one-sided formula or a character vector of names.
 
 ```{r}
 #| label: stepwise-forward
-#| eval: !expr has_pkg
+#| eval: !expr requireNamespace("TemporalHazard", quietly = TRUE)
 base_mp <- hazard(
   survival::Surv(int_dead, dead) ~ 1,
   data   = avc,
@@ -388,7 +388,7 @@ The `$steps` table records every accepted action with its Wald
 statistic and p-value:
 
 ```{r}
-#| eval: !expr has_pkg
+#| eval: !expr requireNamespace("TemporalHazard", quietly = TRUE)
 fit_step$steps[, c("step_num", "action", "variable", "phase",
                    "p_value", "aic")]
 ```
@@ -397,7 +397,7 @@ The final model is the fit at the top of the object, reachable
 through the usual hazard accessors:
 
 ```{r}
-#| eval: !expr has_pkg
+#| eval: !expr requireNamespace("TemporalHazard", quietly = TRUE)
 logLik_manual <- fit_mv$fit$objective
 logLik_step   <- fit_step$fit$objective
 c(manual = logLik_manual, stepwise = logLik_step,
@@ -428,7 +428,7 @@ uncertainty estimate the nonparametric curve cannot provide.
 ```{r}
 #| label: fig-prediction
 #| fig-cap: "Reference patient survival with 95% delta-method CI and KM overlay"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 ref_patient <- data.frame(
   time   = t_grid,
   age    = median(avc$age),
@@ -467,7 +467,7 @@ visualize the effect of covariates on long-term outcome.
 ```{r}
 #| label: fig-sensitivity
 #| fig-cap: "Survival by risk profile: low-risk (blue) vs. high-risk (red)"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 low_risk <- data.frame(
   time   = t_grid,
   age    = quantile(avc$age, 0.25),
@@ -527,7 +527,7 @@ macro.
 ```{r}
 #| label: fig-deciles
 #| fig-cap: "Observed vs. expected event rates by risk decile"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 cal <- hzr_deciles(fit_mv, time = max(avc$int_dead))
 print(cal)
 ```
@@ -535,7 +535,7 @@ print(cal)
 ```{r}
 #| label: fig-decile-plot
 #| fig-cap: "Decile calibration: observed (bars) vs. expected (points) event rates"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 ggplot(cal, aes(x = group)) +
   geom_col(aes(y = observed_rate), fill = "#56B4E9", alpha = 0.7) +
   geom_point(aes(y = expected_rate), colour = "#D55E00", size = 3) +
@@ -563,7 +563,7 @@ should predict the same total number of events as actually observed.
 
 ```{r}
 #| label: gof-summary
-#| eval: !expr has_pkg
+#| eval: !expr requireNamespace("TemporalHazard", quietly = TRUE)
 gof <- hzr_gof(fit_mv)
 print(gof)
 ```
@@ -571,7 +571,7 @@ print(gof)
 ```{r}
 #| label: fig-gof-survival
 #| fig-cap: "Parametric (blue) vs. Kaplan-Meier (orange) survival"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 ggplot(gof, aes(x = time)) +
   geom_step(aes(y = km_surv * 100), colour = "#D55E00", linewidth = 0.6) +
   geom_line(aes(y = par_surv * 100), colour = "#0072B2", linewidth = 0.8) +
@@ -583,7 +583,7 @@ ggplot(gof, aes(x = time)) +
 ```{r}
 #| label: fig-gof-events
 #| fig-cap: "Cumulative observed (orange) vs. expected (blue) events"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 ggplot(gof, aes(x = time)) +
   geom_line(aes(y = cum_observed), colour = "#D55E00", linewidth = 0.8) +
   geom_line(aes(y = cum_expected), colour = "#0072B2",
@@ -595,7 +595,7 @@ ggplot(gof, aes(x = time)) +
 ```{r}
 #| label: fig-gof-residual
 #| fig-cap: "Conservation-of-events residual (expected minus observed) over time"
-#| eval: !expr has_pkg && has_ggplot2
+#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
 ggplot(gof, aes(x = time, y = residual)) +
   geom_line(linewidth = 0.7, colour = "grey30") +
   geom_hline(yintercept = 0, linetype = "dashed", colour = "grey60") +
