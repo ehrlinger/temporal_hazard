@@ -80,7 +80,7 @@ patient and overlay the Kaplan-Meier nonparametric estimate from the raw data.
 #| fig-cap: "Parametric Weibull survival curve with Kaplan-Meier overlay"
 #| fig-width: 7
 #| fig-height: 5
-#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
+#| eval: !expr requireNamespace("TemporalHazard", quietly = TRUE) && requireNamespace("ggplot2", quietly = TRUE)
 library(ggplot2)
 
 # Parametric curve on a fine grid
@@ -161,7 +161,7 @@ instantaneous hazard rate for each phase.
 #| fig-cap: "Additive phase decomposition: total hazard (solid) = early + constant + late (dashed)"
 #| fig-width: 7
 #| fig-height: 4.5
-#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
+#| eval: !expr requireNamespace("TemporalHazard", quietly = TRUE) && requireNamespace("ggplot2", quietly = TRUE)
 t_grid <- seq(0.01, max(cabgkul$int_dead) * 0.95, length.out = 200)
 nd     <- data.frame(time = t_grid)
 
@@ -210,7 +210,7 @@ ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase)) +
 #| fig-cap: "Multiphase parametric survival vs. Kaplan-Meier"
 #| fig-width: 7
 #| fig-height: 4.5
-#| eval: !expr requireNamespace("ggplot2", quietly = TRUE)
+#| eval: !expr requireNamespace("TemporalHazard", quietly = TRUE) && requireNamespace("ggplot2", quietly = TRUE)
 surv_df <- data.frame(
   time     = t_grid,
   survival = predict(fit_mp, newdata = nd, type = "survival") * 100
