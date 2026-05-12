@@ -82,11 +82,11 @@
 
 # Parameter Estimate Summary table.  Layout:
 #
-#   Phase      Parameter   Label                                       Estimate       Std error             Z          Prob>|Z|
+#   Phase      Parameter   Label              Estimate    Std error      Z        Prob>|Z|
 #   ---------- ...
-#   Early:     E0                                                         -3.77955     0.09381214        -40.288          <.0001
+#   Early:     E0                              -3.77955    0.09381214   -40.288   <.0001
 #              ---------------- ...
-#   Constant:  C0                                                          -7.2258     0.09312647        -77.591          <.0001
+#   Constant:  C0                              -7.2258     0.09312647   -77.591   <.0001
 #
 # - Phase label appears only on the first row of each phase; subsequent
 #   rows in the same phase have a blank Phase column.
@@ -456,7 +456,7 @@
   chr <- function(s, e = s) fld(s, e)
 
   data.frame(
-    study    = chr( 1, 10),
+    study    = chr(1, 10),
     te1      = num(12),
     te2      = num(14),
     te3      = num(16),
@@ -564,7 +564,9 @@
   for (i in seq_len(nrow(d))) {
     r       <- d[i, ]
     study   <- trimws(r$study)
-    te1_val <- r$te1; te2_val <- r$te2; te3_val <- r$te3
+    te1_val <- r$te1
+    te2_val <- r$te2
+    te3_val <- r$te3
 
     # ---- Censored summary row (always output) ----------------------------
     # STARTTME advances through any events that preceded the censored interval.

@@ -8,13 +8,13 @@
 # Inventory + gap log: inst/dev/PRE-CRAN-PARITY-INVENTORY.md
 
 skip_if_no_sas_fixtures <- function() {
-  dir <- .hzr_sas_fixture_dir()
+  dir <- .hzr_sas_fixture_dir() # nolint: object_usage_linter.
   testthat::skip_if(is.na(dir), "SAS HAZARD fixture directory not available")
   dir
 }
 
 skip_if_no_omc_raw <- function() {
-  p <- .hzr_omc_raw_path()
+  p <- .hzr_omc_raw_path() # nolint: object_usage_linter.
   testthat::skip_if(is.na(p), "OMC raw data file not available")
   p
 }
