@@ -29,7 +29,7 @@ Version 1.0.0 is the production release. Key capabilities:
 
 0 errors | 0 warnings | 1 note
 
-The note is:
+The notes are:
 
 ```
 checking CRAN incoming feasibility ...
@@ -39,6 +39,14 @@ New submission
 ```
 
 This is expected for a new submission.
+
+```
+checking HTML version of manual ... NOTE
+  Skipping checking math rendering: package 'V8' unavailable
+```
+
+The V8 package is not installed in the local check environment. CRAN
+servers have V8 available; this note will not appear there.
 
 ## Notes
 
