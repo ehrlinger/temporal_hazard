@@ -59,8 +59,13 @@ white_check_mark: = implemented \| 🚧 = planned {.table}
 
 ``` r
 
-# Install from GitHub (requires remotes or devtools)
-install.packages("remotes")
+# Install from CRAN
+install.packages("TemporalHazard")
+```
+
+``` r
+
+# Or install the development version from GitHub
 remotes::install_github("ehrlinger/temporal_hazard")
 ```
 

@@ -148,8 +148,10 @@
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Install from GitHub (requires remotes or devtools)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"remotes"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Install from CRAN</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"TemporalHazard"</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Or install the development version from GitHub</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"ehrlinger/temporal_hazard"</span><span class="op">)</span></span></code></pre></div>
 <p>TemporalHazard requires R &gt;= 4.1.0 and depends on the <a href="https://CRAN.R-project.org/package=survival" class="external-link">survival</a> package. Optional packages for visualization and vignettes include ggplot2, numDeriv, and quarto.</p>
 </div>
@@ -159,7 +161,7 @@
 <div class="section level3">
 <h3 id="single-phase-model">Single-phase model<a class="anchor" aria-label="anchor" href="#single-phase-model"></a>
 </h3>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ehrlinger.github.io/temporal_hazard/">TemporalHazard</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">cabgkul</span><span class="op">)</span></span>
 <span></span>
@@ -176,7 +178,7 @@
 <div class="section level3">
 <h3 id="multiphase-model">Multiphase model<a class="anchor" aria-label="anchor" href="#multiphase-model"></a>
 </h3>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Three-phase additive hazard decomposition</span></span>
 <span><span class="va">fit_mp</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/hazard.html">hazard</a></span><span class="op">(</span></span>
 <span>  <span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">int_dead</span>, <span class="va">dead</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>,</span>
@@ -225,7 +227,7 @@
 <div class="section level2">
 <h2 id="development">Development<a class="anchor" aria-label="anchor" href="#development"></a>
 </h2>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"devtools"</span>, <span class="st">"roxygen2"</span>, <span class="st">"pkgdown"</span>, <span class="st">"testthat"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_deps</span><span class="op">(</span>dependencies <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">test</span><span class="op">(</span><span class="op">)</span></span>
