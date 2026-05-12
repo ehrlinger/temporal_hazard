@@ -26,15 +26,15 @@ capture.
 
 All SAS HAZARD utility macros now have R equivalents:
 
-| Function                                                                                                | SAS Macro                 | Purpose                                          |
-|:--------------------------------------------------------------------------------------------------------|:--------------------------|:-------------------------------------------------|
-| [`hzr_deciles()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_deciles.md)                 | `deciles.hazard.sas`      | Decile-of-risk calibration with chi-sq GOF       |
-| [`hzr_gof()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_gof.md)                         | `hazplot.sas`             | Observed vs expected events, CoE diagnostic      |
-| [`hzr_kaplan()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_kaplan.md)                   | `kaplan.sas`              | KM with logit CL, hazard, density, RMST          |
-| [`hzr_calibrate()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_calibrate.md)             | `logit.sas`/`logitgr.sas` | Variable calibration (logit/Gompertz/Cox)        |
-| [`hzr_nelson()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_nelson.md)                   | `nelsonl.sas`             | Nelson cumhaz with lognormal CL, weighted events |
-| [`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)             | `bootstrap.hazard.sas`    | Bootstrap bagging with coefficient summaries     |
-| [`hzr_competing_risks()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_competing_risks.md) | `markov.sas`              | Aalen-Johansen competing risks incidence         |
+| Function | SAS Macro | Purpose |
+|:---|:---|:---|
+| [`hzr_deciles()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_deciles.md) | `deciles.hazard.sas` | Decile-of-risk calibration with chi-sq GOF |
+| [`hzr_gof()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_gof.md) | `hazplot.sas` | Observed vs expected events, CoE diagnostic |
+| [`hzr_kaplan()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_kaplan.md) | `kaplan.sas` | KM with logit CL, hazard, density, RMST |
+| [`hzr_calibrate()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_calibrate.md) | `logit.sas`/`logitgr.sas` | Variable calibration (logit/Gompertz/Cox) |
+| [`hzr_nelson()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_nelson.md) | `nelsonl.sas` | Nelson cumhaz with lognormal CL, weighted events |
+| [`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md) | `bootstrap.hazard.sas` | Bootstrap bagging with coefficient summaries |
+| [`hzr_competing_risks()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_competing_risks.md) | `markov.sas` | Aalen-Johansen competing risks incidence |
 
 ### 1. CRAN Review Fixes (from GPT-5.3 review)
 
@@ -108,6 +108,7 @@ package. Added a capabilities table to `README.md`.
 3.  **Local final check:**
 
     ``` r
+
     devtools::install()
     devtools::check(args = "--as-cran")
     devtools::spell_check()
@@ -116,6 +117,7 @@ package. Added a capabilities table to `README.md`.
 4.  **Regenerate README figures:**
 
     ``` r
+
     source("inst/dev/generate-readme-figures.R")
     ```
 

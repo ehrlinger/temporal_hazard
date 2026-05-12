@@ -39,25 +39,26 @@ estimate from the CABGKUL dataset
 
 ## Key capabilities
 
-| Feature                                                                                                       | Status |
-|:--------------------------------------------------------------------------------------------------------------|:------:|
-| Multi-phase hazard modeling (early, constant, late phases)                                                    |   ✅   |
-| Five parametric distributions (Weibull, exponential, log-logistic, log-normal, multiphase)                    |   ✅   |
-| Right, left, interval, and counting-process censoring                                                         |   ✅   |
-| Repeating events (epoch decomposition via `Surv(start, stop, event)`)                                         |   ✅   |
-| Time-varying covariates (piecewise windows)                                                                   |   ✅   |
-| Weighted events across all distributions                                                                      |   ✅   |
-| Automatic stepwise covariate selection (forward, backward, stepwise; Wald or AIC)                             |   ✅   |
-| Conservation of Events theorem for numerically stable parameter estimation                                    |   ✅   |
-| Covariance and correlation matrix estimation                                                                  |   ✅   |
-| Delta-method confidence limits on [`predict()`](https://rdrr.io/r/stats/predict.html) (`se.fit = TRUE`)       |   ✅   |
-| Seven `hzr_*` utility functions (Kaplan-Meier, Nelson, GOF, deciles, calibration, bootstrap, competing risks) |   ✅   |
+| Feature | Status |
+|:---|:--:|
+| Multi-phase hazard modeling (early, constant, late phases) | ✅ |
+| Five parametric distributions (Weibull, exponential, log-logistic, log-normal, multiphase) | ✅ |
+| Right, left, interval, and counting-process censoring | ✅ |
+| Repeating events (epoch decomposition via `Surv(start, stop, event)`) | ✅ |
+| Time-varying covariates (piecewise windows) | ✅ |
+| Weighted events across all distributions | ✅ |
+| Automatic stepwise covariate selection (forward, backward, stepwise; Wald or AIC) | ✅ |
+| Conservation of Events theorem for numerically stable parameter estimation | ✅ |
+| Covariance and correlation matrix estimation | ✅ |
+| Delta-method confidence limits on [`predict()`](https://rdrr.io/r/stats/predict.html) (`se.fit = TRUE`) | ✅ |
+| Seven `hzr_*` utility functions (Kaplan-Meier, Nelson, GOF, deciles, calibration, bootstrap, competing risks) | ✅ |
 
-white_check_mark: = implemented \| 🚧 = planned
+white_check_mark: = implemented \| 🚧 = planned {.table}
 
 ## Installation
 
 ``` r
+
 # Install from GitHub (requires remotes or devtools)
 install.packages("remotes")
 remotes::install_github("ehrlinger/temporal_hazard")
@@ -73,6 +74,7 @@ numDeriv, and quarto.
 ### Single-phase model
 
 ``` r
+
 library(TemporalHazard)
 data(cabgkul)
 
@@ -90,6 +92,7 @@ summary(fit)
 ### Multiphase model
 
 ``` r
+
 # Three-phase additive hazard decomposition
 fit_mp <- hazard(
   survival::Surv(int_dead, dead) ~ 1,
@@ -151,6 +154,7 @@ jointly. Covariates are supported via the formula interface (see
 ## Development
 
 ``` r
+
 install.packages(c("devtools", "roxygen2", "pkgdown", "testthat"))
 devtools::install_deps(dependencies = TRUE)
 devtools::test()

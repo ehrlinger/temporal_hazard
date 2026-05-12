@@ -21,6 +21,7 @@ which has rich covariates and two identifiable hazard phases.
 ## 1 Data preparation
 
 ``` r
+
 library(TemporalHazard)
 if (has_ggplot2) library(ggplot2)
 
@@ -63,6 +64,7 @@ Greenwood intervals. This matches the SAS `kaplan.sas` macro output
 structure.
 
 ``` r
+
 km <- hzr_kaplan(time = avc$int_dead, status = avc$dead)
 head(km)
 #> Kaplan-Meier estimate with logit confidence limits
@@ -94,6 +96,7 @@ if you need the Nelson-Aalen estimator instead). Plotting just requires
 the survival column:
 
 ``` r
+
 km_df <- data.frame(
   time     = km$time,
   survival = km$survival * 100,
@@ -125,6 +128,7 @@ early CDF phase plus a constant phase — no obvious late rising hazard.
 Start with the simplest parametric model to establish a baseline fit.
 
 ``` r
+
 fit_weib <- hazard(
   survival::Surv(int_dead, dead) ~ 1,
   data  = avc,
@@ -152,6 +156,7 @@ The Weibull forces a monotone hazard shape. Let’s overlay it on the
 Kaplan-Meier to see where it fits well and where it doesn’t.
 
 ``` r
+
 t_grid <- seq(0.01, max(avc$int_dead) * 0.9, length.out = 200)
 surv_weib <- predict(fit_weib,
                      newdata = data.frame(time = t_grid),
@@ -180,6 +185,7 @@ Based on the KM shape, fit an early phase (resolving operative risk)
 plus a constant phase (background attrition).
 
 ``` r
+
 fit_mp <- hazard(
   survival::Surv(int_dead, dead) ~ 1,
   data   = avc,
@@ -225,6 +231,7 @@ knowledge or preliminary exploration, then scales and covariates are
 estimated.
 
 ``` r
+
 surv_mp <- predict(fit_mp,
                    newdata = data.frame(time = t_grid),
                    type = "survival") * 100
@@ -248,6 +255,7 @@ Figure 3: Two-phase parametric model vs. Kaplan-Meier
 Visualize the per-phase contributions to the cumulative hazard.
 
 ``` r
+
 decomp <- predict(fit_mp,
                   newdata = data.frame(time = t_grid),
                   type = "cumulative_hazard",
@@ -289,6 +297,7 @@ Use simple logistic regression of the event indicator on each covariate
 to get a quick ranking by strength of association.
 
 ``` r
+
 covariates <- c("age", "status", "mal", "com_iv", "orifice",
                 "inc_surg", "opmos")
 
@@ -333,6 +342,7 @@ continuous covariate into quantile groups, compute the observed event
 rate per bin, and transform it to the logit scale.
 
 ``` r
+
 cal_age <- hzr_calibrate(x = avc$age, event = avc$dead,
                           groups = 10, link = "logit")
 cal_age
@@ -357,6 +367,7 @@ untransformed; monotone-but-curved shapes suggest a log or square-root
 transform; U-shapes call for a quadratic term.
 
 ``` r
+
 ggplot(cal_age, aes(mean, link_value)) +
   geom_point(size = 3, colour = "#0072B2") +
   geom_line(colour = "#0072B2", alpha = 0.4) +
@@ -383,6 +394,7 @@ Enter the significant covariates from screening into the two-phase
 hazard model directly.
 
 ``` r
+
 fit_mv <- hazard(
   survival::Surv(int_dead, dead) ~ age + status + mal + com_iv,
   data   = avc,
@@ -453,6 +465,7 @@ another. Single-distribution models accept either a flat one-sided
 formula or a character vector of names.
 
 ``` r
+
 base_mp <- hazard(
   survival::Surv(int_dead, dead) ~ 1,
   data   = avc,
@@ -495,13 +508,14 @@ The `$steps` table records every accepted action with its Wald statistic
 and p-value:
 
 ``` r
+
 fit_step$steps[, c("step_num", "action", "variable", "phase",
                    "p_value", "aic")]
 #>   step_num action variable    phase      p_value      aic
 #> 1        1  enter   status    early 0.000000e+00 422.9675
 #> 2        2  enter      mal    early 1.352419e-33 416.6295
 #> 3        3  enter   com_iv    early 1.190955e-30 399.0333
-#> 4        4  enter      age    early 3.365113e-02 397.3463
+#> 4        4  enter      age    early 3.363559e-02 397.3463
 #> 5        5  enter   status constant 6.358883e-02 396.2062
 ```
 
@@ -509,6 +523,7 @@ The final model is the fit at the top of the object, reachable through
 the usual hazard accessors:
 
 ``` r
+
 logLik_manual <- fit_mv$fit$objective
 logLik_step   <- fit_step$fit$objective
 c(manual = logLik_manual, stepwise = logLik_step,
@@ -540,6 +555,7 @@ analogue of the KM confidence limits from Step 1 — a patient-specific
 uncertainty estimate the nonparametric curve cannot provide.
 
 ``` r
+
 ref_patient <- data.frame(
   time   = t_grid,
   age    = median(avc$age),
@@ -581,6 +597,7 @@ Compare survival curves for a low-risk vs. high-risk patient profile to
 visualize the effect of covariates on long-term outcome.
 
 ``` r
+
 low_risk <- data.frame(
   time   = t_grid,
   age    = quantile(avc$age, 0.25),
@@ -646,6 +663,7 @@ other. This implements the workflow of the SAS `deciles.hazard.sas`
 macro.
 
 ``` r
+
 cal <- hzr_deciles(fit_mv, time = max(avc$int_dead))
 print(cal)
 #> Decile-of-risk calibration at time = 170.5826 
@@ -679,6 +697,7 @@ print(cal)
 ```
 
 ``` r
+
 ggplot(cal, aes(x = group)) +
   geom_col(aes(y = observed_rate), fill = "#56B4E9", alpha = 0.7) +
   geom_point(aes(y = expected_rate), colour = "#D55E00", size = 3) +
@@ -711,6 +730,7 @@ tracks this cumulatively over time — the residual (expected minus
 observed) should stay near zero.
 
 ``` r
+
 gof <- hzr_gof(fit_mv)
 print(gof)
 #> Goodness-of-fit: observed vs. expected events
@@ -725,6 +745,7 @@ print(gof)
 ```
 
 ``` r
+
 ggplot(gof, aes(x = time)) +
   geom_step(aes(y = km_surv * 100), colour = "#D55E00", linewidth = 0.6) +
   geom_line(aes(y = par_surv * 100), colour = "#0072B2", linewidth = 0.8) +
@@ -738,6 +759,7 @@ ggplot(gof, aes(x = time)) +
 Figure 9: Parametric (blue) vs. Kaplan-Meier (orange) survival
 
 ``` r
+
 ggplot(gof, aes(x = time)) +
   geom_line(aes(y = cum_observed), colour = "#D55E00", linewidth = 0.8) +
   geom_line(aes(y = cum_expected), colour = "#0072B2",
@@ -751,6 +773,7 @@ ggplot(gof, aes(x = time)) +
 Figure 10: Cumulative observed (orange) vs. expected (blue) events
 
 ``` r
+
 ggplot(gof, aes(x = time, y = residual)) +
   geom_line(linewidth = 0.7, colour = "grey30") +
   geom_hline(yintercept = 0, linetype = "dashed", colour = "grey60") +
@@ -773,15 +796,15 @@ model overpredicts risk; persistent negative means it underpredicts.
 The temporal parametric approach offers several advantages over Cox
 proportional hazards for this type of analysis:
 
-| Feature                              | Cox (`coxph`) |                                    TemporalHazard                                     |
-|:-------------------------------------|:-------------:|:-------------------------------------------------------------------------------------:|
-| Proportional hazards required        |      Yes      |                                          No                                           |
-| Baseline hazard specified            |      No       |                                   Yes (parametric)                                    |
-| Multiple hazard phases               |      No       |                                    Yes (additive)                                     |
-| Patient-specific survival prediction |  Approximate  |                                         Exact                                         |
-| Smooth extrapolation beyond data     |      No       |                                          Yes                                          |
-| Conservation of events check         |      No       | Yes ([`hzr_gof()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_gof.md)) |
-| Interval censoring                   | Not standard  |                                       Supported                                       |
+| Feature | Cox (`coxph`) | TemporalHazard |
+|:---|:--:|:--:|
+| Proportional hazards required | Yes | No |
+| Baseline hazard specified | No | Yes (parametric) |
+| Multiple hazard phases | No | Yes (additive) |
+| Patient-specific survival prediction | Approximate | Exact |
+| Smooth extrapolation beyond data | No | Yes |
+| Conservation of events check | No | Yes ([`hzr_gof()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_gof.md)) |
+| Interval censoring | Not standard | Supported |
 
 The key insight is that many clinical outcomes exhibit
 **non-proportional hazards**: the risk factors that dominate early

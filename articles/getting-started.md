@@ -4,6 +4,7 @@ This vignette shows the minimal workflow for fitting a parametric hazard
 model, summarizing the fit, and generating predictions.
 
 ``` r
+
 library(TemporalHazard)
 library(survival)
 
@@ -38,16 +39,17 @@ summary(fit)
 #> 
 #> Coefficients:
 #>          estimate   std_error      z_stat      p_value
-#> mu    0.121860518 0.062260593  1.95726561 5.031625e-02
+#> mu    0.121860518 0.062260594  1.95726558 5.031625e-02
 #> nu    1.143730632 0.084302528 13.56697905 6.285984e-42
 #> beta1 0.001716551 0.008807986  0.19488579 8.454824e-01
-#> beta2 0.156208724 0.090597558  1.72420459 8.467092e-02
-#> beta3 0.017352702 0.362918393  0.04781434 9.618642e-01
+#> beta2 0.156208724 0.090597558  1.72420457 8.467092e-02
+#> beta3 0.017352702 0.362918437  0.04781433 9.618642e-01
 ```
 
 ## Prediction workflow
 
 ``` r
+
 new_patients <- data.frame(
   time = c(0.5, 1.5, 3.0),
   age = c(50, 65, 75),
@@ -80,6 +82,7 @@ median-profile patient and overlay the Kaplan-Meier nonparametric
 estimate from the raw data.
 
 ``` r
+
 library(ggplot2)
 
 # Parametric curve on a fine grid
@@ -126,7 +129,9 @@ additive hazard model can.
 The total hazard is decomposed into additive phases, each with its own
 temporal shape:
 
-$$H(t \mid x) = \sum\limits_{j = 1}^{J}\mu_{j}(x) \cdot \Phi_{j}(t)$$
+``` math
+H(t \mid x) = \sum_{j=1}^{J} \mu_j(x) \cdot \Phi_j(t)
+```
 
 Each phase is specified with
 [`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md),
@@ -134,6 +139,7 @@ which sets the temporal shape type and starting values for the
 optimizer.
 
 ``` r
+
 # CABGKUL is the benchmark dataset for 3-phase decomposition (n = 5,880)
 data(cabgkul)
 
@@ -194,6 +200,7 @@ contributions. We numerically differentiate these to visualize the
 instantaneous hazard rate for each phase.
 
 ``` r
+
 t_grid <- seq(0.01, max(cabgkul$int_dead) * 0.95, length.out = 200)
 nd     <- data.frame(time = t_grid)
 
@@ -243,6 +250,7 @@ constant + late (dashed)
 ### Multiphase survival with Kaplan-Meier overlay
 
 ``` r
+
 surv_df <- data.frame(
   time     = t_grid,
   survival = predict(fit_mp, newdata = nd, type = "survival") * 100
@@ -275,6 +283,7 @@ Figure 3: Multiphase parametric survival vs. Kaplan-Meier
 TemporalHazard supports several phase types:
 
 ``` r
+
 hzr_phase("cdf",      t_half = 0.5, nu = 2, m = 1)   # Early risk (bounded)
 hzr_phase("constant")                                   # Flat background rate
 hzr_phase("cdf",      t_half = 10,  nu = 1, m = 0)    # Late risk (CDF-based)
@@ -294,6 +303,7 @@ The numerical helper functions remain available directly when you need
 stable log-scale calculations for custom work or debugging.
 
 ``` r
+
 TemporalHazard::hzr_log1pexp(c(-2, 0, 2))
 #> [1] 0.1269280 0.6931472 2.1269280
 ```

@@ -25,24 +25,24 @@ The R source lives in `R/` and follows a layered design. Lower layers
 know nothing about higher layers; control flows downward from the API
 through distribution-specific optimizers to shared numerical primitives.
 
-| Layer                    | File                     | Purpose                                                                      |
-|:-------------------------|:-------------------------|:-----------------------------------------------------------------------------|
-| User API                 | hazard_api.R             | hazard(), predict.hazard(), print/summary/coef/vcov S3 methods               |
-| User API                 | argument_mapping.R       | SAS HAZARD -\> R parameter translation table                                 |
-| Multiphase engine        | likelihood-multiphase.R  | Additive N-phase likelihood, cumhaz/hazard evaluators, multi-start optimizer |
-| Multiphase engine        | phase-spec.R             | hzr_phase() constructor, validators, starting-value assembly                 |
-| Multiphase engine        | decomposition.R          | Unified decompos(t; t_half, nu, m) parametric family                         |
-| Single-phase likelihoods | likelihood-weibull.R     | Weibull PH likelihood, gradient, optimizer                                   |
-| Single-phase likelihoods | likelihood-exponential.R | Exponential (constant hazard) likelihood                                     |
-| Single-phase likelihoods | likelihood-loglogistic.R | Log-logistic (proportional odds) likelihood                                  |
-| Single-phase likelihoods | likelihood-lognormal.R   | Log-normal (AFT) likelihood                                                  |
-| Shared infrastructure    | optimizer.R              | Generic L-BFGS-B/BFGS optimizer with Hessian-based vcov                      |
-| Shared infrastructure    | math_primitives.R        | Numerically stable log1pexp, log1mexp, clamp_prob                            |
-| Shared infrastructure    | formula-helpers.R        | Surv() formula parsing for right/left/interval censoring                     |
-| Shared infrastructure    | golden_fixtures.R        | Synthetic fixture generators (.rds reference outputs)                        |
-| Shared infrastructure    | parity-helpers.R         | Stubs for cross-validating against C HAZARD binary                           |
+| Layer | File | Purpose |
+|:---|:---|:---|
+| User API | hazard_api.R | hazard(), predict.hazard(), print/summary/coef/vcov S3 methods |
+| User API | argument_mapping.R | SAS HAZARD -\> R parameter translation table |
+| Multiphase engine | likelihood-multiphase.R | Additive N-phase likelihood, cumhaz/hazard evaluators, multi-start optimizer |
+| Multiphase engine | phase-spec.R | hzr_phase() constructor, validators, starting-value assembly |
+| Multiphase engine | decomposition.R | Unified decompos(t; t_half, nu, m) parametric family |
+| Single-phase likelihoods | likelihood-weibull.R | Weibull PH likelihood, gradient, optimizer |
+| Single-phase likelihoods | likelihood-exponential.R | Exponential (constant hazard) likelihood |
+| Single-phase likelihoods | likelihood-loglogistic.R | Log-logistic (proportional odds) likelihood |
+| Single-phase likelihoods | likelihood-lognormal.R | Log-normal (AFT) likelihood |
+| Shared infrastructure | optimizer.R | Generic L-BFGS-B/BFGS optimizer with Hessian-based vcov |
+| Shared infrastructure | math_primitives.R | Numerically stable log1pexp, log1mexp, clamp_prob |
+| Shared infrastructure | formula-helpers.R | Surv() formula parsing for right/left/interval censoring |
+| Shared infrastructure | golden_fixtures.R | Synthetic fixture generators (.rds reference outputs) |
+| Shared infrastructure | parity-helpers.R | Stubs for cross-validating against C HAZARD binary |
 
-R source files by architectural layer
+R source files by architectural layer {.table .caption-top}
 
 ## 3 Function call graph
 
@@ -84,13 +84,13 @@ log-likelihood and gradient.
 The multiphase model concatenates per-phase sub-vectors into a single
 flat `theta` on the **internal (estimation) scale**:
 
-| Phase.type   | Sub.vector                                                | Count |
-|:-------------|:----------------------------------------------------------|:------|
-| cdf / hazard | \[log_mu, log_t_half, nu, m, beta_1, …, beta_p\]          | 4 + p |
-| g3           | \[log_mu, log_tau, gamma, alpha, eta, beta_1, …, beta_p\] | 5 + p |
-| constant     | \[log_mu, beta_1, …, beta_p\]                             | 1 + p |
+| Phase.type | Sub.vector | Count |
+|:---|:---|:---|
+| cdf / hazard | \[log_mu, log_t_half, nu, m, beta_1, …, beta_p\] | 4 + p |
+| g3 | \[log_mu, log_tau, gamma, alpha, eta, beta_1, …, beta_p\] | 5 + p |
+| constant | \[log_mu, beta_1, …, beta_p\] | 1 + p |
 
-Internal theta layout per phase
+Internal theta layout per phase {.table .caption-top}
 
 [`.hzr_split_theta()`](https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_split_theta.md)
 partitions the concatenated vector into a named list of per-phase
@@ -124,12 +124,12 @@ wrap
 [`hzr_decompos()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos.md)
 and apply the phase type mapping:
 
-| Phase type   | $\Phi(t)$                          | $\phi(t)$  |
-|:-------------|:-----------------------------------|:-----------|
-| `"cdf"`      | $G_{1}(t)$                         | $g_{1}(t)$ |
-| `"hazard"`   | $-{\log}(1 - G_{1}(t))$            | $h_{1}(t)$ |
-| `"g3"`       | $G_{3}(t;\tau,\gamma,\alpha,\eta)$ | $g_{3}(t)$ |
-| `"constant"` | $t$                                | $1$        |
+| Phase type   | $`\Phi(t)`$                            | $`\phi(t)`$ |
+|:-------------|:---------------------------------------|:------------|
+| `"cdf"`      | $`G_1(t)`$                             | $`g_1(t)`$  |
+| `"hazard"`   | $`-\log(1-G_1(t))`$                    | $`h_1(t)`$  |
+| `"g3"`       | $`G_3(t; \tau, \gamma, \alpha, \eta)`$ | $`g_3(t)`$  |
+| `"constant"` | $`t`$                                  | $`1`$       |
 
 #### 3.1.4 Multi-start optimization
 
@@ -180,17 +180,17 @@ the C log-likelihood.
 
 ### 4.2 Current fixtures
 
-| File                    | Distribution   | Description                                                  | Source              |
-|:------------------------|:---------------|:-------------------------------------------------------------|:--------------------|
-| hz_univariate.rds       | Weibull        | Univariable shape estimation (n=100)                         | Synthetic (seed=42) |
-| hm_multivariate.rds     | Weibull        | 2 covariates (n=100)                                         | Synthetic (seed=42) |
-| hm_edge_case.rds        | Weibull        | Edge case: n=20, 3 covariates                                | Synthetic (seed=42) |
-| hz_loglogistic.rds      | Log-logistic   | Univariable (n=80)                                           | Synthetic (seed=42) |
-| hz_lognormal.rds        | Log-normal     | Univariable (n=80)                                           | Synthetic (seed=42) |
-| mp_synthetic_3phase.rds | Multiphase (3) | Synthetic early CDF + constant + late hazard (n=500)         | Synthetic (seed=42) |
-| mp_c_reference_kul.rds  | Multiphase (3) | KUL CABG dataset + C HAZARD binary reference output (n=5880) | Clinical + C binary |
+| File | Distribution | Description | Source |
+|:---|:---|:---|:---|
+| hz_univariate.rds | Weibull | Univariable shape estimation (n=100) | Synthetic (seed=42) |
+| hm_multivariate.rds | Weibull | 2 covariates (n=100) | Synthetic (seed=42) |
+| hm_edge_case.rds | Weibull | Edge case: n=20, 3 covariates | Synthetic (seed=42) |
+| hz_loglogistic.rds | Log-logistic | Univariable (n=80) | Synthetic (seed=42) |
+| hz_lognormal.rds | Log-normal | Univariable (n=80) | Synthetic (seed=42) |
+| mp_synthetic_3phase.rds | Multiphase (3) | Synthetic early CDF + constant + late hazard (n=500) | Synthetic (seed=42) |
+| mp_c_reference_kul.rds | Multiphase (3) | KUL CABG dataset + C HAZARD binary reference output (n=5880) | Clinical + C binary |
 
-Golden fixture inventory
+Golden fixture inventory {.table .caption-top style="width:100%;"}
 
 ### 4.3 Regenerating fixtures
 
@@ -198,6 +198,7 @@ Fixtures must be regenerated whenever the model parameterization
 changes. Run each generator interactively after `devtools::load_all()`:
 
 ``` r
+
 # Single-phase distributions
 .hzr_create_synthetic_golden_fixtures()    # Weibull variants
 .hzr_create_loglogistic_golden_fixture()   # Log-logistic
@@ -215,14 +216,14 @@ updated `.rds` files alongside any code changes.
 
 The test suite (`tests/testthat/`) is organized into four tiers:
 
-| Tier               | Files                                                                                                                                | Purpose                                                                                       |
-|:-------------------|:-------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------|
-| Unit tests         | test-math-primitives, test-decomposition, test-phase-spec, test-argument-mapping                                                     | Verify individual functions in isolation                                                      |
-| Distribution tests | test-gradient-weibull, test-exponential-dist, test-loglogistic-dist, test-lognormal-dist, test-multiphase-gradient                   | Likelihood, gradient, and optimizer for each distribution                                     |
-| Integration tests  | test-hazard-api, test-predict-types, test-interval-censoring-*, test-time-varying-*, test-multiphase-likelihood, test-multiphase-api | End-to-end: hazard() -\> predict() -\> summary() pipeline, censoring types, multiphase wiring |
-| Parity tests       | test-parity-core, test-parity-edge-cases, test-parity-c-binary, test-multiphase-parity                                               | Golden fixture round-trip, C binary cross-validation                                          |
+| Tier | Files | Purpose |
+|:---|:---|:---|
+| Unit tests | test-math-primitives, test-decomposition, test-phase-spec, test-argument-mapping | Verify individual functions in isolation |
+| Distribution tests | test-gradient-weibull, test-exponential-dist, test-loglogistic-dist, test-lognormal-dist, test-multiphase-gradient | Likelihood, gradient, and optimizer for each distribution |
+| Integration tests | test-hazard-api, test-predict-types, test-interval-censoring-*, test-time-varying-*, test-multiphase-likelihood, test-multiphase-api | End-to-end: hazard() -\> predict() -\> summary() pipeline, censoring types, multiphase wiring |
+| Parity tests | test-parity-core, test-parity-edge-cases, test-parity-c-binary, test-multiphase-parity | Golden fixture round-trip, C binary cross-validation |
 
-Test suite tiers
+Test suite tiers {.table .caption-top}
 
 #### 5.0.1 Multiphase parity tests
 
@@ -236,8 +237,8 @@ against the C HAZARD binary output for the KUL CABG dataset:
     saturation at the C reference parameter values.
 
 3.  **Conservation of events** —Checks that the model-implied expected
-    events ($\sum\lbrack 1 - {\exp}(-H(t_{i}))\rbrack$) matches the
-    observed event count (545), as reported by the C binary (544.9993).
+    events ($`\sum [1 - \exp(-H(t_i))]`$) matches the observed event
+    count (545), as reported by the C binary (544.9993).
 
 4.  **Profile standard errors** —Computes a numerical Hessian varying
     only the 3 log(mu) parameters (shapes held fixed), matching the C
@@ -253,22 +254,23 @@ TemporalHazard ships five clinical reference datasets in
 `inst/extdata/`, converted from the original C/SAS HAZARD test data.
 These datasets are used in vignette examples and parity testing.
 
-| File        | Study                                             |    n | Events                           | Covariates                                 | SAS.origin                 |
-|:------------|:--------------------------------------------------|-----:|:---------------------------------|:-------------------------------------------|:---------------------------|
-| avc.csv     | Atrioventricular canal repair                     |  310 | 70 deaths                        | NYHA, age, anatomy, era                    | hz.death.AVC, hm.death.AVC |
-| cabgkul.csv | Coronary artery bypass grafting (KU Leuven)       | 5880 | 545 deaths                       | None (intercept only)                      | hz.deadp.KUL               |
-| omc.csv     | Open mitral commissurotomy                        |  339 | thromboembolic events (repeated) | TE events (repeated measures)              | hz.te123.OMC               |
-| tga.csv     | Transposition of great arteries (arterial switch) |  470 | deaths                           | anatomy, coronary pattern, era             | hs.dthar.TGA               |
-| valves.csv  | Primary valve replacement                         | 1533 | deaths, PVE, reoperation         | age, NYHA, valve position, pathology, race | hm.deadp.VALVES            |
+| File | Study | n | Events | Covariates | SAS.origin |
+|:---|:---|---:|:---|:---|:---|
+| avc.csv | Atrioventricular canal repair | 310 | 70 deaths | NYHA, age, anatomy, era | hz.death.AVC, hm.death.AVC |
+| cabgkul.csv | Coronary artery bypass grafting (KU Leuven) | 5880 | 545 deaths | None (intercept only) | hz.deadp.KUL |
+| omc.csv | Open mitral commissurotomy | 339 | thromboembolic events (repeated) | TE events (repeated measures) | hz.te123.OMC |
+| tga.csv | Transposition of great arteries (arterial switch) | 470 | deaths | anatomy, coronary pattern, era | hs.dthar.TGA |
+| valves.csv | Primary valve replacement | 1533 | deaths, PVE, reoperation | age, NYHA, valve position, pathology, race | hm.deadp.VALVES |
 
 Reference datasets (lazy-loaded via
-[`data()`](https://rdrr.io/r/utils/data.html))
+[`data()`](https://rdrr.io/r/utils/data.html)) {.table .caption-top}
 
 ### 6.1 Loading datasets
 
 Show code
 
 ``` r
+
 # Datasets are lazy-loaded with the package — just reference them directly.
 # Raw CSVs are also available in inst/extdata/ for advanced use:
 #   read.csv(system.file("extdata", "cabgkul.csv", package = "TemporalHazard"))
@@ -318,7 +320,7 @@ covariates for multivariable analysis.
 | int_dead | Follow-up interval (months)               | numeric   |
 | op_age   | Interaction: opmos x age                  | numeric   |
 
-AVC dataset variables
+AVC dataset variables {.table .caption-top}
 
 #### 6.2.2 CABG/KUL (coronary artery bypass grafting)
 
@@ -366,6 +368,7 @@ function documents the full translation.
 Show code
 
 ``` r
+
 mapping <- hzr_argument_mapping()
 knitr::kable(
   mapping[, c("legacy_input", "r_parameter", "implementation_status", "notes")],
@@ -373,32 +376,32 @@ knitr::kable(
 )
 ```
 
-| legacy_input               | r_parameter                   | implementation_status | notes                                                                                                    |
-|:---------------------------|:------------------------------|:----------------------|:---------------------------------------------------------------------------------------------------------|
-| TIME variable              | time                          | implemented           | Core observation time input.                                                                             |
-| EVENT/censor variable      | status                        | implemented           | Event indicator currently retained as numeric in object$data$status.                                     |
-| X covariate block          | x                             | implemented           | Future versions will support richer design encoding helpers.                                             |
-| initial parameters         | theta                         | implemented           | Used by predict.hazard as coefficient vector.                                                            |
-| baseline distribution      | dist                          | implemented           | Current default is ‘weibull’; more options planned.                                                      |
-| control options            | control                       | implemented           | Control list is stored and reserved for optimizer parity.                                                |
-| additional legacy options  | …                             | implemented           | Supports legacy-style pass-through options during migration.                                             |
-| t                          | time                          | implemented           | Canonical SAS migration uses TIME= mapping.                                                              |
-| status                     | status                        | implemented           | Canonical SAS migration uses EVENT= mapping.                                                             |
-| theta0                     | theta                         | planned               | SAS PARMS syntax parser not yet implemented.                                                             |
-| dist                       | dist                          | implemented           | SAS DIST keyword maps directly to dist.                                                                  |
-| phases (3-phase structure) | phases (list of hzr_phase())  | implemented           | Use dist=‘multiphase’ with phases argument. N-phase generalization of legacy 3-phase model.              |
-| MU_1, MU_2, MU_3           | mu (via exp(log_mu) in theta) | implemented           | Each phase has its own scale mu_j(x) = exp(alpha_j + x\*beta_j). Starting value via hzr_phase().         |
-| THALF / RHO (early)        | hzr_phase(t_half=)            | implemented           | Half-life: time at which G(t_half) = 0.5. Same concept as SAS RHO/THALF.                                 |
-| NU (early)                 | hzr_phase(nu=)                | implemented           | Time exponent controlling rate dynamics. Same parameter name as SAS early NU.                            |
-| M (early)                  | hzr_phase(m=)                 | implemented           | Shape exponent controlling distributional form. Same parameter name as SAS early M.                      |
-| DELTA (early)              | (absorbed by decompos)        | implemented           | The C DELTA controlled B(t) = (exp(delta\*t)-1)/delta. This transform is absorbed by decompos().         |
-| G2 constant phase          | hzr_phase(‘constant’)         | implemented           | Flat background rate. No shape parameters estimated. SAS G2 equivalent.                                  |
-| TAU (late)                 | hzr_phase(‘g3’, tau=)         | implemented           | Late-phase G3 scale parameter. Maps directly to hzr_phase(‘g3’, tau=).                                   |
-| GAMMA (late)               | hzr_phase(‘g3’, gamma=)       | implemented           | Late-phase G3 time exponent. Maps directly to hzr_phase(‘g3’, gamma=).                                   |
-| ALPHA (late)               | hzr_phase(‘g3’, alpha=)       | implemented           | Late-phase G3 shape parameter. alpha=0 gives exponential case. Maps directly to hzr_phase(‘g3’, alpha=). |
-| ETA (late)                 | hzr_phase(‘g3’, eta=)         | implemented           | Late-phase G3 outer exponent. Maps directly to hzr_phase(‘g3’, eta=).                                    |
+| legacy_input | r_parameter | implementation_status | notes |
+|:---|:---|:---|:---|
+| TIME variable | time | implemented | Core observation time input. |
+| EVENT/censor variable | status | implemented | Event indicator currently retained as numeric in object$`data`$status. |
+| X covariate block | x | implemented | Future versions will support richer design encoding helpers. |
+| initial parameters | theta | implemented | Used by predict.hazard as coefficient vector. |
+| baseline distribution | dist | implemented | Current default is ‘weibull’; more options planned. |
+| control options | control | implemented | Control list is stored and reserved for optimizer parity. |
+| additional legacy options | … | implemented | Supports legacy-style pass-through options during migration. |
+| t | time | implemented | Canonical SAS migration uses TIME= mapping. |
+| status | status | implemented | Canonical SAS migration uses EVENT= mapping. |
+| theta0 | theta | planned | SAS PARMS syntax parser not yet implemented. |
+| dist | dist | implemented | SAS DIST keyword maps directly to dist. |
+| phases (3-phase structure) | phases (list of hzr_phase()) | implemented | Use dist=‘multiphase’ with phases argument. N-phase generalization of legacy 3-phase model. |
+| MU_1, MU_2, MU_3 | mu (via exp(log_mu) in theta) | implemented | Each phase has its own scale mu_j(x) = exp(alpha_j + x\*beta_j). Starting value via hzr_phase(). |
+| THALF / RHO (early) | hzr_phase(t_half=) | implemented | Half-life: time at which G(t_half) = 0.5. Same concept as SAS RHO/THALF. |
+| NU (early) | hzr_phase(nu=) | implemented | Time exponent controlling rate dynamics. Same parameter name as SAS early NU. |
+| M (early) | hzr_phase(m=) | implemented | Shape exponent controlling distributional form. Same parameter name as SAS early M. |
+| DELTA (early) | (absorbed by decompos) | implemented | The C DELTA controlled B(t) = (exp(delta\*t)-1)/delta. This transform is absorbed by decompos(). |
+| G2 constant phase | hzr_phase(‘constant’) | implemented | Flat background rate. No shape parameters estimated. SAS G2 equivalent. |
+| TAU (late) | hzr_phase(‘g3’, tau=) | implemented | Late-phase G3 scale parameter. Maps directly to hzr_phase(‘g3’, tau=). |
+| GAMMA (late) | hzr_phase(‘g3’, gamma=) | implemented | Late-phase G3 time exponent. Maps directly to hzr_phase(‘g3’, gamma=). |
+| ALPHA (late) | hzr_phase(‘g3’, alpha=) | implemented | Late-phase G3 shape parameter. alpha=0 gives exponential case. Maps directly to hzr_phase(‘g3’, alpha=). |
+| ETA (late) | hzr_phase(‘g3’, eta=) | implemented | Late-phase G3 outer exponent. Maps directly to hzr_phase(‘g3’, eta=). |
 
-SAS HAZARD to R parameter mapping (excerpt)
+SAS HAZARD to R parameter mapping (excerpt) {.table .caption-top}
 
 ### 7.1 Early phase (G1) mapping
 
@@ -426,11 +429,11 @@ directly supported via `hzr_phase("g3", ...)`:
 - **ETA** –\> `eta` (outer exponent)
 
 The G3 formula (for `alpha > 0`) is:
-$G_{3}(t) = \left( \left( (t/\tau)^{\gamma} + 1 \right)^{1/\alpha} - 1 \right)^{\eta}$
+$`G_3(t) = \left(\left((t/\tau)^\gamma + 1\right)^{1/\alpha} - 1\right)^\eta`$
 
 Unlike G1, G3 is unbounded —it can grow without limit, making it
 suitable for late-phase rising hazards. For the KUL benchmark with
-`gamma = 3, alpha = 1, eta = 1`, this simplifies to $G_{3}(t) = t^{3}$.
+`gamma = 3, alpha = 1, eta = 1`, this simplifies to $`G_3(t) = t^3`$.
 
 ## 8 Version history
 

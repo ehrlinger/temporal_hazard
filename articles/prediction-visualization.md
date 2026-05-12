@@ -1,6 +1,7 @@
 # Prediction & Visualization
 
 ``` r
+
 library(TemporalHazard)
 library(survival)
 library(ggplot2)
@@ -17,12 +18,14 @@ nonparametric reference. All subsequent parametric predictions should be
 compared against this baseline to assess goodness-of-fit.
 
 ``` r
+
 data(avc)
 avc <- na.omit(avc)
 km <- survfit(Surv(int_dead, dead) ~ 1, data = avc)
 ```
 
 ``` r
+
 km_df <- data.frame(time = km$time, survival = km$surv * 100)
 
 ggplot(km_df, aes(time, survival)) +
@@ -42,6 +45,7 @@ The [`predict()`](https://rdrr.io/r/stats/predict.html) method supports
 several output types. For a multivariable Weibull model on the AVC data:
 
 ``` r
+
 fit <- hazard(
   Surv(int_dead, dead) ~ age + status + mal + com_iv,
   data  = avc,
@@ -55,6 +59,7 @@ fit <- hazard(
 Generate predictions at a median-risk profile over a time grid:
 
 ``` r
+
 t_grid <- seq(0.01, max(avc$int_dead) * 0.95, length.out = 200)
 profile <- data.frame(
   time   = t_grid,
@@ -86,6 +91,7 @@ The fundamental diagnostic: does the parametric model track the
 Kaplan-Meier?
 
 ``` r
+
 ggplot() +
   geom_step(data = km_df, aes(time, survival, colour = "Kaplan-Meier"),
             linewidth = 0.5) +
@@ -118,6 +124,7 @@ estimate. The return value changes shape: a plain numeric vector with
 and `upper` with `se.fit = TRUE`.
 
 ``` r
+
 # Build a clean newdata frame (the earlier chunk appended result
 # columns to `profile`, which would confuse predict()'s column count).
 profile_ci <- data.frame(
@@ -145,6 +152,7 @@ Confidence limits use SAS-matched transformations: log-scale for
 linear predictor uses symmetric natural-scale CLs.
 
 ``` r
+
 ci_df <- data.frame(
   time     = profile_ci$time,
   survival = surv_ci$fit * 100,
@@ -190,6 +198,7 @@ contributions. Using `decompose = TRUE` with
 phase.
 
 ``` r
+
 data(cabgkul)
 
 fit_mp <- hazard(
@@ -209,6 +218,7 @@ fit_mp <- hazard(
 ```
 
 ``` r
+
 t_mp <- seq(0.01, max(cabgkul$int_dead) * 0.95, length.out = 200)
 nd   <- data.frame(time = t_mp)
 
@@ -262,6 +272,7 @@ attrition.
 ## 6 Multiphase survival with KM overlay
 
 ``` r
+
 surv_mp <- predict(fit_mp, newdata = nd, type = "survival") * 100
 
 ggplot() +
@@ -291,6 +302,7 @@ The multivariable model generates patient-specific survival curves by
 varying the covariate profile:
 
 ``` r
+
 profiles <- list(
   "Low risk"  = data.frame(age = quantile(avc$age, 0.25),
                             status = 1, mal = 0, com_iv = 0),
@@ -335,6 +347,7 @@ The `valves` dataset has multiple endpoints that can be visualized
 together:
 
 ``` r
+
 data(valves)
 valves <- na.omit(valves)
 

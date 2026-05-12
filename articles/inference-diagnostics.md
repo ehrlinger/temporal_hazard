@@ -1,6 +1,7 @@
 # Inference & Diagnostics
 
 ``` r
+
 library(TemporalHazard)
 library(survival)
 library(ggplot2)
@@ -19,6 +20,7 @@ candidate covariates with simple logistic models. This identifies
 transformations and functional forms that should enter the final model.
 
 ``` r
+
 data(avc)
 avc <- na.omit(avc)
 
@@ -30,6 +32,7 @@ Fit a univariable logistic regression for each covariate against the
 death indicator:
 
 ``` r
+
 logit_fits <- lapply(candidates, function(var) {
   fmla <- as.formula(paste("dead ~", var))
   glm(fmla, data = avc, family = binomial())
@@ -54,6 +57,7 @@ data.frame(covariate = names(p_values),
 ```
 
 ``` r
+
 ggplot(avc, aes(age, dead)) +
   geom_jitter(height = 0.05, width = 0, alpha = 0.3, size = 1) +
   geom_smooth(method = "loess", se = TRUE, colour = "#0072B2",
@@ -80,6 +84,7 @@ covariate-outcome relationship is linear on the chosen link scale. It
 corresponds to the SAS `logit.sas` / `logitgr.sas` macros.
 
 ``` r
+
 age_cal <- hzr_calibrate(
   x      = avc$age,
   event  = avc$dead,
@@ -119,6 +124,7 @@ returns the Wayne Nelson cumulative hazard estimator with lognormal
 confidence limits.
 
 ``` r
+
 km <- hzr_kaplan(time = avc$int_dead, status = avc$dead, conf_level = 0.95)
 print(km)
 #> Kaplan-Meier estimate with logit confidence limits
@@ -172,6 +178,7 @@ print(km)
 ```
 
 ``` r
+
 nel <- hzr_nelson(time = avc$int_dead, event = avc$dead, conf_level = 0.95)
 print(nel)
 #> Nelson cumulative hazard estimate with lognormal CL
@@ -230,6 +237,7 @@ dataset and accumulates prediction curves; the CI is summarized across
 replicates.
 
 ``` r
+
 # Fit the base model that bootstrapping will use
 fit <- hazard(
   Surv(int_dead, dead) ~ age + status + mal + com_iv,
@@ -256,6 +264,7 @@ corresponds to the SAS `bootstrap.hazard.sas` and
 `bootstrap.summary.sas` macros.
 
 ``` r
+
 set.seed(42)
 boot <- hzr_bootstrap(fit, n_boot = 30)  # kept small for vignette build time
 print(boot)
@@ -286,6 +295,7 @@ estimator and the Conservation-of-Events observed-vs- expected event
 counts. It corresponds to the SAS `hazplot.sas` macro.
 
 ``` r
+
 gof <- hzr_gof(fit)
 print(gof)
 #> Goodness-of-fit: observed vs. expected events
@@ -314,6 +324,7 @@ returning a chi-square goodness-of-fit test. It corresponds to the SAS
 `deciles.hazard.sas` macro.
 
 ``` r
+
 deciles <- hzr_deciles(fit, time = 120, groups = 10)
 print(deciles)
 #> Decile-of-risk calibration at time = 120 
@@ -352,6 +363,7 @@ model predicts. A good visual check is to plot the two columns side by
 side:
 
 ``` r
+
 decile_df <- as.data.frame(deciles)
 cal_long <- rbind(
   data.frame(group = decile_df$group,
@@ -382,6 +394,7 @@ Sensitivity analysis compares predictions across different covariate
 configurations to assess how the model responds to risk factor changes.
 
 ``` r
+
 # Define reference and high-risk profiles
 ref_profile <- data.frame(
   age    = median(avc$age),
@@ -399,6 +412,7 @@ high_risk <- data.frame(
 ```
 
 ``` r
+
 sens_curves <- do.call(rbind, lapply(
   list("Reference" = ref_profile, "High risk" = high_risk),
   function(p) {

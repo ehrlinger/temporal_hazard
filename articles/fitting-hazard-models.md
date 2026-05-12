@@ -1,6 +1,7 @@
 # Fitting Hazard Models
 
 ``` r
+
 library(TemporalHazard)
 library(survival)
 library(ggplot2)
@@ -19,6 +20,7 @@ isolated coronary artery bypass grafting at KU Leuven between 1971 and
 the simplest starting point.
 
 ``` r
+
 data(cabgkul)
 str(cabgkul)
 #> 'data.frame':    5880 obs. of  2 variables:
@@ -29,6 +31,7 @@ str(cabgkul)
 Fit an intercept-only Weibull hazard (no covariates):
 
 ``` r
+
 fit_kul <- hazard(
   Surv(int_dead, dead) ~ 1,
   data  = cabgkul,
@@ -50,6 +53,7 @@ fit_kul
 Compare the parametric fit to the Kaplan-Meier estimate:
 
 ``` r
+
 t_grid <- seq(0.01, max(cabgkul$int_dead) * 0.9, length.out = 200)
 nd     <- data.frame(time = t_grid)
 surv   <- predict(fit_kul, newdata = nd, type = "survival") * 100
@@ -85,6 +89,7 @@ The `avc` dataset has 310 patients with 9 covariates. We can use the
 formula interface to fit a multivariable Weibull model.
 
 ``` r
+
 data(avc)
 avc <- na.omit(avc)
 str(avc)
@@ -105,6 +110,7 @@ str(avc)
 ```
 
 ``` r
+
 fit_avc <- hazard(
   Surv(int_dead, dead) ~ age + status + mal + com_iv + inc_surg + orifice,
   data  = avc,
@@ -133,13 +139,16 @@ associated with higher operative risk.
 The key innovation of the Blackstone–Naftel–Turner framework is
 decomposing the hazard into additive temporal phases:
 
-$$H(t \mid x) = \sum\limits_{j = 1}^{J}\mu_{j}(x) \cdot \Phi_{j}(t)$$
+``` math
+H(t \mid x) = \sum_{j=1}^{J} \mu_j(x) \cdot \Phi_j(t)
+```
 
 Each phase has its own temporal shape (early peaking, constant, late
 rising) and its own intercept. We specify phases with
 [`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md):
 
 ``` r
+
 fit_mp <- hazard(
   Surv(int_dead, dead) ~ 1,
   data   = avc,
@@ -163,13 +172,13 @@ summary(fit_mp)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
 #>   log-lik:      -228.029 
-#>   evaluations: fn=19, gr=6
+#>   evaluations: fn=32, gr=10
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
 #>                estimate  std_error    z_stat       p_value
-#>   log_mu     -1.4132735 0.04410013 -32.04692 2.422972e-225
+#>   log_mu     -1.4132735 0.04410012 -32.04693 2.422767e-225
 #>   log_t_half -0.6931472         NA        NA            NA
 #>   nu          1.0000000         NA        NA            NA
 #>   m           1.0000000         NA        NA            NA
@@ -182,6 +191,7 @@ summary(fit_mp)
 Comparing the single-phase Weibull to the multiphase fit:
 
 ``` r
+
 t_grid <- seq(0.01, max(avc$int_dead) * 0.95, length.out = 200)
 nd     <- data.frame(time = t_grid)
 
@@ -235,6 +245,7 @@ endpoints — death, prosthetic valve endocarditis (PVE), and reoperation
 call fits each endpoint independently:
 
 ``` r
+
 data(valves)
 valves <- na.omit(valves)
 
@@ -258,6 +269,7 @@ fit_death
 ```
 
 ``` r
+
 fit_pve <- hazard(
   Surv(int_pve, pve) ~ age_cop + nve + mechvalv,
   data  = valves,
@@ -287,11 +299,11 @@ The
 [`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
 constructor supports three temporal shapes:
 
-| Type         | Description                                                                   | Typical use                               |
-|--------------|-------------------------------------------------------------------------------|-------------------------------------------|
-| `"cdf"`      | Sigmoidal CDF shape (parameterized by `t_half`, `nu`, `m`)                    | Early or late phases with transient risk  |
-| `"constant"` | Flat hazard (no temporal shape parameters)                                    | Ongoing background risk                   |
-| `"g3"`       | Late-phase G3 parameterization (4 parameters: `tau`, `gamma`, `alpha`, `eta`) | Late-rising risk matching C/SAS G3 output |
+| Type | Description | Typical use |
+|----|----|----|
+| `"cdf"` | Sigmoidal CDF shape (parameterized by `t_half`, `nu`, `m`) | Early or late phases with transient risk |
+| `"constant"` | Flat hazard (no temporal shape parameters) | Ongoing background risk |
+| `"g3"` | Late-phase G3 parameterization (4 parameters: `tau`, `gamma`, `alpha`, `eta`) | Late-rising risk matching C/SAS G3 output |
 
 The `"cdf"` type covers the widest range of shapes. Setting `t_half`
 small (e.g., 0.5) creates an early-peaking phase; setting it large
