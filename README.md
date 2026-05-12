@@ -145,5 +145,5 @@ devtools::check()
 
 GitHub Actions runs multi-platform `R CMD check` on every push and pull request. Coverage is published to Codecov and the pkgdown site deploys automatically from `main`.
 
-See [`inst/dev/DEVELOPMENT-PLAN.md`](inst/dev/DEVELOPMENT-PLAN.md) for the full roadmap covering the C/SAS migration, multiphase implementation, CRAN release, and planned feature parity work.
-See [`.github/BRANCH_PROTECTION.md`](.github/BRANCH_PROTECTION.md) for recommended required-check settings that block merges when CI fails.
+See the development plan in `inst/dev/DEVELOPMENT-PLAN.md` for the full roadmap covering the C/SAS migration, multiphase implementation, CRAN release, and planned feature parity work.
+See `.github/BRANCH_PROTECTION.md` for recommended required-check settings that block merges when CI fails.
