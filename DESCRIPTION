@@ -1,5 +1,5 @@
 Package: TemporalHazard
-Title: Temporal Parametric Hazard Modeling in R
+Title: Temporal Parametric Hazard Modeling
 Version: 1.0.0
 Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@gmail.com", role = c("aut", "cre", "cph"))
 Author: John Ehrlinger [aut, cre, cph]
@@ -10,15 +10,15 @@ Description: Provides native R implementations of the multiphase parametric
     hazard model of Blackstone, Naftel, and Turner (1986)
     <doi:10.1080/01621459.1986.10478314> with a focus on behavioral parity,
     transparent numerics, and reproducible validation against reference
-    outputs from the original C/SAS HAZARD program, originally developed at
-    the University of Alabama at Birmingham (UAB). The SAS/C code and this R
+    outputs from the original 'C'/'SAS' HAZARD program, originally developed at
+    the University of Alabama at Birmingham (UAB). The 'SAS'/'C' code and this R
     package are currently developed and maintained at The Cleveland Clinic
     Foundation, and the R code was wholly developed at The Cleveland Clinic
     Foundation. The generalized temporal
     decomposition family extends to longitudinal mixed-effects settings
     (Rajeswaran et al. 2018 <doi:10.1177/0962280215623583>). The package is
     intentionally implemented in pure R first; performance-critical paths may
-    later be accelerated with Rcpp without changing the public interface.
+    later be accelerated with 'Rcpp' without changing the public interface.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
