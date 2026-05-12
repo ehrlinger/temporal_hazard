@@ -51,3 +51,4 @@ This is expected for a new submission.
   budgets; the full suite runs on GitHub Actions.
 * DOI URLs in vignettes (doi.org) may return HTTP 403 to automated checkers
   but resolve correctly in browsers.
+  

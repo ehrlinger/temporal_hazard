@@ -87,6 +87,18 @@
 #'     diagnostics of the model *after* this step.}
 #' }
 #'
+#' @examples
+#' data(avc)
+#' avc <- na.omit(avc)
+#' base <- hazard(survival::Surv(int_dead, dead) ~ age,
+#'                data = avc, dist = "weibull", fit = TRUE)
+#' \donttest{
+#' sw <- hzr_stepwise(base, scope = ~ age + nyha,
+#'                    data = avc, direction = "forward",
+#'                    control = list(n_starts = 1))
+#' print(sw)
+#' }
+#'
 #' @export
 hzr_stepwise <- function(fit,
                          scope     = NULL,
@@ -329,12 +341,10 @@ hzr_stepwise <- function(fit,
 }
 
 
-#' Print method for `hzr_stepwise`
-#'
-#' Shows the full selection trace and a brief final-model summary.
-#'
+#' @rdname hzr_stepwise
 #' @param x An `hzr_stepwise` object.
 #' @param ... Unused.
+#' @return `print.hzr_stepwise` returns `x` invisibly.
 #' @export
 print.hzr_stepwise <- function(x, ...) {
   cat(paste(x$trace_msg, collapse = "\n"), "\n", sep = "")
@@ -342,13 +352,11 @@ print.hzr_stepwise <- function(x, ...) {
 }
 
 
-#' Summary method for `hzr_stepwise`
-#'
-#' Produces the standard `summary.hazard()` on the final fit, with the
-#' selection trace prepended in the print method.
-#'
+#' @rdname hzr_stepwise
 #' @param object An `hzr_stepwise` object.
-#' @param ... Unused.
+#' @return `summary.hzr_stepwise` returns a `summary.hzr_stepwise` object
+#'   (extends `summary.hazard`) with `$stepwise_steps` and `$stepwise_trace`
+#'   appended.
 #' @export
 summary.hzr_stepwise <- function(object, ...) {
   # Strip the stepwise class so NextMethod dispatches cleanly to
@@ -362,6 +370,8 @@ summary.hzr_stepwise <- function(object, ...) {
 }
 
 
+#' @rdname hzr_stepwise
+#' @return `print.summary.hzr_stepwise` returns `x` invisibly.
 #' @export
 print.summary.hzr_stepwise <- function(x, ...) {
   if (!is.null(x$stepwise_trace)) {
@@ -372,13 +382,8 @@ print.summary.hzr_stepwise <- function(x, ...) {
 }
 
 
-#' Coerce an `hzr_stepwise` result to its selection trace
-#'
-#' Returns the `$steps` data frame so downstream tidyverse / data.table
-#' pipelines can work with the trace directly.
-#'
-#' @param x An `hzr_stepwise` object.
-#' @param ... Ignored.
+#' @rdname hzr_stepwise
+#' @return `as.data.frame.hzr_stepwise` returns the `$steps` data frame.
 #' @export
 as.data.frame.hzr_stepwise <- function(x, ...) {
   x$steps
@@ -393,6 +398,17 @@ as.data.frame.hzr_stepwise <- function(x, ...) {
 #'
 #' @param fit An `hzr_stepwise` object.
 #' @return Character vector, one element per console line.
+#' @examples
+#' data(avc)
+#' avc <- na.omit(avc)
+#' base <- hazard(survival::Surv(int_dead, dead) ~ age,
+#'                data = avc, dist = "weibull", fit = TRUE)
+#' \donttest{
+#' sw <- hzr_stepwise(base, scope = ~ age + nyha,
+#'                    data = avc, direction = "forward",
+#'                    control = list(n_starts = 1))
+#' cat(stepwise_trace(sw), sep = "\n")
+#' }
 #' @export
 stepwise_trace <- function(fit) {
   if (!inherits(fit, "hzr_stepwise")) {

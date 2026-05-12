@@ -2,6 +2,10 @@
 % Please edit documentation in R/stepwise.R
 \name{hzr_stepwise}
 \alias{hzr_stepwise}
+\alias{print.hzr_stepwise}
+\alias{summary.hzr_stepwise}
+\alias{print.summary.hzr_stepwise}
+\alias{as.data.frame.hzr_stepwise}
 \title{Stepwise covariate selection for a parametric hazard model}
 \usage{
 hzr_stepwise(
@@ -19,6 +23,14 @@ hzr_stepwise(
   trace = TRUE,
   ...
 )
+
+\method{print}{hzr_stepwise}(x, ...)
+
+\method{summary}{hzr_stepwise}(object, ...)
+
+\method{print}{summary.hzr_stepwise}(x, ...)
+
+\method{as.data.frame}{hzr_stepwise}(x, ...)
 }
 \arguments{
 \item{fit}{A fitted \code{hazard} object built via the
@@ -62,8 +74,11 @@ considered as candidates.}
 \item{trace}{Logical; print step-by-step progress to the console.
 Default \code{TRUE}.}
 
-\item{...}{Passed to the underlying \code{hazard()} refits (e.g.
-\code{control = list(n_starts = 3)}).}
+\item{...}{Unused.}
+
+\item{x}{An \code{hzr_stepwise} object.}
+
+\item{object}{An \code{hzr_stepwise} object.}
 }
 \value{
 An object of class \code{c("hzr_stepwise", "hazard")} -- the
@@ -80,6 +95,16 @@ captured regardless of the \code{trace} flag.}
 \item{\code{elapsed}}{\code{difftime} from start to finish.}
 \item{\code{final_call}}{The call that produced this result.}
 }
+
+\code{print.hzr_stepwise} returns \code{x} invisibly.
+
+\code{summary.hzr_stepwise} returns a \code{summary.hzr_stepwise} object
+(extends \code{summary.hazard}) with \verb{$stepwise_steps} and \verb{$stepwise_trace}
+appended.
+
+\code{print.summary.hzr_stepwise} returns \code{x} invisibly.
+
+\code{as.data.frame.hzr_stepwise} returns the \verb{$steps} data frame.
 }
 \description{
 Run forward, backward, or two-way stepwise selection on an existing
@@ -104,4 +129,17 @@ computable, regardless of the active criterion.}
 \item{\code{logLik}, \code{aic}, \code{n_coef}}{Goodness-of-fit
 diagnostics of the model \emph{after} this step.}
 }
+}
+\examples{
+data(avc)
+avc <- na.omit(avc)
+base <- hazard(survival::Surv(int_dead, dead) ~ age,
+               data = avc, dist = "weibull", fit = TRUE)
+\donttest{
+sw <- hzr_stepwise(base, scope = ~ age + nyha,
+                   data = avc, direction = "forward",
+                   control = list(n_starts = 1))
+print(sw)
+}
+
 }
