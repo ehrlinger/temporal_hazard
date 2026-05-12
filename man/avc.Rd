@@ -61,7 +61,7 @@ summary(fit)
 \code{vignette("fitting-hazard-models")},
 \code{vignette("prediction-visualization")}
 
-Other datasets: 
+Other datasets:
 \code{\link{cabgkul}},
 \code{\link{omc}},
 \code{\link{tga}},

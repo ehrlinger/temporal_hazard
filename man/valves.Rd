@@ -60,7 +60,7 @@ legend("bottomleft", c("Death", "PVE"), col = c("black", "red"), lty = 1)
 \code{vignette("fitting-hazard-models")},
 \code{vignette("prediction-visualization")}
 
-Other datasets: 
+Other datasets:
 \code{\link{avc}},
 \code{\link{cabgkul}},
 \code{\link{omc}},

@@ -36,7 +36,7 @@ Children's Hospital of Philadelphia. Used for sensitivity analysis and
 internal validation examples.
 }
 \seealso{
-Other datasets: 
+Other datasets:
 \code{\link{avc}},
 \code{\link{cabgkul}},
 \code{\link{omc}},

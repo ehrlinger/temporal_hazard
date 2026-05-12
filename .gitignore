@@ -26,3 +26,4 @@ vignettes/*.R
 /doc/
 /Meta/
 .claude/
+.positai

@@ -29,7 +29,7 @@ University of Alabama Birmingham. Contains repeated thromboembolic events
 censoring likelihood.
 }
 \seealso{
-Other datasets: 
+Other datasets:
 \code{\link{avc}},
 \code{\link{cabgkul}},
 \code{\link{tga}},

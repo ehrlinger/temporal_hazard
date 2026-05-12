@@ -50,7 +50,7 @@ legend("bottomleft", c("KM", "Weibull"), col = c("black", "blue"),
 \seealso{
 \code{vignette("fitting-hazard-models")}
 
-Other datasets: 
+Other datasets:
 \code{\link{avc}},
 \code{\link{omc}},
 \code{\link{tga}},
