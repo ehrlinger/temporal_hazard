@@ -23,6 +23,18 @@ hzr_stepwise(
   trace = TRUE,
   ...
 )
+
+# S3 method for class 'hzr_stepwise'
+print(x, ...)
+
+# S3 method for class 'hzr_stepwise'
+summary(object, ...)
+
+# S3 method for class 'summary.hzr_stepwise'
+print(x, ...)
+
+# S3 method for class 'hzr_stepwise'
+as.data.frame(x, ...)
 ```
 
 ## Arguments
@@ -92,9 +104,15 @@ hzr_stepwise(
 
 - ...:
 
-  Passed to the underlying
-  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
-  refits (e.g. `control = list(n_starts = 3)`).
+  Unused.
+
+- x:
+
+  An `hzr_stepwise` object.
+
+- object:
+
+  An `hzr_stepwise` object.
 
 ## Value
 
@@ -126,6 +144,15 @@ augmented with:
 - `final_call`:
 
   The call that produced this result.
+
+`print.hzr_stepwise` returns `x` invisibly.
+
+`summary.hzr_stepwise` returns a `summary.hzr_stepwise` object (extends
+`summary.hazard`) with `$stepwise_steps` and `$stepwise_trace` appended.
+
+`print.summary.hzr_stepwise` returns `x` invisibly.
+
+`as.data.frame.hzr_stepwise` returns the `$steps` data frame.
 
 ## Details
 
@@ -166,3 +193,29 @@ The `steps` data frame has columns:
 - `logLik`, `aic`, `n_coef`:
 
   Goodness-of-fit diagnostics of the model *after* this step.
+
+## Examples
+
+``` r
+data(avc)
+avc <- na.omit(avc)
+base <- hazard(survival::Surv(int_dead, dead) ~ age,
+               data = avc, dist = "weibull", fit = TRUE)
+# \donttest{
+sw <- hzr_stepwise(base, scope = ~ age + nyha,
+                   data = avc, direction = "forward",
+                   control = list(n_starts = 1))
+#> Stepwise selection (direction = forward, criterion = wald, slentry = 0.30, slstay = 0.20)
+#> 
+#> Warning: Stepwise forward: candidate refit failed for nyha.
+#> (no further action after 0 steps)
+#> 
+#> Final model: 0 covariates, logLik = NA, AIC = NA
+print(sw)
+#> Stepwise selection (direction = forward, criterion = wald, slentry = 0.30, slstay = 0.20)
+#> 
+#> (no further action after 0 steps)
+#> 
+#> Final model: 0 covariates, logLik = NA, AIC = NA
+# }
+```

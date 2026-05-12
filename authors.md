@@ -2,7 +2,7 @@
 
 ## Authors
 
-- **John Ehrlinger**. Author, maintainer.
+- **John Ehrlinger**. Author, maintainer, copyright holder.
 
 ## Citation
 

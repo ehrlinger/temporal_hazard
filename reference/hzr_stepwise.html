@@ -79,7 +79,19 @@ multiphase models: a covariate can enter one phase and not another.</p>
 <span>  force_out <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  trace <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'hzr_stepwise'</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'hzr_stepwise'</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'summary.hzr_stepwise'</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'hzr_stepwise'</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">x</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -152,8 +164,15 @@ Default <code>TRUE</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed to the underlying <code><a href="hazard.html">hazard()</a></code> refits (e.g.
-<code>control = list(n_starts = 3)</code>).</p></dd>
+<dd><p>Unused.</p></dd>
+
+
+<dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
+<dd><p>An <code>hzr_stepwise</code> object.</p></dd>
+
+
+<dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
+<dd><p>An <code>hzr_stepwise</code> object.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -182,7 +201,13 @@ captured regardless of the <code>trace</code> flag.</p></dd>
 <dd><p>The call that produced this result.</p></dd>
 
 
-</dl></div>
+</dl><p><code>print.hzr_stepwise</code> returns <code>x</code> invisibly.</p>
+<p><code>summary.hzr_stepwise</code> returns a <code>summary.hzr_stepwise</code> object
+(extends <code>summary.hazard</code>) with <code>$stepwise_steps</code> and <code>$stepwise_trace</code>
+appended.</p>
+<p><code>print.summary.hzr_stepwise</code> returns <code>x</code> invisibly.</p>
+<p><code>as.data.frame.hzr_stepwise</code> returns the <code>$steps</code> data frame.</p>
+    </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The <code>steps</code> data frame has columns:</p>
@@ -219,6 +244,32 @@ diagnostics of the model <em>after</em> this step.</p></dd>
 
 </dl></div>
 
+    <div class="section level2">
+    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">avc</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">avc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/na.fail.html" class="external-link">na.omit</a></span><span class="op">(</span><span class="va">avc</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">base</span> <span class="op">&lt;-</span> <span class="fu"><a href="hazard.html">hazard</a></span><span class="op">(</span><span class="fu">survival</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">int_dead</span>, <span class="va">dead</span><span class="op">)</span> <span class="op">~</span> <span class="va">age</span>,</span></span>
+<span class="r-in"><span>               data <span class="op">=</span> <span class="va">avc</span>, dist <span class="op">=</span> <span class="st">"weibull"</span>, fit <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="va">sw</span> <span class="op">&lt;-</span> <span class="fu">hzr_stepwise</span><span class="op">(</span><span class="va">base</span>, scope <span class="op">=</span> <span class="op">~</span> <span class="va">age</span> <span class="op">+</span> <span class="va">nyha</span>,</span></span>
+<span class="r-in"><span>                   data <span class="op">=</span> <span class="va">avc</span>, direction <span class="op">=</span> <span class="st">"forward"</span>,</span></span>
+<span class="r-in"><span>                   control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Stepwise selection (direction = forward, criterion = wald, slentry = 0.30, slstay = 0.20)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Stepwise forward: candidate refit failed for nyha.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (no further action after 0 steps)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Final model: 0 covariates, logLik = NA, AIC = NA</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">sw</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Stepwise selection (direction = forward, criterion = wald, slentry = 0.30, slstay = 0.20)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (no further action after 0 steps)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Final model: 0 covariates, logLik = NA, AIC = NA</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
+<span class="r-in"><span></span></span>
+</code></pre></div>
+    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 
