@@ -2,7 +2,7 @@
 
 **Source:** `~/Documents/GitHub/hazard/examples/` (18 paired `.sas`/`.lst` fixtures)
 **Capture vintage:** v4.4.6 macOS (refreshed 2026-05-12)
-**Status:** Inventory drafted 2026-05-11; awaiting v4.4.6 captures to finalize reference values.
+**Status:** Complete. Captures finalized 2026-05-12; all 54 parity expectations passing.
 
 ## Scope summary
 
@@ -91,7 +91,7 @@ step reproduced in `.hzr_derive_primisol()`; raw file discovered at
 `~/Documents/GitHub/hazard/examples/data/omc`; n_obs=382 / n_events=44
 verified against SAS.
 
-**Parity tests** at `tests/testthat/test-sas-parity.R` — **51/51 PASS**:
+**Parity tests** at `tests/testthat/test-sas-parity.R` — **54/54 PASS**:
 - `hz.deadp.KUL` (3-phase all-fixed, 3 free): LL=−3740.52, MUE/MUC/MUL
   natural-scale, SE(E0/C0/L0), 3 off-diagonal vcov entries (14 expectations).
 - `hz.death.AVC` (2-phase free-shape Early): LL=−210.501,
