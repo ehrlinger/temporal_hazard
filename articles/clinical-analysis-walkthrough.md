@@ -417,29 +417,29 @@ summary(fit_mv)
 #>   phase 2:      constant - constant (flat rate)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
-#>   log-lik:      -190.808 
-#>   evaluations: fn=11, gr=1
+#>   log-lik:      -189.732 
+#>   evaluations: fn=164, gr=33
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                  estimate  std_error    z_stat     p_value
-#>   log_mu     -3.605695584        NaN        NA          NA
-#>   log_t_half -0.693147181         NA        NA          NA
-#>   nu          1.000000000         NA        NA          NA
-#>   m           1.000000000         NA        NA          NA
-#>   age        -0.002934522 0.00146656 -2.000956 0.045397123
-#>   status      0.619850638        NaN        NA          NA
-#>   mal         0.467467697 0.17964265  2.602209 0.009262544
-#>   com_iv      1.162696955        NaN        NA          NA
+#>                  estimate   std_error    z_stat     p_value
+#>   log_mu     -3.670277643         NaN        NA          NA
+#>   log_t_half -0.693147181          NA        NA          NA
+#>   nu          1.000000000          NA        NA          NA
+#>   m           1.000000000          NA        NA          NA
+#>   age        -0.002777212 0.001422981 -1.951686 0.050975491
+#>   status      0.624532178         NaN        NA          NA
+#>   mal         0.501958286 0.173601074  2.891447 0.003834724
+#>   com_iv      1.200938812         NaN        NA          NA
 #> 
 #>   Phase: constant (constant)
-#>               estimate   std_error     z_stat    p_value
-#>   log_mu -9.6560397496          NA         NA         NA
-#>   age    -0.0008940274 0.002475644 -0.3611292 0.71800288
-#>   status  1.0450950870 0.454449391  2.2996952 0.02146549
-#>   mal     0.6012599050 1.088336795  0.5524576 0.58063489
-#>   com_iv -1.0598349603 1.211734851 -0.8746426 0.38176838
+#>              estimate    std_error     z_stat     p_value
+#>   log_mu -9.653510251           NA         NA          NA
+#>   age    -0.001585052  0.002407578 -0.6583595 0.510307183
+#>   status  1.155575345  0.409541596  2.8216312 0.004778009
+#>   mal     0.658509525  1.130542859  0.5824720 0.560248817
+#>   com_iv -7.486777892 21.854535605 -0.3425732 0.731919577
 ```
 
 The coefficient table shows phase-specific covariate effects. A positive
@@ -453,8 +453,8 @@ The manual approach works when screening has already narrowed the
 candidate pool, but with a larger pool it helps to let the model choose.
 [`hzr_stepwise()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_stepwise.md)
 runs forward, backward, or two-way selection against an existing
-`hazard` fit, scoring candidates with Wald p-values or ΔAIC. Defaults
-match SAS `PROC HAZARD` (`SLENTRY = 0.30`, `SLSTAY = 0.20`).
+`hazard` fit, scoring candidates with Wald p-values or delta-AIC.
+Defaults match SAS `PROC HAZARD` (`SLENTRY = 0.30`, `SLSTAY = 0.20`).
 
 We start from a baseline with no covariates, offer the same screened
 candidate pool, and let the algorithm decide. For multiphase models the
@@ -530,7 +530,7 @@ c(manual = logLik_manual, stepwise = logLik_step,
   aic_manual = 2 * length(fit_mv$fit$theta) - 2 * logLik_manual,
   aic_step   = 2 * length(fit_step$fit$theta) - 2 * logLik_step)
 #>     manual   stepwise aic_manual   aic_step 
-#>  -190.8075  -192.1031   407.6150   404.2062
+#>  -189.7321  -192.1031   405.4643   404.2062
 ```
 
 When the screening and stepwise agree on the same covariate set the
@@ -668,32 +668,32 @@ cal <- hzr_deciles(fit_mv, time = max(avc$int_dead))
 print(cal)
 #> Decile-of-risk calibration at time = 170.5826 
 #> Included 68 observations (excluded 237 censored before horizon).
-#> 10 groups, 68 observed events, 29.9 expected
+#> 10 groups, 68 observed events, 28.2 expected
 #> 
 #>  group n events expected observed_rate expected_rate chi_sq  p_value
-#>      1 6      6    0.849             1         0.142 31.200 2.29e-08
-#>      2 7      7    1.800             1         0.258 15.000 1.09e-04
-#>      3 7      7    2.040             1         0.292 12.100 5.18e-04
-#>      4 7      7    2.390             1         0.342  8.870 2.89e-03
-#>      5 7      7    2.710             1         0.388  6.770 9.25e-03
-#>      6 6      6    2.470             1         0.412  5.050 2.46e-02
-#>      7 7      7    3.250             1         0.464  4.330 3.74e-02
-#>      8 7      7    3.830             1         0.547  2.630 1.05e-01
-#>      9 7      7    4.770             1         0.682  1.040 3.08e-01
-#>     10 7      7    5.780             1         0.826  0.255 6.13e-01
+#>      1 6      6    0.815             1         0.136 33.000 9.28e-09
+#>      2 7      7    1.680             1         0.239 16.900 3.90e-05
+#>      3 7      7    2.070             1         0.295 11.800 5.97e-04
+#>      4 7      7    2.500             1         0.357  8.120 4.37e-03
+#>      5 7      7    2.650             1         0.378  7.160 7.44e-03
+#>      6 6      6    2.390             1         0.398  5.460 1.95e-02
+#>      7 7      7    2.910             1         0.415  5.770 1.63e-02
+#>      8 7      7    3.480             1         0.496  3.580 5.86e-02
+#>      9 7      7    4.320             1         0.617  1.660 1.97e-01
+#>     10 7      7    5.420             1         0.775  0.459 4.98e-01
 #>  mean_survival mean_cumhaz
-#>          0.858       0.153
-#>          0.742       0.298
-#>          0.708       0.345
-#>          0.658       0.418
-#>          0.612       0.491
-#>          0.588       0.530
-#>          0.536       0.624
-#>          0.453       0.800
-#>          0.318       1.150
-#>          0.174       1.820
+#>          0.864       0.146
+#>          0.761       0.274
+#>          0.705       0.351
+#>          0.643       0.441
+#>          0.622       0.475
+#>          0.602       0.508
+#>          0.585       0.536
+#>          0.504       0.693
+#>          0.383       0.962
+#>          0.225       1.520
 #> 
-#> Overall: chi-sq = 87.2 on 9 df, p = 5.9e-15
+#> Overall: chi-sq = 93.9 on 9 df, p = 2.68e-16
 ```
 
 ``` r
@@ -737,9 +737,9 @@ print(gof)
 #> Distribution: multiphase  | n = 305 
 #> 
 #> Total observed events: 68 
-#> Total expected events: 43.062 
-#> Final residual (E - O): -24.938 
-#> Conservation ratio (E/O): 0.633 
+#> Total expected events: 37.921 
+#> Final residual (E - O): -30.079 
+#> Conservation ratio (E/O): 0.558 
 #> 
 #> Use plot columns: time, km_surv, par_surv, cum_observed, cum_expected, residual
 ```

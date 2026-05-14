@@ -71,7 +71,7 @@ ggplot(avc, aes(age, dead)) +
 
 Figure 1: Exploratory: age vs. mortality with LOESS smooth
 
-The LOESS smooth reveals the functional form of each covariate’s
+The LOESS smooth reveals the functional form of each covariate
 relationship to mortality, guiding decisions about transformations (log,
 polynomial) before the hazard model.
 
