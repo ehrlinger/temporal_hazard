@@ -56,7 +56,7 @@ This is the R equivalent of the SAS \code{logit.sas} and \code{logitgr.sas}
 macros.
 }
 \details{
-Use this function before model entry to assess whether a covariate's
+Use this function before model entry to assess whether the covariate
 relationship with the outcome is approximately linear on the link
 scale. If the transformed probabilities are roughly linear against
 the group means, the covariate can enter the model untransformed.

@@ -21,6 +21,7 @@ Description: Provides native R implementations of the multiphase parametric
     later be accelerated with 'Rcpp' without changing the public interface.
 License: MIT + file LICENSE
 Encoding: UTF-8
+Language: en-US
 Roxygen: list(markdown = TRUE)
 VignetteBuilder: quarto
 Depends: R (>= 4.1.0)

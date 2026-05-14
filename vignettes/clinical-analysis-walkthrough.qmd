@@ -342,7 +342,7 @@ The manual approach works when screening has already narrowed the
 candidate pool, but with a larger pool it helps to let the model
 choose.  `hzr_stepwise()` runs forward, backward, or two-way
 selection against an existing `hazard` fit, scoring candidates with
-Wald p-values or ΔAIC.  Defaults match SAS `PROC HAZARD`
+Wald p-values or delta-AIC.  Defaults match SAS `PROC HAZARD`
 (`SLENTRY = 0.30`, `SLSTAY = 0.20`).
 
 We start from a baseline with no covariates, offer the same screened

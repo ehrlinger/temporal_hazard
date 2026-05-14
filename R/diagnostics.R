@@ -761,7 +761,7 @@ print.hzr_kaplan <- function(x, digits = 4, n = 20, ...) {
 #' This is the R equivalent of the SAS `logit.sas` and `logitgr.sas`
 #' macros.
 #'
-#' Use this function before model entry to assess whether a covariate's
+#' Use this function before model entry to assess whether the covariate
 #' relationship with the outcome is approximately linear on the link
 #' scale. If the transformed probabilities are roughly linear against
 #' the group means, the covariate can enter the model untransformed.
