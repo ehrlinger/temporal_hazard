@@ -18,9 +18,9 @@ and this R implementation.
 **John Ehrlinger, Ph.D.**
 Department of Thoracic and Cardiovascular Surgery, Cleveland Clinic Foundation.
 GitHub: [ehrlinger](https://github.com/ehrlinger)
-Original R implementation of the multiphase parametric hazard model. Package
-author and maintainer; CI infrastructure, SAS parity test suite, and all
-releases of TemporalHazard.
+Built the TemporalHazard R package from the original R implementation by
+Rajeswaran and Fang. Package author and maintainer; public API design, CI
+infrastructure, SAS parity test suite, and all releases of TemporalHazard.
 
 ---
 
@@ -43,13 +43,16 @@ separate stream of concomitant information." *J Am Stat Assoc* 1986;81:615–624
 
 **Jeevanantham Rajeswaran, Ph.D.**
 Department of Quantitative Health Sciences, Cleveland Clinic Foundation.
-Generalized temporal decomposition for longitudinal mixed-effects settings.
-Co-author: Rajeswaran J, Blackstone EH, et al., "A multi-phase hazard model
-for the occurrence of adverse events after cardiac surgery from a longitudinal
-cohort study of patients with heart failure."
-*Stat Methods Med Res* 2018;27(10):3012–3024.
+Original R implementation of the generalized parametric hazard phase model,
+which forms the computational foundation of this package. Generalized temporal
+decomposition for longitudinal mixed-effects settings. Co-author: Rajeswaran J,
+Blackstone EH, et al., "A multi-phase hazard model for the occurrence of adverse
+events after cardiac surgery from a longitudinal cohort study of patients with
+heart failure." *Stat Methods Med Res* 2018;27(10):3012–3024.
 
 **Michelle Fang**
 Cleveland Clinic Lerner College of Medicine (CCLCM).
 Medical student, research year at Cardiovascular Outcomes, Registries and
 Research (CORR), Cleveland Clinic Foundation.
+Significant contributions to the original R implementation of the generalized
+hazard phase model.
