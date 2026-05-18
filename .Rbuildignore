@@ -19,7 +19,6 @@
 ^docs$
 ^vignettes/\.quarto$
 ^vignettes/.*_files$
-^HANDOFF\.md$
 ^MULTIPHASE_PLAN\.md$
 ^data-raw$
 ^cran-comments\.md$
@@ -27,3 +26,4 @@
 ^doc$
 ^Meta$
 ^\.positai$
+^CRAN-SUBMISSION$
