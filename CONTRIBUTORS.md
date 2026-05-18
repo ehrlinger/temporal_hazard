@@ -2,11 +2,10 @@
 
 ## Package Development
 
-**John Ehrlinger** *(Author & Maintainer)* Lead Data Scientist,
-Cardiovascular Outcomes, Registries and Research (CORR) Department of
-Cardiothoracic Surgery, Heart, Vascular and Thoracic Institute Cleveland
-Clinic Foundation Original R implementation; package author and
-maintainer.
+**John Ehrlinger** Lead Data Scientist, Cardiovascular Outcomes,
+Registries and Research (CORR) Department of Cardiothoracic Surgery,
+Heart, Vascular and Thoracic Institute Cleveland Clinic Foundation
+Package author, maintainer, and R implementation.
 
 **Michelle Fang** Biostatistician, Cardiovascular Outcomes, Registries
 and Research (CORR) Cleveland Clinic Foundation
