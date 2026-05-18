@@ -436,6 +436,11 @@ HAZARD system. Goal: high confidence in both codebases for the model types
 that appear in clinical production, not just the curated examples shipped
 with the C source.
 
+> **Cross-codebase note:** These items are logged in both this document and
+> `docs/PRODUCTION-TEST-PLAN.md` in the `hazard` C/SAS repo. A single `.lst`
+> reference output validates both codebases simultaneously. CCF-local fixtures
+> live at `tests/production/` (gitignored) in the hazard repo.
+
 ### 7a. Rajeswaran / Blackstone Production Model Parity
 
 **Contact:** Rajeswaran (Rajes) at CCF — has the "hard" production hazard
@@ -569,3 +574,11 @@ Items that would improve the package beyond SAS parity.
 | hazard | `~/Documents/GitHub/hazard/` | Original C/SAS source code |
 | mixhazard | `~/Documents/GitHub/mixhazard/` | Generalized decompos() R source |
 | hvtiPlotR | `~/Documents/GitHub/hvtiPlotR/` | Survival plotting companion package |
+
+## Cross-codebase documents
+
+| Document | Location | Purpose |
+|:---|:---|:---|
+| Production test plan | `hazard/docs/PRODUCTION-TEST-PLAN.md` | CCF-local fixture collection plan; shared `.lst` validates both codebases |
+| hazard corpus acceptance | `hazard/docs/VALIDATION_PLAN.md` | Public example corpus + black-box harness |
+| hazard v4.4.6 plan | `hazard/docs/superpowers/plans/2026-04-29-v4.4.6-implementation-plan.md` | v4.4.6 implementation tasks |
