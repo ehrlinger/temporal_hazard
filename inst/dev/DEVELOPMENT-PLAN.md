@@ -489,6 +489,40 @@ Additional coverage needed to close confidence gaps:
 - Distinct from KUL (Belgium/Leuven) which is already the canonical
   3-phase example; Sargent adds a second independent CABG validation
 
+**Acute aortic dissection — 4-phase model**
+- First package example exercising a 4-phase decomposition end-to-end
+- Clinical phase structure:
+  1. **Operative** (G1/CDF): very high immediate hazard, hours to days
+  2. **Early** (G1/CDF): subacute complications, weeks to ~90 days
+  3. **Constant** (G2): background mortality plateau
+  4. **Late** (G3): structural deterioration, false-lumen expansion,
+     reoperation risk rising with time
+- Data source candidates: IRAD (International Registry of Acute Aortic
+  Dissection) published series; large single-center Type A repair
+  publications with parameter estimates; or CCF internal series
+- Value: first real test of 4-phase optimizer convergence, CoE algebra
+  with 4 phases, and `predict(..., decompose = TRUE)` output at scale
+- Actionable: identify published paper with LL + MLE table, or request
+  SAS driver from Blackstone/CCF production library
+
+### 7d. Code Areas Requiring Deeper Examination
+
+The following components are implemented but have limited parity coverage
+or known numerical gaps. Priority order for investigation:
+
+| Area | Risk | Status |
+|---|---|---|
+| **4-phase CoE algebra** | `.hzr_select_fixmu_phase()` selects one constrained phase from N; behavior with N=4 untested | No test |
+| **`hzr_decompos()` near-boundary cases** | Sign dispatch has 6 cases; edge values (nu≈0, m≈0, t_half→0, t_half→∞) may fall between branches | Partial — Case 2L verified |
+| **Phase-specific covariates** | `hzr_phase(formula = ~)` ships but no SAS parity fixture exercises it | No parity test |
+| **`hzr_stepwise()` on multiphase** | Phase-specific variable entry path — no parity test against SAS SELECTION | No parity test |
+| **`hzr_bootstrap()` with weights** | Non-unit weights path through bootstrap resampling untested | No test |
+| **`predict(..., decompose=TRUE, se.fit=TRUE)`** | Currently blocked with clean error — delta-method Jacobian needs per-phase extension | Blocked |
+| **Interval censoring under multiphase** | Code path exists; no real-data or SAS parity fixture | No parity test |
+| **Hessian stability at 12+ parameters** | Numerical Hessian inversion can become ill-conditioned; `hm.death.AVC.deciles` (13 params) passes but borderline | Passing, fragile |
+| **`hzr_competing_risks()` with weights** | Greenwood variance with case weights not tested | No test |
+| **Weighted multiphase + covariates** | All weighted parity tests are intercept-only; covariate + weight combination untested | No test |
+
 ---
 
 ## Phase 8: Performance and Extensions — FUTURE
