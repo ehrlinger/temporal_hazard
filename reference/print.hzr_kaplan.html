@@ -82,7 +82,21 @@
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>The object <code>x</code>, invisibly.</p>
+    <p>The object <code>x</code> of class <code>c("hzr_kaplan", "data.frame")</code>,
+invisibly. The data frame has one row per event time (or all times when
+<code>event_only = FALSE</code>) and columns:
+<code>time</code> (follow-up time),
+<code>n_risk</code> (number at risk),
+<code>n_event</code> (events in interval),
+<code>n_censor</code> (censored observations in interval),
+<code>survival</code> (Kaplan-Meier survival estimate),
+<code>std_err</code> (Greenwood standard error on log-hazard scale),
+<code>cl_lower</code>, <code>cl_upper</code> (logit-transformed confidence limits
+on the survival scale),
+<code>cumhaz</code> (Nelson-Aalen cumulative hazard),
+<code>hazard</code> (interval hazard estimate),
+<code>density</code> (estimated event density),
+<code>life</code> (life-table life expectancy contribution).</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -78,7 +78,19 @@
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>The object <code>x</code>, invisibly.</p>
+    <p>The object <code>x</code> of class <code>c("hzr_gof", "data.frame")</code>,
+invisibly. The data frame has one row per time point and columns:
+<code>time</code>, <code>n_risk</code>, <code>n_event</code>, <code>n_censor</code>,
+<code>km_surv</code> (Kaplan-Meier survival), <code>km_cumhaz</code>,
+<code>par_surv</code> (parametric survival), <code>par_cumhaz</code>,
+<code>cum_observed</code> (cumulative observed events),
+<code>cum_expected</code> (cumulative expected events from model),
+<code>residual</code> (cum_expected - cum_observed).
+Multiphase models additionally include <code>par_cumhaz_&lt;phase&gt;</code> columns
+for per-phase cumulative hazard contributions.
+A <code>"summary"</code> attribute contains scalar diagnostics:
+<code>total_observed</code>, <code>total_expected</code>, <code>final_residual</code>,
+<code>dist</code>, <code>n</code>.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

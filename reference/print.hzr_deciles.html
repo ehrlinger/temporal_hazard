@@ -78,7 +78,20 @@
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>The object <code>x</code>, invisibly.</p>
+    <p>The object <code>x</code> of class <code>c("hzr_deciles", "data.frame")</code>,
+invisibly. The data frame has one row per risk group and columns:
+<code>group</code> (integer group index, 1 = lowest risk),
+<code>n</code> (group size),
+<code>events</code> (observed event count),
+<code>expected</code> (expected event count from model predictions),
+<code>observed_rate</code>, <code>expected_rate</code> (events / n),
+<code>chi_sq</code> (per-group (O-E)^2/E contribution),
+<code>p_value</code> (1-df chi-square upper-tail p),
+<code>mean_survival</code>, <code>mean_cumhaz</code> (mean predicted values in group).
+An <code>"overall"</code> attribute contains the omnibus chi-square test
+(fields: <code>chi_sq</code>, <code>df</code>, <code>p_value</code>, <code>time</code>,
+<code>groups</code>, <code>total_events</code>, <code>total_expected</code>,
+<code>n_included</code>, <code>n_excluded</code>).</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

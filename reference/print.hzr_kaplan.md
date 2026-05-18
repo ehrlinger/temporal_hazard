@@ -29,4 +29,13 @@ print(x, digits = 4, n = 20, ...)
 
 ## Value
 
-The object `x`, invisibly.
+The object `x` of class `c("hzr_kaplan", "data.frame")`, invisibly. The
+data frame has one row per event time (or all times when
+`event_only = FALSE`) and columns: `time` (follow-up time), `n_risk`
+(number at risk), `n_event` (events in interval), `n_censor` (censored
+observations in interval), `survival` (Kaplan-Meier survival estimate),
+`std_err` (Greenwood standard error on log-hazard scale), `cl_lower`,
+`cl_upper` (logit-transformed confidence limits on the survival scale),
+`cumhaz` (Nelson-Aalen cumulative hazard), `hazard` (interval hazard
+estimate), `density` (estimated event density), `life` (life-table life
+expectancy contribution).
