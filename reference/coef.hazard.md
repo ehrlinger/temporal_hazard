@@ -19,6 +19,11 @@ coef(object, ...)
 
   Unused; for S3 compatibility.
 
+## Value
+
+A named numeric vector of fitted parameter estimates, or `NULL` if the
+model has not been fitted (`fit = FALSE`).
+
 ## Examples
 
 ``` r

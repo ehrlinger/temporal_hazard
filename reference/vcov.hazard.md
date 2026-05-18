@@ -20,6 +20,12 @@ vcov(object, ...)
 
   Unused; for S3 compatibility.
 
+## Value
+
+A numeric matrix containing the estimated variance-covariance matrix of
+the fitted coefficients, or `NA` if the model has not been fitted or the
+covariance matrix is unavailable.
+
 ## Examples
 
 ``` r

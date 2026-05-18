@@ -1,5 +1,27 @@
 # Changelog
 
+## TemporalHazard 1.0.1
+
+### Bug fixes / CRAN compliance
+
+- Added `\value` documentation to all exported functions that were
+  missing it:
+  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md),
+  [`coef.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/coef.hazard.md),
+  [`vcov.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/vcov.hazard.md),
+  [`print.hzr_calibrate()`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_calibrate.md),
+  [`print.hzr_deciles()`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_deciles.md),
+  [`print.hzr_gof()`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_gof.md),
+  and
+  [`print.hzr_kaplan()`](https://ehrlinger.github.io/temporal_hazard/reference/print.hzr_kaplan.md).
+- Internal fixture generators (`R/golden_fixtures.R`) no longer set a
+  specific seed unconditionally. Generators now accept an optional
+  `seed` argument; when provided, the global RNG state is saved and
+  restored via [`on.exit()`](https://rdrr.io/r/base/on.exit.html).
+- Default `output_dir` for fixture generators falls back to
+  [`tempdir()`](https://rdrr.io/r/base/tempfile.html) instead of the
+  package source directory, keeping the home filespace unmodified.
+
 ## TemporalHazard 0.9.8
 
 ### New features

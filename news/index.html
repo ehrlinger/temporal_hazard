@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,6 +49,15 @@
       <small>Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.0.1" id="temporalhazard-101">TemporalHazard 1.0.1<a class="anchor" aria-label="anchor" href="#temporalhazard-101"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes--cran-compliance-1-0-1">Bug fixes / CRAN compliance<a class="anchor" aria-label="anchor" href="#bug-fixes--cran-compliance-1-0-1"></a></h3>
+<ul><li>Added <code>\value</code> documentation to all exported functions that were missing it: <code><a href="../reference/hazard.html">hazard()</a></code>, <code><a href="../reference/coef.hazard.html">coef.hazard()</a></code>, <code><a href="../reference/vcov.hazard.html">vcov.hazard()</a></code>, <code><a href="../reference/print.hzr_calibrate.html">print.hzr_calibrate()</a></code>, <code><a href="../reference/print.hzr_deciles.html">print.hzr_deciles()</a></code>, <code><a href="../reference/print.hzr_gof.html">print.hzr_gof()</a></code>, and <code><a href="../reference/print.hzr_kaplan.html">print.hzr_kaplan()</a></code>.</li>
+<li>Internal fixture generators (<code>R/golden_fixtures.R</code>) no longer set a specific seed unconditionally. Generators now accept an optional <code>seed</code> argument; when provided, the global RNG state is saved and restored via <code><a href="https://rdrr.io/r/base/on.exit.html" class="external-link">on.exit()</a></code>.</li>
+<li>Default <code>output_dir</code> for fixture generators falls back to <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code> instead of the package source directory, keeping the home filespace unmodified.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.9.8" id="temporalhazard-098">TemporalHazard 0.9.8<a class="anchor" aria-label="anchor" href="#temporalhazard-098"></a></h2>
 <div class="section level3">

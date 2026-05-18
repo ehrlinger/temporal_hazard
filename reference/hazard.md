@@ -107,6 +107,15 @@ hazard(
   Additional named arguments retained for parity with legacy calling
   conventions.
 
+## Value
+
+An object of class `hazard`, a named list with components: `call` (the
+matched call), `spec` (model specification: `dist`, `control`,
+`time_windows`, `phases`), `data` (input data: `time`, `status`, `x`,
+`weights`, etc.), `fit` (optimisation results: `theta`, `objective`,
+`converged`, `se`, `vcov`, `counts`, `message`; all `NULL` when
+`fit = FALSE`), and `engine` (implementation tag, `"native-r-m2"`).
+
 ## Details
 
 Control parameters:

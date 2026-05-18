@@ -6,5 +6,5 @@ results as a golden fixture for validation.
 ## Usage
 
 ``` r
-.hzr_create_loglogistic_golden_fixture(output_dir = NULL)
+.hzr_create_loglogistic_golden_fixture(output_dir = NULL, seed = NULL)
 ```

@@ -7,5 +7,5 @@ testing of the optimizer.
 ## Usage
 
 ``` r
-.hzr_create_multiphase_golden_fixture(output_dir = NULL)
+.hzr_create_multiphase_golden_fixture(output_dir = NULL, seed = NULL)
 ```

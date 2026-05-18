@@ -26,3 +26,7 @@ print(x, digits = 4, n = 20, ...)
 - ...:
 
   Additional arguments (ignored).
+
+## Value
+
+The object `x`, invisibly.

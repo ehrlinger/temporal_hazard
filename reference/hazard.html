@@ -13,7 +13,7 @@ optimize to produce fitted estimates."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -161,6 +161,19 @@ Implements the SAS <code>WEIGHT</code> statement.</p></dd>
 conventions.</p></dd>
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
+    <p>An object of class <code>hazard</code>, a named list with components:
+<code>call</code> (the matched call),
+<code>spec</code> (model specification: <code>dist</code>, <code>control</code>,
+<code>time_windows</code>, <code>phases</code>),
+<code>data</code> (input data: <code>time</code>, <code>status</code>, <code>x</code>,
+<code>weights</code>, etc.),
+<code>fit</code> (optimisation results: <code>theta</code>, <code>objective</code>,
+<code>converged</code>, <code>se</code>, <code>vcov</code>, <code>counts</code>, <code>message</code>;
+all <code>NULL</code> when <code>fit = FALSE</code>),
+and <code>engine</code> (implementation tag, <code>"native-r-m2"</code>).</p>
+    </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Control parameters:</p><ul><li><p><code>maxit</code>: Maximum iterations (default 1000)</p></li>
