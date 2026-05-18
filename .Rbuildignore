@@ -10,8 +10,6 @@
 ^inst/dev$
 ^.*\.Rproj$
 ^_pkgdown\.yml$
-^M2-STATUS\.md$
-^M3-STATUS\.md$
 ^vignettes/.*\.html$
 ^inst/bin/hazard$
 ^inst/bin/hazard\.exe$
@@ -19,7 +17,6 @@
 ^docs$
 ^vignettes/\.quarto$
 ^vignettes/.*_files$
-^MULTIPHASE_PLAN\.md$
 ^data-raw$
 ^cran-comments\.md$
 ^\.lintr$

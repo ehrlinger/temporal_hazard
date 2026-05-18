@@ -38,7 +38,6 @@ roxygen2, testthat).
 - Golden fixture regression tests and C binary parity infrastructure
 - 7 Quarto vignettes covering getting started through mathematical foundations
 
-**Detail:** `MIGRATION-STATUS.md`
 
 ---
 
@@ -78,7 +77,6 @@ function for phase j.
 | `R/likelihood-multiphase.R` | Likelihood, gradient, multi-start optimizer |
 | `R/hazard_api.R` | Multiphase dispatch, predict decompose, summary |
 
-**Detail:** `MULTIPHASE_PLAN.md`
 
 ---
 
@@ -560,8 +558,6 @@ Items that would improve the package beyond SAS parity.
 
 | File | Purpose |
 |:---|:---|
-| `inst/dev/MIGRATION-STATUS.md` | Phase 1 milestone detail and reconciliation |
-| `inst/dev/MULTIPHASE_PLAN.md` | Phase 2 architecture, math, API design, build order |
 | `inst/dev/SAS-PARITY-GAP-ANALYSIS.md` | Phase 4 feature-by-feature gap analysis with C/SAS code references |
 | `HANDOFF.md` | Session-to-session context transfer (top-level, .Rbuildignored) |
 | `NEWS.md` | User-facing changelog |
