@@ -6,10 +6,12 @@
 Lead Data Scientist, Cardiovascular Outcomes, Registries and Research (CORR)
 Department of Cardiothoracic Surgery, Heart, Vascular and Thoracic Institute
 Cleveland Clinic Foundation
+GitHub: [ehrlinger](https://github.com/ehrlinger)
 Original R implementation; package author and maintainer.
 
 **Michelle Fang**
-Biostatistician, Cardiovascular Outcomes, Registries and Research (CORR)
+Medical Student, Cleveland Clinic Lerner College of Medicine (CCLCM)
+Research year, Cardiovascular Outcomes, Registries and Research (CORR)
 Cleveland Clinic Foundation
 
 ---
@@ -19,6 +21,7 @@ Cleveland Clinic Foundation
 **Eugene H. Blackstone**
 Department of Cardiothoracic Surgery, Cleveland Clinic Foundation
 (formerly University of Alabama at Birmingham)
+GitHub: [ehblackstone](https://github.com/ehblackstone)
 Original multiphase parametric hazard model (Blackstone, Naftel & Turner 1986);
 ongoing development and maintenance of the C/SAS HAZARD program at Cleveland Clinic.
 
