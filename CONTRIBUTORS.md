@@ -1,54 +1,55 @@
-# Contributors
+# Authors and Contributors
 
-## Package Development
+---
 
-**John Ehrlinger** *(Author & Maintainer)*
-Lead Data Scientist, Cardiovascular Outcomes, Registries and Research (CORR)
-Department of Cardiothoracic Surgery, Heart, Vascular and Thoracic Institute
-Cleveland Clinic Foundation
+## Principal Investigator
+
+**Eugene H. Blackstone, M.D.**
+Department of Thoracic and Cardiovascular Surgery, Cleveland Clinic Foundation.
+GitHub: [ehblackstone](https://github.com/ehblackstone)
+Principal architect of the HAZARD system from inception in 1985 to the present.
+Senior author guiding all phases of development of both the C/SAS HAZARD program
+and this R implementation.
+
+---
+
+## Author & Maintainer
+
+**John Ehrlinger, Ph.D.**
+Department of Thoracic and Cardiovascular Surgery, Cleveland Clinic Foundation.
 GitHub: [ehrlinger](https://github.com/ehrlinger)
-Original R implementation; package author and maintainer.
+Original R implementation of the multiphase parametric hazard model. Package
+author and maintainer; CI infrastructure, SAS parity test suite, and all
+releases of TemporalHazard.
+
+---
+
+## Contributing Authors
+
+**Malcolm E. Turner Jr., Ph.D.**
+Department of Biomathematics and Biostatistics, University of Alabama at Birmingham.
+Originator of the three-phase parametric hazard model and the Conservation of Events
+theorem (notes of February 14, 1985). Co-author: Blackstone EH, Naftel DC,
+Turner ME Jr., "The decomposition of time-varying hazard into phases, each
+incorporating a separate stream of concomitant information."
+*J Am Stat Assoc* 1986;81:615–624.
+
+**David C. Naftel, M.S.**
+Department of Surgery, University of Alabama at Birmingham.
+Co-developer of the decomposition of time-varying hazard into early, constant,
+and late phases. Co-author: Blackstone EH, Naftel DC, Turner ME Jr.,
+"The decomposition of time-varying hazard into phases, each incorporating a
+separate stream of concomitant information." *J Am Stat Assoc* 1986;81:615–624.
+
+**Jeevanantham Rajeswaran, Ph.D.**
+Department of Quantitative Health Sciences, Cleveland Clinic Foundation.
+Generalized temporal decomposition for longitudinal mixed-effects settings.
+Co-author: Rajeswaran J, Blackstone EH, et al., "A multi-phase hazard model
+for the occurrence of adverse events after cardiac surgery from a longitudinal
+cohort study of patients with heart failure."
+*Stat Methods Med Res* 2018;27(10):3012–3024.
 
 **Michelle Fang**
-Medical Student, Cleveland Clinic Lerner College of Medicine (CCLCM)
-Research year, Cardiovascular Outcomes, Registries and Research (CORR)
-Cleveland Clinic Foundation
-
----
-
-## Methodology
-
-**Eugene H. Blackstone**
-Department of Cardiothoracic Surgery, Cleveland Clinic Foundation
-(formerly University of Alabama at Birmingham)
-GitHub: [ehblackstone](https://github.com/ehblackstone)
-Original multiphase parametric hazard model (Blackstone, Naftel & Turner 1986);
-ongoing development and maintenance of the C/SAS HAZARD program at Cleveland Clinic.
-
-**David C. Naftel**
-(formerly University of Alabama at Birmingham)
-Original multiphase parametric hazard model (Blackstone, Naftel & Turner 1986).
-
-**M. E. Turner Jr.**
-(formerly University of Alabama at Birmingham)
-Original multiphase parametric hazard model (Blackstone, Naftel & Turner 1986).
-
-**Jeevanantham Rajeswaran**
-Department of Quantitative Health Sciences, Cleveland Clinic Foundation
-Generalized temporal decomposition for longitudinal mixed-effects settings
-(Rajeswaran et al. 2018 <doi:10.1177/0962280215623583>).
-
----
-
-## References
-
-Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying hazard into
-phases, each incorporating a separate stream of concomitant information.
-*Journal of the American Statistical Association* 1986;81(395):615–624.
-<doi:10.1080/01621459.1986.10478314>
-
-Rajeswaran J, Blackstone EH, Ehrlinger J, Gonzalez-Stawinski GV, Pettersson GB.
-A multi-phase hazard model for the occurrence of adverse events after cardiac surgery
-from a longitudinal cohort study of patients with heart failure.
-*Statistical Methods in Medical Research* 2018;27(10):3012–3024.
-<doi:10.1177/0962280215623583>
+Cleveland Clinic Lerner College of Medicine (CCLCM).
+Medical student, research year at Cardiovascular Outcomes, Registries and
+Research (CORR), Cleveland Clinic Foundation.
