@@ -14,7 +14,19 @@
 \item{...}{Additional arguments (ignored).}
 }
 \value{
-The object \code{x}, invisibly.
+The object \code{x} of class \code{c("hzr_gof", "data.frame")},
+invisibly. The data frame has one row per time point and columns:
+\code{time}, \code{n_risk}, \code{n_event}, \code{n_censor},
+\code{km_surv} (Kaplan-Meier survival), \code{km_cumhaz},
+\code{par_surv} (parametric survival), \code{par_cumhaz},
+\code{cum_observed} (cumulative observed events),
+\code{cum_expected} (cumulative expected events from model),
+\code{residual} (cum_expected - cum_observed).
+Multiphase models additionally include \code{par_cumhaz_<phase>} columns
+for per-phase cumulative hazard contributions.
+A \code{"summary"} attribute contains scalar diagnostics:
+\code{total_observed}, \code{total_expected}, \code{final_residual},
+\code{dist}, \code{n}.
 }
 \description{
 Print method for hzr_gof

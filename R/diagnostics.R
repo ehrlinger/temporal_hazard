@@ -238,7 +238,20 @@ hzr_deciles <- function(object, time, groups = 10L,
 #' @param x An `hzr_deciles` object.
 #' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
-#' @return The object \code{x}, invisibly.
+#' @return The object \code{x} of class \code{c("hzr_deciles", "data.frame")},
+#'   invisibly. The data frame has one row per risk group and columns:
+#'   \code{group} (integer group index, 1 = lowest risk),
+#'   \code{n} (group size),
+#'   \code{events} (observed event count),
+#'   \code{expected} (expected event count from model predictions),
+#'   \code{observed_rate}, \code{expected_rate} (events / n),
+#'   \code{chi_sq} (per-group (O-E)^2/E contribution),
+#'   \code{p_value} (1-df chi-square upper-tail p),
+#'   \code{mean_survival}, \code{mean_cumhaz} (mean predicted values in group).
+#'   An \code{"overall"} attribute contains the omnibus chi-square test
+#'   (fields: \code{chi_sq}, \code{df}, \code{p_value}, \code{time},
+#'   \code{groups}, \code{total_events}, \code{total_expected},
+#'   \code{n_included}, \code{n_excluded}).
 #' @export
 print.hzr_deciles <- function(x, digits = 3, ...) {
   ov <- attr(x, "overall")
@@ -504,7 +517,19 @@ hzr_gof <- function(object, time_grid = NULL) {
 #' @param x An `hzr_gof` object.
 #' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
-#' @return The object \code{x}, invisibly.
+#' @return The object \code{x} of class \code{c("hzr_gof", "data.frame")},
+#'   invisibly. The data frame has one row per time point and columns:
+#'   \code{time}, \code{n_risk}, \code{n_event}, \code{n_censor},
+#'   \code{km_surv} (Kaplan-Meier survival), \code{km_cumhaz},
+#'   \code{par_surv} (parametric survival), \code{par_cumhaz},
+#'   \code{cum_observed} (cumulative observed events),
+#'   \code{cum_expected} (cumulative expected events from model),
+#'   \code{residual} (cum_expected - cum_observed).
+#'   Multiphase models additionally include \code{par_cumhaz_<phase>} columns
+#'   for per-phase cumulative hazard contributions.
+#'   A \code{"summary"} attribute contains scalar diagnostics:
+#'   \code{total_observed}, \code{total_expected}, \code{final_residual},
+#'   \code{dist}, \code{n}.
 #' @export
 print.hzr_gof <- function(x, digits = 3, ...) {
   s <- attr(x, "summary")
@@ -720,7 +745,21 @@ hzr_kaplan <- function(time, status, conf_level = 0.95,
 #' @param digits Number of decimal places for formatting.
 #' @param n Maximum rows to print (default 20).
 #' @param ... Additional arguments (ignored).
-#' @return The object \code{x}, invisibly.
+#' @return The object \code{x} of class \code{c("hzr_kaplan", "data.frame")},
+#'   invisibly. The data frame has one row per event time (or all times when
+#'   \code{event_only = FALSE}) and columns:
+#'   \code{time} (follow-up time),
+#'   \code{n_risk} (number at risk),
+#'   \code{n_event} (events in interval),
+#'   \code{n_censor} (censored observations in interval),
+#'   \code{survival} (Kaplan-Meier survival estimate),
+#'   \code{std_err} (Greenwood standard error on log-hazard scale),
+#'   \code{cl_lower}, \code{cl_upper} (logit-transformed confidence limits
+#'   on the survival scale),
+#'   \code{cumhaz} (Nelson-Aalen cumulative hazard),
+#'   \code{hazard} (interval hazard estimate),
+#'   \code{density} (estimated event density),
+#'   \code{life} (life-table life expectancy contribution).
 #' @export
 print.hzr_kaplan <- function(x, digits = 4, n = 20, ...) {
   cat("Kaplan-Meier estimate with logit confidence limits\n")
@@ -924,7 +963,17 @@ hzr_calibrate <- function(x, event, groups = 10L, by = NULL,
 #' @param x An `hzr_calibrate` object.
 #' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
-#' @return The object \code{x}, invisibly.
+#' @return The object \code{x} of class \code{c("hzr_calibrate", "data.frame")},
+#'   invisibly. The data frame has one row per quantile group and columns:
+#'   \code{group} (group index),
+#'   \code{n} (group size),
+#'   \code{events} (event count),
+#'   \code{mean}, \code{min}, \code{max} (covariate summary within group),
+#'   \code{prob} (observed event probability),
+#'   \code{link_value} (transformed probability on the link scale).
+#'   When stratified via the \code{by} argument, a \code{by} column is also
+#'   present. Attributes: \code{"link"} (the transform applied,
+#'   e.g. \code{"logit"}) and \code{"groups"} (number of quantile bins).
 #' @export
 print.hzr_calibrate <- function(x, digits = 3, ...) {
   lnk <- attr(x, "link")

@@ -14,7 +14,17 @@
 \item{...}{Additional arguments (ignored).}
 }
 \value{
-The object \code{x}, invisibly.
+The object \code{x} of class \code{c("hzr_calibrate", "data.frame")},
+invisibly. The data frame has one row per quantile group and columns:
+\code{group} (group index),
+\code{n} (group size),
+\code{events} (event count),
+\code{mean}, \code{min}, \code{max} (covariate summary within group),
+\code{prob} (observed event probability),
+\code{link_value} (transformed probability on the link scale).
+When stratified via the \code{by} argument, a \code{by} column is also
+present. Attributes: \code{"link"} (the transform applied,
+e.g. \code{"logit"}) and \code{"groups"} (number of quantile bins).
 }
 \description{
 Print method for hzr_calibrate

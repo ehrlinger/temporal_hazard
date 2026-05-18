@@ -16,7 +16,21 @@
 \item{...}{Additional arguments (ignored).}
 }
 \value{
-The object \code{x}, invisibly.
+The object \code{x} of class \code{c("hzr_kaplan", "data.frame")},
+invisibly. The data frame has one row per event time (or all times when
+\code{event_only = FALSE}) and columns:
+\code{time} (follow-up time),
+\code{n_risk} (number at risk),
+\code{n_event} (events in interval),
+\code{n_censor} (censored observations in interval),
+\code{survival} (Kaplan-Meier survival estimate),
+\code{std_err} (Greenwood standard error on log-hazard scale),
+\code{cl_lower}, \code{cl_upper} (logit-transformed confidence limits
+on the survival scale),
+\code{cumhaz} (Nelson-Aalen cumulative hazard),
+\code{hazard} (interval hazard estimate),
+\code{density} (estimated event density),
+\code{life} (life-table life expectancy contribution).
 }
 \description{
 Print method for hzr_kaplan

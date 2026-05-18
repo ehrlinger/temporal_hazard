@@ -14,7 +14,20 @@
 \item{...}{Additional arguments (ignored).}
 }
 \value{
-The object \code{x}, invisibly.
+The object \code{x} of class \code{c("hzr_deciles", "data.frame")},
+invisibly. The data frame has one row per risk group and columns:
+\code{group} (integer group index, 1 = lowest risk),
+\code{n} (group size),
+\code{events} (observed event count),
+\code{expected} (expected event count from model predictions),
+\code{observed_rate}, \code{expected_rate} (events / n),
+\code{chi_sq} (per-group (O-E)^2/E contribution),
+\code{p_value} (1-df chi-square upper-tail p),
+\code{mean_survival}, \code{mean_cumhaz} (mean predicted values in group).
+An \code{"overall"} attribute contains the omnibus chi-square test
+(fields: \code{chi_sq}, \code{df}, \code{p_value}, \code{time},
+\code{groups}, \code{total_events}, \code{total_expected},
+\code{n_included}, \code{n_excluded}).
 }
 \description{
 Print method for hzr_deciles
