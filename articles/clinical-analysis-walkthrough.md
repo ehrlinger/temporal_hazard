@@ -208,13 +208,13 @@ summary(fit_mp)
 #>   engine:       native-r-m2 
 #>   converged:    TRUE 
 #>   log-lik:      -228.029 
-#>   evaluations: fn=32, gr=10
+#>   evaluations: fn=30, gr=10
 #> 
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
 #>                estimate  std_error    z_stat       p_value
-#>   log_mu     -1.4132735 0.04410012 -32.04693 2.422767e-225
+#>   log_mu     -1.4132735 0.04410013 -32.04693 2.422849e-225
 #>   log_t_half -0.6931472         NA        NA            NA
 #>   nu          1.0000000         NA        NA            NA
 #>   m           1.0000000         NA        NA            NA
@@ -515,7 +515,7 @@ fit_step$steps[, c("step_num", "action", "variable", "phase",
 #> 1        1  enter   status    early 0.000000e+00 422.9675
 #> 2        2  enter      mal    early 1.352419e-33 416.6295
 #> 3        3  enter   com_iv    early 1.190955e-30 399.0333
-#> 4        4  enter      age    early 3.363559e-02 397.3463
+#> 4        4  enter      age    early 3.369968e-02 397.3463
 #> 5        5  enter   status constant 6.358883e-02 396.2062
 ```
 
