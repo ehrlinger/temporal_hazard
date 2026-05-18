@@ -455,6 +455,12 @@ Candidate model types not yet exercised:
 **Action:** Schedule meeting with Rajes; request SAS driver scripts + `.lst`
 reference outputs for 3–5 candidate models from production library.
 
+**Sequencing dependency:** Collect Rajes examples *before* installing
+`hazard` v4.4.6 at CCF. Once the CCF production install is live, run the
+new driver scripts against the installed binary to generate fresh `.lst`
+captures; add those as `skip_on_cran()` parity fixtures. The CCF install
+is blocked on this collection step.
+
 ### 7b. Weighted Events — Additional Parity Coverage
 
 The OMC dataset (`hz.tm123.OMC`) exercises case weights via the PRIMISOL
