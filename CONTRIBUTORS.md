@@ -20,7 +20,8 @@ Department of Thoracic and Cardiovascular Surgery, Cleveland Clinic Foundation.
 GitHub: [ehrlinger](https://github.com/ehrlinger)
 Built the TemporalHazard R package from the original R implementation by
 Rajeswaran and Fang. Package author and maintainer; public API design, CI
-infrastructure, SAS parity test suite, and all releases of TemporalHazard.
+infrastructure, SAS parity test harness and acceptance criteria, and all
+releases of TemporalHazard.
 
 ---
 
