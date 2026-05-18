@@ -4,7 +4,7 @@
 \alias{.hzr_create_loglogistic_golden_fixture}
 \title{Create and save log-logistic golden fixture}
 \usage{
-.hzr_create_loglogistic_golden_fixture(output_dir = NULL)
+.hzr_create_loglogistic_golden_fixture(output_dir = NULL, seed = NULL)
 }
 \description{
 Generates a synthetic dataset and fits a log-logistic model,

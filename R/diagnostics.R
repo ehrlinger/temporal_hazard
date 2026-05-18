@@ -238,6 +238,7 @@ hzr_deciles <- function(object, time, groups = 10L,
 #' @param x An `hzr_deciles` object.
 #' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
+#' @return The object \code{x}, invisibly.
 #' @export
 print.hzr_deciles <- function(x, digits = 3, ...) {
   ov <- attr(x, "overall")
@@ -503,6 +504,7 @@ hzr_gof <- function(object, time_grid = NULL) {
 #' @param x An `hzr_gof` object.
 #' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
+#' @return The object \code{x}, invisibly.
 #' @export
 print.hzr_gof <- function(x, digits = 3, ...) {
   s <- attr(x, "summary")
@@ -718,6 +720,7 @@ hzr_kaplan <- function(time, status, conf_level = 0.95,
 #' @param digits Number of decimal places for formatting.
 #' @param n Maximum rows to print (default 20).
 #' @param ... Additional arguments (ignored).
+#' @return The object \code{x}, invisibly.
 #' @export
 print.hzr_kaplan <- function(x, digits = 4, n = 20, ...) {
   cat("Kaplan-Meier estimate with logit confidence limits\n")
@@ -921,6 +924,7 @@ hzr_calibrate <- function(x, event, groups = 10L, by = NULL,
 #' @param x An `hzr_calibrate` object.
 #' @param digits Number of decimal places for formatting.
 #' @param ... Additional arguments (ignored).
+#' @return The object \code{x}, invisibly.
 #' @export
 print.hzr_calibrate <- function(x, digits = 3, ...) {
   lnk <- attr(x, "link")

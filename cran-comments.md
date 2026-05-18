@@ -1,76 +1,50 @@
-# CRAN submission comments -- TemporalHazard 1.0.0
+# CRAN submission comments -- TemporalHazard 1.0.1
 
 ## Summary
 
-First submission. TemporalHazard provides native R implementations of the
-multiphase parametric hazard model (Blackstone, Naftel, Turner 1986) for
-temporal decomposition of survival data into additive hazard phases.
+This is a resubmission of v1.0.0 addressing every item raised by
+Benjamin Altmann's review of 2026-05-13. All three requested changes have
+been applied:
 
-Version 1.0.0 is the production release. Key capabilities:
+1. **`\value` tags in Rd files.** Added `@return` documentation to all seven
+   functions that were missing it: `hazard()`, `coef.hazard()`,
+   `vcov.hazard()`, `print.hzr_calibrate()`, `print.hzr_deciles()`,
+   `print.hzr_gof()`, and `print.hzr_kaplan()`. Each describes the class and
+   structure of the return value (or documents invisible return for print
+   methods).
 
-* Multiphase additive hazard fitting (`hazard()`) with CDF, constant, and
-  generalized three-parameter (G3) phase types
-* Observation weights, start-stop (`Surv(start, stop, event)`) left-truncated
-  and repeating-event data, Conservation of Events theorem
-* Seven SAS-macro equivalent diagnostic/utility functions: `hzr_kaplan`,
-  `hzr_nelson`, `hzr_gof`, `hzr_deciles`, `hzr_calibrate`, `hzr_bootstrap`,
-  `hzr_competing_risks`
-* Delta-method confidence limits on all prediction types
-* SAS parity test suite (54 expectations / 6 model fits) validating numerical
-  agreement with the original C/SAS HAZARD program across four clinical datasets
+2. **Writing to home filespace.** Internal fixture generators in
+   `R/golden_fixtures.R` previously fell back to `"inst/fixtures"` (a path
+   relative to `getwd()`) when the package was not installed. The fallback now
+   uses `tempdir()` so no function writes to the user's home filespace by
+   default.
+
+3. **Setting a specific seed.** `set.seed(42)` has been removed as an
+   unconditional call inside each generator. Generators now accept an optional
+   `seed` argument; when supplied, the global `.Random.seed` is saved before
+   and restored via `on.exit()` after the call, leaving the caller's RNG state
+   unmodified.
 
 ## Test environments
 
-* local macOS (aarch64-apple-darwin), R 4.6.x
-* GitHub Actions: ubuntu-latest (R devel, release, oldrel-1),
-  macos-latest (release), windows-latest (release)
+* **Local:** R 4.6.0 on macOS (aarch64-apple-darwin23).
+  `R CMD check --as-cran` returns 0 errors, 0 warnings, 0 notes.
+* **GitHub Actions matrix:** ubuntu-latest (R-devel / R-release / R-oldrel-1),
+  macos-latest (R-release), windows-latest (R-release) — all green.
+* **Reverse-dependency check:** `tools::package_dependencies(reverse = TRUE)`
+  returns 0.
 
-## R CMD check results
+## NOTE disposition
 
-0 errors | 0 warnings | 1 note
+No notes in local `R CMD check --as-cran`.
 
-### Local macOS check
+## Background
 
-```
-checking HTML version of manual ... NOTE
-  Skipping checking math rendering: package 'V8' unavailable
-```
-
-The V8 package is not installed in the local check environment. CRAN
-servers have V8 available; this note will not appear there.
-
-### win-builder (R-release, R-devel)
-
-```
-checking CRAN incoming feasibility ... NOTE
-  Maintainer: 'John Ehrlinger <john.ehrlinger@gmail.com>'
-
-  New submission
-
-  Possibly misspelled words in DESCRIPTION:
-    Naftel (11:33)
-    Rajeswaran (20:6)
-    UAB (15:46)
-    al (20:20)
-    et (20:17)
-    multiphase (10:55)
-```
-
-All flagged words are either author surnames from cited references
-(Naftel, Rajeswaran), a widely-used acronym explained in the text
-("University of Alabama at Birmingham (UAB)"), standard Latin
-abbreviation components from "et al.", or an established compound
-technical term (multiphase). None are misspellings.
-
-## Notes
-
-* This is a new submission.
-* Package contains five clinical reference datasets (total ~120 KB compressed)
-  used in vignettes and parity tests against the original C/SAS HAZARD program.
+* Package contains five clinical reference datasets (~120 KB compressed) used
+  in vignettes and parity tests against the original C/SAS HAZARD program.
 * Vignettes use Quarto (`VignetteBuilder: quarto`).
 * A subset of tests (SAS parity, multi-start multiphase fits, OMC raw-file
   derivation) are guarded with `skip_on_cran()` to stay within CRAN runtime
   budgets; the full suite runs on GitHub Actions.
 * DOI URLs in vignettes (doi.org) may return HTTP 403 to automated checkers
   but resolve correctly in browsers.
-  

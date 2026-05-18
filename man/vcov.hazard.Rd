@@ -11,6 +11,11 @@
 
 \item{...}{Unused; for S3 compatibility.}
 }
+\value{
+A numeric matrix containing the estimated variance-covariance matrix
+of the fitted coefficients, or \code{NA} if the model has not been fitted
+or the covariance matrix is unavailable.
+}
 \description{
 Returns the estimated variance-covariance matrix of the fitted coefficients.
 }

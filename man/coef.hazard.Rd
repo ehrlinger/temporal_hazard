@@ -11,6 +11,10 @@
 
 \item{...}{Unused; for S3 compatibility.}
 }
+\value{
+A named numeric vector of fitted parameter estimates, or \code{NULL}
+if the model has not been fitted (\code{fit = FALSE}).
+}
 \description{
 Extract coefficients from hazard model
 }

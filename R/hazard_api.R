@@ -228,6 +228,16 @@ NULL
 #' nonlinear temporal decomposition mixed effects model. *Stat Methods Med Res.*
 #' 2018;27(1):126--141. \doi{10.1177/0962280215623583}
 #'
+#' @return An object of class \code{hazard}, a named list with components:
+#'   \code{call} (the matched call),
+#'   \code{spec} (model specification: \code{dist}, \code{control},
+#'   \code{time_windows}, \code{phases}),
+#'   \code{data} (input data: \code{time}, \code{status}, \code{x},
+#'   \code{weights}, etc.),
+#'   \code{fit} (optimisation results: \code{theta}, \code{objective},
+#'   \code{converged}, \code{se}, \code{vcov}, \code{counts}, \code{message};
+#'   all \code{NULL} when \code{fit = FALSE}),
+#'   and \code{engine} (implementation tag, \code{"native-r-m2"}).
 #' @export
 hazard <- function(formula = NULL,
                    data = NULL,
@@ -1196,6 +1206,8 @@ print.summary.hazard <- function(x, ...) {
 #' fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
 #'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 #' coef(fit)
+#' @return A named numeric vector of fitted parameter estimates, or \code{NULL}
+#'   if the model has not been fitted (\code{fit = FALSE}).
 #' @export
 coef.hazard <- function(object, ...) {
   if (is.null(object$fit$theta)) {
@@ -1214,6 +1226,9 @@ coef.hazard <- function(object, ...) {
 #' fit <- hazard(time = rexp(30, 0.5), status = rep(1L, 30),
 #'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 #' vcov(fit)
+#' @return A numeric matrix containing the estimated variance-covariance matrix
+#'   of the fitted coefficients, or \code{NA} if the model has not been fitted
+#'   or the covariance matrix is unavailable.
 #' @export
 vcov.hazard <- function(object, ...) {
   if (is.null(object$fit$vcov) || anyNA(object$fit$vcov)) {

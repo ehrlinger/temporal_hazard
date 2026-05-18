@@ -23,13 +23,14 @@ NULL
 #   .hzr_create_loglogistic_golden_fixture()  # Log-logistic univariate
 #   .hzr_create_lognormal_golden_fixture()    # Log-normal univariate
 #
-# All generators use set.seed(42) internally for reproducibility.
+# Pass seed = 42L to each generator for reproducible fixtures; the global RNG
+# state is saved and restored via on.exit() so callers are unaffected.
 # Commit the updated .rds files alongside any code changes.
 #
 # ADDING A NEW FIXTURE
 # --------------------
 # 1. Write a .hzr_create_<dist>_golden_fixture() function following the
-#    existing pattern (set seed, simulate, fit, saveRDS).
+#    existing pattern (seed parameter, simulate, fit, saveRDS).
 # 2. Call it once to write the .rds file.
 # 3. Add a corresponding parity test in tests/testthat/test-parity-core.R.
 
@@ -40,19 +41,29 @@ NULL
 #'
 #' @keywords internal
 
-.hzr_create_synthetic_golden_fixtures <- function(output_dir = NULL) {
+.hzr_create_synthetic_golden_fixtures <- function(output_dir = NULL,
+                                                    seed = NULL) {
 
   if (is.null(output_dir)) {
     output_dir <- system.file("fixtures", package = "TemporalHazard")
     if (!nzchar(output_dir)) {
-      output_dir <- "inst/fixtures"
+      output_dir <- tempdir()
     }
   }
 
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
-  # Set seed for reproducibility
-  set.seed(42)
+  if (!is.null(seed)) {
+    oldseed <- get0(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    on.exit({
+      if (is.null(oldseed)) {
+        rm(list = ".Random.seed", envir = .GlobalEnv)
+      } else {
+        assign(".Random.seed", oldseed, envir = .GlobalEnv)
+      }
+    }, add = TRUE)
+    set.seed(seed)
+  }
 
   # ===== Fixture 1: Univariable Weibull (shape estimation only) =====
   # Simulate from Weibull with known parameters
@@ -215,19 +226,29 @@ NULL
 #'
 #' @keywords internal
 
-.hzr_create_loglogistic_golden_fixture <- function(output_dir = NULL) {
+.hzr_create_loglogistic_golden_fixture <- function(output_dir = NULL,
+                                                    seed = NULL) {
 
   if (is.null(output_dir)) {
     output_dir <- system.file("fixtures", package = "TemporalHazard")
     if (!nzchar(output_dir)) {
-      output_dir <- "inst/fixtures"
+      output_dir <- tempdir()
     }
   }
 
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
-  # Set seed for reproducibility
-  set.seed(42)
+  if (!is.null(seed)) {
+    oldseed <- get0(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    on.exit({
+      if (is.null(oldseed)) {
+        rm(list = ".Random.seed", envir = .GlobalEnv)
+      } else {
+        assign(".Random.seed", oldseed, envir = .GlobalEnv)
+      }
+    }, add = TRUE)
+    set.seed(seed)
+  }
 
   # Generate univariable log-logistic sample
   n <- 80
@@ -286,18 +307,29 @@ NULL
 #'
 #' @keywords internal
 
-.hzr_create_lognormal_golden_fixture <- function(output_dir = NULL) {
+.hzr_create_lognormal_golden_fixture <- function(output_dir = NULL,
+                                                  seed = NULL) {
 
   if (is.null(output_dir)) {
     output_dir <- system.file("fixtures", package = "TemporalHazard")
     if (!nzchar(output_dir)) {
-      output_dir <- "inst/fixtures"
+      output_dir <- tempdir()
     }
   }
 
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
-  set.seed(42)
+  if (!is.null(seed)) {
+    oldseed <- get0(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    on.exit({
+      if (is.null(oldseed)) {
+        rm(list = ".Random.seed", envir = .GlobalEnv)
+      } else {
+        assign(".Random.seed", oldseed, envir = .GlobalEnv)
+      }
+    }, add = TRUE)
+    set.seed(seed)
+  }
 
   n <- 80
   mu_true <- 1.0
@@ -360,18 +392,29 @@ NULL
 #'
 #' @keywords internal
 
-.hzr_create_multiphase_golden_fixture <- function(output_dir = NULL) {
+.hzr_create_multiphase_golden_fixture <- function(output_dir = NULL,
+                                                   seed = NULL) {
 
   if (is.null(output_dir)) {
     output_dir <- system.file("fixtures", package = "TemporalHazard")
     if (!nzchar(output_dir)) {
-      output_dir <- "inst/fixtures"
+      output_dir <- tempdir()
     }
   }
 
   dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
-  set.seed(42)
+  if (!is.null(seed)) {
+    oldseed <- get0(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    on.exit({
+      if (is.null(oldseed)) {
+        rm(list = ".Random.seed", envir = .GlobalEnv)
+      } else {
+        assign(".Random.seed", oldseed, envir = .GlobalEnv)
+      }
+    }, add = TRUE)
+    set.seed(seed)
+  }
 
   # --- Simulate 3-phase survival data -----------------------------------------
   # True model: early CDF phase + constant background + late hazard phase
@@ -478,7 +521,7 @@ NULL
   if (is.null(output_dir)) {
     output_dir <- system.file("fixtures", package = "TemporalHazard")
     if (!nzchar(output_dir)) {
-      output_dir <- "inst/fixtures"
+      output_dir <- tempdir()
     }
   }
 

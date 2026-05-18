@@ -15,6 +15,9 @@
 
 \item{...}{Additional arguments (ignored).}
 }
+\value{
+The object \code{x}, invisibly.
+}
 \description{
 Print method for hzr_kaplan
 }

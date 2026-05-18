@@ -66,6 +66,18 @@ Implements the SAS \code{WEIGHT} statement.}
 \item{...}{Additional named arguments retained for parity with legacy calling
 conventions.}
 }
+\value{
+An object of class \code{hazard}, a named list with components:
+\code{call} (the matched call),
+\code{spec} (model specification: \code{dist}, \code{control},
+\code{time_windows}, \code{phases}),
+\code{data} (input data: \code{time}, \code{status}, \code{x},
+\code{weights}, etc.),
+\code{fit} (optimisation results: \code{theta}, \code{objective},
+\code{converged}, \code{se}, \code{vcov}, \code{counts}, \code{message};
+all \code{NULL} when \code{fit = FALSE}),
+and \code{engine} (implementation tag, \code{"native-r-m2"}).
+}
 \description{
 Creates a \code{hazard} object and optionally fits it via maximum likelihood.
 This mirrors the argument-oriented workflow of the legacy HAZARD C/SAS
