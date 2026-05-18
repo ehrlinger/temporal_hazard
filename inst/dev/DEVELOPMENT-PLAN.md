@@ -1,6 +1,6 @@
 # TemporalHazard Development Plan
 
-Last updated: 2026-04-14
+Last updated: 2026-05-13
 
 This is the single source of truth for the development roadmap of the
 TemporalHazard R package — a pure-R implementation of the multiphase
@@ -429,7 +429,69 @@ covers the theory but there are no hands-on examples.
 
 ---
 
-## Phase 7: Performance and Extensions — FUTURE
+## Phase 7: Production Model Parity & Edge Cases — PLANNED
+
+Post-CRAN hardening against real production models from the original C/SAS
+HAZARD system. Goal: high confidence in both codebases for the model types
+that appear in clinical production, not just the curated examples shipped
+with the C source.
+
+### 7a. Rajeswaran / Blackstone Production Model Parity
+
+**Contact:** Rajeswaran (Rajes) at CCF — has the "hard" production hazard
+models run against the C HAZARD binary in clinical analyses.
+
+**Goal:** Collect 3–5 production `.lst` outputs from Blackstone's
+Rajeswaran-authored models; port each to `hazard()` calls; add
+`skip_on_cran()` parity tests with tolerances matching the existing suite.
+
+Candidate model types not yet exercised:
+- 4-phase models (early + early2 + constant + late)
+- Phase-specific covariate models with multiple covariate phases
+- Models with shaping modifiers (`/S`, `/I`, `/E`) — currently deferred from
+  primary parity (see PRE-CRAN-PARITY-INVENTORY.md gap §1)
+- High-dimensional covariate fits (12+ free parameters)
+
+**Action:** Schedule meeting with Rajes; request SAS driver scripts + `.lst`
+reference outputs for 3–5 candidate models from production library.
+
+### 7b. Weighted Events — Additional Parity Coverage
+
+The OMC dataset (`hz.tm123.OMC`) exercises case weights via the PRIMISOL
+morbidity endpoint, and `4c`/`4e` verified integer-weight duplication parity.
+Additional coverage needed to close confidence gaps:
+
+- **Fractional weights** (non-integer, e.g. inverse-probability weights): add
+  a parity test against a SAS run with `WEIGHT` statement using fractional values
+- **Weighted multiphase with covariates**: current weighted tests are intercept-only;
+  need a covariate fit with weights to confirm the weighted score/gradient is
+  correct under the full CoE + covariate path
+- **Weighted competing risks** (`hzr_competing_risks()` with case weights):
+  not currently tested with non-unit weights
+- **Source:** Look for a CCF production model that uses fractional IPS weights
+  or aggregated-cell weights (e.g. from a registry with pre-computed weights
+  rather than individual patient records)
+
+### 7c. New Example Datasets
+
+**Hsich / UNOS (post-heart-transplant mortality)**
+- 3-phase early + constant + late structure
+- SRTR Standard Analysis Files (requires DUA — ship cleaned summary or
+  synthetic derivative in `data/`, keep raw pull off-repo)
+- Eileen Hsich (CCF) is the contact; check for published paper with
+  parameter estimates to anchor reproducibility
+
+**Sargent CABG mortality paper**
+- Published analysis of death after CABG using multiphase hazard model
+- If SAS HAZARD was used, published MLEs serve as reference values
+- Actionable: locate paper, extract published LL + MLE table, build
+  vignette that reproduces the table with `hazard()`
+- Distinct from KUL (Belgium/Leuven) which is already the canonical
+  3-phase example; Sargent adds a second independent CABG validation
+
+---
+
+## Phase 8: Performance and Extensions — FUTURE
 
 Items that would improve the package beyond SAS parity.
 
