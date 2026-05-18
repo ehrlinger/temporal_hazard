@@ -1,14 +1,14 @@
 # Stepwise Covariate Selection — Design Document
 
-**Status:** Design (pre-implementation)
-**Target:** Phase 4b of the development plan
+**Status:** Complete — shipped v0.9.5; design document preserved for reference
+**Target:** Phase 4b of the development plan (complete)
 **Author:** John Ehrlinger
-**Date:** 2026-04-16
+**Date:** 2026-04-16 (design); shipped 2026-04-xx in v0.9.5
 
-This document describes the proposed design for `hzr_stepwise()`, the last
-remaining SAS-parity gap. It specifies the user-facing API, algorithm, edge
-cases, test plan, and explicit non-goals for the initial implementation.
-Sign-off on this design precedes any code.
+This document describes the design for `hzr_stepwise()`, implemented in
+v0.9.5. The API, algorithm, edge cases, and test plan described here were
+implemented as specified. This file is retained as a reference for the
+implementation decisions and rationale.
 
 SAS reference: `src/vars/stepw.c`, `backw.c`, `swvari.c`, `swvarx.c`,
 `dfast.c` in the C HAZARD tree.
