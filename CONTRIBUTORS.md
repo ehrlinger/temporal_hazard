@@ -2,23 +2,26 @@
 
 ## Package Development
 
-**John Ehrlinger** Lead Data Scientist, Cardiovascular Outcomes,
-Registries and Research (CORR) Department of Cardiothoracic Surgery,
-Heart, Vascular and Thoracic Institute Cleveland Clinic Foundation
-Package author, maintainer, and R implementation.
+**John Ehrlinger** *(Author & Maintainer)* Lead Data Scientist,
+Cardiovascular Outcomes, Registries and Research (CORR) Department of
+Cardiothoracic Surgery, Heart, Vascular and Thoracic Institute Cleveland
+Clinic Foundation GitHub: [ehrlinger](https://github.com/ehrlinger)
+Original R implementation; package author and maintainer.
 
-**Michelle Fang** Biostatistician, Cardiovascular Outcomes, Registries
-and Research (CORR) Cleveland Clinic Foundation
+**Michelle Fang** Medical Student, Cleveland Clinic Lerner College of
+Medicine (CCLCM) Research year, Cardiovascular Outcomes, Registries and
+Research (CORR) Cleveland Clinic Foundation
 
 ------------------------------------------------------------------------
 
 ## Methodology
 
 **Eugene H. Blackstone** Department of Cardiothoracic Surgery, Cleveland
-Clinic Foundation (formerly University of Alabama at Birmingham)
-Original multiphase parametric hazard model (Blackstone, Naftel & Turner
-1986); ongoing development and maintenance of the C/SAS HAZARD program
-at Cleveland Clinic.
+Clinic Foundation (formerly University of Alabama at Birmingham) GitHub:
+[ehblackstone](https://github.com/ehblackstone) Original multiphase
+parametric hazard model (Blackstone, Naftel & Turner 1986); ongoing
+development and maintenance of the C/SAS HAZARD program at Cleveland
+Clinic.
 
 **David C. Naftel** (formerly University of Alabama at Birmingham)
 Original multiphase parametric hazard model (Blackstone, Naftel & Turner
