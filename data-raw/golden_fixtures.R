@@ -1,8 +1,8 @@
-#' @importFrom stats runif quantile rnorm rexp rbinom rlnorm approx
-#' @importFrom utils data
-#' @keywords internal
-utils::globalVariables("cabgkul")
-NULL
+# NOTE: This is a maintainer-only script, NOT part of the installed package.
+# It lives in data-raw/ (which is .Rbuildignore'd) so it is never shipped to
+# CRAN, checked by R CMD check, or reachable by users. It regenerates the
+# bundled inst/fixtures/*.rds reference outputs. Run after devtools::load_all()
+# and source() of this file; it uses base/stats RNG and the exported hazard().
 
 # golden_fixtures.R - Synthetic golden fixture generation for parity testing
 #

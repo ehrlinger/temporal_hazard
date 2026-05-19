@@ -32,7 +32,8 @@ NULL
 # 5. Update the coefficient-extraction block in predict.hazard() for
 #    linear_predictor / hazard prediction types.
 # 6. Write tests in tests/testthat/test-<dist>-dist.R.
-# 7. Generate a golden fixture via .hzr_create_<dist>_golden_fixture().
+# 7. Generate a golden fixture via data-raw/golden_fixtures.R
+#    (.hzr_create_<dist>_golden_fixture()).
 
 #' Build and optionally fit a hazard model
 #'

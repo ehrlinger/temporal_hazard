@@ -2,19 +2,24 @@
 
 ## Bug fixes / CRAN compliance
 
-* Internal fixture generators no longer write to the home filespace by
-  default. The `output_dir` argument of `.hzr_create_synthetic_golden_fixtures()`,
-  `.hzr_create_loglogistic_golden_fixture()`, `.hzr_create_lognormal_golden_fixture()`,
-  `.hzr_create_multiphase_golden_fixture()`, `.hzr_create_c_reference_kul_fixture()`,
-  and `.hzr_generate_golden_fixture()` is now required and has no default. The
-  previous fallback resolved to `system.file("fixtures", ...)` — i.e. the
+* The golden-fixture generators (`.hzr_create_*_golden_fixture()`,
+  previously `R/golden_fixtures.R`) have been moved out of the package to
+  `data-raw/golden_fixtures.R`. They are maintainer-only helpers for
+  regenerating the bundled `inst/fixtures/*.rds` reference outputs and are
+  not part of the installed package, so they are no longer shipped, checked,
+  or user-reachable. This resolves the home-filespace concern at its root:
+  the earlier fallback resolved to `system.file("fixtures", ...)` — i.e. the
   installed package directory — whenever the package was installed, so the
-  earlier "falls back to `tempdir()`" fix did not actually prevent writing to
-  the user library.
-* Removed the remaining hardcoded `seed = 42` literals from
-  `R/golden_fixtures.R`; recorded fixture metadata now reflects the actual
-  `seed` argument passed (`NULL` by default, so no seed is set inside the
-  function).
+  1.0.1 "falls back to `tempdir()`" fix did not actually prevent writing to
+  the user library. The bundled `.rds` fixtures still ship and the parity
+  tests still read them via `system.file()`.
+* `.hzr_generate_golden_fixture()` (the C-binary reference writer in
+  `R/parity-helpers.R`, which shares a file with test-time helpers and so
+  was kept in the package) now takes a required `output_dir` argument with
+  no default path.
+* Removed the remaining hardcoded `seed = 42` literals from the relocated
+  generators; recorded fixture metadata reflects the actual `seed` argument
+  passed (`NULL` by default, so no seed is set inside the function).
 
 # TemporalHazard 1.0.1
 

@@ -16,30 +16,32 @@ home-filespace item was only partially fixed and is now fully resolved in
    the printing side effect) and describe the columns/attributes of that
    object.
 
-2. **Writing files to the home filespace.** Now fully resolved. The prior
-   "falls back to `tempdir()`" change was insufficient: the default still
-   resolved via `system.file("fixtures", package = "TemporalHazard")`, which
-   returns the *installed* package directory whenever the package is installed
-   (the normal case under `R CMD check`), so the generators still wrote to the
-   user library by default. The `output_dir` argument of every fixture
-   generator (`.hzr_create_synthetic_golden_fixtures()`,
-   `.hzr_create_loglogistic_golden_fixture()`,
-   `.hzr_create_lognormal_golden_fixture()`,
-   `.hzr_create_multiphase_golden_fixture()`,
-   `.hzr_create_c_reference_kul_fixture()`, `.hzr_generate_golden_fixture()`)
-   is now **required with no default** — the functions never choose a write
-   path themselves. No package code, example, vignette, or test calls these
-   generators (they are maintainer-only regeneration helpers); documentation
-   shows callers passing `tempdir()` or an explicit project path.
+2. **Writing files to the home filespace.** Resolved at the root by removing
+   the offending code from the package. The prior "falls back to `tempdir()`"
+   change was insufficient: the default still resolved via
+   `system.file("fixtures", package = "TemporalHazard")`, which returns the
+   *installed* package directory whenever the package is installed (the normal
+   case under `R CMD check`), so the generators still wrote to the user
+   library by default. The golden-fixture generators
+   (`.hzr_create_*_golden_fixture()`) are maintainer-only helpers used to
+   regenerate the bundled `inst/fixtures/*.rds` reference outputs; they are
+   not called by any package code, example, vignette, or test. They have been
+   moved to `data-raw/golden_fixtures.R` (`.Rbuildignore`d), so they are no
+   longer part of the installed package, no longer shipped, and no longer
+   exercised by `R CMD check`. The one remaining writer that had to stay in
+   the package, `.hzr_generate_golden_fixture()` in `R/parity-helpers.R`
+   (it shares a source file with test-time C-binary helpers), now takes a
+   **required `output_dir` argument with no default path**. The bundled
+   `.rds` fixtures still ship and the parity tests still read them via
+   `system.file()` (a read, permitted).
 
-3. **Setting a specific seed within a function.** Now fully resolved.
-   `set.seed()` is only ever called inside `if (!is.null(seed))`, where `seed`
-   is a user-supplied argument that defaults to `NULL`; the global
+3. **Setting a specific seed within a function.** Resolved. In the relocated
+   generators `set.seed()` is only ever called inside `if (!is.null(seed))`,
+   where `seed` is a user-supplied argument defaulting to `NULL`; the global
    `.Random.seed` is saved beforehand and restored via `on.exit()`. The
-   remaining hardcoded `seed = 42` literals in `R/golden_fixtures.R` (stored
-   fixture metadata, not `set.seed()` calls) have been replaced with the
-   actual `seed` argument, so no specific seed number is set or recorded
-   inside any function.
+   remaining hardcoded `seed = 42` literals (stored fixture metadata, not
+   `set.seed()` calls) were replaced with the actual `seed` argument. No
+   package source file under `R/` sets a specific seed.
 
 ## Test environments
 
