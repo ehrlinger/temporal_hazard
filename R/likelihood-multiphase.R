@@ -938,7 +938,7 @@
   # --- Resolve per-phase design matrices and covariate counts ----------------
   # Build phase-specific design matrices with na.action = na.pass so that
   # rows with NA covariates are preserved (not silently dropped).  We then
-  # align all observation-aligned inputs (time, status, weights, …) by
+  # align all observation-aligned inputs (time, status, weights, ...) by
   # removing any row that has NA in any phase's design matrix.  Without this
   # alignment, model.matrix()'s default na.omit shortens x_j relative to
   # time, and mu_j * phi_j emits a vector-recycling warning on every

@@ -25,3 +25,4 @@
 ^\.positai$
 ^CRAN-SUBMISSION$
 ^CONTRIBUTORS\.md$
+^RELEASE\.md$

@@ -1,9 +1,7 @@
 Package: TemporalHazard
 Title: Temporal Parametric Hazard Modeling
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: person("John", "Ehrlinger", email = "john.ehrlinger@gmail.com", role = c("aut", "cre", "cph"))
-Author: John Ehrlinger [aut, cre, cph]
-Maintainer: John Ehrlinger <john.ehrlinger@gmail.com>
 URL: https://ehrlinger.github.io/temporal_hazard/, https://github.com/ehrlinger/temporal_hazard
 BugReports: https://github.com/ehrlinger/temporal_hazard/issues
 Description: Provides native R implementations of the multiphase parametric
@@ -42,3 +40,4 @@ Suggests:
 LazyData: true
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.0.0
+RoxygenNote: 7.3.3

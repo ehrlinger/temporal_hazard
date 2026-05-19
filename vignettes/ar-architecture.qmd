@@ -257,21 +257,32 @@ knitr::kable(fixtures, caption = "Golden fixture inventory")
 ## Regenerating fixtures
 
 Fixtures must be regenerated whenever the model parameterization changes.
-Run each generator interactively after `devtools::load_all()`:
+The generators are maintainer-only helpers kept in `data-raw/` (outside the
+installed package). Run them interactively from the package source tree
+after `devtools::load_all()` and sourcing the generator script:
 
 ```r
+devtools::load_all()
+source("data-raw/golden_fixtures.R")
+
+# Each generator requires an explicit output directory (no default path
+# is written). Use the project source dir to persist, or tempdir() to test.
+dir <- "inst/fixtures"
+
 # Single-phase distributions
-.hzr_create_synthetic_golden_fixtures()    # Weibull variants
-.hzr_create_loglogistic_golden_fixture()   # Log-logistic
-.hzr_create_lognormal_golden_fixture()     # Log-normal
+.hzr_create_synthetic_golden_fixtures(dir, seed = 42L)   # Weibull variants
+.hzr_create_loglogistic_golden_fixture(dir, seed = 42L)  # Log-logistic
+.hzr_create_lognormal_golden_fixture(dir, seed = 42L)    # Log-normal
 
 # Multiphase
-.hzr_create_multiphase_golden_fixture()    # Synthetic 3-phase
-.hzr_create_c_reference_kul_fixture()      # C binary reference
+.hzr_create_multiphase_golden_fixture(dir, seed = 42L)   # Synthetic 3-phase
+.hzr_create_c_reference_kul_fixture(dir)                  # C binary reference
 ```
 
-All generators use `set.seed(42)` for reproducibility. Commit the
-updated `.rds` files alongside any code changes.
+Pass an explicit `seed` for reproducibility; the global RNG state is saved
+and restored, so the caller's stream is unaffected. With the default
+(`seed = NULL`) no seed is set. Commit the updated `.rds` files alongside
+any code changes.
 
 
 # Testing strategy

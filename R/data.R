@@ -93,6 +93,11 @@
 #' @family datasets
 "cabgkul"
 
+# `cabgkul` is referenced by name (lazy-loaded dataset) in the package's
+# own parity tests; declare it as a known global so static checkers do not
+# flag a missing binding.
+utils::globalVariables("cabgkul")
+
 #' OMC: Open Mitral Commissurotomy
 #'
 #' Data for 339 patients who underwent open mitral commissurotomy at the

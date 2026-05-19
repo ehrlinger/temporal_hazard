@@ -7,5 +7,6 @@ linters: linters_with_defaults(
   )
 exclusions: list(
     "inst/dev/generate-readme-figures.R",
-    "data-raw/make_data.R"
+    "data-raw/make_data.R",
+    "data-raw/golden_fixtures.R"
   )
