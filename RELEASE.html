@@ -69,14 +69,24 @@
 <li>
 <code>NEWS.md</code> top heading is <code># TemporalHazard X.Y.Z</code> and describes the user-visible changes since the last CRAN release.</li>
 <li>
-<code>cran-comments.md</code> version heading matches <code>DESCRIPTION</code>; if a resubmission, each reviewer point is itemised with how it was addressed; test environments and NOTE disposition reflect reality.</li>
+<code>cran-comments.md</code> version heading matches <code>DESCRIPTION</code>; if a resubmission, each reviewer point is itemised with how it was addressed.</li>
 <li>
 <code>devtools::document()</code> is clean and <code>man/</code> is in sync.</li>
 <li>
 <code>R CMD check --as-cran</code> → 0 errors, 0 warnings, 0 notes (<code>devtools::check(args = "--as-cran")</code>).</li>
-<li>Optional wider checks: <code>devtools::check_win_devel()</code>, <code>rhub::rhub_check()</code>.</li>
+<li>
+<code>devtools::check_win_devel()</code> (and optionally <code>rhub::rhub_check()</code>). <strong>This is the source of truth for the NOTE disposition</strong> — the local <code>--as-cran</code> in step 5 does <em>not</em> run the CRAN incoming-feasibility / aspell step, so it will under-report. Reconcile the <code>## NOTE disposition</code> section of <code>cran-comments.md</code> against the <em>win-builder</em> <code>00check.log</code>, not the local result, before submitting. See “Known benign NOTE” below.</li>
 <li>Submit: <code>devtools::submit_cran()</code> (writes <code>CRAN-SUBMISSION</code>).</li>
-</ol></div>
+</ol><div class="section level3">
+<h3 id="known-benign-note">Known benign NOTE<a class="anchor" aria-label="anchor" href="#known-benign-note"></a></h3>
+<p>Every submission produces one expected NOTE from the CRAN incoming check that the local <code>--as-cran</code> does not show:</p>
+<ul><li>
+<strong>New submission</strong> — until the package is accepted on CRAN. Drop this line from <code>cran-comments.md</code> once accepted.</li>
+<li>
+<strong>Possibly misspelled words in DESCRIPTION</strong> — proper nouns (<code>Naftel</code>, <code>Rajeswaran</code>), the acronym <code>UAB</code>, the <code>et al.</code> citation, and the domain term <code>multiphase</code>. All intentional; not misspellings. <code>inst/WORDLIST</code> feeds only the <code>spelling</code> test, <strong>not</strong> the CRAN aspell check, so this recurs by design — document it, don’t try to suppress it.</li>
+</ul><p>The canonical wording lives in <code>cran-comments.md</code> <code>## NOTE disposition</code>; keep the two in agreement.</p>
+</div>
+</div>
 <div class="section level2">
 <h2 id="on-cran-acceptance">On CRAN acceptance<a class="anchor" aria-label="anchor" href="#on-cran-acceptance"></a></h2>
 <ol style="list-style-type: decimal"><li>
