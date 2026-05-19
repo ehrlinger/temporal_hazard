@@ -1,5 +1,38 @@
 # Changelog
 
+## TemporalHazard 1.0.2
+
+### Bug fixes / CRAN compliance
+
+- The golden-fixture generators (`.hzr_create_*_golden_fixture()`,
+  previously `R/golden_fixtures.R`) have been moved out of the package
+  to `data-raw/golden_fixtures.R`. They are maintainer-only helpers for
+  regenerating the bundled `inst/fixtures/*.rds` reference outputs and
+  are not part of the installed package, so they are no longer shipped,
+  checked, or user-reachable. This resolves the home-filespace concern
+  at its root: the earlier fallback resolved to
+  `system.file("fixtures", ...)` — i.e. the installed package directory
+  — whenever the package was installed, so the 1.0.1 “falls back to
+  [`tempdir()`](https://rdrr.io/r/base/tempfile.html)” fix did not
+  actually prevent writing to the user library. The bundled `.rds`
+  fixtures still ship and the parity tests still read them via
+  [`system.file()`](https://rdrr.io/r/base/system.file.html).
+- `.hzr_generate_golden_fixture()` (the C-binary reference writer in
+  `R/parity-helpers.R`, which shares a file with test-time helpers and
+  so was kept in the package) now takes a required `output_dir` argument
+  with no default path.
+- Removed the remaining hardcoded `seed = 42` literals from the
+  relocated generators; recorded fixture metadata reflects the actual
+  `seed` argument passed (`NULL` by default, so no seed is set inside
+  the function).
+- [`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)
+  no longer leaves the caller’s random-number stream altered when `seed`
+  is supplied: the global `.Random.seed` is saved before
+  [`set.seed()`](https://rdrr.io/r/base/Random.html) and restored via
+  [`on.exit()`](https://rdrr.io/r/base/on.exit.html), matching the
+  fixture generators. Bootstrap reproducibility under a given `seed` is
+  unchanged.
+
 ## TemporalHazard 1.0.1
 
 ### Bug fixes / CRAN compliance

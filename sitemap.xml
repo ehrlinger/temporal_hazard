@@ -2,6 +2,7 @@
 <url><loc>https://ehrlinger.github.io/temporal_hazard/404.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/CONTRIBUTORS.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/LICENSE-text.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/RELEASE.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/articles/ar-architecture.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/articles/clinical-analysis-walkthrough.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.html</loc></url>
@@ -19,11 +20,6 @@
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/coef.hazard.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_as_design_matrix.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_conserve_events.html</loc></url>
-<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_create_c_reference_kul_fixture.html</loc></url>
-<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_create_loglogistic_golden_fixture.html</loc></url>
-<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_create_lognormal_golden_fixture.html</loc></url>
-<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_create_multiphase_golden_fixture.html</loc></url>
-<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_create_synthetic_golden_fixtures.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_g3_phase_derivatives.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_gradient_multiphase.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_log_mu_positions.html</loc></url>

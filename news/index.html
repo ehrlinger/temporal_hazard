@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,6 +49,18 @@
       <small>Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.0.2" id="temporalhazard-102">TemporalHazard 1.0.2<a class="anchor" aria-label="anchor" href="#temporalhazard-102"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes--cran-compliance-1-0-2">Bug fixes / CRAN compliance<a class="anchor" aria-label="anchor" href="#bug-fixes--cran-compliance-1-0-2"></a></h3>
+<ul><li>The golden-fixture generators (<code>.hzr_create_*_golden_fixture()</code>, previously <code>R/golden_fixtures.R</code>) have been moved out of the package to <code>data-raw/golden_fixtures.R</code>. They are maintainer-only helpers for regenerating the bundled <code>inst/fixtures/*.rds</code> reference outputs and are not part of the installed package, so they are no longer shipped, checked, or user-reachable. This resolves the home-filespace concern at its root: the earlier fallback resolved to <code>system.file("fixtures", ...)</code> — i.e. the installed package directory — whenever the package was installed, so the 1.0.1 “falls back to <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code>” fix did not actually prevent writing to the user library. The bundled <code>.rds</code> fixtures still ship and the parity tests still read them via <code><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file()</a></code>.</li>
+<li>
+<code>.hzr_generate_golden_fixture()</code> (the C-binary reference writer in <code>R/parity-helpers.R</code>, which shares a file with test-time helpers and so was kept in the package) now takes a required <code>output_dir</code> argument with no default path.</li>
+<li>Removed the remaining hardcoded <code>seed = 42</code> literals from the relocated generators; recorded fixture metadata reflects the actual <code>seed</code> argument passed (<code>NULL</code> by default, so no seed is set inside the function).</li>
+<li>
+<code><a href="../reference/hzr_bootstrap.html">hzr_bootstrap()</a></code> no longer leaves the caller’s random-number stream altered when <code>seed</code> is supplied: the global <code>.Random.seed</code> is saved before <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> and restored via <code><a href="https://rdrr.io/r/base/on.exit.html" class="external-link">on.exit()</a></code>, matching the fixture generators. Bootstrap reproducibility under a given <code>seed</code> is unchanged.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.0.1" id="temporalhazard-101">TemporalHazard 1.0.1<a class="anchor" aria-label="anchor" href="#temporalhazard-101"></a></h2>
 <div class="section level3">
