@@ -58,7 +58,9 @@
     oldseed <- get0(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
     on.exit({
       if (is.null(oldseed)) {
-        rm(list = ".Random.seed", envir = .GlobalEnv)
+        if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+          rm(list = ".Random.seed", envir = .GlobalEnv)
+        }
       } else {
         assign(".Random.seed", oldseed, envir = .GlobalEnv)
       }
@@ -240,7 +242,9 @@
     oldseed <- get0(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
     on.exit({
       if (is.null(oldseed)) {
-        rm(list = ".Random.seed", envir = .GlobalEnv)
+        if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+          rm(list = ".Random.seed", envir = .GlobalEnv)
+        }
       } else {
         assign(".Random.seed", oldseed, envir = .GlobalEnv)
       }
@@ -318,7 +322,9 @@
     oldseed <- get0(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
     on.exit({
       if (is.null(oldseed)) {
-        rm(list = ".Random.seed", envir = .GlobalEnv)
+        if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+          rm(list = ".Random.seed", envir = .GlobalEnv)
+        }
       } else {
         assign(".Random.seed", oldseed, envir = .GlobalEnv)
       }
@@ -400,7 +406,9 @@
     oldseed <- get0(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
     on.exit({
       if (is.null(oldseed)) {
-        rm(list = ".Random.seed", envir = .GlobalEnv)
+        if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
+          rm(list = ".Random.seed", envir = .GlobalEnv)
+        }
       } else {
         assign(".Random.seed", oldseed, envir = .GlobalEnv)
       }
