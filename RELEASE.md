@@ -23,14 +23,34 @@ So the cycle is:
 2. `NEWS.md` top heading is `# TemporalHazard X.Y.Z` and describes the
    user-visible changes since the last CRAN release.
 3. `cran-comments.md` version heading matches `DESCRIPTION`; if a
-   resubmission, each reviewer point is itemised with how it was addressed;
-   test environments and NOTE disposition reflect reality.
+   resubmission, each reviewer point is itemised with how it was addressed.
 4. `devtools::document()` is clean and `man/` is in sync.
 5. `R CMD check --as-cran` → 0 errors, 0 warnings, 0 notes
    (`devtools::check(args = "--as-cran")`).
-6. Optional wider checks: `devtools::check_win_devel()`,
-   `rhub::rhub_check()`.
+6. `devtools::check_win_devel()` (and optionally `rhub::rhub_check()`).
+   **This is the source of truth for the NOTE disposition** — the local
+   `--as-cran` in step 5 does *not* run the CRAN incoming-feasibility /
+   aspell step, so it will under-report. Reconcile the
+   `## NOTE disposition` section of `cran-comments.md` against the
+   *win-builder* `00check.log`, not the local result, before submitting.
+   See "Known benign NOTE" below.
 7. Submit: `devtools::submit_cran()` (writes `CRAN-SUBMISSION`).
+
+### Known benign NOTE
+
+Every submission produces one expected NOTE from the CRAN incoming check
+that the local `--as-cran` does not show:
+
+- **New submission** — until the package is accepted on CRAN. Drop this
+  line from `cran-comments.md` once accepted.
+- **Possibly misspelled words in DESCRIPTION** — proper nouns (`Naftel`,
+  `Rajeswaran`), the acronym `UAB`, the `et al.` citation, and the domain
+  term `multiphase`. All intentional; not misspellings. `inst/WORDLIST`
+  feeds only the `spelling` test, **not** the CRAN aspell check, so this
+  recurs by design — document it, don't try to suppress it.
+
+The canonical wording lives in `cran-comments.md` `## NOTE disposition`;
+keep the two in agreement.
 
 ## On CRAN acceptance
 
