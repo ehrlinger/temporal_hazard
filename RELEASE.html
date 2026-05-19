@@ -80,18 +80,39 @@
 <div class="section level2">
 <h2 id="on-cran-acceptance">On CRAN acceptance<a class="anchor" aria-label="anchor" href="#on-cran-acceptance"></a></h2>
 <ol style="list-style-type: decimal"><li>
-<p>Tag the release and push the tag:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">git</span> tag vX.Y.Z</span>
+<p>Tag the release and push the tag (annotated, mirroring existing tags):</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">git</span> tag <span class="at">-a</span> vX.Y.Z <span class="at">-m</span> <span class="st">"TemporalHazard vX.Y.Z — CRAN acceptance"</span> <span class="op">&lt;</span>submitted-SHA<span class="op">&gt;</span></span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">git</span> push origin vX.Y.Z</span></code></pre></div>
+<p><code>&lt;submitted-SHA&gt;</code> is the <code>SHA:</code> line in <code>CRAN-SUBMISSION</code>.</p>
+</li>
+<li>
+<p>Publish a GitHub Release from the tag, using that version’s <code>NEWS.md</code> section as the body, marked as the latest release:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="ex">gh</span> release create vX.Y.Z <span class="at">--verify-tag</span> <span class="at">--latest</span> <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="at">--title</span> <span class="st">"vX.Y.Z — &lt;summary&gt;"</span> <span class="at">--notes-file</span> <span class="op">&lt;</span>news-section.md<span class="op">&gt;</span></span></code></pre></div>
+</li>
+<li>
+<p><strong>First CRAN release only — badge alignment.</strong> Replace the manual shields <code>version</code> badge with the CRAN status badge and add the cranlogs download badges; the README <code>&lt;!-- badges: start --&gt;</code> block becomes:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode md"><code class="sourceCode markdown"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co">&lt;!-- badges: start --&gt;</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">[</span><span class="al">![CRAN status](https://www.r-pkg.org/badges/version/TemporalHazard)</span><span class="co">](https://CRAN.R-project.org/package=TemporalHazard)</span></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">[</span><span class="al">![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/TemporalHazard)</span><span class="co">](https://CRAN.R-project.org/package=TemporalHazard)</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">[</span><span class="al">![CRAN downloads (monthly)](https://cranlogs.r-pkg.org/badges/TemporalHazard)</span><span class="co">](https://CRAN.R-project.org/package=TemporalHazard)</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">[</span><span class="al">![R-CMD-check](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml/badge.svg)</span><span class="co">](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml)</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">[</span><span class="al">![Codecov test coverage](https://codecov.io/gh/ehrlinger/temporal_hazard/branch/main/graph/badge.svg)</span><span class="co">](https://app.codecov.io/gh/ehrlinger/temporal_hazard?branch=main)</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">[</span><span class="al">![lint](https://github.com/ehrlinger/temporal_hazard/actions/workflows/lint.yaml/badge.svg)</span><span class="co">](https://github.com/ehrlinger/temporal_hazard/actions/workflows/lint.yaml)</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">[</span><span class="al">![pkgdown site](https://img.shields.io/badge/docs-pkgdown-blue)</span><span class="co">](https://ehrlinger.github.io/temporal_hazard/)</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="al">![active](https://www.repostatus.org/badges/latest/active.svg)</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">&lt;!-- badges: end --&gt;</span></span></code></pre></div>
+<p>The manual version badge is now redundant (CRAN status badge is the single source of version truth), so also <strong>delete the badge-sync CI</strong>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">git</span> rm .github/workflows/update-version-badge.yaml</span></code></pre></div>
 </li>
 <li>
 <p>Bump <code>main</code> to the next development version:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">usethis</span><span class="fu">::</span><span class="fu">use_dev_version</span><span class="op">(</span><span class="op">)</span>   <span class="co"># DESCRIPTION -&gt; X.Y.Z.9000</span></span></code></pre></div>
 <p>or manually: set <code>DESCRIPTION</code> <code>Version:</code> to <code>X.Y.Z.9000</code> and add a NEWS heading:</p>
 <pre><code><span><span class="co"># TemporalHazard X.Y.Z.9000 (development version)</span></span></code></pre>
 </li>
-<li><p>Commit to <code>main</code>: <code>chore: bump to X.Y.Z.9000 (dev)</code>.</p></li>
+<li><p>Steps 3 and 4 change tracked files, so per the repo’s mandatory git workflow they go through a branch + PR (not a direct <code>main</code> push): <code>chore: post-1.0.2 — CRAN badges + dev bump to X.Y.Z.9000</code>. Steps 1 and 2 (tag push, GitHub Release) are the standard release-op exception.</p></li>
 </ol><p>All subsequent development happens at <code>X.Y.Z.9000</code> until the next release strips it for submission.</p>
 </div>
 <div class="section level2">

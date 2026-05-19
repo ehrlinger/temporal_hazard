@@ -33,14 +33,51 @@ So the cycle is:
 
 ## On CRAN acceptance
 
-1.  Tag the release and push the tag:
+1.  Tag the release and push the tag (annotated, mirroring existing
+    tags):
 
     ``` sh
-    git tag vX.Y.Z
+    git tag -a vX.Y.Z -m "TemporalHazard vX.Y.Z — CRAN acceptance" <submitted-SHA>
     git push origin vX.Y.Z
     ```
 
-2.  Bump `main` to the next development version:
+    `<submitted-SHA>` is the `SHA:` line in `CRAN-SUBMISSION`.
+
+2.  Publish a GitHub Release from the tag, using that version’s
+    `NEWS.md` section as the body, marked as the latest release:
+
+    ``` sh
+    gh release create vX.Y.Z --verify-tag --latest \
+      --title "vX.Y.Z — <summary>" --notes-file <news-section.md>
+    ```
+
+3.  **First CRAN release only — badge alignment.** Replace the manual
+    shields `version` badge with the CRAN status badge and add the
+    cranlogs download badges; the README `<!-- badges: start -->` block
+    becomes:
+
+    ``` md
+    <!-- badges: start -->
+    [![CRAN status](https://www.r-pkg.org/badges/version/TemporalHazard)](https://CRAN.R-project.org/package=TemporalHazard)
+    [![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/TemporalHazard)](https://CRAN.R-project.org/package=TemporalHazard)
+    [![CRAN downloads (monthly)](https://cranlogs.r-pkg.org/badges/TemporalHazard)](https://CRAN.R-project.org/package=TemporalHazard)
+    [![R-CMD-check](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml)
+    [![Codecov test coverage](https://codecov.io/gh/ehrlinger/temporal_hazard/branch/main/graph/badge.svg)](https://app.codecov.io/gh/ehrlinger/temporal_hazard?branch=main)
+    [![lint](https://github.com/ehrlinger/temporal_hazard/actions/workflows/lint.yaml/badge.svg)](https://github.com/ehrlinger/temporal_hazard/actions/workflows/lint.yaml)
+    [![pkgdown site](https://img.shields.io/badge/docs-pkgdown-blue)](https://ehrlinger.github.io/temporal_hazard/)
+    ![active](https://www.repostatus.org/badges/latest/active.svg)
+    <!-- badges: end -->
+    ```
+
+    The manual version badge is now redundant (CRAN status badge is the
+    single source of version truth), so also **delete the badge-sync
+    CI**:
+
+    ``` sh
+    git rm .github/workflows/update-version-badge.yaml
+    ```
+
+4.  Bump `main` to the next development version:
 
     ``` r
 
@@ -52,7 +89,11 @@ So the cycle is:
 
         # TemporalHazard X.Y.Z.9000 (development version)
 
-3.  Commit to `main`: `chore: bump to X.Y.Z.9000 (dev)`.
+5.  Steps 3 and 4 change tracked files, so per the repo’s mandatory git
+    workflow they go through a branch + PR (not a direct `main` push):
+    `chore: post-1.0.2 — CRAN badges + dev bump to X.Y.Z.9000`. Steps 1
+    and 2 (tag push, GitHub Release) are the standard release-op
+    exception.
 
 All subsequent development happens at `X.Y.Z.9000` until the next
 release strips it for submission.
