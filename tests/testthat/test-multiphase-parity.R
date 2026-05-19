@@ -415,8 +415,10 @@ test_that("Synthetic 3-phase fixture round-trip: parameters recovered", {
   # Skip if fixture was generated with divergent optimizer (sanity check)
   skip_if(is.null(fixture$fit), "Fixture has no fit results")
   skip_if(!is.finite(fixture$fit$logl), "Fixture fit did not converge")
-  skip_if(any(abs(fixture$fit$theta) > 100),
-          "Fixture theta values are unreasonable — regenerate via data-raw/golden_fixtures.R (.hzr_create_multiphase_golden_fixture())")
+  skip_if(
+    any(abs(fixture$fit$theta) > 100),
+    "Fixture theta unreasonable; regenerate fixtures (data-raw/golden_fixtures.R)"
+  )
 
   # Refit using the same phase specs AND the fixture's converged theta as start
   refit <- hazard(

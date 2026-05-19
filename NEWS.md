@@ -20,6 +20,10 @@
 * Removed the remaining hardcoded `seed = 42` literals from the relocated
   generators; recorded fixture metadata reflects the actual `seed` argument
   passed (`NULL` by default, so no seed is set inside the function).
+* `hzr_bootstrap()` no longer leaves the caller's random-number stream
+  altered when `seed` is supplied: the global `.Random.seed` is saved before
+  `set.seed()` and restored via `on.exit()`, matching the fixture generators.
+  Bootstrap reproducibility under a given `seed` is unchanged.
 
 # TemporalHazard 1.0.1
 
