@@ -689,7 +689,9 @@ NULL
 #' @param x Optional design matrix for multivariable models
 #' @param theta Optional starting parameters
 #' @param control Optional control list
-#' @param output_dir Directory to store fixture (default: \code{inst/fixtures/})
+#' @param output_dir Directory to store the fixture. Required; the function
+#'   never writes to a default path. Pass \code{tempdir()} for a throwaway
+#'   run or an explicit project path (e.g. \code{"inst/fixtures"}) to persist.
 #'
 #' @return Invisibly returns the parsed output of the reference binary.
 #'
@@ -701,15 +703,13 @@ NULL
     x = NULL,
     theta = NULL,
     control = list(),
-    output_dir = NULL) {
+    output_dir) {
 
-  if (is.null(output_dir)) {
-    output_dir <- system.file("fixtures", package = "TemporalHazard")
-    if (!nzchar(output_dir)) {
-      output_dir <- "inst/fixtures"
-    }
-    dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
-  }
+  stopifnot(
+    "`output_dir` must be a single non-empty path" =
+      is.character(output_dir) && length(output_dir) == 1L && nzchar(output_dir)
+  )
+  dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
   # Run binary
   result <- .hzr_run_hazard_binary(

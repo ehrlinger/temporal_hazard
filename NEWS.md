@@ -1,3 +1,21 @@
+# TemporalHazard 1.0.2
+
+## Bug fixes / CRAN compliance
+
+* Internal fixture generators no longer write to the home filespace by
+  default. The `output_dir` argument of `.hzr_create_synthetic_golden_fixtures()`,
+  `.hzr_create_loglogistic_golden_fixture()`, `.hzr_create_lognormal_golden_fixture()`,
+  `.hzr_create_multiphase_golden_fixture()`, `.hzr_create_c_reference_kul_fixture()`,
+  and `.hzr_generate_golden_fixture()` is now required and has no default. The
+  previous fallback resolved to `system.file("fixtures", ...)` — i.e. the
+  installed package directory — whenever the package was installed, so the
+  earlier "falls back to `tempdir()`" fix did not actually prevent writing to
+  the user library.
+* Removed the remaining hardcoded `seed = 42` literals from
+  `R/golden_fixtures.R`; recorded fixture metadata now reflects the actual
+  `seed` argument passed (`NULL` by default, so no seed is set inside the
+  function).
+
 # TemporalHazard 1.0.1
 
 ## Bug fixes / CRAN compliance

@@ -4,7 +4,7 @@
 \alias{.hzr_create_multiphase_golden_fixture}
 \title{Create golden fixture for multiphase parity testing (synthetic)}
 \usage{
-.hzr_create_multiphase_golden_fixture(output_dir = NULL, seed = NULL)
+.hzr_create_multiphase_golden_fixture(output_dir, seed = NULL)
 }
 \description{
 Generates a synthetic 3-phase dataset with known parameters, fits the

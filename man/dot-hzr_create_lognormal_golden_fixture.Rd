@@ -4,7 +4,7 @@
 \alias{.hzr_create_lognormal_golden_fixture}
 \title{Create and save log-normal golden fixture}
 \usage{
-.hzr_create_lognormal_golden_fixture(output_dir = NULL, seed = NULL)
+.hzr_create_lognormal_golden_fixture(output_dir, seed = NULL)
 }
 \description{
 Create and save log-normal golden fixture

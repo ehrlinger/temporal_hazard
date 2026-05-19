@@ -4,7 +4,7 @@
 \alias{.hzr_create_c_reference_kul_fixture}
 \title{Create golden fixture for C binary parity (KUL CABG dataset)}
 \usage{
-.hzr_create_c_reference_kul_fixture(output_dir = NULL)
+.hzr_create_c_reference_kul_fixture(output_dir)
 }
 \description{
 Loads the KUL cardiac surgery dataset from inst/extdata/cabgkul.csv and

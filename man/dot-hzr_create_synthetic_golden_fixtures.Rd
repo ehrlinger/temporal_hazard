@@ -4,7 +4,7 @@
 \alias{.hzr_create_synthetic_golden_fixtures}
 \title{Generate and save golden fixtures for parity testing}
 \usage{
-.hzr_create_synthetic_golden_fixtures(output_dir = NULL, seed = NULL)
+.hzr_create_synthetic_golden_fixtures(output_dir, seed = NULL)
 }
 \description{
 Creates synthetic datasets and fits Weibull models using the R implementation,
