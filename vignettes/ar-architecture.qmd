@@ -176,8 +176,8 @@ mapping:
 `.hzr_optim_multiphase()` runs a multi-start strategy: the first start
 uses the assembled starting values (from `theta` or `hzr_phase` specs);
 subsequent starts perturb randomly (sd = 0.5). The best log-likelihood
-across all starts is kept. This helps escape shallow local optima common
-in multiphase models.
+across all starts is kept. This helps the optimizer escape the shallow local
+optima that are common in multiphase models.
 
 The optimizer delegates to `.hzr_optim_generic()`, which wraps
 `stats::optim()` with method `"BFGS"` (unconstrained; all scale

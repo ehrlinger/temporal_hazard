@@ -610,8 +610,8 @@ overpredicts risk; persistent negative means it underpredicts.
 
 ## Why not Cox regression?
 
-The temporal parametric approach offers several advantages over Cox
-proportional hazards for this type of analysis:
+For this kind of analysis the temporal parametric approach buys you
+several things that Cox proportional hazards does not:
 
 | Feature | Cox (`coxph`) | TemporalHazard |
 |:---|:---:|:---:|
@@ -623,10 +623,10 @@ proportional hazards for this type of analysis:
 | Conservation of events check | No | Yes (`hzr_gof()`) |
 | Interval censoring | Not standard | Supported |
 
-The key insight is that many clinical outcomes exhibit **non-proportional
+Many clinical outcomes show **non-proportional
 hazards**: the risk factors that dominate early mortality (e.g., surgical
 complexity) differ from those driving late attrition (e.g., age, comorbidity).
-The multiphase model captures this naturally through phase-specific
+The multiphase model captures this through phase-specific
 covariate effects.
 
 ## Summary

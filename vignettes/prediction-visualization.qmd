@@ -38,9 +38,9 @@ overlaying parametric fits with Kaplan-Meier estimates.
 
 ## Kaplan-Meier baseline
 
-Before any parametric modeling, the Kaplan-Meier curve establishes a
-nonparametric reference.  All subsequent parametric predictions should be
-compared against this baseline to assess goodness-of-fit.
+Before any parametric modeling, the Kaplan-Meier curve gives us a
+nonparametric reference.  Compare every parametric prediction that follows
+against this baseline to judge goodness-of-fit.
 
 ```{r}
 #| label: km-baseline
@@ -340,8 +340,8 @@ ggplot(curves, aes(time, survival, colour = Profile)) +
   theme(legend.position = "bottom")
 ```
 
-The separation between curves quantifies the prognostic discrimination of the
-model.  A wider spread indicates stronger covariate effects.
+The gap between curves is the model's prognostic discrimination: a wider
+spread means stronger covariate effects.
 
 
 ## Multi-endpoint visualization: valves
