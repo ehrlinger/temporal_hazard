@@ -24,6 +24,7 @@ test_that("legacy command uses stdin/stdout redirection", {
   temp_dir <- tempdir()
   sas_file <- file.path(temp_dir, "test-prefix.sas")
   lst_file <- file.path(temp_dir, "test-prefix.lst")
+  on.exit(unlink(c(sas_file, lst_file)), add = TRUE)
   writeLines("Parameter Estimate StdErr Z.value P.value", sas_file)
 
   result <- TemporalHazard:::.hzr_run_legacy_binary(
