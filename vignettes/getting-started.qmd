@@ -21,8 +21,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-## What this vignette does
-
 TemporalHazard fits *parametric hazard models* to time-to-event data.
 If you've worked with `survival::coxph()` or Kaplan-Meier curves before
 you already have most of the vocabulary; this is a quick refresh of the
