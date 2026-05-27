@@ -127,8 +127,15 @@ new_patients
 
 ## Visualizing predicted survival
 
-Here we build a survival curve over a fine time grid for a median-profile
-patient and overlay the Kaplan-Meier nonparametric estimate from the raw data.
+The summary table and the patient-level scores tell us the fit
+*converged* and what it *predicts*, but not whether the predicted shape
+matches the data. For that we plot the model. Below we build a smooth
+survival curve over a fine time grid for a median-profile patient and
+overlay the Kaplan-Meier nonparametric estimate from the raw data on
+the same axes. If the parametric curve hugs the KM step function the
+Weibull shape is honest to the data; visible drift in either direction
+flags a model the optimizer fit happily but that doesn't actually
+describe the cohort.
 
 ```{r}
 #| label: fig-survival
@@ -426,8 +433,19 @@ mathematical treatment.
 
 ## Numerical helpers
 
-The numerical helper functions remain available directly when you need stable
-log-scale calculations for custom work or debugging.
+The package ships a small set of numerical helpers used internally to
+keep the likelihood evaluations stable across the wide range of
+arguments an optimizer encounters. They're exported so you can reach
+for them in custom code or when debugging a fit.
+
+The most common one is `hzr_log1pexp(x)`, which computes
+$\log(1 + e^x)$ in a numerically stable way. The naive `log(1 + exp(x))`
+overflows once $x$ exceeds about 700 (because `exp(x)` itself
+overflows); the helper switches to the asymptotic $x + \log(1 + e^{-x})$
+for large $x$, which is exact to floating-point precision. The package
+uses it inside every log-likelihood expression that involves a
+log-survival term, so the same evaluation can run on $x = -50$ and
+$x = 5000$ without producing `Inf` or `NaN`.
 
 ```{r}
 TemporalHazard::hzr_log1pexp(c(-2, 0, 2))
