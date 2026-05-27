@@ -7,13 +7,28 @@ library(TemporalHazard)
 
 ## Overview
 
-The legacy HAZARD program is a SAS macro (`%HAZARD(...)`) that wraps a
-compiled C executable implementing the multiphase parametric hazard
-model of Blackstone, Naftel, and Turner (1986). This vignette is the
-canonical reference for translating a SAS HAZARD analysis into native R
-using `TemporalHazard`.
+If you’ve been running multiphase hazard analyses in SAS HAZARD — the
+macro suite that wraps the C HAZARD binary written by Blackstone,
+Naftel, and Turner at UAB — this vignette is the bridge to running the
+same analyses in R. Every SAS `HAZARD` statement, every common macro
+option, and every output field maps to something in `TemporalHazard`;
+this document spells out the correspondences and flags the small handful
+of features the R port doesn’t yet cover.
 
-The full formal argument mapping table is available programmatically:
+The mapping is faithful, not literal. SAS HAZARD is a step-driven DSL:
+you write a `PROC HAZARD` block with separate `TIME`, `EVENT`, `PARMS`,
+`EARLY`, `CONSTANT`, and `SELECTION` statements, and the macro assembles
+them into a binary call. R is function-driven: you write a single
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+call with named arguments. The conceptual pieces are identical; the
+syntactic ergonomics differ. Use this vignette to translate an existing
+SAS analysis, or as a reference when comparing the package’s output
+against a SAS HAZARD reference fit for parity testing.
+
+The full formal argument mapping table is available programmatically and
+ships with the package — handy when you want to grep for a specific SAS
+parameter name and find its R equivalent without scrolling through the
+prose below:
 
 ``` r
 
@@ -59,7 +74,16 @@ Formal argument map: SAS HAZARD/C → hazard() {.table .caption-top}
 
 ## Statement-by-statement mapping
 
+A SAS HAZARD analysis is a stack of statements inside a `PROC HAZARD`
+block. We walk through them in roughly the order they appear in a
+typical analysis script, showing the SAS form and the corresponding R
+call.
+
 ### `PROC HAZARD DATA=`
+
+The procedure-level statement that names the dataset and sets global
+options. The `NOCOV` / `NOCOR` flags suppress covariance and correlation
+output; `CONDITION=` is a tolerance switch for the convergence check.
 
 ``` sas
 PROC HAZARD DATA=AVCS NOCOV NOCOR CONDITION=14;
@@ -88,6 +112,11 @@ passed through `...` as named arguments and stored in `fit$legacy_args`.
 
 ### `TIME`
 
+Names the follow-up time variable. In SAS HAZARD this is a separate
+statement; in R it’s the first argument to
+[`Surv()`](https://rdrr.io/pkg/survival/man/Surv.html) inside the
+formula.
+
 ``` sas
 TIME INT_DEAD;
 ```
@@ -109,6 +138,10 @@ fit <- hazard(
 ------------------------------------------------------------------------
 
 ### `EVENT`
+
+Names the event-indicator variable. Like `TIME`, this is a separate
+statement in SAS HAZARD but enters the R formula through
+[`Surv()`](https://rdrr.io/pkg/survival/man/Surv.html).
 
 ``` sas
 EVENT DEAD;
@@ -132,6 +165,11 @@ fit <- hazard(
 ------------------------------------------------------------------------
 
 ### `PARMS`
+
+Supplies starting values for the optimizer and flags which parameters to
+hold fixed (`FIXM`, `FIXMU`, etc.). The starting values matter — for the
+multiphase optimizer in particular, a poor starting point can park the
+fit at a local minimum well away from the global MLE.
 
 ``` sas
 PARMS MUE=0.3504743 THALF=0.1905077 NU=1.437416 M=1 FIXM
@@ -162,6 +200,12 @@ fit <- hazard(
 ------------------------------------------------------------------------
 
 ### `EARLY` and `CONSTANT` covariate blocks
+
+These statements assign covariates to specific phases. In SAS HAZARD
+each block lists the covariates that affect that phase and their
+starting coefficients. Covariates can appear in multiple blocks with
+different starting values — same column, different phase-specific
+effect.
 
 ``` sas
 EARLY  AGE=-0.03205774, COM_IV=1.336675, MAL=0.6872028,
@@ -207,6 +251,15 @@ fit <- hazard(
 ------------------------------------------------------------------------
 
 ### `SELECTION`
+
+Triggers stepwise covariate selection inside the hazard fit. `SLE` is
+the significance level for entry, `SLS` for staying. SAS HAZARD embedded
+this in the same `PROC HAZARD` call; in R the stepwise loop is a
+separate
+[`hzr_stepwise()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_stepwise.md)
+function that wraps a fitted
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+object.
 
 ``` sas
 SELECTION SLE=0.2 SLS=0.1;
@@ -412,10 +465,19 @@ head(hzr_competing_risks(valves$int_dead, valves$ev), 4)
 
 ## Full worked example: AVC death after repair
 
-This mirrors the final multivariable model from
-`examples/hm.death.AVC.sas` in the reference C repository.
+Statement-by-statement mapping is fine for reference, but the full
+gestalt only lands when you see a complete SAS HAZARD analysis and its R
+translation side by side. The example below is the final multivariable
+model from `examples/hm.death.AVC.sas` in the reference C repository —
+death after atrioventricular canal repair, two-phase model with
+covariates assigned to specific phases. It’s the canonical “this is what
+a real SAS HAZARD analysis looks like” specimen.
 
 ### SAS (original)
+
+The original SAS code, exactly as it appears in the reference
+distribution. Notice how the statements stack inside a single
+`%HAZARD()` macro call.
 
 ``` sas
 %HAZARD(
@@ -431,6 +493,17 @@ PROC HAZARD DATA=AVCS P CONSERVE OUTHAZ=OUTEST CONDITION=14 QUASI;
 ```
 
 ### R equivalent (current runnable translation pattern)
+
+The same model in `TemporalHazard`. Every SAS statement above has a
+corresponding R argument here: `TIME` and `EVENT` collapse into
+`Surv(int_dead, dead)` on the left of the formula; the global covariate
+list goes on the right; the `PARMS` starting values become the `theta`
+vector; phase-specific assignments use the `formula` argument inside
+each
+[`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md);
+`FIXM` becomes `fixed = "shapes"` (or a subset of shape names). The
+line-by-line correspondence is the point — once you’ve translated one
+analysis this way, the pattern carries to every other.
 
 ``` r
 
@@ -520,8 +593,16 @@ returns a list of class `hazard`:
 
 ## Prediction
 
+In SAS HAZARD the `P` (predict / print) option on the `PROC HAZARD` line
+writes predicted survival, hazard, and cumulative-hazard tables to the
+output dataset. In R the same predictions come from
 [`predict.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/predict.hazard.md)
-currently supports two output types:
+on the fitted object, with the requested quantity chosen via the `type=`
+argument.
+[`predict.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/predict.hazard.md)
+currently supports four output types — `"linear_predictor"`, `"hazard"`,
+`"survival"`, and `"cumulative_hazard"` — covering every quantity the
+SAS `P` option produces:
 
 ``` r
 
@@ -532,9 +613,10 @@ eta <- predict(fit, type = "linear_predictor")
 hz  <- predict(fit, type = "hazard")
 ```
 
-`"survival"` and `"cumulative_hazard"` types are also supported,
-mirroring the `P` (predict/print) option in `PROC HAZARD`. Pass
-`decompose = TRUE` for multiphase fits to get per-phase contributions.
+The code chunk above shows only `"linear_predictor"` and `"hazard"`;
+`"survival"` and `"cumulative_hazard"` follow the same pattern. For
+multiphase fits pass `decompose = TRUE` to get per-phase cumulative
+hazard contributions instead of just the total.
 
 ------------------------------------------------------------------------
 

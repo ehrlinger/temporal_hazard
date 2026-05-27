@@ -6,12 +6,23 @@ library(TemporalHazard)
 ```
 
 This vignette lays out the mathematical foundation for the models in
-TemporalHazard. It covers the generalized temporal decomposition family
-(Blackstone, Naftel, and Turner 1986), the additive multiphase hazard
-model, maximum likelihood estimation under mixed censoring, and
-extensions for time-varying covariates. The same decomposition framework
-also carries over to longitudinal mixed-effects settings (Rajeswaran et
-al. 2018).
+TemporalHazard. The other vignettes treat the package as a black box you
+call
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+on; this one opens the box. If you’ve used the package and want to know
+*what* it’s computing, *why* the parameterization is what it is, and
+*how* the multiphase decomposition relates to standard parametric
+survival families, this is the place.
+
+The four pieces, in order: the generalized temporal decomposition family
+(Blackstone, Naftel, and Turner 1986) that every phase is built from;
+the additive multiphase hazard model that composes phases into a full
+hazard; the maximum-likelihood objective under mixed censoring (right,
+left, interval, counting-process), which is what the optimizer
+minimizes; and extensions for phase-specific and time-varying
+covariates. The same decomposition framework carries over to
+longitudinal mixed-effects settings (Rajeswaran et al. 2018), though
+this vignette stays in the survival regime.
 
 For users migrating from the legacy SAS/C HAZARD program, each section
 notes how the R parameterization relates to the original parameter
@@ -79,9 +90,12 @@ cat("Max |h - g/(1-G)| =", max(abs(d$h - h_check)), "\n")
 
 ### 1.2 The six valid cases
 
-The signs of `nu` and `m` determine six distinct distributional shapes.
-The combination $`m < 0`$**and** $`\nu < 0`$ is undefined and raises an
-error.
+Different sign combinations of $`\nu`$ and $`m`$ pick out different
+asymptotic behaviors of `decompos()`, and the package treats each as a
+separate case for numerical stability. The combination $`m < 0`$**and**
+$`\nu < 0`$ produces an integrand with no finite normalization and is
+rejected at the input-validation step. The remaining six are the catalog
+every phase in the package selects from:
 
 | Case | m    | nu   | Behavior                                    |
 |:-----|:-----|:-----|:--------------------------------------------|
@@ -226,10 +240,17 @@ The derivative $`\varphi_j(t)`$ depends on phase type:
 
 ### 2.3 Constructing phases in R
 
-Each phase is specified with
-[`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
-and passed to
-[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md):
+The math above is exposed in R through
+[`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md),
+which builds one phase at a time, and
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md),
+which composes phases into a full model. The same `(t_half, nu, m)`
+triple from `decompos()` parameterizes the `"cdf"` and `"hazard"`
+shapes; the `"g3"` shape exposes its own `(tau, gamma, alpha, eta)`
+parameters from the SAS “late” library; and `"constant"` has no shape
+parameters at all. A canonical three-phase model uses the `"cdf"` shape
+for the early phase, `"constant"` for the background, and either a
+delayed `"cdf"` or `"g3"` for the late phase.
 
 ``` r
 
@@ -464,8 +485,19 @@ hazard(
 
 ### 4.2 Phase-specific covariates
 
-When different phases are driven by different risk factors, each phase
-can specify its own one-sided formula:
+The global formula above lets every covariate act on every phase through
+a shared shift $`x^\top \beta`$. That’s the right structure when a
+covariate plausibly affects the entire hazard trajectory. But clinical
+reality often pulls the other way: surgical risk factors (grade IV
+complications, intra-operative blood loss) belong in the early phase but
+say nothing about late attrition; chronic comorbidities (NYHA class
+progression, late-onset diabetes) belong in the late phase but were
+irrelevant during the operative window. Phase-specific covariates let
+you build that structure directly.
+
+When a phase carries its own one-sided formula, the phase gets its own
+design matrix from the data, and only those covariates appear in that
+phase’s $`\boldsymbol{\beta}_j`$. Other phases ignore them entirely.
 
 ``` r
 

@@ -86,7 +86,8 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival" class="external-link">survival</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>This vignette walks through the core model-fitting workflow, starting from the simplest case (intercept-only, single distribution) and building up through multivariable models to multiphase additive hazard decomposition. Every example uses a clinical dataset shipped with the package.</p>
+<p>This vignette walks the core model-fitting workflow from the inside out: intercept-only fits to establish the baseline hazard shape, then covariates on top, then the multiphase decomposition, then multi-endpoint analyses on the same cohort. Every example uses a clinical dataset shipped with the package. If you haven’t seen the basics — what a parametric hazard model is, why we use the <code>Surv(time, status)</code> formula — start with <code><a href="../articles/getting-started.html">vignette("getting-started")</a></code> first; this vignette assumes that context.</p>
+<p>The progression matters. Single-distribution intercept-only fits tell you whether the baseline hazard shape is monotone (Weibull territory) or has structure that demands a multiphase decomposition. Multivariable fits add covariate effects on top of a shape you already trust. Multiphase fits split the baseline shape into clinically interpretable phases. Multi-endpoint analyses reuse all the above for separate clinical outcomes — death, reoperation, infection — on the same patient cohort.</p>
 <section class="level2" data-number="1"><h2 data-number="1" id="intercept-only-model-cabg-survival-ku-leuven">
 <span class="header-section-number">1</span> Intercept-only model: CABG survival (KU Leuven)<a class="anchor" aria-label="anchor" href="#intercept-only-model-cabg-survival-ku-leuven"></a>
 </h2>
@@ -99,7 +100,7 @@
 <span><span class="co">#&gt;  $ int_dead: num  201.83 195.06 7.13 126.36 187.57 ...</span></span>
 <span><span class="co">#&gt;  $ dead    : int  0 0 1 1 0 0 1 1 0 1 ...</span></span></code></pre></div>
 </div>
-<p>Fit an intercept-only Weibull hazard (no covariates):</p>
+<p>Fit an intercept-only Weibull. With no covariates on the right-hand side of the formula the model estimates only the baseline hazard shape — the scale <code>mu</code> and exponent <code>nu</code> of a Weibull curve fit to all 5,880 patients pooled. This is the right starting point for any new dataset: before asking which covariates matter, ask whether a single monotone hazard even fits the population-level pattern.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_kul</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hazard.html">hazard</a></span><span class="op">(</span></span>
@@ -119,7 +120,7 @@
 <span><span class="co">#&gt;   log-lik:      -3935.72 </span></span>
 <span><span class="co">#&gt;   converged:    TRUE</span></span></code></pre></div>
 </div>
-<p>Compare the parametric fit to the Kaplan-Meier estimate:</p>
+<p>The summary tells us where the optimizer landed; the picture tells us whether that landing point matches the data. Plot the fitted survival curve on a fine time grid and overlay the Kaplan-Meier step function from the raw cohort.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">t_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">cabgkul</span><span class="op">$</span><span class="va">int_dead</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0.9</span>, length.out <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
@@ -156,7 +157,7 @@ Figure 1: Weibull parametric survival vs. Kaplan-Meier (CABG, KU Leuven)
 </section><section class="level2" data-number="2"><h2 data-number="2" id="multivariable-model-avc-repair">
 <span class="header-section-number">2</span> Multivariable model: AVC repair<a class="anchor" aria-label="anchor" href="#multivariable-model-avc-repair"></a>
 </h2>
-<p>The <code>avc</code> dataset has 310 patients with 9 covariates. We can use the formula interface to fit a multivariable Weibull model.</p>
+<p>The <code>avc</code> dataset has 310 patients who underwent atrioventricular canal repair, with 9 candidate covariates spanning patient demographics (age, NYHA status), anatomical features (malalignment, orifice morphology), intra-operative grading (<code>inc_surg</code> = surgical grade of AV valve incompetence), and post-operative complications (<code>com_iv</code> = grade IV complications). We drop incomplete rows so the design matrix is rectangular, then look at the column types and ranges.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">avc</span><span class="op">)</span></span>
@@ -177,6 +178,7 @@ Figure 1: Weibull parametric survival vs. Kaplan-Meier (CABG, KU Leuven)
 <span><span class="co">#&gt;  - attr(*, "na.action")= 'omit' Named int [1:5] 12 90 138 144 146</span></span>
 <span><span class="co">#&gt;   ..- attr(*, "names")= chr [1:5] "12" "90" "138" "144" ...</span></span></code></pre></div>
 </div>
+<p>Now we put covariates on the right-hand side of the formula and refit. The <code>theta</code> vector grows: two Weibull shape parameters (<code>mu</code>, <code>nu</code>) plus six covariate coefficients (<code>beta1</code>..<code>beta6</code>), each starting at zero. The optimizer estimates a log-hazard-ratio for every covariate jointly with the Weibull shape — so the shape and the covariate effects are identified from the same likelihood, not sequentially.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_avc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hazard.html">hazard</a></span><span class="op">(</span></span>
@@ -197,13 +199,14 @@ Figure 1: Weibull parametric survival vs. Kaplan-Meier (CABG, KU Leuven)
 <span><span class="co">#&gt;   log-lik:      -197.159 </span></span>
 <span><span class="co">#&gt;   converged:    TRUE</span></span></code></pre></div>
 </div>
-<p>The coefficient estimates give the log-hazard-ratio for each covariate. Covariates with large positive coefficients (<code>mal</code>, <code>com_iv</code>) are associated with higher operative risk.</p>
+<p>Each coefficient is a log-hazard-ratio: positive means higher risk, negative means lower, zero means no effect. The large positive coefficients on <code>mal</code> (anatomical malalignment) and <code>com_iv</code> (grade IV post-operative complications) flag these as the dominant risk markers in this cohort. The standard errors and Wald z-statistics in the summary tell you which effects are well identified and which are noise — a coefficient with a z-statistic near zero contributes essentially nothing the data can defend.</p>
 </section><section class="level2" data-number="3"><h2 data-number="3" id="multiphase-model-additive-hazard-decomposition">
 <span class="header-section-number">3</span> Multiphase model: additive hazard decomposition<a class="anchor" aria-label="anchor" href="#multiphase-model-additive-hazard-decomposition"></a>
 </h2>
-<p>The key innovation of the Blackstone–Naftel–Turner framework is decomposing the hazard into additive temporal phases:</p>
+<p>The single-Weibull fits above gave us a curve that’s mediocre everywhere instead of right anywhere. That’s a structural limitation of a monotone parametric shape, not something more iterations will fix. The Blackstone–Naftel–Turner framework’s key idea is to split the hazard into a <em>sum</em> of phase-specific contributions, each with its own temporal shape and its own scale:</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>∣</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>J</mi></munderover><msub><mi>μ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mo>⋅</mo><msub><mi mathvariant="normal">Φ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">H(t \mid x) = \sum_{j=1}^{J} \mu_j(x) \cdot \Phi_j(t)</annotation></semantics></math></p>
-<p>Each phase has its own temporal shape (early peaking, constant, late rising) and its own intercept. We specify phases with <code><a href="../reference/hzr_phase.html">hzr_phase()</a></code>:</p>
+<p>Each <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="normal">Φ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\Phi_j(t)</annotation></semantics></math> is a phase-specific unit-scaled curve (early-peaking saturating, flat constant, late-rising polynomial) and each <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mu_j(x)</annotation></semantics></math> is the phase-specific scale, possibly modulated by covariates. The phases overlap and add — no switching, no thresholds — so the total instantaneous hazard at any <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math> is the sum of the per-phase rates. See <code><a href="../articles/getting-started.html">vignette("getting-started")</a></code> for the longer-form motivation; what follows here is the practical workflow for <em>fitting</em> one.</p>
+<p>For AVC we’ll use two phases — an early phase to absorb the operative-window mortality, and a constant phase for the background rate. AVC patients don’t have a clear late-deterioration regime over this follow-up window, so a third (g3) phase would be unidentified. We fix the shape parameters and estimate only the scales, matching the workflow you’d run against a SAS HAZARD reference fit.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_mp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hazard.html">hazard</a></span><span class="op">(</span></span>
@@ -244,7 +247,7 @@ Figure 1: Weibull parametric survival vs. Kaplan-Meier (CABG, KU Leuven)
 <span><span class="co">#&gt;           estimate std_error z_stat p_value</span></span>
 <span><span class="co">#&gt;   log_mu -7.609476        NA     NA      NA</span></span></code></pre></div>
 </div>
-<p>Comparing the single-phase Weibull to the multiphase fit:</p>
+<p>The diagnostic that matters is whether the multiphase fit actually out-performs the single Weibull against the data. Plot both parametric curves against the same Kaplan-Meier reference so we can see, by eye, where each model is honest and where each is reaching.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">t_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">avc</span><span class="op">$</span><span class="va">int_dead</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0.95</span>, length.out <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
@@ -291,11 +294,12 @@ Figure 2: Single-phase Weibull vs. multiphase model against Kaplan-Meier (AVC)
 </div>
 </div>
 </div>
-<p>The multiphase model tracks the KM curve much more closely, capturing both the steep early decline and the gradual late attrition that a single Weibull cannot represent.</p>
+<p>The multiphase model tracks the KM curve much more closely than the single Weibull, especially across the steep early-mortality window — which is exactly where the single Weibull was forced to compromise. The constant phase then carries the slow post-recovery attrition. The point isn’t that multiphase always wins; it’s that <em>when the data has phase structure</em>, fitting that structure explicitly is strictly more honest than averaging it away into one monotone curve.</p>
 </section><section class="level2" data-number="4"><h2 data-number="4" id="multi-endpoint-models-heart-valve-replacement">
 <span class="header-section-number">4</span> Multi-endpoint models: heart valve replacement<a class="anchor" aria-label="anchor" href="#multi-endpoint-models-heart-valve-replacement"></a>
 </h2>
 <p>The <code>valves</code> dataset (1,533 patients) has multiple time-to-event endpoints — death, prosthetic valve endocarditis (PVE), and reoperation — each with its own follow-up time and event indicator. The same <code><a href="../reference/hazard.html">hazard()</a></code> call fits each endpoint independently:</p>
+<p>Start with the death endpoint. We use age at operation, NYHA class, and mechanical-valve indicator as covariates — the clinically canonical set for survival after valve replacement.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">valves</span><span class="op">)</span></span>
@@ -319,6 +323,7 @@ Figure 2: Single-phase Weibull vs. multiphase model against Kaplan-Meier (AVC)
 <span><span class="co">#&gt;   log-lik:      -1820.55 </span></span>
 <span><span class="co">#&gt;   converged:    TRUE</span></span></code></pre></div>
 </div>
+<p>Switch endpoints. Same data, same package, but now we model time to prosthetic valve endocarditis instead of death. The covariate list shifts to match the clinical question: <code>nve</code> (native-valve endocarditis history) replaces <code>nyha</code> because functional class is less informative for infection risk than prior endocarditis exposure. The fit returns its own MLE, coefficients, and standard errors completely independent of the death model.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_pve</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hazard.html">hazard</a></span><span class="op">(</span></span>
@@ -339,11 +344,11 @@ Figure 2: Single-phase Weibull vs. multiphase model against Kaplan-Meier (AVC)
 <span><span class="co">#&gt;   log-lik:      -391.125 </span></span>
 <span><span class="co">#&gt;   converged:    TRUE</span></span></code></pre></div>
 </div>
-<p>Each endpoint gets its own model with its own covariates. But the hazard model structure — temporal shape plus covariate effects — stays the same whatever the clinical endpoint.</p>
+<p>Each endpoint gets its own model with its own covariates, but the hazard model structure — temporal shape plus covariate effects — stays the same whatever the clinical endpoint. Repeating the workflow for a third endpoint (reoperation, for example) is mechanical: swap the <code>Surv(...)</code> columns, swap the covariates, refit. The advantage over running three separate analyses in different tools is that the predictions, diagnostics, and uncertainty quantification all come from the same package — there’s no risk of subtle differences in censoring handling or estimator choice between endpoints.</p>
 </section><section class="level2" data-number="5"><h2 data-number="5" id="phase-types-reference">
 <span class="header-section-number">5</span> Phase types reference<a class="anchor" aria-label="anchor" href="#phase-types-reference"></a>
 </h2>
-<p>The <code><a href="../reference/hzr_phase.html">hzr_phase()</a></code> constructor supports three temporal shapes:</p>
+<p>You’ve now seen each phase type in use: a <code>"cdf"</code> early phase for AVC operative mortality, a <code>"constant"</code> phase for AVC background rate, and the implicit single shape of every Weibull fit. The package supports three phase types in total, summarized here for quick reference:</p>
 <table class="table caption-top">
 <colgroup>
 <col style="width: 18%">
@@ -373,7 +378,7 @@ Figure 2: Single-phase Weibull vs. multiphase model against Kaplan-Meier (AVC)
 </tr>
 </tbody>
 </table>
-<p>The <code>"cdf"</code> type covers the widest range of shapes. Setting <code>t_half</code> small (e.g., 0.5) creates an early-peaking phase; setting it large (e.g., 10) creates a late-rising phase. The <code>"constant"</code> phase needs no shape parameters. See <code><a href="../articles/mf-mathematical-foundations.html">vignette("mf-mathematical-foundations")</a></code> for the full mathematical treatment.</p>
+<p>The <code>"cdf"</code> type covers the widest range of shapes: setting <code>t_half</code> small (e.g., 0.5) creates an early-peaking phase; setting it large (e.g., 10) creates a late-rising phase. The <code>"constant"</code> phase needs no shape parameters. The <code>"g3"</code> shape is the explicit late-rising parameterization that matches the SAS HAZARD “late” library; use it when you need parity against a C/SAS reference fit, or when the late rise has a clear lag-then-accelerate pattern that a delayed <code>"cdf"</code> doesn’t capture cleanly. See <code><a href="../articles/mf-mathematical-foundations.html">vignette("mf-mathematical-foundations")</a></code> for the full mathematical treatment of each, including the parameter identifiability constraints.</p>
 </section><script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
       var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);

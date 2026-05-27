@@ -1,24 +1,50 @@
 # Complete Clinical Analysis Walkthrough
 
-This vignette demonstrates the **complete analytical workflow** for a
-temporal parametric hazard analysis, mirroring the disciplined sequence
-used in the original SAS HAZARD system:
+The previous vignettes covered each piece of the analytical workflow in
+isolation — how to fit a model, how to predict from it, how to validate
+it. This vignette runs all of those pieces together on a single dataset,
+in the order you’d actually run them in a real clinical analysis. The
+point isn’t to introduce new functions; it’s to show how the pieces
+chain into a disciplined sequence that turns raw covariates into a
+fitted, validated, defensible hazard model.
 
-1.  **Nonparametric baseline** — Kaplan-Meier life table
-2.  **Shape fitting** — start simple, build to multiphase
-3.  **Variable screening** — calibrate covariates, assess functional
-    form
-4.  **Multivariable model** — covariate entry with fixed shapes
-5.  **Prediction** — patient-specific risk profiles
-6.  **Validation** — decile-of-risk calibration
+The sequence mirrors the one in the original SAS HAZARD system, which
+codified what cardiothoracic-surgery biostatisticians had been doing
+informally for decades:
+
+1.  **Nonparametric baseline** — Kaplan-Meier life table to see what the
+    data is saying before any model intervenes.
+2.  **Shape fitting** — start with a single-distribution Weibull, build
+    up to a multiphase decomposition when the KM curve demands it.
+3.  **Variable screening** — univariable association tests and
+    calibration plots to decide which covariates enter the model and in
+    what functional form.
+4.  **Multivariable model** — covariates layered onto a hazard shape you
+    already trust.
+5.  **Prediction** — patient-specific risk profiles for clinical
+    reporting and decision support.
+6.  **Validation** — decile-of-risk calibration to verify the model is
+    honest across the risk spectrum, not just on average.
 
 This corresponds to the SAS programs `ac.*` → `hz.*` → `lg.*` → `hm.*` →
-`hp.*` → `hs.*`.
+`hp.*` → `hs.*`. If you’re familiar with the SAS workflow, the section
+structure should feel familiar; if not, treat this as the canonical
+analytical sequence to follow on any new dataset.
 
 We use the **AVC** dataset (310 patients, atrioventricular canal repair)
-which has rich covariates and two identifiable hazard phases.
+which has rich covariates and two identifiable hazard phases — fewer
+phases than the 3-phase CABG example you’ve seen in other vignettes, but
+with the covariate complexity needed to exercise the screening,
+multivariable-fit, and validation steps.
 
 ## 1 Data preparation
+
+Load the package and the AVC dataset, drop incomplete rows so the design
+matrix is rectangular for the multivariable fits to come, and inspect
+the resulting column types and ranges. The
+[`na.omit()`](https://rdrr.io/r/stats/na.fail.html) step is conservative
+— losing rows is a real cost — but for a walkthrough we want every later
+fit to use the same patient set so the comparisons are apples-to-apples.
 
 ``` r
 
@@ -125,7 +151,12 @@ early CDF phase plus a constant phase — no obvious late rising hazard.
 
 ### 3.1 2a. Single-phase Weibull
 
-Start with the simplest parametric model to establish a baseline fit.
+The discipline here is to start with the simplest parametric model and
+earn any added complexity. A single-distribution Weibull intercept-only
+fit gives us a smooth two-parameter curve to compare against the KM
+baseline. If the Weibull tracks the KM step function reasonably well, we
+may be done; if it can’t, the gap tells us exactly where a richer model
+needs to go.
 
 ``` r
 
@@ -181,8 +212,16 @@ compromises between the early and late time frames.
 
 ### 3.2 2b. Two-phase model (early CDF + constant)
 
-Based on the KM shape, fit an early phase (resolving operative risk)
-plus a constant phase (background attrition).
+The KM curve drops steeply in the first few months — operative mortality
+— and then settles into a roughly linear decline. The Weibull tried to
+capture both with one shape and ended up compromising. Splitting the
+hazard into two phases lets each mechanism have its own
+parameterization: an `"cdf"` early phase that saturates as operative
+risk resolves, plus a `"constant"` phase that carries the steady
+background attrition. Two phases is what AVC actually needs; CABG with
+longer follow-up would need a third late-rising phase to handle graft
+deterioration, but the AVC follow-up window doesn’t extend far enough to
+identify one.
 
 ``` r
 
@@ -252,7 +291,12 @@ Figure 3: Two-phase parametric model vs. Kaplan-Meier
 
 ### 3.3 2c. Decomposed hazard
 
-Visualize the per-phase contributions to the cumulative hazard.
+The overlay plot shows the *total* fit tracks KM well, but it doesn’t
+show whether each phase is doing the job we asked of it. Decomposing the
+cumulative hazard into per-phase contributions is the diagnostic that
+answers that question: the early phase should account for most of the
+steep early drop, the constant phase should carry the rest, and neither
+phase should be doing implausible work in the wrong time window.
 
 ``` r
 
@@ -293,8 +337,14 @@ programs in the SAS workflow.
 
 ### 4.1 3a. Univariable logistic screening
 
-Use simple logistic regression of the event indicator on each covariate
-to get a quick ranking by strength of association.
+The cheapest screening tool we have is a univariable logistic regression
+of the event indicator on each covariate. It throws away the
+time-to-event structure but it answers a binary question quickly: does
+this covariate have *any* association with mortality at all? Covariates
+whose univariable p-value is huge will not suddenly become significant
+in the multivariable hazard model either — those can be deprioritized.
+Covariates with small univariable p-values deserve closer
+functional-form inspection before they enter the formula.
 
 ``` r
 
@@ -390,8 +440,13 @@ warranted.
 
 ### 5.1 4a. Manual specification
 
-Enter the significant covariates from screening into the two-phase
-hazard model directly.
+We’ve already established the two-phase shape and screened the
+covariates; the multivariable model is the synthesis. Drop the
+covariates that passed screening onto the right-hand side of the formula
+and refit. The shape parameters stay fixed (we’ve earned that decision
+from §2); the optimizer estimates the two phase scales and one
+coefficient per covariate, jointly. This is the working model you’d
+report from this analysis.
 
 ``` r
 
@@ -593,8 +648,16 @@ overlay
 
 ### 6.2 5b. Sensitivity analysis — risk factor comparison
 
-Compare survival curves for a low-risk vs. high-risk patient profile to
-visualize the effect of covariates on long-term outcome.
+Coefficient tables tell you about effect *direction and magnitude* on
+the log-hazard scale. They don’t directly tell a clinician what to
+expect at the bedside. Sensitivity analysis closes that gap by scoring
+two clinically meaningful profiles — a low-risk patient drawn from the
+favorable end of each covariate, and a high-risk patient drawn from the
+unfavorable end — through the fitted model and plotting the resulting
+survival curves with delta-method confidence bands. The vertical and
+horizontal gaps between the two curves are the model’s clinical-impact
+statement, in the units (survival probability and time) that the
+audience actually recognizes.
 
 ``` r
 

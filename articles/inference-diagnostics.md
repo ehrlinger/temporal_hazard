@@ -7,17 +7,43 @@ library(survival)
 library(ggplot2)
 ```
 
-This vignette covers the diagnostic and inferential tools surrounding
-hazard model fitting: exploratory covariate screening, bootstrap
-confidence intervals, decile-of-risk validation, and sensitivity
-analysis across covariate scenarios. These correspond to the `lg.*`,
-`bs.*`, and `hs.*` steps in the classic HAZARD analysis workflow.
+Fitting a hazard model is the middle of the workflow, not the end.
+Before you fit, you screen the covariates so you know what
+transformations the data actually supports. After you fit, you quantify
+uncertainty (bootstrap CIs, Wald intervals), check whether the model is
+honest to the data (goodness-of-fit overlays, decile-of-risk
+calibration), and probe its behavior under different covariate scenarios
+(sensitivity analysis). This vignette walks the diagnostic and
+inferential tools the package ships for each of those steps.
+
+These pieces correspond directly to steps in the classic SAS HAZARD
+workflow — the `lg.*` logistic-screening macros, the `bs.*` bootstrap
+macros, the `hs.*` hazard-sensitivity macros — re-implemented as
+first-class R functions
+([`hzr_calibrate()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_calibrate.md),
+[`hzr_kaplan()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_kaplan.md),
+[`hzr_nelson()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_nelson.md),
+[`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md),
+[`hzr_gof()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_gof.md),
+[`hzr_deciles()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_deciles.md)).
+If you’ve worked through a SAS HAZARD analysis you already know the
+shape of what follows; if not, treat this vignette as the standard
+diagnostic pass you’d run on any fitted hazard model before trusting its
+conclusions.
 
 ## 1 Exploratory covariate screening
 
-Before fitting the parametric hazard model, screen the candidate
-covariates with simple logistic models. This shows you which
-transformations and functional forms should enter the final model.
+Before fitting the parametric hazard model, screen each candidate
+covariate with a simple logistic regression against the event indicator.
+This is much cheaper than fitting the full hazard model and answers two
+distinct questions: which covariates carry signal at all (rough
+significance triage), and what *functional form* each covariate enters
+with — linear, log, polynomial, or something non-monotone that needs
+binning. The screening step is what stops you from blindly throwing
+every column at
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+and then trying to debug a model that has shape mis-specification baked
+in.
 
 ``` r
 
@@ -28,8 +54,12 @@ avc <- na.omit(avc)
 candidates <- c("age", "status", "mal", "com_iv", "inc_surg", "orifice")
 ```
 
-Fit a univariable logistic regression for each covariate against the
-death indicator:
+Fit a univariable logistic regression for each candidate against the
+death indicator. The p-values that come out are not the final word on
+whether a covariate matters — they ignore the joint structure of the
+hazard model and they treat the event time as a binary outcome — but
+they do tell you which covariates have no chance of mattering, and which
+deserve closer inspection.
 
 ``` r
 
@@ -71,9 +101,14 @@ ggplot(avc, aes(age, dead)) +
 
 Figure 1: Exploratory: age vs. mortality with LOESS smooth
 
-The LOESS smooth shows the shape of the covariate-mortality
-relationship, which guides the choice of transformation (log,
-polynomial) before you fit the hazard model.
+The LOESS smooth reveals the *shape* of the covariate-mortality
+relationship in a non-parametric way. A roughly linear smooth means the
+covariate enters the hazard model on its natural scale; a U or
+inverted-U shape means a polynomial or a non-monotone transform; a
+plateau-then-rise means a threshold effect that may need binning. This
+is the call you make *before* writing the formula for
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md),
+not after staring at a converged-but-misspecified model.
 
 ### 1.1 Quantile calibration with `hzr_calibrate()`
 
@@ -113,15 +148,24 @@ example, polynomial or log).
 
 ## 2 Nonparametric baselines
 
-Before fitting the parametric model, run a Kaplan-Meier or Nelson
-baseline.
+A parametric fit has to be compared against *something*. The natural
+something is the nonparametric estimate of the same quantity from the
+same data — Kaplan-Meier for survival, Nelson-Aalen for cumulative
+hazard. The package’s
 [`hzr_kaplan()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_kaplan.md)
-returns KM with logit-transformed confidence limits (more accurate in
-the tails than Greenwood), along with interval hazard rate, density, and
-restricted mean survival time.
+and
 [`hzr_nelson()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_nelson.md)
-returns the Wayne Nelson cumulative hazard estimator with lognormal
-confidence limits.
+are convenience wrappers that return richer output than
+[`survival::survfit()`](https://rdrr.io/pkg/survival/man/survfit.html):
+[`hzr_kaplan()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_kaplan.md)
+ships KM with logit-transformed confidence limits (more accurate in the
+tails than the standard Greenwood limits, which can stray outside
+$`[0, 1]`$), interval hazard rates, density estimates, and a
+restricted-mean-survival-time scalar.
+[`hzr_nelson()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_nelson.md)
+returns the Wayne Nelson cumulative hazard estimator with log-normal
+confidence limits — the right reference when you care about the
+integrated intensity rather than the survival probability.
 
 ``` r
 
@@ -231,10 +275,22 @@ print(nel)
 
 ## 3 Bootstrap confidence intervals
 
-Bootstrap resampling is the primary uncertainty quantification method in
-the HAZARD workflow. Each replicate refits the model on a resampled
-dataset and accumulates prediction curves; the CI is summarized across
-replicates.
+The delta-method CIs `predict(se.fit = TRUE)` returns are fast and
+asymptotically correct, but they lean on the Hessian-derived parameter
+vcov — which can mislead when the likelihood surface is poorly behaved
+near the MLE (boundary fits, near-degenerate parameter combinations,
+small samples). Bootstrap resampling is the robust alternative: refit
+the model on each resampled dataset, collect the resulting parameter and
+prediction values, and read the empirical 2.5th / 97.5th percentiles as
+the 95% CI. It’s computationally heavier but it doesn’t assume the
+likelihood is locally quadratic, and it picks up the right tail behavior
+even when delta-method theory creaks.
+
+[`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)
+wraps the resample-and-refit loop and corresponds to the SAS
+`bootstrap.hazard.sas` and `bootstrap.summary.sas` macros. We fit a base
+model first; bootstrap replicates will resample from the same data and
+refit using these starting values.
 
 ``` r
 
@@ -257,11 +313,13 @@ surv_point <- predict(fit, newdata = base_nd, type = "survival")
 ```
 
 [`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)
-wraps the resample-and-refit loop: it returns a long data frame of
-per-replicate coefficient estimates (`$replicates`) and a
-parameter-level summary (mean, SD, 95 % percentile CI) in `$summary`. It
-corresponds to the SAS `bootstrap.hazard.sas` and
-`bootstrap.summary.sas` macros.
+returns a long data frame of per-replicate coefficient estimates
+(`$replicates`) and a parameter-level summary (mean, SD, 95% percentile
+CI) in `$summary`. We use `n_boot = 30` here purely so the vignette
+renders in reasonable time — for a real analysis you’d want 200 or more
+replicates. The `set.seed(42)` call before
+[`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)
+makes the resample sequence reproducible.
 
 ``` r
 
@@ -289,10 +347,17 @@ all in the returned object.
 
 ## 4 Goodness-of-fit overlay
 
+The Kaplan-Meier overlay in the prediction-visualization vignette is the
+*visual* goodness-of-fit check.
 [`hzr_gof()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_gof.md)
-computes parametric predictions against the nonparametric Kaplan-Meier
-estimator and the Conservation-of-Events observed-vs- expected event
-counts. It corresponds to the SAS `hazplot.sas` macro.
+is the *quantitative* complement: it tabulates parametric predictions
+side by side with the nonparametric KM estimate at each event time, and
+computes the Conservation-of-Events observed-vs-expected ratio across
+the whole follow-up window. The ratio compresses everything the model is
+doing into a single number, which makes it the right summary statistic
+to report alongside coefficient tables.
+([`hzr_gof()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_gof.md)
+corresponds to the SAS `hazplot.sas` macro.)
 
 ``` r
 
@@ -317,11 +382,19 @@ really linear on the log-hazard scale.
 
 ## 5 Decile-of-risk calibration
 
+The conservation-of-events ratio above tells you whether the model is
+calibrated *on average*. That’s necessary but not sufficient — a model
+can hit the right total event count while systematically over-predicting
+risk for one part of the cohort and under-predicting for another, with
+the errors cancelling in aggregate.
 [`hzr_deciles()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_deciles.md)
-partitions patients into deciles of predicted risk at a chosen time
-point and compares observed with expected event counts decile-by-decile,
-returning a chi-square goodness-of-fit test. It corresponds to the SAS
-`deciles.hazard.sas` macro.
+is the check that catches that failure mode: it partitions patients into
+deciles of predicted risk at a chosen time point and compares observed
+with expected event counts within each decile, returning a chi-square
+goodness-of-fit test. A well-calibrated model has observed-vs-expected
+close in every decile; a model that’s globally calibrated but locally
+biased will show large residuals in the extreme deciles. (Corresponds to
+the SAS `deciles.hazard.sas` macro.)
 
 ``` r
 
@@ -390,8 +463,20 @@ Figure 2: Observed vs. expected mortality by decile of risk
 
 ## 6 Sensitivity analysis
 
-Sensitivity analysis compares predictions across different covariate
-configurations to assess how the model responds to risk factor changes.
+Coefficient estimates tell you the *direction and magnitude* of a
+covariate’s effect on the hazard scale, but they don’t directly answer
+the clinical question of *what survival difference this implies* for a
+real patient. Sensitivity analysis closes that gap. You define two or
+more covariate profiles — typically a reference profile and one or more
+high-risk profiles — score each through
+[`predict()`](https://rdrr.io/r/stats/predict.html), and plot the
+resulting survival curves on shared axes. The horizontal and vertical
+gaps between curves translate the model’s coefficients into the
+clinically meaningful currency of survival probability differences and
+median-survival shifts. It’s also a stress test: if your high-risk
+profile produces only a small survival gap, either the risk factors
+aren’t doing much in this cohort, or the model is missing the mechanism
+that makes them matter.
 
 ``` r
 
@@ -451,8 +536,11 @@ difference is statistically meaningful.
 
 ## 7 Analysis workflow summary
 
-The complete HAZARD analysis sequence, now implemented in
-TemporalHazard:
+The pieces in this vignette aren’t independent diagnostics — they chain
+together into a single analytical workflow that goes from raw covariates
+to a defensible, uncertainty-quantified, well-calibrated fitted model.
+The complete sequence, with the SAS HAZARD correspondences each piece
+descends from:
 
 1.  **Exploratory screening** (`glm`,
     [`hzr_calibrate()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_calibrate.md))

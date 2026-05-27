@@ -7,15 +7,35 @@ library(survival)
 library(ggplot2)
 ```
 
-This vignette covers prediction from fitted hazard models: generating
-survival curves, decomposing the multiphase hazard, comparing risk
-profiles, and overlaying parametric fits with Kaplan-Meier estimates.
+A fitted hazard model is only useful insofar as you can extract answers
+from it. This vignette covers the predict-and-visualize half of the
+workflow: pulling survival probabilities, cumulative hazards, and
+patient-level risk scores out of a fitted model, attaching delta-method
+uncertainty to those predictions, and plotting them in the formats that
+come up in actual clinical analyses.
+
+The structure mirrors how a real analysis unfolds. We start with the
+Kaplan-Meier baseline (the nonparametric reference every parametric fit
+gets judged against), enumerate the prediction types the model exposes,
+plot the parametric survival curve against KM as a goodness-of-fit
+check, layer on confidence bands, then move to the multiphase
+decomposition and patient-specific risk profiles where the covariate
+machinery pays off. The last section reuses the workflow across multiple
+endpoints on the same cohort. If you haven’t seen the fitting workflow
+yet,
+[`vignette("fitting-hazard-models")`](https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.md)
+is the prerequisite.
 
 ## 1 Kaplan-Meier baseline
 
-Before any parametric modeling, the Kaplan-Meier curve gives us a
-nonparametric reference. Compare every parametric prediction that
-follows against this baseline to judge goodness-of-fit.
+The Kaplan-Meier curve is what the data itself says about survival
+before any parametric model intervenes. It makes no assumption about the
+shape of the hazard, handles censoring honestly, and gives you a
+nonparametric step function that’s the gold-standard reference for any
+follow-up fit. Every parametric prediction that follows gets compared
+back to this curve — if a model’s smooth prediction can’t track the KM
+step function, the model is missing something the data has been telling
+you all along.
 
 ``` r
 
@@ -41,8 +61,29 @@ Figure 1: Kaplan-Meier survival estimate: death after AVC repair
 
 ## 2 Prediction types
 
-The [`predict()`](https://rdrr.io/r/stats/predict.html) method supports
-several output types. For a multivariable Weibull model on the AVC data:
+The [`predict()`](https://rdrr.io/r/stats/predict.html) method exposes
+four quantities through its `type=` argument, each useful for a
+different downstream question:
+
+- `"linear_predictor"` — $`x^\top \beta`$, the covariate-driven
+  log-hazard shift. Use it to rank patients on relative risk without
+  pinning down absolute survival probabilities.
+- `"hazard"` — $`\exp(x^\top \beta)`$, the multiplicative hazard ratio
+  relative to the baseline. Use it when you want hazard ratios for
+  reporting or for further calculation.
+- `"cumulative_hazard"` — $`H(t \mid x)`$, the integrated hazard up to
+  time $`t`$ for each row. Use it when you need the raw integrated
+  intensity (decomposing it by phase, for example, or computing derived
+  quantities like the expected number of events).
+- `"survival"` — $`S(t \mid x) = \exp(-H(t \mid x))`$, the probability
+  of surviving past time $`t`$. This is what clinicians and patients
+  actually want to see; it’s also what we plot for diagnostics.
+
+The two predictions we extract below are `"survival"` and
+`"cumulative_hazard"` — survival for the clinical communication, and the
+cumulative hazard so we can sanity-check the relationship
+$`S = \exp(-H)`$ holds row-by-row. We fit a multivariable Weibull on the
+AVC death endpoint first.
 
 ``` r
 
@@ -56,7 +97,10 @@ fit <- hazard(
 )
 ```
 
-Generate predictions at a median-risk profile over a time grid:
+Pick a representative patient — here a median-aged, mid-status,
+no-malalignment, no-grade-IV-complication profile — and evaluate the
+prediction types over a fine time grid. The result is a data frame with
+one row per time point, ready for plotting or downstream analysis.
 
 ``` r
 
@@ -87,8 +131,14 @@ head(profile[, c("time", "survival", "cumulative_hazard")])
 
 ## 3 Parametric survival with KM overlay
 
-The fundamental diagnostic: does the parametric model track the
-Kaplan-Meier?
+The fundamental diagnostic for any parametric survival fit is whether
+its predictions track the Kaplan-Meier step function. Plot the
+median-profile survival curve from the previous chunk on top of the KM
+estimate from the raw cohort. Where the parametric curve hugs the steps,
+the model is faithful to the data; where it drifts, it’s imposing a
+shape the data doesn’t support. This isn’t a hypothesis test, it’s an
+eyeball check — and it’s the single most informative thing you can do
+with a fitted model before trusting its predictions.
 
 ``` r
 
@@ -114,6 +164,14 @@ ggplot() +
 Figure 2: Weibull parametric survival vs. Kaplan-Meier (AVC death)
 
 ## 4 Confidence limits on predictions
+
+A point estimate without an uncertainty band tells you what the model
+thinks, not how confident it is. For patient-level survival predictions
+that distinction matters: a survival probability of 0.85 with a tight
+band around it is a fundamentally different number than a survival
+probability of 0.85 with a 0.4–0.97 band around it, even though both
+round to “85%”. Delta-method confidence limits let you plot the second
+case honestly instead of pretending it’s the first.
 
 As of v0.9.8,
 [`predict.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/predict.hazard.md)
@@ -146,10 +204,14 @@ head(surv_ci)
 #> 6 0.9352997 0.018851038 0.8902883 0.9622320
 ```
 
-Confidence limits use SAS-matched transformations: log-scale for
-`hazard` and `cumulative_hazard` (keeps the lower bound positive), and
-`log(-log(S))` for `survival` (keeps the interval in `[0, 1]`). The
-linear predictor uses symmetric natural-scale CLs.
+Confidence limits use SAS-matched transformations chosen so the interval
+respects the natural range of each quantity: log-scale for `hazard` and
+`cumulative_hazard` (keeps the lower bound positive), and `log(-log(S))`
+for `survival` (keeps the interval inside $`[0, 1]`$). The linear
+predictor uses symmetric natural-scale CLs. The point isn’t notational
+fussiness — it’s that a symmetric CI on survival probability would
+frequently dip below 0 or rise above 1, giving nonsense values that the
+transformed form avoids by construction.
 
 ``` r
 
@@ -184,18 +246,27 @@ ggplot() +
 
 Figure 3: Parametric survival with 95% delta-method confidence band
 
-Weibull and multiphase use a closed-form Jacobian. Exponential,
-log-logistic, and log-normal use
+Implementation detail worth knowing: Weibull and multiphase use a
+closed-form Jacobian for the delta-method calculation. Exponential,
+log-logistic, and log-normal fall back to
 [`numDeriv::jacobian()`](https://rdrr.io/pkg/numDeriv/man/jacobian.html)
 on a per-call cumulative-hazard closure — identical results, just
-slightly slower.
+slightly slower because the Jacobian is computed numerically per
+prediction point. The user-facing API is the same regardless of
+distribution.
 
 ## 5 Decomposed multiphase hazard
 
-The multiphase model decomposes the cumulative hazard into per-phase
-contributions. Using `decompose = TRUE` with
-`type = "cumulative_hazard"` returns a data frame with columns for each
-phase.
+The multiphase model’s whole point is that the total hazard is a sum of
+phase contributions. [`predict()`](https://rdrr.io/r/stats/predict.html)
+with `decompose = TRUE` and `type = "cumulative_hazard"` exposes those
+contributions row by row, returning a data frame with one column per
+phase plus a `total` column. Numerically differentiating each column
+gives you the instantaneous hazard rate for each phase — which is the
+diagnostic that tells you whether the multiphase model is doing what you
+asked of it. The early phase should dominate near $`t = 0`$ and fall
+off, the constant phase should be a flat floor, and the late phase
+should sit near zero early and rise after a lag.
 
 ``` r
 
@@ -264,12 +335,26 @@ ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase)) +
 Figure 4: Additive phase decomposition: total hazard rate (solid) =
 early + constant + late (dashed)
 
-The early phase captures the steep post-operative risk that peaks within
-the first year. The constant phase represents ongoing background
-mortality. The late phase captures the gradually increasing risk of late
-attrition.
+Each phase is doing its job. The early (orange) phase captures the steep
+post-operative risk that peaks within the first months. The constant
+(blue) phase represents the ongoing background mortality that persists
+once patients are past the operative window. The late (pink) phase
+captures the gradually increasing risk of late attrition — graft
+failure, comorbidity progression, the aging cohort. Crucially, none of
+these shapes was specified by hand; the optimizer landed on them given
+the data and the phase-type choices we made up front. If a phase looked
+wrong here (a constant phase dominating where we expected an early peak,
+or a late phase that never rose) that would be a signal to revisit
+either the starting values, the shape parameters, or the data itself.
 
 ## 6 Multiphase survival with KM overlay
+
+The decomposed-hazard plot above tells us the model has the right
+*shape* per phase. To check that the *total* fit also tracks the data,
+we collapse back to the overall survival curve and overlay it on the KM
+estimate — same diagnostic as the single-Weibull case earlier in this
+vignette, but now against a model that has the structural flexibility to
+follow the cohort’s actual mortality pattern.
 
 ``` r
 
@@ -298,8 +383,16 @@ Figure 5: Multiphase parametric survival vs. Kaplan-Meier
 
 ## 7 Patient-specific risk profiles
 
-The multivariable model generates patient-specific survival curves by
-varying the covariate profile:
+This is the payoff of having covariates in the model. A population-level
+curve is fine for cohort-level reporting, but the question a clinician
+usually wants answered is: *what does the model predict for this
+particular patient, given their risk factors?* Holding the fitted model
+fixed and varying the covariate profile generates patient-specific
+survival curves you can show side by side. Below we score three
+plausible profiles drawn from the cohort’s own quantiles — a low-risk
+patient (young, mild status, no malalignment, no grade-IV
+complications), a median patient, and a high-risk patient (older, severe
+status, with both adverse anatomical and post-operative findings).
 
 ``` r
 
@@ -338,13 +431,25 @@ ggplot(curves, aes(time, survival, colour = Profile)) +
 
 Figure 6: Predicted survival by risk profile
 
-The gap between curves is the model’s prognostic discrimination: a wider
-spread means stronger covariate effects.
+The gap between the three curves is the model’s *prognostic
+discrimination*: a wider spread means the covariates are doing real
+work, separating patients with different actual risk levels. A collapsed
+plot (all three curves on top of each other) means the covariate effects
+are too weak to distinguish patients meaningfully, even if they’re
+statistically significant.
 
 ## 8 Multi-endpoint visualization: valves
 
-The `valves` dataset has multiple endpoints that can be visualized
-together:
+When a cohort has multiple clinical endpoints — death, valve
+endocarditis, reoperation — putting them on the same survival axis gives
+an immediate comparative picture of which event the cohort is most at
+risk for, and over what time horizon. The `valves` dataset has separate
+event-time pairs for each endpoint, so we can plot all of them as
+Kaplan-Meier curves on shared axes without needing a parametric fit at
+all. (You’d parametrize them in the next step, one endpoint per
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+call, as we did in
+[`vignette("fitting-hazard-models")`](https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.md).)
 
 ``` r
 
