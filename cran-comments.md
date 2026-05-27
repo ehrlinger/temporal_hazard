@@ -1,47 +1,29 @@
-# CRAN submission comments -- TemporalHazard 1.0.2
+# CRAN submission comments -- TemporalHazard 1.0.3
 
 ## Summary
 
-This is a resubmission addressing Benjamin Altmann's follow-up review. Two of
-the three items from the prior review were resolved in 1.0.1; the
-home-filespace item was only partially fixed and is now fully resolved in
-1.0.2. Each point is itemised below.
+This is a resubmission of 1.0.2 addressing the CRAN reviewer comment that
+`R/diagnostics.R` modified `.GlobalEnv`, which is not allowed by CRAN
+policy.
 
-1. **`\value` tags in Rd files.** Resolved (already in place since 1.0.1).
-   `@return` documentation is present for all seven flagged functions —
-   `hazard()`, `coef.hazard()`, `vcov.hazard()`, `print.hzr_calibrate()`,
-   `print.hzr_deciles()`, `print.hzr_gof()`, `print.hzr_kaplan()` — each
-   describing the class and structure of the return value. The four `print.*`
-   methods document that they return their argument `x` invisibly (called for
-   the printing side effect) and describe the columns/attributes of that
-   object.
+1. **Writing to `.GlobalEnv`.** Resolved. In 1.0.2, `hzr_bootstrap()` saved
+   and restored the caller's `.Random.seed` via `oldseed <- get0(...)`
+   followed by `on.exit({ assign(".Random.seed", oldseed, envir = .GlobalEnv) })`
+   (or `rm(...)` when `oldseed` was `NULL`). That hand-rolled save-restore
+   wrapper has been removed. When `seed` is supplied the function now
+   simply calls `set.seed(seed)` — the documented R API for seeded
+   reproducibility — and the `@param seed` documentation notes that the
+   caller's RNG state is not restored on exit. The previous reviewer's
+   request to avoid setting a *specific* seed inside a function (1.0.1
+   feedback) remains satisfied: no `set.seed()` call uses a hardcoded
+   value; the only `set.seed()` is conditional on a user-supplied
+   argument. No package source file under `R/` references `.GlobalEnv`.
 
-2. **Writing files to the home filespace.** Resolved at the root by removing
-   the offending code from the package. The prior "falls back to `tempdir()`"
-   change was insufficient: the default still resolved via
-   `system.file("fixtures", package = "TemporalHazard")`, which returns the
-   *installed* package directory whenever the package is installed (the normal
-   case under `R CMD check`), so the generators still wrote to the user
-   library by default. The golden-fixture generators
-   (`.hzr_create_*_golden_fixture()`) are maintainer-only helpers used to
-   regenerate the bundled `inst/fixtures/*.rds` reference outputs; they are
-   not called by any package code, example, vignette, or test. They have been
-   moved to `data-raw/golden_fixtures.R` (`.Rbuildignore`d), so they are no
-   longer part of the installed package, no longer shipped, and no longer
-   exercised by `R CMD check`. The one remaining writer that had to stay in
-   the package, `.hzr_generate_golden_fixture()` in `R/parity-helpers.R`
-   (it shares a source file with test-time C-binary helpers), now takes a
-   **required `output_dir` argument with no default path**. The bundled
-   `.rds` fixtures still ship and the parity tests still read them via
-   `system.file()` (a read, permitted).
-
-3. **Setting a specific seed within a function.** Resolved. In the relocated
-   generators `set.seed()` is only ever called inside `if (!is.null(seed))`,
-   where `seed` is a user-supplied argument defaulting to `NULL`; the global
-   `.Random.seed` is saved beforehand and restored via `on.exit()`. The
-   remaining hardcoded `seed = 42` literals (stored fixture metadata, not
-   `set.seed()` calls) were replaced with the actual `seed` argument. No
-   package source file under `R/` sets a specific seed.
+The fixes from 1.0.2 are unchanged: the maintainer-only golden-fixture
+generators remain in `data-raw/` (off the CRAN surface);
+`.hzr_generate_golden_fixture()` (the one in-package writer) still
+requires an explicit `output_dir`; `\value` documentation is present for
+every exported function and S3 method.
 
 ## Test environments
 

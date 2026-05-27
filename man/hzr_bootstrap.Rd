@@ -23,7 +23,11 @@ hzr_bootstrap(
 \item{fraction}{Numeric in (0, 1]: fraction of data to sample per
 replicate (default 1.0 for full bootstrap; < 1 for bagging).}
 
-\item{seed}{Optional integer random seed for reproducibility.}
+\item{seed}{Optional integer random seed for reproducibility. When
+supplied, \code{set.seed(seed)} is called, which updates the global RNG
+state in the usual way (per R's documented behaviour for \code{set.seed()});
+it is not restored on exit. Leave as \code{NULL} to keep the caller's RNG
+stream untouched.}
 
 \item{verbose}{Logical; if \code{TRUE}, print progress every 50 replicates.}
 

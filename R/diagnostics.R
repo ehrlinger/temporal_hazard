@@ -1182,7 +1182,11 @@ print.hzr_nelson <- function(x, digits = 4, ...) {
 #' @param n_boot Integer: number of bootstrap replicates (default 200).
 #' @param fraction Numeric in (0, 1]: fraction of data to sample per
 #'   replicate (default 1.0 for full bootstrap; < 1 for bagging).
-#' @param seed Optional integer random seed for reproducibility.
+#' @param seed Optional integer random seed for reproducibility. When
+#'   supplied, `set.seed(seed)` is called, which updates the global RNG
+#'   state in the usual way (per R's documented behaviour for `set.seed()`);
+#'   it is not restored on exit. Leave as `NULL` to keep the caller's RNG
+#'   stream untouched.
 #' @param verbose Logical; if `TRUE`, print progress every 50 replicates.
 #'
 #' @return A list with class `"hzr_bootstrap"` containing:
@@ -1231,19 +1235,7 @@ hzr_bootstrap <- function(object, n_boot = 200L, fraction = 1.0,
     stop("'fraction' must be in (0, 1].", call. = FALSE)
   }
 
-  if (!is.null(seed)) {
-    oldseed <- get0(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
-    on.exit({
-      if (is.null(oldseed)) {
-        if (exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)) {
-          rm(list = ".Random.seed", envir = .GlobalEnv)
-        }
-      } else {
-        assign(".Random.seed", oldseed, envir = .GlobalEnv)
-      }
-    }, add = TRUE)
-    set.seed(seed)
-  }
+  if (!is.null(seed)) set.seed(seed)
 
   # Reconstruct the call components
   cl <- object$call
