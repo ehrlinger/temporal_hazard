@@ -43,6 +43,24 @@ single-distribution Weibull fit on simulated data — fit, summary,
 predict — then move to the multiphase fit on CABGKUL, the canonical
 three-phase cardiac-surgery example.
 
+## A first Weibull fit
+
+The simulated data below has 180 patients with three plausible risk
+covariates — age, NYHA functional class, and cardiogenic shock. We fit
+a single Weibull hazard: a scale parameter (`mu`) and a shape exponent
+(`nu`) that lets the hazard accelerate when `nu > 1`, decelerate when
+`nu < 1`, or stay flat at `nu = 1`. The Weibull is the natural starting
+point for a single-distribution fit because it covers all three
+monotone shapes with just two parameters.
+
+The `hazard()` interface takes a survival formula
+(`Surv(time, status)` on the left, covariates on the right), a
+starting-value vector (`theta`), and a distribution name. Passing
+`fit = TRUE` runs the optimizer and returns a fitted model; passing
+`fit = FALSE` returns the model specification without fitting, which is
+useful for sanity-checking the formula and starting values before
+committing to the optimizer.
+
 ```{r}
 library(TemporalHazard)
 library(survival)
@@ -70,6 +88,24 @@ summary(fit)
 ```
 
 ## Prediction workflow
+
+A fitted hazard model lets you score new patients without refitting.
+The `predict()` method takes a `newdata` frame and a `type` argument
+that selects which quantity to compute:
+
+- `"linear_predictor"` — the covariate-driven log-hazard-ratio for
+  each row, $x^\top \beta$.
+- `"hazard"` — the hazard multiplier, $\exp(x^\top \beta)$.
+- `"survival"` — the probability of surviving past each row's `time`,
+  $S(t \mid x)$.
+- `"cumulative_hazard"` — the integrated hazard up to each row's
+  `time`, $H(t \mid x) = -\log S(t \mid x)$.
+
+The three rows below are made-up patients spanning the covariate range
+in the training data: a younger, low-NYHA, no-shock patient at an
+early time; a middle case at the median; and an older, high-NYHA,
+shock patient further out. We compute all four prediction types for
+each.
 
 ```{r}
 new_patients <- data.frame(
