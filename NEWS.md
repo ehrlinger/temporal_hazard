@@ -8,8 +8,10 @@
   been removed. When `seed` is supplied the function simply calls
   `set.seed(seed)` (the documented R API for seeded reproducibility); the
   `@param seed` documentation now notes that the caller's RNG state is not
-  restored on exit. Pass `seed = NULL` (the default) to leave the RNG
-  stream untouched.
+  restored on exit. With `seed = NULL` (the default) the function does
+  not call `set.seed()` at entry, so it starts from the caller's current
+  RNG state; the bootstrap still consumes random numbers and advances
+  that state in the usual way.
 
 # TemporalHazard 1.0.2
 

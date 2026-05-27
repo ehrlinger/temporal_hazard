@@ -167,8 +167,9 @@ The summary marks most rows `NA` in the `std_error`, `z_stat`, and
   estimate all three scale parameters freely.
 
 The two remaining `log_mu` rows are the optimizer-estimated free
-parameters; their Wald statistics reflect the three-parameter fit
-dimension.
+parameters; their Wald statistics reflect the two-parameter fit
+dimension that remains after the Conservation-of-Events constraint
+absorbs the third `log_mu`.
 
 ### Decomposed hazard visualization
 
