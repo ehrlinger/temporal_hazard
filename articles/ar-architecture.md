@@ -137,7 +137,8 @@ and apply the phase type mapping:
 runs a multi-start strategy: the first start uses the assembled starting
 values (from `theta` or `hzr_phase` specs); subsequent starts perturb
 randomly (sd = 0.5). The best log-likelihood across all starts is kept.
-This helps escape shallow local optima common in multiphase models.
+This helps the optimizer escape the shallow local optima that are common
+in multiphase models.
 
 The optimizer delegates to `.hzr_optim_generic()`, which wraps
 [`stats::optim()`](https://rdrr.io/r/stats/optim.html) with method

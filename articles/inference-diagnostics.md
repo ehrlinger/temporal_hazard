@@ -15,9 +15,9 @@ analysis across covariate scenarios. These correspond to the `lg.*`,
 
 ## 1 Exploratory covariate screening
 
-Before fitting the parametric hazard model, it is useful to screen
-candidate covariates with simple logistic models. This identifies
-transformations and functional forms that should enter the final model.
+Before fitting the parametric hazard model, screen the candidate
+covariates with simple logistic models. This shows you which
+transformations and functional forms should enter the final model.
 
 ``` r
 
@@ -71,9 +71,9 @@ ggplot(avc, aes(age, dead)) +
 
 Figure 1: Exploratory: age vs. mortality with LOESS smooth
 
-The LOESS smooth reveals the functional form of each covariate
-relationship to mortality, guiding decisions about transformations (log,
-polynomial) before the hazard model.
+The LOESS smooth shows the shape of the covariate-mortality
+relationship, which guides the choice of transformation (log,
+polynomial) before you fit the hazard model.
 
 ### 1.1 Quantile calibration with `hzr_calibrate()`
 

@@ -13,7 +13,7 @@ This is the R equivalent of the SAS bootstrap.hazard.sas macro."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -95,7 +95,14 @@ replicate (default 1.0 for full bootstrap; &lt; 1 for bagging).</p></dd>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
-<dd><p>Optional integer random seed for reproducibility.</p></dd>
+<dd><p>Optional integer random seed for reproducibility. When
+supplied, <code>set.seed(seed)</code> is called at function entry, jumping the
+global RNG to the seeded state; it is not restored on exit. Pass
+<code>NULL</code> (the default) to skip the <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> call and start from
+the caller's current RNG state. Note that the bootstrap consumes
+random numbers either way, so the global RNG state will advance
+during the call – <code>seed = NULL</code> avoids the <em>reset</em> at entry, not
+the advance during resampling.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>

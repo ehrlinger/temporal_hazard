@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,7 @@
       <h1>Package Architecture</h1>
       <p class="subtitle">Design, golden fixtures, and dataset catalog for TemporalHazard</p>
       <p class="author">John Ehrlinger</p>
-      <p class="date">2026-05-19</p>
+      <p class="date">2026-05-27</p>
 
       <small class="dont-index">Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/vignettes/ar-architecture.qmd" class="external-link"><code>vignettes/ar-architecture.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
@@ -283,7 +283,7 @@ hazard(dist='multiphase')
 </table></section><section class="level3" data-number="3.1.4"><h4 data-number="3.1.4" id="multi-start-optimization">
 <span class="header-section-number">3.1.4</span> Multi-start optimization<a class="anchor" aria-label="anchor" href="#multi-start-optimization"></a>
 </h4>
-<p><code><a href="../reference/dot-hzr_optim_multiphase.html">.hzr_optim_multiphase()</a></code> runs a multi-start strategy: the first start uses the assembled starting values (from <code>theta</code> or <code>hzr_phase</code> specs); subsequent starts perturb randomly (sd = 0.5). The best log-likelihood across all starts is kept. This helps escape shallow local optima common in multiphase models.</p>
+<p><code><a href="../reference/dot-hzr_optim_multiphase.html">.hzr_optim_multiphase()</a></code> runs a multi-start strategy: the first start uses the assembled starting values (from <code>theta</code> or <code>hzr_phase</code> specs); subsequent starts perturb randomly (sd = 0.5). The best log-likelihood across all starts is kept. This helps the optimizer escape the shallow local optima that are common in multiphase models.</p>
 <p>The optimizer delegates to <code>.hzr_optim_generic()</code>, which wraps <code><a href="https://rdrr.io/r/stats/optim.html" class="external-link">stats::optim()</a></code> with method <code>"BFGS"</code> (unconstrained; all scale parameters are log-transformed). The Hessian is computed numerically at the converged point for variance-covariance estimation.</p>
 </section></section></section><section class="section level2" data-number="4"><h2 data-number="4" id="golden-fixture-system">
 <span class="header-section-number">4</span> Golden fixture system<a class="anchor" aria-label="anchor" href="#golden-fixture-system"></a>

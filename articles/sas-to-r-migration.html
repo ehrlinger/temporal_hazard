@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -911,7 +911,7 @@ PROC HAZARD DATA=AVCS P CONSERVE OUTHAZ=OUTEST CONDITION=14 QUASI;
 </ul>
 <hr></section></section><section class="level2"><h2 id="rcpp-acceleration-note">Rcpp acceleration note<a class="anchor" aria-label="anchor" href="#rcpp-acceleration-note"></a>
 </h2>
-<p><code>TemporalHazard</code> is currently pure R. If profiling against large real datasets reveals bottlenecks in the likelihood kernel or optimizer inner loop, those specific functions will be re-implemented with Rcpp. The public interface (<code><a href="../reference/hazard.html">hazard()</a></code>, <code><a href="../reference/predict.hazard.html">predict.hazard()</a></code>, etc.) will not change.</p>
+<p><code>TemporalHazard</code> is currently pure R. If profiling against large real datasets turns up bottlenecks in the likelihood kernel or the optimizer inner loop, those specific functions will be re-implemented with Rcpp. The public interface (<code><a href="../reference/hazard.html">hazard()</a></code>, <code><a href="../reference/predict.hazard.html">predict.hazard()</a></code>, etc.) will not change.</p>
 </section><section class="level2 unnumbered"><h2 class="unnumbered" id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <p>Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying hazard into phases, each incorporating a separate stream of concomitant information. <em>J Am Stat Assoc.</em> 1986;81(395):615–624. doi: <a href="https://doi.org/10.1080/01621459.1986.10478314" class="external-link">10.1080/01621459.1986.10478314</a></p>

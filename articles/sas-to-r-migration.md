@@ -605,9 +605,9 @@ SAS parity notes:
 ## Rcpp acceleration note
 
 `TemporalHazard` is currently pure R. If profiling against large real
-datasets reveals bottlenecks in the likelihood kernel or optimizer inner
-loop, those specific functions will be re-implemented with Rcpp. The
-public interface
+datasets turns up bottlenecks in the likelihood kernel or the optimizer
+inner loop, those specific functions will be re-implemented with Rcpp.
+The public interface
 ([`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md),
 [`predict.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/predict.hazard.md),
 etc.) will not change.

@@ -7,10 +7,11 @@ library(survival)
 library(ggplot2)
 ```
 
-This vignette demonstrates the core model-fitting workflow, progressing
-from the simplest case (intercept-only, single distribution) through
-multivariable models to multiphase additive hazard decomposition. All
-examples use the clinical datasets shipped with the package.
+This vignette walks through the core model-fitting workflow, starting
+from the simplest case (intercept-only, single distribution) and
+building up through multivariable models to multiphase additive hazard
+decomposition. Every example uses a clinical dataset shipped with the
+package.
 
 ## 1 Intercept-only model: CABG survival (KU Leuven)
 
@@ -289,9 +290,9 @@ fit_pve
 #>   converged:    TRUE
 ```
 
-Each endpoint can be modeled independently with appropriate covariates.
-The hazard model structure — temporal shape + covariate effects — is the
-same regardless of the clinical endpoint.
+Each endpoint gets its own model with its own covariates. But the hazard
+model structure — temporal shape plus covariate effects — stays the same
+whatever the clinical endpoint.
 
 ## 5 Phase types reference
 

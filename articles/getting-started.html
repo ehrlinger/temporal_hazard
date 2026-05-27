@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -256,6 +256,12 @@ Figure 1: Parametric Weibull survival curve with Kaplan-Meier overlay
 <span><span class="co">#&gt;   alpha     1.00000        NA     NA      NA</span></span>
 <span><span class="co">#&gt;   eta       1.00000        NA     NA      NA</span></span></code></pre></div>
 </div>
+<p>The summary marks most rows <code>NA</code> in the <code>std_error</code>, <code>z_stat</code>, and <code>p_value</code> columns. Two mechanisms produce these, both deliberate:</p>
+<ul>
+<li>The seven shape parameters carry <code>fixed = "shapes"</code> and act as user-supplied constants (<code>t_half</code>, <code>nu</code>, <code>m</code> on the early phase; <code>tau</code>, <code>gamma</code>, <code>alpha</code>, <code>eta</code> on the late phase). The optimizer never moves them, so they have no estimated variance to report.</li>
+<li>One of the three <code>log_mu</code> scale parameters is also <code>NA</code>. By default the multiphase optimizer enforces Conservation of Events (Turner’s theorem): one phase’s <code>log_mu</code> is solved analytically at every iteration so that total predicted events equal total observed. That phase is not a free parameter at the MLE, so its inverse-Hessian variance is degenerate, and the table marks it <code>NA</code> rather than print a misleading number. Pass <code>control = list(conserve = FALSE)</code> to disable Conservation of Events and estimate all three scale parameters freely.</li>
+</ul>
+<p>The two remaining <code>log_mu</code> rows are the optimizer-estimated free parameters; their Wald statistics reflect the two-parameter fit dimension that remains after the Conservation-of-Events constraint absorbs the third <code>log_mu</code>.</p>
 <section class="level3"><h3 id="decomposed-hazard-visualization">Decomposed hazard visualization<a class="anchor" aria-label="anchor" href="#decomposed-hazard-visualization"></a>
 </h3>
 <p>The <code>decompose = TRUE</code> argument returns per-phase cumulative hazard contributions. We numerically differentiate these to visualize the instantaneous hazard rate for each phase.</p>

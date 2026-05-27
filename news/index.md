@@ -1,5 +1,22 @@
 # Changelog
 
+## TemporalHazard 1.0.3
+
+### Bug fixes / CRAN compliance
+
+- [`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)
+  no longer touches `.GlobalEnv` directly. The 1.0.2
+  `oldseed`/[`on.exit()`](https://rdrr.io/r/base/on.exit.html)/`assign(".Random.seed", ...)`
+  save-restore wrapper added in 1.0.2 violated CRAN policy on writing to
+  `.GlobalEnv` and has been removed. When `seed` is supplied the
+  function simply calls `set.seed(seed)` (the documented R API for
+  seeded reproducibility); the `@param seed` documentation now notes
+  that the caller’s RNG state is not restored on exit. With
+  `seed = NULL` (the default) the function does not call
+  [`set.seed()`](https://rdrr.io/r/base/Random.html) at entry, so it
+  starts from the caller’s current RNG state; the bootstrap still
+  consumes random numbers and advances that state in the usual way.
+
 ## TemporalHazard 1.0.2
 
 ### Bug fixes / CRAN compliance

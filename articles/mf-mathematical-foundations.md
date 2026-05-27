@@ -5,13 +5,13 @@
 library(TemporalHazard)
 ```
 
-This vignette provides the mathematical foundation for the models
-implemented in TemporalHazard. It covers the generalized temporal
-decomposition family (Blackstone, Naftel, and Turner 1986), the additive
-multiphase hazard model, maximum likelihood estimation under mixed
-censoring, and extensions for time-varying covariates. The decomposition
-framework extends naturally to longitudinal mixed-effects settings
-(Rajeswaran et al. 2018).
+This vignette lays out the mathematical foundation for the models in
+TemporalHazard. It covers the generalized temporal decomposition family
+(Blackstone, Naftel, and Turner 1986), the additive multiphase hazard
+model, maximum likelihood estimation under mixed censoring, and
+extensions for time-varying covariates. The same decomposition framework
+also carries over to longitudinal mixed-effects settings (Rajeswaran et
+al. 2018).
 
 For users migrating from the legacy SAS/C HAZARD program, each section
 notes how the R parameterization relates to the original parameter
@@ -444,8 +444,8 @@ $`\boldsymbol{\beta}_j`$:
 \mu_j(\mathbf{x}) = \exp\!\bigl(\alpha_j + \mathbf{x}\,\boldsymbol{\beta}_j\bigr)
 ```
 
-This means the same predictors can have different effects on early
-vs. late risk — a core feature of multiphase models.
+So the same predictors can have different effects on early vs. late
+risk, which is a core feature of multiphase models.
 
 ``` r
 
@@ -565,8 +565,8 @@ The decomposition engine applies several guards:
   [`hzr_log1mexp()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_log1mexp.md)
   to avoid $`\log(0)`$ when $`H(t)`$ is very small
 
-These guards ensure finite gradients throughout the optimization, even
-in regions of parameter space far from the optimum.
+Together these keep the gradients finite throughout the optimization,
+even in regions of parameter space far from the optimum.
 
 ## 6 Summary of Key Functions
 

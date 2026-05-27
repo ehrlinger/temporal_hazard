@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,7 @@
       <h1>Complete Clinical Analysis Walkthrough</h1>
       <p class="subtitle">From Kaplan-Meier baseline to validated multivariable model</p>
       <p class="author">John Ehrlinger</p>
-      <p class="date">2026-05-19</p>
+      <p class="date">2026-05-27</p>
 
       <small class="dont-index">Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/vignettes/clinical-analysis-walkthrough.qmd" class="external-link"><code>vignettes/clinical-analysis-walkthrough.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
@@ -816,7 +816,7 @@ Figure 11: Conservation-of-events residual (expected minus observed) over time
 </section></section><section class="level2" data-number="8"><h2 data-number="8" id="why-not-cox-regression">
 <span class="header-section-number">8</span> Why not Cox regression?<a class="anchor" aria-label="anchor" href="#why-not-cox-regression"></a>
 </h2>
-<p>The temporal parametric approach offers several advantages over Cox proportional hazards for this type of analysis:</p>
+<p>For this kind of analysis the temporal parametric approach buys you several things that Cox proportional hazards does not:</p>
 <table class="table caption-top">
 <thead><tr class="header">
 <th style="text-align: left;">Feature</th>
@@ -861,7 +861,7 @@ Figure 11: Conservation-of-events residual (expected minus observed) over time
 </tr>
 </tbody>
 </table>
-<p>The key insight is that many clinical outcomes exhibit <strong>non-proportional hazards</strong>: the risk factors that dominate early mortality (e.g., surgical complexity) differ from those driving late attrition (e.g., age, comorbidity). The multiphase model captures this naturally through phase-specific covariate effects.</p>
+<p>Many clinical outcomes show <strong>non-proportional hazards</strong>: the risk factors that dominate early mortality (e.g., surgical complexity) differ from those driving late attrition (e.g., age, comorbidity). The multiphase model captures this through phase-specific covariate effects.</p>
 </section><section class="level2" data-number="9"><h2 data-number="9" id="summary">
 <span class="header-section-number">9</span> Summary<a class="anchor" aria-label="anchor" href="#summary"></a>
 </h2>

@@ -13,9 +13,9 @@ profiles, and overlaying parametric fits with Kaplan-Meier estimates.
 
 ## 1 Kaplan-Meier baseline
 
-Before any parametric modeling, the Kaplan-Meier curve establishes a
-nonparametric reference. All subsequent parametric predictions should be
-compared against this baseline to assess goodness-of-fit.
+Before any parametric modeling, the Kaplan-Meier curve gives us a
+nonparametric reference. Compare every parametric prediction that
+follows against this baseline to judge goodness-of-fit.
 
 ``` r
 
@@ -338,8 +338,8 @@ ggplot(curves, aes(time, survival, colour = Profile)) +
 
 Figure 6: Predicted survival by risk profile
 
-The separation between curves quantifies the prognostic discrimination
-of the model. A wider spread indicates stronger covariate effects.
+The gap between curves is the model’s prognostic discrimination: a wider
+spread means stronger covariate effects.
 
 ## 8 Multi-endpoint visualization: valves
 

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -49,6 +49,14 @@
       <small>Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="1.0.3" id="temporalhazard-103">TemporalHazard 1.0.3<a class="anchor" aria-label="anchor" href="#temporalhazard-103"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes--cran-compliance-1-0-3">Bug fixes / CRAN compliance<a class="anchor" aria-label="anchor" href="#bug-fixes--cran-compliance-1-0-3"></a></h3>
+<ul><li>
+<code><a href="../reference/hzr_bootstrap.html">hzr_bootstrap()</a></code> no longer touches <code>.GlobalEnv</code> directly. The 1.0.2 <code>oldseed</code>/<code><a href="https://rdrr.io/r/base/on.exit.html" class="external-link">on.exit()</a></code>/<code>assign(".Random.seed", ...)</code> save-restore wrapper added in 1.0.2 violated CRAN policy on writing to <code>.GlobalEnv</code> and has been removed. When <code>seed</code> is supplied the function simply calls <code>set.seed(seed)</code> (the documented R API for seeded reproducibility); the <code>@param seed</code> documentation now notes that the caller’s RNG state is not restored on exit. With <code>seed = NULL</code> (the default) the function does not call <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> at entry, so it starts from the caller’s current RNG state; the bootstrap still consumes random numbers and advances that state in the usual way.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="1.0.2" id="temporalhazard-102">TemporalHazard 1.0.2<a class="anchor" aria-label="anchor" href="#temporalhazard-102"></a></h2>
 <div class="section level3">

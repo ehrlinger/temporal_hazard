@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,7 +90,7 @@
 <section class="level2" data-number="1"><h2 data-number="1" id="exploratory-covariate-screening">
 <span class="header-section-number">1</span> Exploratory covariate screening<a class="anchor" aria-label="anchor" href="#exploratory-covariate-screening"></a>
 </h2>
-<p>Before fitting the parametric hazard model, it is useful to screen candidate covariates with simple logistic models. This identifies transformations and functional forms that should enter the final model.</p>
+<p>Before fitting the parametric hazard model, screen the candidate covariates with simple logistic models. This shows you which transformations and functional forms should enter the final model.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">avc</span><span class="op">)</span></span>
@@ -144,7 +144,7 @@ Figure 1: Exploratory: age vs. mortality with LOESS smooth
 </div>
 </div>
 </div>
-<p>The LOESS smooth reveals the functional form of each covariate relationship to mortality, guiding decisions about transformations (log, polynomial) before the hazard model.</p>
+<p>The LOESS smooth shows the shape of the covariate-mortality relationship, which guides the choice of transformation (log, polynomial) before you fit the hazard model.</p>
 <section class="level3" data-number="1.1"><h3 data-number="1.1" id="quantile-calibration-with-hzr_calibrate">
 <span class="header-section-number">1.1</span> Quantile calibration with <code>hzr_calibrate()</code>
 <a class="anchor" aria-label="anchor" href="#quantile-calibration-with-hzr_calibrate"></a>

@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,7 +90,7 @@
 <section class="level2" data-number="1"><h2 data-number="1" id="kaplan-meier-baseline">
 <span class="header-section-number">1</span> Kaplan-Meier baseline<a class="anchor" aria-label="anchor" href="#kaplan-meier-baseline"></a>
 </h2>
-<p>Before any parametric modeling, the Kaplan-Meier curve establishes a nonparametric reference. All subsequent parametric predictions should be compared against this baseline to assess goodness-of-fit.</p>
+<p>Before any parametric modeling, the Kaplan-Meier curve gives us a nonparametric reference. Compare every parametric prediction that follows against this baseline to judge goodness-of-fit.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">avc</span><span class="op">)</span></span>
@@ -411,7 +411,7 @@ Figure 6: Predicted survival by risk profile
 </div>
 </div>
 </div>
-<p>The separation between curves quantifies the prognostic discrimination of the model. A wider spread indicates stronger covariate effects.</p>
+<p>The gap between curves is the model’s prognostic discrimination: a wider spread means stronger covariate effects.</p>
 </section><section class="level2" data-number="8"><h2 data-number="8" id="multi-endpoint-visualization-valves">
 <span class="header-section-number">8</span> Multi-endpoint visualization: valves<a class="anchor" aria-label="anchor" href="#multi-endpoint-visualization-valves"></a>
 </h2>

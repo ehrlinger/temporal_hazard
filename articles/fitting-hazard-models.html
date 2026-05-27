@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,7 +86,7 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival" class="external-link">survival</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>This vignette demonstrates the core model-fitting workflow, progressing from the simplest case (intercept-only, single distribution) through multivariable models to multiphase additive hazard decomposition. All examples use the clinical datasets shipped with the package.</p>
+<p>This vignette walks through the core model-fitting workflow, starting from the simplest case (intercept-only, single distribution) and building up through multivariable models to multiphase additive hazard decomposition. Every example uses a clinical dataset shipped with the package.</p>
 <section class="level2" data-number="1"><h2 data-number="1" id="intercept-only-model-cabg-survival-ku-leuven">
 <span class="header-section-number">1</span> Intercept-only model: CABG survival (KU Leuven)<a class="anchor" aria-label="anchor" href="#intercept-only-model-cabg-survival-ku-leuven"></a>
 </h2>
@@ -339,7 +339,7 @@ Figure 2: Single-phase Weibull vs. multiphase model against Kaplan-Meier (AVC)
 <span><span class="co">#&gt;   log-lik:      -391.125 </span></span>
 <span><span class="co">#&gt;   converged:    TRUE</span></span></code></pre></div>
 </div>
-<p>Each endpoint can be modeled independently with appropriate covariates. The hazard model structure — temporal shape + covariate effects — is the same regardless of the clinical endpoint.</p>
+<p>Each endpoint gets its own model with its own covariates. But the hazard model structure — temporal shape plus covariate effects — stays the same whatever the clinical endpoint.</p>
 </section><section class="level2" data-number="5"><h2 data-number="5" id="phase-types-reference">
 <span class="header-section-number">5</span> Phase types reference<a class="anchor" aria-label="anchor" href="#phase-types-reference"></a>
 </h2>

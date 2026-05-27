@@ -193,6 +193,28 @@ summary(fit_mp)
 #>   eta       1.00000        NA     NA      NA
 ```
 
+The summary marks most rows `NA` in the `std_error`, `z_stat`, and
+`p_value` columns. Two mechanisms produce these, both deliberate:
+
+- The seven shape parameters carry `fixed = "shapes"` and act as
+  user-supplied constants (`t_half`, `nu`, `m` on the early phase;
+  `tau`, `gamma`, `alpha`, `eta` on the late phase). The optimizer never
+  moves them, so they have no estimated variance to report.
+- One of the three `log_mu` scale parameters is also `NA`. By default
+  the multiphase optimizer enforces Conservation of Events (Turner’s
+  theorem): one phase’s `log_mu` is solved analytically at every
+  iteration so that total predicted events equal total observed. That
+  phase is not a free parameter at the MLE, so its inverse-Hessian
+  variance is degenerate, and the table marks it `NA` rather than print
+  a misleading number. Pass `control = list(conserve = FALSE)` to
+  disable Conservation of Events and estimate all three scale parameters
+  freely.
+
+The two remaining `log_mu` rows are the optimizer-estimated free
+parameters; their Wald statistics reflect the two-parameter fit
+dimension that remains after the Conservation-of-Events constraint
+absorbs the third `log_mu`.
+
 ### Decomposed hazard visualization
 
 The `decompose = TRUE` argument returns per-phase cumulative hazard

@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -84,7 +84,7 @@
 <div class="sourceCode cell-code" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ehrlinger.github.io/temporal_hazard/">TemporalHazard</a></span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>This vignette provides the mathematical foundation for the models implemented in TemporalHazard. It covers the generalized temporal decomposition family (Blackstone, Naftel, and Turner 1986), the additive multiphase hazard model, maximum likelihood estimation under mixed censoring, and extensions for time-varying covariates. The decomposition framework extends naturally to longitudinal mixed-effects settings (Rajeswaran et al. 2018).</p>
+<p>This vignette lays out the mathematical foundation for the models in TemporalHazard. It covers the generalized temporal decomposition family (Blackstone, Naftel, and Turner 1986), the additive multiphase hazard model, maximum likelihood estimation under mixed censoring, and extensions for time-varying covariates. The same decomposition framework also carries over to longitudinal mixed-effects settings (Rajeswaran et al. 2018).</p>
 <p>For users migrating from the legacy SAS/C HAZARD program, each section notes how the R parameterization relates to the original parameter names. For the full translation table, see <code><a href="../articles/sas-to-r-migration.html">vignette("sas-to-r-migration")</a></code> or call <code><a href="../reference/hzr_argument_mapping.html">hzr_argument_mapping()</a></code>.</p>
 <section class="section level2" data-number="1"><h2 data-number="1" id="sec-decomposition">
 <span class="header-section-number">1</span> Generalized Temporal Decomposition<a class="anchor" aria-label="anchor" href="#sec-decomposition"></a>
@@ -634,7 +634,7 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>𝐱</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mspace width="-0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><msub><mi>α</mi><mi>j</mi></msub><mo>+</mo><mi>𝐱</mi><mspace width="0.167em"></mspace><msub><mi>𝛃</mi><mi>j</mi></msub><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
 \mu_j(\mathbf{x}) = \exp\!\bigl(\alpha_j + \mathbf{x}\,\boldsymbol{\beta}_j\bigr)
 </annotation></semantics></math></p>
-<p>This means the same predictors can have different effects on early vs. late risk — a core feature of multiphase models.</p>
+<p>So the same predictors can have different effects on early vs. late risk, which is a core feature of multiphase models.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Both phases use age and nyha from the global formula</span></span>
@@ -723,7 +723,7 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 </li>
 <li>Left- and interval-censored contributions use <code><a href="../reference/hzr_log1mexp.html">hzr_log1mexp()</a></code> to avoid <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\log(0)</annotation></semantics></math> when <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">H(t)</annotation></semantics></math> is very small</li>
 </ul>
-<p>These guards ensure finite gradients throughout the optimization, even in regions of parameter space far from the optimum.</p>
+<p>Together these keep the gradients finite throughout the optimization, even in regions of parameter space far from the optimum.</p>
 </section></section><section class="section level2" data-number="6"><h2 data-number="6" id="sec-api">
 <span class="header-section-number">6</span> Summary of Key Functions<a class="anchor" aria-label="anchor" href="#sec-api"></a>
 </h2>
