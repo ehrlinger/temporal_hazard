@@ -25,6 +25,27 @@ generators remain in `data-raw/` (off the CRAN surface);
 requires an explicit `output_dir`; `\value` documentation is present for
 every exported function and S3 method.
 
+## Other changes since 1.0.2
+
+Non-reviewer-driven housekeeping and documentation polish that also
+ships in 1.0.3:
+
+* **Vignette clarity expansion.** All seven vignettes (`getting-started`,
+  `fitting-hazard-models`, `prediction-visualization`,
+  `inference-diagnostics`, `clinical-analysis-walkthrough`,
+  `mf-mathematical-foundations`, `sas-to-r-migration`) received
+  audience-grounding intros and section-level prose so readers don't
+  hit naked code blocks under headers. No code chunks, function
+  signatures, math, or numeric results were touched — narrative prose
+  only. This is the bulk of the 1.0.3 diff by line count.
+* **`inst/CITATION` version templating.** Previously hardcoded the
+  version string (last updated at 0.9.4); now reads `meta$Version` so
+  `citation("TemporalHazard")` self-reports the current version going
+  forward.
+* **`RoxygenNote` synced to installed `roxygen2`.** DESCRIPTION's
+  `RoxygenNote` field bumped to 8.0.0 to match the generator that
+  produced the committed Rd files. No Rd content changes.
+
 ## Test environments
 
 * **Local:** R 4.6.0 on macOS (aarch64-apple-darwin23).
