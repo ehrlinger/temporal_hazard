@@ -80,9 +80,9 @@ function for phase j.
 
 ---
 
-## Phase 3: CRAN Release — IN PROGRESS
+## Phase 3: CRAN Release — COMPLETE (v1.0.3 submitted 2026-05-27)
 
-Preparing the package for initial CRAN submission.
+Initial CRAN submission and resubmission cycle.
 
 ### Completed
 
@@ -93,14 +93,22 @@ Preparing the package for initial CRAN submission.
 - Removed non-deterministic `set.seed(NULL)` in multi-start optimizer
 - Normalized vignette metadata (YAML `vignette:` key across all 7 files)
 - Fixed CITATION and DESCRIPTION URL redirects (trailing slash)
+- v1.0.0 submitted 2026-05-12; v1.0.1 (home-filespace fix) submitted 2026-05-16;
+  v1.0.2 auto-processed; CRAN reviewer Altmann flagged `.GlobalEnv` write in
+  `hzr_bootstrap()` — fixed in v1.0.3 by reverting to `set.seed(seed)` idiom
+- v1.0.3 submitted 2026-05-27; auto-check `Status: 1 NOTE` (new submission);
+  manual review pending
+- Full vignette clarity pass (7 vignettes, +640 lines, PR #30)
+- `inst/CITATION` templated to `meta$Version`; `RoxygenNote` synced to 8.0.0
+- CRAN cookbook full audit: all 4 policy sections clean; `build/` excluded
+  from tarball via `.Rbuildignore`
 
-### Remaining
+### Post-acceptance checklist (see RELEASE.md)
 
-- Push local commits and verify all CI workflows pass green
-- `devtools::spell_check()` — fix any typos
-- Regenerate README figures: `source("inst/dev/generate-readme-figures.R")`
-- Submit via `devtools::submit_cran()` or web form
-- Monitor and respond to CRAN feedback
+- Tag `v1.0.3` at SHA `5525158`, publish GitHub Release from NEWS section
+- README badge swap: CRAN status + cranlogs ×2 (replace manual shields badge)
+- `git rm .github/workflows/update-version-badge.yaml`
+- Bump `main` → `1.0.3.9000` + dev NEWS heading (PR; tag+release are exception)
 
 ---
 
