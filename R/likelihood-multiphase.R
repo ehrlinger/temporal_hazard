@@ -276,7 +276,16 @@
 #' Select the phase whose log_mu will be solved by conservation
 #'
 #' Chooses the phase contributing the largest share of total cumulative
-#' hazard, matching the C HAZARD SETCOE strategy.
+#' hazard at the current theta, matching the C HAZARD SETCOE strategy.
+#'
+#' When one phase dominates by an extreme margin (>10x the median contribution)
+#' it is typically due to poorly-scaled shape parameters at the starting theta
+#' rather than a genuine signal that the phase should absorb all events.
+#' Selecting such a phase as the fixmu phase traps the optimizer: CoE keeps
+#' rescaling that phase's log_mu upward while the optimizer tries to drive it
+#' to near-zero.  We therefore exclude extreme outliers and select among the
+#' remaining phases.  If all phases are outliers (or only one phase exists)
+#' the largest is used as a fallback.
 #'
 #' @param theta Full parameter vector (internal scale).
 #' @param time Numeric vector of follow-up times.
@@ -299,6 +308,21 @@
   phase_sums <- vapply(names(phases), function(nm) {
     sum(weights * decomp[[nm]])
   }, numeric(1))
+
+  # Exclude extreme outliers: a phase whose contribution exceeds 10x the
+  # median is likely dominated by large shape-parameter values at the starting
+  # theta rather than reflecting the true relative importance of the phase.
+  # Fixing such a phase traps the optimizer when the true MLE has that phase
+  # near zero.  Among the remaining (non-outlier) phases, pick the largest.
+  if (length(phase_sums) > 1L) {
+    med <- stats::median(phase_sums)
+    if (med > 0) {
+      non_outlier <- phase_sums[phase_sums <= 10 * med]
+      if (length(non_outlier) >= 1L) {
+        return(names(which.max(non_outlier)))
+      }
+    }
+  }
 
   names(which.max(phase_sums))
 }

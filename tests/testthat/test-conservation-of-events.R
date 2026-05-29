@@ -345,3 +345,193 @@ test_that("CoE default (conserve=TRUE) with weights reaches the same optimum as 
   expect_equal(fit_default$fit$objective, fit_explicit_off$fit$objective,
                tolerance = 1e-3)
 })
+
+
+# ===========================================================================
+# 4-phase CoE algebra (Phase 7d)
+# ===========================================================================
+#
+# .hzr_select_fixmu_phase() and .hzr_conserve_events() must work correctly
+# for N = 4 phases.  The key regression: when a G3 phase has a large
+# unnormalized cumhaz at starting theta, the old which.max() selection
+# picked that phase, causing CoE to pin it away from its true near-zero MLE.
+
+test_that(".hzr_log_mu_positions returns correct positions for 4 phases", {
+  phases4 <- list(
+    early1   = hzr_phase("cdf", t_half = 0.1, nu = 1, m = 1),
+    early2   = hzr_phase("cdf", t_half = 2.0, nu = 1, m = 1),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("g3", tau = 1, gamma = 3, alpha = 1, eta = 1)
+  )
+  cov_counts <- c(early1 = 0L, early2 = 0L, constant = 0L, late = 0L)
+  pos <- TemporalHazard:::.hzr_log_mu_positions(phases4, cov_counts)
+
+  # early1: log_mu at 1, then 3 shapes = 4 params → early2 starts at 5
+  # early2: log_mu at 5, then 3 shapes = 4 params → constant starts at 9
+  # constant: log_mu at 9, no shapes = 1 param → late starts at 10
+  # late: log_mu at 10, then 4 G3 shapes = 5 params
+  expect_equal(pos[["early1"]],   1L)
+  expect_equal(pos[["early2"]],   5L)
+  expect_equal(pos[["constant"]], 9L)
+  expect_equal(pos[["late"]],    10L)
+})
+
+test_that(".hzr_select_fixmu_phase excludes extreme-outlier phases for N=4", {
+  # With G3 starting values tau=1, gamma=3, alpha=1, eta=1 the late phase
+  # cumhaz is orders of magnitude larger than the other phases at typical
+  # starting theta.  The fixed selection should skip it and pick among the
+  # non-outlier phases.
+  data(cabgkul, package = "TemporalHazard")
+  phases4 <- list(
+    early1   = hzr_phase("cdf", t_half = 0.1, nu = 1, m = 1, fixed = "shapes"),
+    early2   = hzr_phase("cdf", t_half = 2.0, nu = 1, m = 1, fixed = "shapes"),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("g3", tau = 1, gamma = 3, alpha = 1, eta = 1,
+                          fixed = "shapes")
+  )
+  cov_counts <- c(early1 = 0L, early2 = 0L, constant = 0L, late = 0L)
+  x_list <- list(early1 = NULL, early2 = NULL, constant = NULL, late = NULL)
+  theta0 <- c(-3, log(0.1), 1, 1,   # early1
+               -3, log(2.0), 1, 1,   # early2
+               -5,                   # constant
+               -3, log(1), 3, 1, 1)  # late
+
+  fixmu <- TemporalHazard:::.hzr_select_fixmu_phase(
+    theta0, cabgkul$int_dead, cabgkul$dead,
+    phases4, cov_counts, x_list
+  )
+  # G3 late phase should be excluded as an outlier; constant or one of the
+  # CDF phases should be selected instead
+  expect_false(fixmu == "late",
+               label = paste("fixmu should not be 'late'; got:", fixmu))
+})
+
+test_that(".hzr_conserve_events satisfies CoE identity for 4 phases", {
+  data(cabgkul, package = "TemporalHazard")
+  # Use 4 CDF/constant phases (no G3) to avoid the shape-value scale issue:
+  # G3 with tau=1 generates enormous base cumhaz at long follow-up times even
+  # with log_mu = -20, making jevent < 0 and causing a valid guard bail-out.
+  phases4 <- list(
+    early1   = hzr_phase("cdf", t_half = 0.1, nu = 1, m = 1),
+    early2   = hzr_phase("cdf", t_half = 2.0, nu = 1, m = 1),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("cdf", t_half = 20, nu = 1, m = 1)
+  )
+  cov_counts <- c(early1 = 0L, early2 = 0L, constant = 0L, late = 0L)
+  x_list <- list(early1 = NULL, early2 = NULL, constant = NULL, late = NULL)
+  # Positions: early1=1 (4 params), early2=5 (4), constant=9 (1), late=10 (4)
+  # Use small log_mu values so total cumhaz < total_events — the CoE
+  # adjustment then has room to increase the constant phase log_mu upward.
+  # exp(-6.5) * sum(cabgkul$int_dead) ≈ 503 < 545 = total_events.
+  theta0 <- c(-10, log(0.1), 1, 1,   # early1  (negligible contribution)
+               -10, log(2.0), 1, 1,   # early2  (negligible contribution)
+               -6.5,                   # constant (log_mu at pos 9, will be adjusted)
+               -10, log(20), 1, 1)     # late    (negligible contribution)
+  total_events <- sum(cabgkul$dead)
+
+  theta_adj <- TemporalHazard:::.hzr_conserve_events(
+    theta0, fixmu_phase = "constant", fixmu_pos = 9L,
+    time = cabgkul$int_dead, status = cabgkul$dead,
+    phases = phases4, covariate_counts = cov_counts,
+    x_list = x_list, total_events = total_events
+  )
+
+  # Only the constant phase log_mu should have changed
+  expect_false(theta_adj[9] == theta0[9])
+  expect_equal(theta_adj[-9], theta0[-9])
+
+  # After adjustment, total predicted events should equal observed events
+  decomp <- TemporalHazard:::.hzr_multiphase_cumhaz(
+    cabgkul$int_dead, theta_adj, phases4, cov_counts, x_list
+  )
+  expect_equal(sum(decomp), total_events, tolerance = 1e-6)
+})
+
+test_that("4-phase CoE fit converges and conservation ratio is 1.0", {
+  data(cabgkul, package = "TemporalHazard")
+  phases4 <- list(
+    early1   = hzr_phase("cdf", t_half = 0.1, nu = 1, m = 1, fixed = "shapes"),
+    early2   = hzr_phase("cdf", t_half = 2.0, nu = 1, m = 1, fixed = "shapes"),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("g3", tau = 1, gamma = 3, alpha = 1, eta = 1,
+                          fixed = "shapes")
+  )
+  set.seed(42)
+  fit4 <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data    = cabgkul,
+    dist    = "multiphase",
+    phases  = phases4,
+    fit     = TRUE,
+    control = list(n_starts = 3, maxit = 500)
+  )
+
+  expect_true(is.finite(fit4$fit$objective))
+  gof <- hzr_gof(fit4)
+  s   <- attr(gof, "summary")
+  ratio <- unname(s$total_expected / s$total_observed)
+  expect_equal(ratio, 1.0, tolerance = 1e-4)
+})
+
+test_that("4-phase CoE and non-CoE find the same optimum", {
+  skip_on_cran()
+  data(cabgkul, package = "TemporalHazard")
+  phases4 <- list(
+    early1   = hzr_phase("cdf", t_half = 0.1, nu = 1, m = 1, fixed = "shapes"),
+    early2   = hzr_phase("cdf", t_half = 2.0, nu = 1, m = 1, fixed = "shapes"),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("g3", tau = 1, gamma = 3, alpha = 1, eta = 1,
+                          fixed = "shapes")
+  )
+  set.seed(42)
+  fit_coe <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data    = cabgkul,
+    dist    = "multiphase",
+    phases  = phases4,
+    fit     = TRUE,
+    control = list(n_starts = 5, maxit = 500, conserve = TRUE)
+  )
+  fit_no_coe <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data    = cabgkul,
+    dist    = "multiphase",
+    phases  = phases4,
+    fit     = TRUE,
+    control = list(n_starts = 5, maxit = 500, conserve = FALSE)
+  )
+  expect_equal(fit_coe$fit$objective, fit_no_coe$fit$objective, tolerance = 0.1)
+})
+
+test_that("4-phase predict(decompose=TRUE) returns 4 per-phase columns", {
+  data(cabgkul, package = "TemporalHazard")
+  phases4 <- list(
+    early1   = hzr_phase("cdf", t_half = 0.1, nu = 1, m = 1, fixed = "shapes"),
+    early2   = hzr_phase("cdf", t_half = 2.0, nu = 1, m = 1, fixed = "shapes"),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("g3", tau = 1, gamma = 3, alpha = 1, eta = 1,
+                          fixed = "shapes")
+  )
+  set.seed(42)
+  fit4 <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data    = cabgkul,
+    dist    = "multiphase",
+    phases  = phases4,
+    fit     = TRUE,
+    control = list(n_starts = 3, maxit = 500)
+  )
+  nd <- data.frame(time = c(6, 24, 60, 120))
+  d  <- predict(fit4, newdata = nd, type = "cumulative_hazard",
+                decompose = TRUE)
+
+  expect_true(is.data.frame(d) || is.matrix(d))
+  expect_true("total"   %in% colnames(d))
+  expect_true("early1"  %in% colnames(d))
+  expect_true("early2"  %in% colnames(d))
+  expect_true("constant" %in% colnames(d))
+  expect_true("late"    %in% colnames(d))
+  # Total must equal sum of per-phase contributions
+  phase_sum <- d[, "early1"] + d[, "early2"] + d[, "constant"] + d[, "late"]
+  expect_equal(unname(d[, "total"]), unname(phase_sum), tolerance = 1e-10)
+})
