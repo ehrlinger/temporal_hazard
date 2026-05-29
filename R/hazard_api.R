@@ -532,6 +532,13 @@ hazard <- function(formula = NULL,
 #'   Only used when `se.fit = TRUE`.
 #' @param ... Unused; included for S3 compatibility.
 #'
+#' @section Known limitations:
+#' `decompose = TRUE` and `se.fit = TRUE` cannot be used together.  The
+#' delta-method Jacobian has not yet been extended to per-phase contributions.
+#' To obtain confidence limits for a multiphase model, request point predictions
+#' first (`decompose = TRUE, se.fit = FALSE`), then separately request CLs on
+#' the total prediction (`decompose = FALSE, se.fit = TRUE`).
+#'
 #' @details
 #' For Weibull models with survival or cumulative_hazard predictions:
 #' - Cumulative hazard: H(t|x) = (mu*t)^nu * exp(eta)

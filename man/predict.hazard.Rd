@@ -66,6 +66,15 @@ For models fit with \code{time_windows}, predictions for \code{type = "linear_pr
 or \code{"hazard"} also require time values (via \code{newdata$time} or fitted-time fallback)
 so window-specific coefficients can be selected.
 }
+\section{Known limitations}{
+
+\code{decompose = TRUE} and \code{se.fit = TRUE} cannot be used together.  The
+delta-method Jacobian has not yet been extended to per-phase contributions.
+To obtain confidence limits for a multiphase model, request point predictions
+first (\verb{decompose = TRUE, se.fit = FALSE}), then separately request CLs on
+the total prediction (\verb{decompose = FALSE, se.fit = TRUE}).
+}
+
 \examples{
 # -- Basic predictions ------------------------------------------------
 set.seed(1)
