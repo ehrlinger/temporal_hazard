@@ -1,3 +1,11 @@
+# TemporalHazard 1.1.0 (development version)
+
+## New features
+
+* (in development — see `inst/dev/DEVELOPMENT-PLAN.md` for the v1.1.0 roadmap)
+
+---
+
 # TemporalHazard 1.0.3
 
 ## Bug fixes / CRAN compliance
