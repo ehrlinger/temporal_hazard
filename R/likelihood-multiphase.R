@@ -315,11 +315,14 @@
   # Fixing such a phase traps the optimizer when the true MLE has that phase
   # near zero.  Among the remaining (non-outlier) phases, pick the largest.
   if (length(phase_sums) > 1L) {
-    med <- stats::median(phase_sums)
-    if (med > 0) {
-      non_outlier <- phase_sums[phase_sums <= 10 * med]
-      if (length(non_outlier) >= 1L) {
-        return(names(which.max(non_outlier)))
+    finite_sums <- phase_sums[is.finite(phase_sums)]
+    if (length(finite_sums) >= 1L) {
+      med <- stats::median(finite_sums, na.rm = TRUE)
+      if (is.finite(med) && med > 0) {
+        non_outlier <- phase_sums[is.finite(phase_sums) & phase_sums <= 10 * med]
+        if (length(non_outlier) >= 1L) {
+          return(names(which.max(non_outlier)))
+        }
       }
     }
   }
