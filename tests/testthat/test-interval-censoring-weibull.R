@@ -148,7 +148,8 @@ test_that("Mixed IC+RC: right-censored contribution not silently zeroed when tim
   # and right-censored (status=0) rows, right-censored rows must contribute
   # -H(stop) to the log-likelihood, NOT H(stop)-H(stop)=0.
   theta      <- c(mu = 0.4, nu = 1.2)
-  mu <- theta[1]; nu <- theta[2]
+  mu <- theta[1]
+  nu <- theta[2]
 
   # 3 interval-censored observations in (1, 2)
   # 2 right-censored observations at t = 5
@@ -158,7 +159,9 @@ test_that("Mixed IC+RC: right-censored contribution not silently zeroed when tim
   time_upper <- c(2, 2, 2, 5, 5)
 
   # Manual LL
-  H_lo <- (mu * 1)^nu; H_hi <- (mu * 2)^nu; H_rc <- (mu * 5)^nu
+  H_lo <- (mu * 1)^nu
+  H_hi <- (mu * 2)^nu
+  H_rc <- (mu * 5)^nu
   ll_ic_manual <- 3 * (-H_lo + log(1 - exp(-(H_hi - H_lo))))
   ll_rc_manual <- 2 * (-H_rc)
   ll_manual <- unname(ll_ic_manual + ll_rc_manual)
