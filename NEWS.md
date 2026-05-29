@@ -2,7 +2,11 @@
 
 ## New features
 
-* (in development — see `inst/dev/DEVELOPMENT-PLAN.md` for the v1.1.0 roadmap)
+* `vignette("fitting-hazard-models")` gains a **Convergence troubleshooting**
+  section covering: reading the KM cumulative hazard for Weibull starting
+  values (log-log plot), when to fix shape parameters vs. estimate freely,
+  diagnosing overparameterization via near-zero phase scales and `NA` from
+  `vcov()`, and `control` options (`n_starts`, `maxit`).
 
 ---
 

@@ -326,6 +326,183 @@ the same package — there's no risk of subtle differences in censoring
 handling or estimator choice between endpoints.
 
 
+## Convergence troubleshooting
+
+Multiphase models have more parameters than single-distribution fits, and the
+likelihood surface can be flat or multimodal when the data doesn't strongly
+identify all of them. Most convergence problems trace back to one of three
+causes: poor starting values, too many free parameters for the data at hand,
+or a model that asks for a phase the data doesn't contain. This section shows
+how to diagnose each and what to do about it.
+
+### Reading the KM cumulative hazard for starting values
+
+For a Weibull model, the relationship between the starting values and the
+data is direct: because $H(t) = (\mu t)^\nu$, taking logs gives
+$\log H(t) = \nu \log t + \nu \log \mu$. Plot $\log H(t)$ (the Nelson-Aalen
+cumulative hazard on the log scale) against $\log t$ and fit a straight line;
+the slope is $\hat\nu$ and the intercept is $\hat\nu \log \hat\mu$.
+
+```{r}
+#| label: starting-values
+nel <- hzr_nelson(cabgkul$int_dead, cabgkul$dead)
+
+# Drop the zero-time boundary point before log-transforming
+nel_clean <- nel[nel$time > 0 & nel$cumhaz > 0, ]
+log_t <- log(nel_clean$time)
+log_H <- log(nel_clean$cumhaz)
+
+lm_fit  <- lm(log_H ~ log_t)
+nu_hat  <- unname(coef(lm_fit)[2])
+mu_hat  <- exp(unname(coef(lm_fit)[1]) / nu_hat)
+c(mu = round(mu_hat, 4), nu = round(nu_hat, 4))
+```
+
+Those values are the Weibull starting point the data itself suggests. They
+won't be the MLEs --- the log-log line uses every event time equally, whereas
+the MLE weights by the likelihood --- but they land the optimizer in a sensible
+neighbourhood and prevent false-convergence to a degenerate solution.
+
+For multiphase models the reading is qualitative. Plot the KM cumulative hazard
+on the natural scale and look for kinks: a steep-then-flattening shape in the
+first few months signals an early phase whose `t_half` should sit in that early
+window; a steady linear rise afterwards signals a constant phase; a late
+upward curve beyond the flat region signals a late phase. Set `t_half` to
+roughly the time at which the early kink levels off, and set the constant
+phase scale mu to approximate the slope of the linear mid-section.
+
+```{r}
+#| label: fig-cumhaz-shape
+#| fig-cap: "Nelson-Aalen cumulative hazard for CABGKUL — three-phase shape visible as two kinks"
+#| fig-width: 7
+#| fig-height: 4
+ggplot(data.frame(time = nel$time, cumhaz = nel$cumhaz),
+       aes(time, cumhaz)) +
+  geom_step(colour = "#D55E00", linewidth = 0.7) +
+  labs(x = "Months after CABG", y = "Cumulative hazard") +
+  theme_minimal()
+```
+
+The early steep rise, the mid-range roughly-linear section, and the late
+upward acceleration map directly onto the three phases in the CABGKUL model.
+
+### When to fix shape parameters
+
+`fixed = "shapes"` locks the temporal shape parameters (e.g., `t_half`,
+`nu`, `m` for a CDF phase; `tau`, `gamma`, `alpha`, `eta` for a g3 phase)
+and lets the optimizer estimate only the scale (`log_mu`) for each phase.
+This cuts the parameter count substantially and is almost always what you
+want in two situations:
+
+- **You have a reference fit.** If a SAS HAZARD run already produced shape
+  estimates, replicate those shapes exactly and re-estimate only the scale.
+  This is the standard parity workflow.
+- **Your sample is small relative to the number of phases.** A rough guide
+  is 50 or more events per free shape parameter. Below that threshold the
+  shapes are weakly identified and the optimizer wanders.
+
+Estimate shapes freely (`fixed = "none"`, the default) only when you are
+exploring a new dataset for the first time and have no prior on the temporal
+structure — and even then, start with `fixed = "shapes"` and release the
+shapes one at a time if the fixed-shapes fit shows systematic misfit.
+
+### Signs of overparameterization
+
+When a model has more phases than the data supports, the symptoms are
+recognizable:
+
+| Symptom | What it means |
+|---------|--------------|
+| `fit$fit$converged == FALSE` | Optimizer hit `maxit` without satisfying the gradient tolerance |
+| `vcov()` returns `NA` | Hessian is singular — parameters are not jointly identified |
+| A phase scale (`log_mu`) at a boundary value | That phase is contributing essentially zero hazard; it isn't needed |
+| Enormous standard errors on one or more parameters | Flat likelihood in that direction — weak identification |
+| Two phases with nearly identical shapes | One can be collapsed into the other |
+
+The AVC dataset has a clear two-phase structure (early CDF plus constant).
+Adding a third late-rising phase asks the data for a pattern it doesn't
+contain over this follow-up window:
+
+```{r}
+#| label: overparameterized
+set.seed(42)
+fit_3ph <- hazard(
+  Surv(int_dead, dead) ~ 1,
+  data   = avc,
+  dist   = "multiphase",
+  phases = list(
+    early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                          fixed = "shapes"),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("g3", tau = 5, gamma = 3, alpha = 1, eta = 1,
+                          fixed = "shapes")
+  ),
+  fit = TRUE, control = list(n_starts = 5, maxit = 1000)
+)
+
+# Scale magnitudes: exp(log_mu) ≈ 0 for any phase the data doesn't support
+log_mu_idx <- grep("log_mu", names(coef(fit_3ph)))
+round(exp(coef(fit_3ph)[log_mu_idx]), 6)
+```
+
+The constant and late phase scales are both near zero — the optimizer
+found no evidence in the AVC data for either of those temporal shapes over
+this follow-up window. The early phase is absorbing all the identifiable
+structure. Any phase whose fitted scale is $\mu \lesssim 10^{-4}$ is not
+contributing meaningful hazard and is a candidate for removal. The
+right diagnostic question is not "did the AIC improve?" but "does this
+phase represent real clinical biology?" — late deterioration after AVC
+repair requires long follow-up to observe; this dataset doesn't have it.
+
+When shapes are also free (`fixed = "none"`), a redundant phase can make
+the Hessian rank-deficient and `vcov()` will return `NA` (the Hessian
+inversion failed). Fix by adding `fixed = "shapes"` to each phase to
+reduce the free-parameter count, then release shapes one at a time if the
+fixed-shapes fit shows systematic misfit.
+
+### Optimizer options
+
+Three `control` arguments address most remaining convergence problems:
+
+**`n_starts`** (default 5 for multiphase; single-distribution models run
+one optimizer call and ignore this parameter) runs the optimizer from
+`n_starts` randomly jittered copies of the initial `theta`, then keeps the
+best solution. The default of 5 is sufficient for two-phase models; increase
+to 8–10 for three or more phases where the likelihood surface has more local
+minima.
+
+```{r}
+#| label: nstarts
+set.seed(42)
+fit_robust <- hazard(
+  Surv(int_dead, dead) ~ 1,
+  data   = avc,
+  dist   = "multiphase",
+  phases = list(
+    early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                          fixed = "shapes"),
+    constant = hzr_phase("constant")
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 10, maxit = 1000)
+)
+fit_robust$fit$converged
+```
+
+**Optimizer strategy (automatic).** The package always uses BFGS as the
+primary optimizer. For fixed-shape multiphase models with 2–10 free
+parameters, a Nelder-Mead pass runs first on each start to find a good
+basin, then BFGS polishes the solution. This warm-up is transparent —
+it happens automatically when the conditions are met and there is no
+user-facing control to switch it on or off.
+
+**`maxit`** (default 1000) sets the BFGS iteration cap. Hitting `maxit`
+without converging usually means either the starting values are far from
+the optimum (fix with better starts or `n_starts`) or the model is
+overparameterized (fix by fixing shapes or dropping a phase). Raising
+`maxit` beyond 2000 rarely helps if the optimizer is genuinely stuck.
+
+
 ## Phase types reference
 
 You've now seen each phase type in use: a `"cdf"` early phase for AVC
