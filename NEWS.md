@@ -1,5 +1,17 @@
 # TemporalHazard 1.1.0 (development version)
 
+## Bug fixes
+
+* **`time_lower` dual-use bug in Weibull and multiphase likelihoods.**
+  When `time_lower` was supplied for a mixed interval-censored + right-censored
+  dataset, the Weibull LL interpreted `time_lower` as the counting-process
+  *entry time* for right-censored rows, computing H(stop) − H(start) = 0 and
+  silently zeroing those rows' likelihood contribution.  Fixed in
+  `likelihood-weibull.R` (4 sites: LL, gradient, L-BFGS-B internal LL/gradient)
+  and `likelihood-multiphase.R`: `start_vec` is now set from `time_lower` only
+  for genuine epoch rows (`status %in% c(0L, 1L)` and `time_lower < time`).
+  Two regression tests added to `test-interval-censoring-weibull.R`.
+
 ## New features
 
 * `vignette("fitting-hazard-models")` gains a **Convergence troubleshooting**
