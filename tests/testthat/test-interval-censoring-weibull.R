@@ -162,7 +162,7 @@ test_that("Mixed IC+RC: right-censored contribution not silently zeroed when tim
   H_lo <- (mu * 1)^nu
   H_hi <- (mu * 2)^nu
   H_rc <- (mu * 5)^nu
-  ll_ic_manual <- 3 * (-H_lo + log(1 - exp(-(H_hi - H_lo))))
+  ll_ic_manual <- 3 * (-H_lo + hzr_log1mexp(H_hi - H_lo))
   ll_rc_manual <- 2 * (-H_rc)
   ll_manual <- unname(ll_ic_manual + ll_rc_manual)
 
