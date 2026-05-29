@@ -391,8 +391,8 @@ for (i in seq_len(n)) {
 
   if (brk > length(visits)) {
     # Event after last visit: right-censored.
-    # time_lower = 0 (no epoch start; the right-censored contribution is
-    # -H(time) computed from time, not time_lower).
+    # time_lower = 0: with H(time_lower) = H(0) = 0, the right-censored
+    # contribution reduces to -(H(time) - H(0)) = -H(time), which is correct.
     status[i]     <- 0L
     time[i]       <- max(visits)
     time_lower[i] <- 0
@@ -413,11 +413,13 @@ table(status)
 
 ::: {.callout-note}
 **`time_lower` for right-censored rows should be `0`**, not the censoring
-time.  The `time_lower` argument doubles as the counting-process *entry*
-time for right-censored and exact-event rows; setting it to `time` for
-right-censored observations would compute H(stop) − H(start) = 0 and
-silently discard those rows from the likelihood.  Pass `time_lower = 0`
-(or omit `time_lower` entirely) for right-censored rows.
+time.  In the Weibull and multiphase likelihoods, `time_lower` doubles as
+the counting-process *entry time* for right-censored and exact-event rows
+(`status %in% c(0, 1)`); setting it to `time` computes
+H(stop) − H(start) = 0 and silently discards those rows.  Pass
+`time_lower = 0` (or omit `time_lower` entirely) for right-censored rows.
+The exponential, log-logistic, and log-normal likelihoods do not use
+`time_lower` as an entry time and are unaffected.
 :::
 
 Fit a Weibull model using both censoring types:

@@ -6,8 +6,8 @@
   section covering: status coding reference (`-1`/`0`/`1`/`2`), a cardiac
   clinic-visit simulation with right- and interval-censored observations,
   the direct `time_lower`/`time_upper` API, and a comparison showing the
-  interval-censored fit recovering `nu = 1.0` while the naive exact-at-upper
-  fit incurs a shape bias of ~+0.45.  Includes a callout note on the correct
+  interval-censored fit recovering `nu` close to 1.0 (true value) while the
+  naive exact-at-upper fit incurs a shape bias of ~+0.45.  Includes a callout note on the correct
   use of `time_lower = 0` for right-censored rows.
 * `vignette("fitting-hazard-models")` gains a **Convergence troubleshooting**
   section covering: reading the KM cumulative hazard for Weibull starting
