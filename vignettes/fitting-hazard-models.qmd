@@ -414,7 +414,7 @@ recognizable:
 | Symptom | What it means |
 |---------|--------------|
 | `fit$fit$converged == FALSE` | Optimizer hit `maxit` without satisfying the gradient tolerance |
-| `vcov()` contains `NaN` | Hessian is singular — parameters are not jointly identified |
+| `vcov()` returns `NA` | Hessian is singular — parameters are not jointly identified |
 | A phase scale (`log_mu`) at a boundary value | That phase is contributing essentially zero hazard; it isn't needed |
 | Enormous standard errors on one or more parameters | Flat likelihood in that direction — weak identification |
 | Two phases with nearly identical shapes | One can be collapsed into the other |
@@ -425,6 +425,7 @@ contain over this follow-up window:
 
 ```{r}
 #| label: overparameterized
+set.seed(42)
 fit_3ph <- hazard(
   Surv(int_dead, dead) ~ 1,
   data   = avc,
@@ -454,23 +455,25 @@ phase represent real clinical biology?" — late deterioration after AVC
 repair requires long follow-up to observe; this dataset doesn't have it.
 
 When shapes are also free (`fixed = "none"`), a redundant phase can make
-the Hessian rank-deficient and `vcov()` will return `NaN` entries. Fix by
-adding `fixed = "shapes"` to each phase to reduce the free-parameter
-count, then release shapes one at a time if the fixed-shapes fit shows
-systematic misfit.
+the Hessian rank-deficient and `vcov()` will return `NA` (the Hessian
+inversion failed). Fix by adding `fixed = "shapes"` to each phase to
+reduce the free-parameter count, then release shapes one at a time if the
+fixed-shapes fit shows systematic misfit.
 
 ### Optimizer options
 
 Three `control` arguments address most remaining convergence problems:
 
-**`n_starts`** (default 1 for single-phase, 3 for multiphase) runs the
-optimizer from `n_starts` randomly jittered copies of the initial `theta`,
-then keeps the best solution. Increase to 5–10 for models with three or more
-phases — the likelihood surface has more local minima and a single start may
-land in the wrong basin.
+**`n_starts`** (default 5 for multiphase; single-distribution models run
+one optimizer call and ignore this parameter) runs the optimizer from
+`n_starts` randomly jittered copies of the initial `theta`, then keeps the
+best solution. The default of 5 is sufficient for two-phase models; increase
+to 8–10 for three or more phases where the likelihood surface has more local
+minima.
 
 ```{r}
 #| label: nstarts
+set.seed(42)
 fit_robust <- hazard(
   Surv(int_dead, dead) ~ 1,
   data   = avc,
@@ -486,20 +489,18 @@ fit_robust <- hazard(
 fit_robust$fit$converged
 ```
 
-**`method`** (default `"bfgs"`) switches between BFGS quasi-Newton and
-Nelder-Mead simplex (`"nm"`). BFGS converges quickly when the gradient is
-reliable; Nelder-Mead is slower but more robust when the likelihood surface
-is noisy or the gradient approximation is poor. If a BFGS run fails to
-converge, try `method = "nm"` as a diagnostic — if Nelder-Mead converges
-to the same solution BFGS found, the problem was a gradient issue; if
-Nelder-Mead finds a substantially better likelihood, the BFGS run was
-trapped in a local minimum.
+**Optimizer strategy (automatic).** The package always uses BFGS as the
+primary optimizer. For fixed-shape multiphase models with 2–10 free
+parameters, a Nelder-Mead pass runs first on each start to find a good
+basin, then BFGS polishes the solution. This warm-up is transparent —
+it happens automatically when the conditions are met and there is no
+user-facing control to switch it on or off.
 
-**`maxit`** (default 1000) sets the iteration cap. Hitting `maxit` without
-converging usually means either the starting values are far from the optimum
-(fix with better starts or `n_starts`) or the model is overparameterized
-(fix by fixing shapes or dropping a phase). Raising `maxit` beyond 2000
-rarely helps if the optimizer is genuinely stuck.
+**`maxit`** (default 1000) sets the BFGS iteration cap. Hitting `maxit`
+without converging usually means either the starting values are far from
+the optimum (fix with better starts or `n_starts`) or the model is
+overparameterized (fix by fixing shapes or dropping a phase). Raising
+`maxit` beyond 2000 rarely helps if the optimizer is genuinely stuck.
 
 
 ## Phase types reference
