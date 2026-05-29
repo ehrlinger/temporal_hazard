@@ -88,6 +88,15 @@ object is used. For models fit with `time_windows`, predictions for
 `newdata$time` or fitted-time fallback) so window-specific coefficients
 can be selected.
 
+## Known limitations
+
+`decompose = TRUE` and `se.fit = TRUE` cannot be used together. The
+delta-method Jacobian has not yet been extended to per-phase
+contributions. To obtain confidence limits for a multiphase model,
+request point predictions first (`decompose = TRUE, se.fit = FALSE`),
+then separately request CLs on the total prediction
+(`decompose = FALSE, se.fit = TRUE`).
+
 ## See also
 
 [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)

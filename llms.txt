@@ -52,8 +52,10 @@ estimate from the CABGKUL dataset
 | Covariance and correlation matrix estimation | ✅ |
 | Delta-method confidence limits on [`predict()`](https://rdrr.io/r/stats/predict.html) (`se.fit = TRUE`) | ✅ |
 | Seven `hzr_*` utility functions (Kaplan-Meier, Nelson, GOF, deciles, calibration, bootstrap, competing risks) | ✅ |
+| Per-phase confidence limits (`decompose = TRUE, se.fit = TRUE`) | 🚧 |
+| 4-phase example dataset and vignette | 🚧 |
 
-white_check_mark: = implemented \| 🚧 = planned {.table}
+white_check_mark: = implemented    🚧 = planned {.table}
 
 ## Installation
 

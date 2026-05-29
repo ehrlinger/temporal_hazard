@@ -133,6 +133,16 @@ or <code>"hazard"</code> also require time values (via <code>newdata$time</code>
 so window-specific coefficients can be selected.</p>
     </div>
     <div class="section level2">
+    <h2 id="known-limitations">Known limitations<a class="anchor" aria-label="anchor" href="#known-limitations"></a></h2>
+
+
+<p><code>decompose = TRUE</code> and <code>se.fit = TRUE</code> cannot be used together.  The
+delta-method Jacobian has not yet been extended to per-phase contributions.
+To obtain confidence limits for a multiphase model, request point predictions
+first (<code>decompose = TRUE, se.fit = FALSE</code>), then separately request CLs on
+the total prediction (<code>decompose = FALSE, se.fit = TRUE</code>).</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="hazard.html">hazard()</a></code> for model fitting,
 <code><a href="summary.hazard.html">summary.hazard()</a></code> for model summaries,
