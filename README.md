@@ -54,8 +54,10 @@ adjustment, prediction, and extrapolation.
 | Covariance and correlation matrix estimation | :white_check_mark: |
 | Delta-method confidence limits on `predict()` (`se.fit = TRUE`) | :white_check_mark: |
 | Seven `hzr_*` utility functions (Kaplan-Meier, Nelson, GOF, deciles, calibration, bootstrap, competing risks) | :white_check_mark: |
+| Per-phase confidence limits (`decompose = TRUE, se.fit = TRUE`) | :construction: |
+| 4-phase example dataset and vignette | :construction: |
 
-:white_check_mark: = implemented | :construction: = planned
+:white_check_mark: = implemented &nbsp;&nbsp; :construction: = planned
 
 ## Installation
 
