@@ -2,6 +2,16 @@
 
 ## Bug fixes
 
+* **4-phase CoE fixmu-phase selection** (Phase 7d).
+  `.hzr_select_fixmu_phase()` used `which.max()` over raw per-phase cumhaz
+  at the starting theta.  G3 late phases with typical shape parameters have
+  unnormalized cumhaz orders of magnitude larger than other phases, causing
+  CoE to pin the G3 `log_mu` away from its true near-zero MLE.  Fixed by
+  excluding phases whose cumhaz contribution exceeds 10× the median before
+  selecting (falls back to `which.max` when all phases are outliers).  On the
+  4-phase CABGKUL fit the CoE vs no-CoE LL gap closes from 6.9 to < 0.1
+  units.  Six new tests cover the 4-phase code path in
+  `test-conservation-of-events.R`.
 * **`time_lower` dual-use bug in Weibull and multiphase likelihoods.**
   When `time_lower` was supplied for a mixed interval-censored + right-censored
   dataset, the Weibull LL interpreted `time_lower` as the counting-process
