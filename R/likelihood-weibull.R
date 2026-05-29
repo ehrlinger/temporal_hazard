@@ -148,9 +148,17 @@ NULL
   cumhaz_upper <- (mu * upper) ^ nu * exp(eta)
 
   # Counting-process entry-time cumulative hazard (H(start)) for
-  # event/right-censored rows.  When `time_lower` is NULL the entry time is
-  # implicitly 0 and H(start) = 0, recovering the plain-Surv likelihood.
-  start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+  # event/right-censored rows.  Only rows where time_lower < time and
+  # status is 0 or 1 (genuine epoch entries) get a non-zero start.
+  # Interval-censored rows (status == 2) always use start = 0 because
+  # their contribution goes through cumhaz_lower/cumhaz_upper, not H(start).
+  # This prevents time_lower being mistakenly interpreted as an epoch start
+  # when it was supplied as the interval lower bound for status-2 rows.
+  start_vec <- rep(0, n)
+  if (!is.null(time_lower)) {
+    epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+    start_vec[epoch_idx] <- time_lower[epoch_idx]
+  }
   cumhaz_start <- (mu * start_vec) ^ nu * exp(eta)
 
   idx_event <- status == 1
@@ -280,9 +288,13 @@ NULL
     cumhaz <- (mu * time) ^ nu * exp(eta)
   }
 
-  # Counting-process entry-time cumulative hazard; H(start) = 0 when no
-  # `time_lower` supplied (plain right-censored data).
-  start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+  # Counting-process entry-time cumulative hazard; H(start) = 0 except
+  # for genuine epoch rows (status 0/1 with time_lower < time).
+  start_vec <- rep(0, n)
+  if (!is.null(time_lower)) {
+    epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+    start_vec[epoch_idx] <- time_lower[epoch_idx]
+  }
   cumhaz_start <- (mu * start_vec) ^ nu * exp(eta)
 
   # Weighted building blocks: each per-row contribution below is the
@@ -383,8 +395,12 @@ NULL
     log_t <- log(pmax(time, .Machine$double.xmin))
     H     <- exp(alpha + eta) * (time ^ g)
 
-    # Counting-process entry-time H(start); zero when no `time_lower` given.
-    start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+    # Counting-process entry-time H(start); zero except for genuine epochs.
+    start_vec <- rep(0, n)
+    if (!is.null(time_lower)) {
+      epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+      start_vec[epoch_idx] <- time_lower[epoch_idx]
+    }
     H_start   <- exp(alpha + eta) * (start_vec ^ g)
 
     idx_event <- status == 1
@@ -446,10 +462,13 @@ NULL
     log_t <- log(pmax(time, .Machine$double.xmin))
     H     <- exp(alpha + eta) * (time ^ g)
 
-    # H(start) for counting-process rows; zero when time_lower is NULL or
-    # start == 0.  `log_t_start` is only used where start > 0 (guarded below)
-    # since log(0) = -Inf would otherwise propagate NaNs through the score.
-    start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+    # H(start) for genuine epoch rows; zero otherwise.
+    # `log_t_start` is only used where start > 0 (guarded below).
+    start_vec <- rep(0, n)
+    if (!is.null(time_lower)) {
+      epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+      start_vec[epoch_idx] <- time_lower[epoch_idx]
+    }
     H_start   <- exp(alpha + eta) * (start_vec ^ g)
     log_t_start <- ifelse(start_vec > 0, log(pmax(start_vec, .Machine$double.xmin)), 0)
 
