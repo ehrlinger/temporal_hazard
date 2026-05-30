@@ -1,3 +1,5 @@
+# TemporalHazard 1.0.3.9000 (development version)
+
 # TemporalHazard 1.0.3
 
 ## Bug fixes / CRAN compliance
