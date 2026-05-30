@@ -1,6 +1,10 @@
 # Changelog
 
+## TemporalHazard 1.0.3.9000 (development version)
+
 ## TemporalHazard 1.0.3
+
+CRAN release: 2026-05-30
 
 ### Bug fixes / CRAN compliance
 
