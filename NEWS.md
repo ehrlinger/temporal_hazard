@@ -22,6 +22,21 @@
   for genuine epoch rows (`status %in% c(0L, 1L)` and `time_lower < time`).
   Two regression tests added to `test-interval-censoring-weibull.R`.
 
+## Bug fixes
+
+* **`hzr_decompos()` now fails loud for the unhandled `nu = 0, m >= 0` case**
+  (Phase 7d).  These parameter combinations fell through every dispatch branch,
+  leaving the CDF unassigned and raising the cryptic `object 'G' not found`.
+  The `nu -> 0` limit is defined only for `m < 0` (the exponential-decay
+  branch); for `m >= 0` it is degenerate.  The function now raises a clear,
+  explanatory error instead.  New `test-decompos-boundary.R` also locks in
+  continuity of the verified limiting branches (Case 1 -> 1L, Case 2 -> 1L,
+  Case 2 -> 2L), `g = dG/dt` internal consistency, CDF sanity, and stability
+  at extreme `t_half`.  A separate Case 3 (`m > 0, nu < 0`) <-> Case 3L
+  boundary discontinuity is recorded as a skipped test pending validation
+  against the C HAZARD G1 reference (no shipped phase or parity fixture
+  exercises that branch).
+
 ## New features
 
 * `vignette("fitting-hazard-models")` gains an **Interval and left censoring**

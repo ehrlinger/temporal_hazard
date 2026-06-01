@@ -58,6 +58,9 @@
 #' }
 #'
 #' The combination m < 0 **and** nu < 0 is undefined and raises an error.
+#' `nu = 0` is supported only with m < 0 (Case 2L, the exponential-decay
+#' limit); `nu = 0` with m >= 0 has no usable limiting form and raises an
+#' error.
 #'
 #' @param time Numeric vector of times (must be > 0).
 #' @param t_half Half-life: time at which \eqn{G(t_{1/2}) = 0.5}.
@@ -182,6 +185,16 @@ hzr_decompos <- function(time, t_half, nu, m) {
     btnu  <- bt^(-1 / nu)
     G     <- 1 - exp(-btnu)
     g     <- exp(-btnu) * (bt^num1) / rho
+
+  } else {
+    # Remaining combination: nu == 0 with m >= 0.  The nu -> 0 limit is only
+    # defined for m < 0 (Case 2L, exponential decay); for m >= 0 the limit is
+    # degenerate (G collapses to a step function), so there is no usable form.
+    # Fail loud rather than leaving G/g unassigned (which would raise the
+    # cryptic "object 'G' not found").
+    stop("Decomposition undefined for nu = ", nu, " with m = ", m, ". ",
+         "The nu -> 0 limit is implemented only for m < 0; ",
+         "supply a nonzero nu when m >= 0.", call. = FALSE)
   }
 
   # --- Hazard from density and CDF ------------------------------------------
