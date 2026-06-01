@@ -37,6 +37,18 @@
   diagnosing overparameterization via near-zero phase scales and `NA` from
   `vcov()`, and `control` options (`n_starts`, `maxit`).
 
+## Testing
+
+* **Phase-specific covariate recovery tests** (Phase 7d).  New
+  `test-phase-specific-covariates.R` confirms that `hzr_phase(formula = ~ ...)`
+  is correct, not just runnable: simulation-based recovery tests verify that a
+  covariate entered into one phase recovers its true coefficient, that the same
+  covariate carries independent (here opposite-sign) effects across two phases,
+  and that a covariate confined to one phase does not leak into another.  This
+  is the honest substitute for a SAS parity fixture and guards against the
+  "accepts the formal but never applies it" regression that has surfaced
+  before with weights and counting-process times.
+
 ---
 
 # TemporalHazard 1.0.3
