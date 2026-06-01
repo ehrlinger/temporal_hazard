@@ -469,7 +469,10 @@ Additional coverage needed to close confidence gaps:
   need a covariate fit with weights to confirm the weighted score/gradient is
   correct under the full CoE + covariate path
 - **Weighted competing risks** (`hzr_competing_risks()` with case weights):
-  not currently tested with non-unit weights
+  not yet *implemented* — the function takes only `(time, event)` and counts
+  raw row tallies. Building it means a weighted Aalen-Johansen recursion
+  (weighted at-risk sets and event counts) plus a weighted-Greenwood variance.
+  Feature, not a coverage gap — scope before committing
 - **Source:** Look for a CCF production model that uses fractional IPS weights
   or aggregated-cell weights (e.g. from a registry with pre-computed weights
   rather than individual patient records)
@@ -523,7 +526,7 @@ or known numerical gaps. Priority order for investigation:
 | **`predict(..., decompose=TRUE, se.fit=TRUE)`** | Currently blocked with clean error — delta-method Jacobian needs per-phase extension | Blocked |
 | **Interval censoring under multiphase** | Code path exists; no real-data or SAS parity fixture | No parity test |
 | **Hessian stability at 12+ parameters** | Numerical Hessian inversion can become ill-conditioned; `hm.death.AVC.deciles` (13 params) passes but borderline | Passing, fragile |
-| **`hzr_competing_risks()` with weights** | Greenwood variance with case weights not tested | No test |
+| **`hzr_competing_risks()` with weights** | Not a hardening item: `hzr_competing_risks(time, event)` has no `weights` argument — the Aalen-Johansen/Greenwood recursion counts raw row tallies. Weighting is an unbuilt **feature** (weighted at-risk + event counts + weighted-Greenwood variance), not a latent bug. Moved to feature backlog (7a). | Feature, not bug |
 | **Weighted multiphase + covariates** | All weighted parity tests are intercept-only; covariate + weight combination untested | No test |
 
 ---
