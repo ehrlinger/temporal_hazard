@@ -526,7 +526,7 @@ or known numerical gaps. Priority order for investigation:
 | **`predict(..., decompose=TRUE, se.fit=TRUE)`** | Currently blocked with clean error — delta-method Jacobian needs per-phase extension | Blocked |
 | **Interval censoring under multiphase** | Code path exists; no real-data or SAS parity fixture | No parity test |
 | **Hessian stability at 12+ parameters** | Numerical Hessian inversion can become ill-conditioned; `hm.death.AVC.deciles` (13 params) passes but borderline | Passing, fragile |
-| **`hzr_competing_risks()` with weights** | Not a hardening item: `hzr_competing_risks(time, event)` has no `weights` argument — the Aalen-Johansen/Greenwood recursion counts raw row tallies. Weighting is an unbuilt **feature** (weighted at-risk + event counts + weighted-Greenwood variance), not a latent bug. Moved to feature backlog (7a). | Feature, not bug |
+| **`hzr_competing_risks()` with weights** | Not a hardening item: `hzr_competing_risks(time, event)` has no `weights` argument — the Aalen-Johansen/Greenwood recursion counts raw row tallies. Weighting is an unbuilt **feature** (weighted at-risk + event counts + weighted-Greenwood variance), not a latent bug. Scoped as feature 8a. | Feature → 8a |
 | **Weighted multiphase + covariates** | All weighted parity tests are intercept-only; covariate + weight combination untested | No test |
 
 ---
@@ -594,6 +594,31 @@ Items that would improve the package beyond SAS parity.
   (distinct from the epoch-decomposition approach to repeating events)
 - **Parallel bootstrap** — leverage `future`/`furrr` for bootstrap CI
   computation
+
+### 8a. Weighted competing-risks incidence — FEATURE (scoped from 7c)
+
+`hzr_competing_risks()` is currently **unweighted** (raw row tallies; the
+Rd `@note` documents the limitation). The SAS `markov.sas` macro it mirrors
+is also unweighted, so this is a parity-plus extension, not a parity gap.
+Building it:
+
+- Add a validated `weights =` argument mirroring [hazard()]'s (non-negative,
+  finite, `length == length(time)`).
+- **Weighted Aalen-Johansen recursion** — at-risk set and per-type event
+  counts become weighted sums (`sum(w[...])`) instead of `sum(...)` row
+  counts; the transition-probability and incidence updates carry through
+  unchanged in form.
+- **Weighted-Greenwood variance** — the part needing statistical care.
+  Naïve weight substitution into the unweighted Greenwood term gives wrong
+  SEs; needs the effective-sample-size / weighted-variance formula (cf.
+  `survival::survfit` `weights` handling) and a reference to validate against.
+- **Validation target** — no SAS reference (markov.sas is unweighted);
+  anchor instead to `survival::survfit(Surv(time, event) ~ 1, weights=)`
+  CIF + SE, or a hand-computed small fixture. Integer weights must reproduce
+  the row-duplicated unweighted fit (same invariant used for `hazard()`
+  weights in 4c).
+- **Process:** `/brainstorm` the weighted-variance approach before coding;
+  this is a correctness-sensitive estimator, not a mechanical wire-up.
 
 ---
 

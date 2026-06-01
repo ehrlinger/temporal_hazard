@@ -1407,6 +1407,13 @@ print.hzr_bootstrap <- function(x, digits = 4, ...) {
 #' competing risks exist), this provides the correct marginal cumulative
 #' incidence for each event type.
 #'
+#' @note This estimator is **unweighted**: every observation contributes a
+#'   unit count to the at-risk and event tallies. There is no `weights`
+#'   argument, so case or inverse-probability weights are not yet supported
+#'   for competing-risks incidence (unlike [hazard()], which accepts
+#'   `weights`). Pre-expand weighted rows to individual records if an
+#'   approximate weighted estimate is needed.
+#'
 #' @param time Numeric vector of follow-up times.
 #' @param event Integer vector of event type indicators:
 #'   0 = censored, 1 = event type 1, 2 = event type 2, etc.

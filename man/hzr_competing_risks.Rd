@@ -44,6 +44,14 @@ Unlike the naive 1 - KM estimator (which overestimates incidence when
 competing risks exist), this provides the correct marginal cumulative
 incidence for each event type.
 }
+\note{
+This estimator is \strong{unweighted}: every observation contributes a
+unit count to the at-risk and event tallies. There is no \code{weights}
+argument, so case or inverse-probability weights are not yet supported
+for competing-risks incidence (unlike \code{\link[=hazard]{hazard()}}, which accepts
+\code{weights}). Pre-expand weighted rows to individual records if an
+approximate weighted estimate is needed.
+}
 \examples{
 data(valves)
 valves_cc <- na.omit(valves)
