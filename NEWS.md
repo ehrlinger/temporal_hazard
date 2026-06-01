@@ -2,6 +2,18 @@
 
 ## Bug fixes
 
+* **`hzr_bootstrap()` was non-functional for weighted fits** (Phase 7c).
+  The resample loop rewired only `data` in the refit call, leaving the
+  original `weights` argument bound to a symbol in the *caller's* frame.
+  The internal `eval()` could not resolve that symbol, so **every** replicate
+  of a weighted model errored out (`n_success == 0`) regardless of `fraction`;
+  even had it resolved, the un-resampled weights would have been misaligned
+  with the bootstrapped rows.  `weights` is now evaluated once and resampled
+  in lockstep with the data on each replicate (mirroring how `data` is
+  handled).  Unweighted bootstraps are unaffected.  A regression test covers
+  both the `fraction < 1` and full-size weighted paths in
+  `test-diagnostics.R`.
+
 * **4-phase CoE fixmu-phase selection** (Phase 7d).
   `.hzr_select_fixmu_phase()` used `which.max()` over raw per-phase cumhaz
   at the starting theta.  G3 late phases with typical shape parameters have
