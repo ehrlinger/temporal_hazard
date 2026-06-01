@@ -13,7 +13,7 @@ Maintainer checklist for TemporalHazard. Not shipped (`.Rbuildignore`d).
 So the per-release cycle is:
 
 ```
-... 1.0.2.9000 (dev)  ->  1.0.3 (submit)  ->  1.0.3 accepted  ->  1.0.3.9000 (dev) ...
+... 1.0.2.9000 (dev version)  ->  1.0.3 (submit)  ->  1.0.3 accepted  ->  1.0.3.9000 (dev version) ...
 ```
 
 See **Branch model** below for *which branch* carries which `.9000` line — this
@@ -26,7 +26,8 @@ This is a CRAN package in an active, multi-PR development cycle, so it uses a
 two-branch model. Not every package needs this — the split earns its keep only
 when `main` has an external gate (CRAN) it must always satisfy. Internal /
 no-CRAN packages should just work on `main` with feature branches and straight
-semver. (Org-wide convention lives in the vault, `memory/r-package-branch-strategy.md`.)
+semver. (The org-wide convention across my packages lives in my personal notes,
+not in this repo.)
 
 | Branch | Version | Role |
 |--------|---------|------|
