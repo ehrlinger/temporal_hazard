@@ -448,12 +448,14 @@ and hardening numerical edge cases. This is distinct from the **Production
 Validation Stream** (below), which validates against external production
 models on an ongoing, externally-gated basis.
 
-> **Progress (v1.1.0 dev cycle):** the highest-risk 7c items are closed —
-> 4-phase CoE fixmu selection (PR #37), `time_lower` dual-use (PR #36),
-> `hzr_decompos()` `nu=0/m>=0` fall-through (PR #40), and phase-specific
-> covariate recovery (PR #39). Two of the three previously-untested paths
-> held real bugs; the third (phase-specific covariates) was correct and is
-> now locked in.
+> **Progress (v1.1.0 dev cycle):** four hardening fixes landed — 4-phase CoE
+> fixmu selection (PR #37), `time_lower` dual-use (PR #36), `hzr_decompos()`
+> Case 3 + `nu=0/m>=0` boundary (PR #40), and phase-specific covariate
+> recovery (PR #39). Of the three coverage-gap paths exercised here for the
+> first time — 4-phase CoE, the `hzr_decompos()` sign-dispatch boundaries,
+> and phase-specific covariates — two harbored real bugs; phase-specific
+> covariates was correct and is now locked in. (`time_lower` was a separate
+> fix surfaced during the interval-censoring vignette work.)
 
 ### 7a. Weighted Events — Additional Parity Coverage
 
@@ -529,8 +531,9 @@ or known numerical gaps. Priority order for investigation:
 ## Production Validation Stream — ONGOING
 
 Not a sequential milestone but a continuous validation track: confirm the
-package is correctly implemented for CORR's hardest real-world models, run
-against the original C HAZARD binary. This is a correctness-assurance effort,
+package is correctly implemented for the hardest real-world production models
+(Rajeswaran / Blackstone's clinical analyses), run against the original C
+HAZARD binary. This is a correctness-assurance effort,
 distinct from the feature/coverage work in Phase 7 — it is **externally
 gated** (Rajeswaran's production library, the CCF `hazard` v4.4.6 install)
 and runs **in parallel** to dev, growing as production models are collected
