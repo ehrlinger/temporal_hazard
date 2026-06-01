@@ -22,6 +22,28 @@
   for genuine epoch rows (`status %in% c(0L, 1L)` and `time_lower < time`).
   Two regression tests added to `test-interval-censoring-weibull.R`.
 
+* **`hzr_decompos()` Case 3 corrected and `nu = 0, m >= 0` now fails loud**
+  (Phase 7d).  Two issues in the early-phase (G1) sign dispatch:
+    - **Case 3 (`m > 0, nu < 0`, "bounded cumulative") carried a spurious
+      factor of `m`.**  Its `rho` used a bare `(2^m - 1)^nu` instead of the
+      `((2^m - 1)/m)^nu` form used by Case 1, leaving an `m` factor on the
+      `bt^(-1/nu)` term.  The CDF diverged from the C HAZARD G1 evaluator
+      (`g1flag = 5`) by up to ~0.2 and was discontinuous with its `m -> 0`
+      limit (Case 3L).  Adding the `/m` divisor makes the `m` factors cancel,
+      reproducing the C evaluator exactly and restoring continuity (verified
+      against `src/common/hzd_ln_G1_and_SG1.c`).  No shipped phase uses
+      Case 3, so fitted models are unaffected; the synthetic 3-phase golden
+      fixture was regenerated because its free-shape optimizer path crosses
+      Case 3 territory.
+    - **`nu = 0` with `m >= 0`** fell through every dispatch branch, leaving
+      the CDF unassigned and raising the cryptic `object 'G' not found`.  The
+      `nu -> 0` limit is defined only for `m < 0`; for `m >= 0` it is
+      degenerate.  The function now raises a clear, explanatory error.
+  New `test-decompos-boundary.R` locks in continuity of all limiting branches
+  (Case 1 -> 1L, 2 -> 1L, 2 -> 2L, 3 -> 3L), Case 3 <-> C `g1flag=5` parity,
+  `g = dG/dt` internal consistency, CDF sanity, and stability at extreme
+  `t_half`.
+
 ## New features
 
 * `vignette("fitting-hazard-models")` gains an **Interval and left censoring**

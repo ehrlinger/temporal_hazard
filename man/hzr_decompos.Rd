@@ -60,6 +60,9 @@ Six cases are defined by the signs of \code{nu} and \code{m}:
 }
 
 The combination m < 0 \strong{and} nu < 0 is undefined and raises an error.
+\code{nu = 0} is supported only with m < 0 (Case 2L, the exponential-decay
+limit); \code{nu = 0} with m >= 0 has no usable limiting form and raises an
+error.
 }
 
 \examples{

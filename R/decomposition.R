@@ -58,6 +58,9 @@
 #' }
 #'
 #' The combination m < 0 **and** nu < 0 is undefined and raises an error.
+#' `nu = 0` is supported only with m < 0 (Case 2L, the exponential-decay
+#' limit); `nu = 0` with m >= 0 has no usable limiting form and raises an
+#' error.
 #'
 #' @param time Numeric vector of times (must be > 0).
 #' @param t_half Half-life: time at which \eqn{G(t_{1/2}) = 0.5}.
@@ -168,8 +171,14 @@ hzr_decompos <- function(time, t_half, nu, m) {
     g     <- -(btm^mm1) * bt / (m * rho)
 
   } else if (m > 0 && nu < 0) {
-    # Case 3: bounded cumulative
-    rho   <- -nu * t_half * ((2^m - 1)^nu)
+    # Case 3: bounded cumulative (C HAZARD g1flag = 5, "Mixed Generic")
+    # rho uses the (2^m - 1)/m form (matching Case 1), NOT a bare (2^m - 1).
+    # Without the /m divisor the CDF carried a spurious factor of m on the
+    # bt^(-1/nu) term, diverging from the C G1 evaluator by up to ~0.2 and
+    # breaking continuity with the m -> 0 limit (Case 3L).  With /m the m
+    # factors cancel and G reduces to 1 - (bt^(-1/nu) + 1)^(-1/m), matching
+    # C exactly (verified against src/common/hzd_ln_G1_and_SG1.c case 5).
+    rho   <- -nu * t_half * (((2^m - 1) / m)^nu)
     bt    <- -nu * time / rho
     btnu  <- 1 + m * bt^(-1 / nu)
     G     <- 1 - btnu^(-1 / m)
@@ -182,6 +191,16 @@ hzr_decompos <- function(time, t_half, nu, m) {
     btnu  <- bt^(-1 / nu)
     G     <- 1 - exp(-btnu)
     g     <- exp(-btnu) * (bt^num1) / rho
+
+  } else {
+    # Remaining combination: nu == 0 with m >= 0.  The nu -> 0 limit is only
+    # defined for m < 0 (Case 2L, exponential decay); for m >= 0 the limit is
+    # degenerate (G collapses to a step function), so there is no usable form.
+    # Fail loud rather than leaving G/g unassigned (which would raise the
+    # cryptic "object 'G' not found").
+    stop("Decomposition undefined for nu = ", nu, " with m = ", m, ". ",
+         "The nu -> 0 limit is implemented only for m < 0; ",
+         "supply a nonzero nu when m >= 0.", call. = FALSE)
   }
 
   # --- Hazard from density and CDF ------------------------------------------
