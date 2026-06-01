@@ -25,21 +25,30 @@
                            log_mu_e = -1.5, log_mu_c = -2.5,
                            t_half = 0.5, tmax = 80, seed = 1) {
   set.seed(seed)
-  x     <- rnorm(n)
-  tgrid <- seq(0.001, tmax, length.out = 4000)
-  Phi_e <- hzr_phase_cumhaz(tgrid, t_half = t_half, nu = 1, m = 1, type = "cdf")
-  U     <- -log(runif(n))
-  sim_t <- numeric(n)
+  x      <- rnorm(n)
+  tgrid  <- seq(0.001, tmax, length.out = 4000)
+  Phi_e  <- hzr_phase_cumhaz(tgrid, t_half = t_half, nu = 1, m = 1, type = "cdf")
+  U      <- -log(runif(n))
+  sim_t  <- numeric(n)
+  status <- integer(n)
   for (i in seq_len(n)) {
     mu_e <- exp(log_mu_e + if (!is.null(beta_early)) beta_early * x[i] else 0)
     mu_c <- exp(log_mu_c + if (!is.null(beta_const)) beta_const * x[i] else 0)
     H    <- mu_e * Phi_e + mu_c * tgrid
-    j    <- which(H >= U[i])[1]
-    sim_t[i] <- if (is.na(j)) max(tgrid) else tgrid[j]
+    # First grid index where the accumulated hazard reaches the target U[i];
+    # NA only when the event never occurs within the grid (right-censored).
+    j    <- match(TRUE, H >= U[i])
+    if (is.na(j)) {
+      sim_t[i]  <- max(tgrid)
+      status[i] <- 0L            # right-censored: event beyond the grid
+    } else {
+      sim_t[i]  <- tgrid[j]
+      status[i] <- 1L            # event observed (even if on the last point)
+    }
   }
   data.frame(
     int_dead = sim_t,
-    dead     = as.integer(sim_t < max(tgrid)),
+    dead     = status,
     x        = x
   )
 }
