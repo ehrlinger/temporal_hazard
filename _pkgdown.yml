@@ -2,6 +2,12 @@ url: https://ehrlinger.github.io/temporal_hazard/
 title: TemporalHazard
 description: Pure-R implementation of the HAZARD model with transparency and parity validation
 
+# Released-version docs build to the site root; development versions
+# (DESCRIPTION Version ending in .9000) build to /dev/ with a
+# "(development version)" marker, so the public root always reflects CRAN.
+development:
+  mode: auto
+
 template:
   bootstrap: 5
 

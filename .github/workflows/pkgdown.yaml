@@ -5,6 +5,8 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -38,14 +40,22 @@ jobs:
           roxygen2::roxygenise(load_code = roxygen2::load_pkgload)
           install.packages(".", repos = NULL, type = "source")
 
+      # development: mode is "auto" in _pkgdown.yml, so a released DESCRIPTION
+      # version builds the site to docs/ (site root) and a development version
+      # (ending in .9000) builds to docs/dev/.
       - name: Build pkgdown site
         shell: Rscript {0}
-        run: |
-          pkgdown::build_site(new_process = FALSE)
+        run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
 
-      - name: Deploy to gh-pages branch
-        uses: peaceiris/actions-gh-pages@v4
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      # clean: false so a dev build (docs/dev/) does not wipe the released
+      # root, and a release build (docs/) does not wipe the /dev/ subdir.
+      - name: Deploy to gh-pages
+        if: >-
+          github.event_name == 'workflow_dispatch' ||
+          github.event_name == 'release' ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs
+          clean: false
+          branch: gh-pages
+          folder: docs
