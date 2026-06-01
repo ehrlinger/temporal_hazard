@@ -57,10 +57,39 @@
 <ul><li>
 <strong>CRAN releases</strong> carry a clean three-part version: <code>1.0.2</code>.</li>
 <li>
-<strong>The development line</strong> (everything between releases, on <code>main</code>) carries a fourth <code>.9000</code> component: <code>1.0.2.9000</code>. This makes it unambiguous whether a given install is the CRAN release or a dev build.</li>
+<strong>Development versions</strong> carry a fourth <code>.9000</code> component (<code>1.0.2.9000</code>), so it is unambiguous whether a given install is the CRAN release or a dev build.</li>
 <li>A CRAN submission commit <strong>always</strong> strips <code>.9000</code> back to the clean release number. You never submit a <code>.9000</code> version to CRAN.</li>
-</ul><p>So the cycle is:</p>
-<pre><code>... 1.0.2.9000 (dev)  -&gt;  1.0.3 (submit)  -&gt;  1.0.3 accepted  -&gt;  1.0.3.9000 (dev) ...</code></pre>
+</ul><p>So the per-release cycle is:</p>
+<pre><code>... 1.0.2.9000 (dev version)  -&gt;  1.0.3 (submit)  -&gt;  1.0.3 accepted  -&gt;  1.0.3.9000 (dev version) ...</code></pre>
+<p>See <strong>Branch model</strong> below for <em>which branch</em> carries which <code>.9000</code> line — this package runs a two-branch split, so there are two: the released line on <code>main</code> and the next-version line on <code>dev</code>.</p>
+</div>
+<div class="section level2">
+<h2 id="branch-model-dev--main-split">Branch model (dev / main split)<a class="anchor" aria-label="anchor" href="#branch-model-dev--main-split"></a></h2>
+<p>This is a CRAN package in an active, multi-PR development cycle, so it uses a two-branch model. Not every package needs this — the split earns its keep only when <code>main</code> has an external gate (CRAN) it must always satisfy. Internal / no-CRAN packages should just work on <code>main</code> with feature branches and straight semver. (The org-wide convention across my packages lives in my personal notes, not in this repo.)</p>
+<table class="table"><colgroup><col width="34%"><col width="39%"><col width="26%"></colgroup><thead><tr><th>Branch</th>
+<th>Version</th>
+<th>Role</th>
+</tr></thead><tbody><tr><td><code>main</code></td>
+<td>released <code>.9000</code> (e.g. <code>1.0.3.9000</code>)</td>
+<td>the CRAN-released line; always shippable. Serves the live README, pkgdown site, and CRAN-facing docs.</td>
+</tr><tr><td><code>dev</code></td>
+<td>next-version <code>.9000</code> (e.g. <code>1.1.0.9000</code>)</td>
+<td>accumulates the next release; may hold breaking or half-finished work.</td>
+</tr></tbody></table><p><strong>Why <code>.9000</code> on <code>main</code>?</strong> <code>main</code> carries the released version plus any between-release fixes (badges, README, figures). The <code>.9000</code> honestly marks that <code>main</code> is <em>ahead of</em> the CRAN tarball, not the tarball itself. The pkgdown navbar showing <code>1.0.3.9000</code> is expected and standard — the CRAN status badge carries the released number.</p>
+<p><strong>Routing:</strong></p>
+<ul><li>
+<strong>Shipped changes</strong> (R code, <code>man/</code>, vignettes, tests) — branch off <code>dev</code>, PR to <code>dev</code>. They reach <code>main</code> only via a release.</li>
+<li>
+<strong>Cosmetic / GitHub-facing fixes</strong> (README prose, badges, figures, pkgdown config) — branch off <code>main</code>, PR to <code>main</code>. No version change beyond the existing <code>.9000</code>.</li>
+<li>
+<strong>Release ops</strong> (tag, GitHub Release) — directly on <code>main</code> (the documented exception to the branch+PR rule).</li>
+</ul><p><strong>Keep them in sync:</strong> after a batch of <code>main</code>-side doc fixes, merge <code>main -&gt; dev</code> so they flow into the dev line. Skipping this is what produces the “same fix, two parallel PRs” situation.</p>
+<p><strong>Release flow:</strong></p>
+<pre><code>dev (1.1.0.9000) accumulates
+  -&gt; cut the suffix on dev: 1.1.0
+  -&gt; run the pre-submission gate (below), submit to CRAN
+  -&gt; on acceptance: merge dev -&gt; main, tag v1.1.0, publish GitHub Release
+  -&gt; bump main -&gt; 1.1.0.9000, open the next dev cycle</code></pre>
 </div>
 <div class="section level2">
 <h2 id="pre-submission-checklist">Pre-submission checklist<a class="anchor" aria-label="anchor" href="#pre-submission-checklist"></a></h2>
@@ -91,33 +120,33 @@
 <h2 id="on-cran-acceptance">On CRAN acceptance<a class="anchor" aria-label="anchor" href="#on-cran-acceptance"></a></h2>
 <ol style="list-style-type: decimal"><li>
 <p>Tag the release and push the tag (annotated, mirroring existing tags):</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">git</span> tag <span class="at">-a</span> vX.Y.Z <span class="at">-m</span> <span class="st">"TemporalHazard vX.Y.Z — CRAN acceptance"</span> <span class="op">&lt;</span>submitted-SHA<span class="op">&gt;</span></span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">git</span> push origin vX.Y.Z</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">git</span> tag <span class="at">-a</span> vX.Y.Z <span class="at">-m</span> <span class="st">"TemporalHazard vX.Y.Z — CRAN acceptance"</span> <span class="op">&lt;</span>submitted-SHA<span class="op">&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">git</span> push origin vX.Y.Z</span></code></pre></div>
 <p><code>&lt;submitted-SHA&gt;</code> is the <code>SHA:</code> line in <code>CRAN-SUBMISSION</code>.</p>
 </li>
 <li>
 <p>Publish a GitHub Release from the tag, using that version’s <code>NEWS.md</code> section as the body, marked as the latest release:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="ex">gh</span> release create vX.Y.Z <span class="at">--verify-tag</span> <span class="at">--latest</span> <span class="dt">\</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="at">--title</span> <span class="st">"vX.Y.Z — &lt;summary&gt;"</span> <span class="at">--notes-file</span> <span class="op">&lt;</span>news-section.md<span class="op">&gt;</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="ex">gh</span> release create vX.Y.Z <span class="at">--verify-tag</span> <span class="at">--latest</span> <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="at">--title</span> <span class="st">"vX.Y.Z — &lt;summary&gt;"</span> <span class="at">--notes-file</span> <span class="op">&lt;</span>news-section.md<span class="op">&gt;</span></span></code></pre></div>
 </li>
 <li>
 <p><strong>First CRAN release only — badge alignment.</strong> Replace the manual shields <code>version</code> badge with the CRAN status badge and add the cranlogs download badges; the README <code>&lt;!-- badges: start --&gt;</code> block becomes:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode md"><code class="sourceCode markdown"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co">&lt;!-- badges: start --&gt;</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">[</span><span class="al">![CRAN status](https://www.r-pkg.org/badges/version/TemporalHazard)</span><span class="co">](https://CRAN.R-project.org/package=TemporalHazard)</span></span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">[</span><span class="al">![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/TemporalHazard)</span><span class="co">](https://CRAN.R-project.org/package=TemporalHazard)</span></span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">[</span><span class="al">![CRAN downloads (monthly)](https://cranlogs.r-pkg.org/badges/TemporalHazard)</span><span class="co">](https://CRAN.R-project.org/package=TemporalHazard)</span></span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">[</span><span class="al">![R-CMD-check](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml/badge.svg)</span><span class="co">](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml)</span></span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">[</span><span class="al">![Codecov test coverage](https://codecov.io/gh/ehrlinger/temporal_hazard/branch/main/graph/badge.svg)</span><span class="co">](https://app.codecov.io/gh/ehrlinger/temporal_hazard?branch=main)</span></span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">[</span><span class="al">![lint](https://github.com/ehrlinger/temporal_hazard/actions/workflows/lint.yaml/badge.svg)</span><span class="co">](https://github.com/ehrlinger/temporal_hazard/actions/workflows/lint.yaml)</span></span>
-<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">[</span><span class="al">![pkgdown site](https://img.shields.io/badge/docs-pkgdown-blue)</span><span class="co">](https://ehrlinger.github.io/temporal_hazard/)</span></span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="al">![active](https://www.repostatus.org/badges/latest/active.svg)</span></span>
-<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">&lt;!-- badges: end --&gt;</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode md"><code class="sourceCode markdown"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co">&lt;!-- badges: start --&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">[</span><span class="al">![CRAN status](https://www.r-pkg.org/badges/version/TemporalHazard)</span><span class="co">](https://CRAN.R-project.org/package=TemporalHazard)</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">[</span><span class="al">![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/TemporalHazard)</span><span class="co">](https://CRAN.R-project.org/package=TemporalHazard)</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">[</span><span class="al">![CRAN downloads (monthly)](https://cranlogs.r-pkg.org/badges/TemporalHazard)</span><span class="co">](https://CRAN.R-project.org/package=TemporalHazard)</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">[</span><span class="al">![R-CMD-check](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml/badge.svg)</span><span class="co">](https://github.com/ehrlinger/temporal_hazard/actions/workflows/R-CMD-check.yaml)</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">[</span><span class="al">![Codecov test coverage](https://codecov.io/gh/ehrlinger/temporal_hazard/branch/main/graph/badge.svg)</span><span class="co">](https://app.codecov.io/gh/ehrlinger/temporal_hazard?branch=main)</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">[</span><span class="al">![lint](https://github.com/ehrlinger/temporal_hazard/actions/workflows/lint.yaml/badge.svg)</span><span class="co">](https://github.com/ehrlinger/temporal_hazard/actions/workflows/lint.yaml)</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">[</span><span class="al">![pkgdown site](https://img.shields.io/badge/docs-pkgdown-blue)</span><span class="co">](https://ehrlinger.github.io/temporal_hazard/)</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="al">![active](https://www.repostatus.org/badges/latest/active.svg)</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a><span class="co">&lt;!-- badges: end --&gt;</span></span></code></pre></div>
 <p>The manual version badge is now redundant (CRAN status badge is the single source of version truth), so also <strong>delete the badge-sync CI</strong>:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">git</span> rm .github/workflows/update-version-badge.yaml</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">git</span> rm .github/workflows/update-version-badge.yaml</span></code></pre></div>
 </li>
 <li>
 <p>Bump <code>main</code> to the next development version:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">usethis</span><span class="fu">::</span><span class="fu">use_dev_version</span><span class="op">(</span><span class="op">)</span>   <span class="co"># DESCRIPTION -&gt; X.Y.Z.9000</span></span></code></pre></div>
 <p>or manually: set <code>DESCRIPTION</code> <code>Version:</code> to <code>X.Y.Z.9000</code> and add a NEWS heading:</p>
 <pre><code><span><span class="co"># TemporalHazard X.Y.Z.9000 (development version)</span></span></code></pre>

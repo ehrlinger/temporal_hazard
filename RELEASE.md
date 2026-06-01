@@ -5,16 +5,61 @@ Maintainer checklist for TemporalHazard. Not shipped (`.Rbuildignore`d).
 ## Versioning convention (the `.9000` strategy)
 
 - **CRAN releases** carry a clean three-part version: `1.0.2`.
-- **The development line** (everything between releases, on `main`)
-  carries a fourth `.9000` component: `1.0.2.9000`. This makes it
-  unambiguous whether a given install is the CRAN release or a dev
-  build.
+- **Development versions** carry a fourth `.9000` component
+  (`1.0.2.9000`), so it is unambiguous whether a given install is the
+  CRAN release or a dev build.
 - A CRAN submission commit **always** strips `.9000` back to the clean
   release number. You never submit a `.9000` version to CRAN.
 
-So the cycle is:
+So the per-release cycle is:
 
-    ... 1.0.2.9000 (dev)  ->  1.0.3 (submit)  ->  1.0.3 accepted  ->  1.0.3.9000 (dev) ...
+    ... 1.0.2.9000 (dev version)  ->  1.0.3 (submit)  ->  1.0.3 accepted  ->  1.0.3.9000 (dev version) ...
+
+See **Branch model** below for *which branch* carries which `.9000` line
+— this package runs a two-branch split, so there are two: the released
+line on `main` and the next-version line on `dev`.
+
+## Branch model (dev / main split)
+
+This is a CRAN package in an active, multi-PR development cycle, so it
+uses a two-branch model. Not every package needs this — the split earns
+its keep only when `main` has an external gate (CRAN) it must always
+satisfy. Internal / no-CRAN packages should just work on `main` with
+feature branches and straight semver. (The org-wide convention across my
+packages lives in my personal notes, not in this repo.)
+
+| Branch | Version | Role |
+|----|----|----|
+| `main` | released `.9000` (e.g. `1.0.3.9000`) | the CRAN-released line; always shippable. Serves the live README, pkgdown site, and CRAN-facing docs. |
+| `dev` | next-version `.9000` (e.g. `1.1.0.9000`) | accumulates the next release; may hold breaking or half-finished work. |
+
+**Why `.9000` on `main`?** `main` carries the released version plus any
+between-release fixes (badges, README, figures). The `.9000` honestly
+marks that `main` is *ahead of* the CRAN tarball, not the tarball
+itself. The pkgdown navbar showing `1.0.3.9000` is expected and standard
+— the CRAN status badge carries the released number.
+
+**Routing:**
+
+- **Shipped changes** (R code, `man/`, vignettes, tests) — branch off
+  `dev`, PR to `dev`. They reach `main` only via a release.
+- **Cosmetic / GitHub-facing fixes** (README prose, badges, figures,
+  pkgdown config) — branch off `main`, PR to `main`. No version change
+  beyond the existing `.9000`.
+- **Release ops** (tag, GitHub Release) — directly on `main` (the
+  documented exception to the branch+PR rule).
+
+**Keep them in sync:** after a batch of `main`-side doc fixes, merge
+`main -> dev` so they flow into the dev line. Skipping this is what
+produces the “same fix, two parallel PRs” situation.
+
+**Release flow:**
+
+    dev (1.1.0.9000) accumulates
+      -> cut the suffix on dev: 1.1.0
+      -> run the pre-submission gate (below), submit to CRAN
+      -> on acceptance: merge dev -> main, tag v1.1.0, publish GitHub Release
+      -> bump main -> 1.1.0.9000, open the next dev cycle
 
 ## Pre-submission checklist
 
