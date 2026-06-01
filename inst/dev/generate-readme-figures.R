@@ -73,7 +73,7 @@ p1 <- ggplot(h_long, aes(time, hazard, colour = Phase, linetype = Phase,
                                     Constant = 0.7, Late = 0.7)) +
   labs(x = "Months after CABG",
        y = "Hazard rate",
-       title = "Additive phase decomposition of hazard (CABGKUL, n = 5,880)",
+       title = "Additive phase decomposition (CABGKUL)",
        colour = "Phase", linetype = "Phase", linewidth = "Phase") +
   theme_minimal(base_size = 13) +
   theme(legend.position = "bottom",
@@ -100,7 +100,7 @@ p2 <- ggplot() +
   scale_y_continuous(limits = c(0, 100)) +
   labs(x = "Months after CABG",
        y = "Freedom from death (%)",
-       title = "Multiphase parametric survival vs. Kaplan-Meier (CABGKUL)",
+       title = "Multiphase survival vs. Kaplan-Meier (CABGKUL)",
        colour = NULL) +
   theme_minimal(base_size = 13) +
   theme(legend.position = "bottom",
