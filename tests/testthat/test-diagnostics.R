@@ -685,6 +685,43 @@ test_that("hzr_bootstrap preserves named betas while filling blanks", {
   expect_false("x1" %in% params)
 })
 
+test_that("hzr_bootstrap resamples weights alongside the data", {
+  # Regression test for the weighted-bootstrap bug: the resample loop used to
+  # rewire only `data`, leaving the original full-length `weights` vector bound
+  # to the refit call. Two observable consequences this guards against:
+  #   1. fraction < 1 -> weights length (n_obs) no longer matches the smaller
+  #      resampled data, so every replicate errored out: n_success == 0.
+  #   2. fraction == 1 -> length matched, so no error, but weights were applied
+  #      to the wrong (resampled) rows: silently incorrect estimates.
+  set.seed(202)
+  n <- 100
+  df <- data.frame(
+    t = stats::rexp(n, 0.1),
+    d = stats::rbinom(n, 1, 0.6),
+    x1 = stats::rnorm(n)
+  )
+  w <- stats::runif(n, 0.5, 2.0)
+
+  fit <- hazard(
+    survival::Surv(t, d) ~ x1,
+    data    = df,
+    weights = w,
+    dist    = "weibull",
+    theta   = c(mu = 0.05, nu = 0.8, 0),
+    fit     = TRUE
+  )
+
+  # (1) Subsampled weighted bootstrap must produce successful replicates.
+  bs_frac <- hzr_bootstrap(fit, n_boot = 10, fraction = 0.5, seed = 123)
+  expect_gt(bs_frac$n_success, 0)
+  expect_equal(bs_frac$n_failed, 0)
+
+  # (2) Full-size weighted bootstrap must also succeed and be well-formed.
+  bs_full <- hzr_bootstrap(fit, n_boot = 10, seed = 123)
+  expect_gt(bs_full$n_success, 0)
+  expect_true(all(is.finite(bs_full$summary$mean)))
+})
+
 
 # =========================================================================
 # hzr_competing_risks tests

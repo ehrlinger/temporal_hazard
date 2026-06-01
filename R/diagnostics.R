@@ -1246,6 +1246,17 @@ hzr_bootstrap <- function(object, n_boot = 200L, fraction = 1.0,
   n_obs <- nrow(orig_data)
   sample_size <- max(1L, as.integer(n_obs * fraction))
 
+  # Observation weights, if any, must be resampled in lockstep with the data.
+  # The original call binds `weights` to a symbol in the *caller's* frame, which
+  # the refit eval() below cannot resolve and which -- left untouched -- would
+  # also misalign the weights with the resampled rows. Evaluate it once here and
+  # rewire each replicate to a locally bound, resampled copy (mirroring `data`).
+  orig_weights <- if (is.null(cl$weights)) {
+    NULL
+  } else {
+    eval(cl$weights, envir = parent.frame())
+  }
+
   # Parameter names from the fitted model. Shape parameters (e.g. mu, nu) are
   # named in theta, but covariate betas often come through with empty names.
   # Covariate coefficients occupy the last ncol(x) positions of theta; fill
@@ -1285,12 +1296,15 @@ hzr_bootstrap <- function(object, n_boot = 200L, fraction = 1.0,
     # Resample with replacement
     idx <- sample.int(n_obs, size = sample_size, replace = TRUE)
     boot_data <- orig_data[idx, , drop = FALSE] # nolint: object_usage_linter.
+    # boot_weights is referenced via quote() inside eval -- lintr cannot trace it
+    boot_weights <- if (is.null(orig_weights)) NULL else orig_weights[idx] # nolint: object_usage_linter.
 
-    # Refit using the same call but with resampled data
-    # (boot_data is referenced via quote() inside eval -- lintr cannot trace this)
+    # Refit using the same call but with resampled data (and weights, if any)
+    # (boot_data/boot_weights are referenced via quote() inside eval)
     boot_fit <- tryCatch({
       cl_boot <- cl
       cl_boot$data <- quote(boot_data)
+      if (!is.null(orig_weights)) cl_boot$weights <- quote(boot_weights)
       cl_boot$fit <- TRUE
       eval(cl_boot)
     }, error = function(e) NULL)
