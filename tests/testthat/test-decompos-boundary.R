@@ -108,20 +108,37 @@ test_that("extreme t_half values produce finite, valid G (nu > 0)", {
 })
 
 # ---------------------------------------------------------------------------
-# (5) Known issue: Case 3 (m>0, nu<0) <-> Case 3L (m=0, nu<0) discontinuity
+# (5) Case 3 (m>0, nu<0) continuity and C parity
 # ---------------------------------------------------------------------------
+# Case 3's rho previously used a bare (2^m - 1)^nu (no /m divisor), leaving a
+# spurious factor of m on the bt^(-1/nu) term. That diverged from the C G1
+# evaluator (g1flag = 5) by up to ~0.2 and broke continuity with the m -> 0
+# limit (Case 3L). The /m form matches C exactly and restores continuity.
 
-test_that("Case 3 (m>0, nu<0) limits to Case 3L (m=0) as m -> 0 [KNOWN ISSUE]", {
-  skip(paste0(
-    "Case 3 (m>0, nu<0) is discontinuous with its m->0 limit Case 3L; both ",
-    "are internally consistent (g==dG/dt) but disagree by ~0.65 at the ",
-    "boundary. The C HAZARD G1 rho parameterization differs from the R ",
-    "port, so resolution needs working through the full C G1 evaluation. ",
-    "Neither branch is exercised by a shipped phase or parity fixture. ",
-    "Tracked for Phase 7d follow-up."
-  ))
+test_that("Case 3 (m>0, nu<0) limits to Case 3L (m=0) as m -> 0", {
   t <- c(0.3, 1, 2.5, 7)
   g_general <- hzr_decompos(t, t_half = 3, nu = -2, m = 1e-7)$G
   g_limit   <- hzr_decompos(t, t_half = 3, nu = -2, m = 0)$G
   expect_equal(g_general, g_limit, tolerance = 1e-5)
+})
+
+test_that("Case 3 (m>0, nu<0) matches the C HAZARD g1flag=5 G1 evaluator", {
+  # Direct port of hzd_set_rho() case 5 + hzd_ln_G1_and_SG1() case 5:
+  #   rho_C = t_half * (2^m - 1)^nu;  G1 = 1 - ((t/rho_C)^(-1/nu) + 1)^(-1/m)
+  c_g1flag5 <- function(time, t_half, nu, m) {
+    rho_c <- t_half * (2^m - 1)^nu
+    bt    <- time / rho_c
+    1 - (bt^(-1 / nu) + 1)^(-1 / m)
+  }
+  t <- c(0.3, 1, 2.5, 7, 15)
+  for (pars in list(c(nu = -2, m = 0.5), c(nu = -1, m = 2), c(nu = -3, m = 1))) {
+    nu <- pars[["nu"]]
+    m  <- pars[["m"]]
+    expect_equal(
+      hzr_decompos(t, t_half = 3, nu = nu, m = m)$G,
+      c_g1flag5(t, t_half = 3, nu = nu, m = m),
+      tolerance = 1e-10,
+      label = paste("Case 3 vs C g1flag=5 for nu =", nu, "m =", m)
+    )
+  }
 })

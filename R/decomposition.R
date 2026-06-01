@@ -171,8 +171,14 @@ hzr_decompos <- function(time, t_half, nu, m) {
     g     <- -(btm^mm1) * bt / (m * rho)
 
   } else if (m > 0 && nu < 0) {
-    # Case 3: bounded cumulative
-    rho   <- -nu * t_half * ((2^m - 1)^nu)
+    # Case 3: bounded cumulative (C HAZARD g1flag = 5, "Mixed Generic")
+    # rho uses the (2^m - 1)/m form (matching Case 1), NOT a bare (2^m - 1).
+    # Without the /m divisor the CDF carried a spurious factor of m on the
+    # bt^(-1/nu) term, diverging from the C G1 evaluator by up to ~0.2 and
+    # breaking continuity with the m -> 0 limit (Case 3L).  With /m the m
+    # factors cancel and G reduces to 1 - (bt^(-1/nu) + 1)^(-1/m), matching
+    # C exactly (verified against src/common/hzd_ln_G1_and_SG1.c case 5).
+    rho   <- -nu * t_half * (((2^m - 1) / m)^nu)
     bt    <- -nu * time / rho
     btnu  <- 1 + m * bt^(-1 / nu)
     G     <- 1 - btnu^(-1 / m)
