@@ -55,7 +55,8 @@ test_that("invalid level triggers a clean error", {
   )
 })
 
-test_that("se.fit = TRUE with decompose = TRUE errors clearly", {
+test_that("decompose + se.fit: cumulative_hazard works, survival errors", {
+  skip_on_cran()
   df <- make_toy()
   phases <- list(early = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1,
                                      fixed = "shapes"),
@@ -63,11 +64,69 @@ test_that("se.fit = TRUE with decompose = TRUE errors clearly", {
   fit <- hazard(survival::Surv(time, status) ~ 1, data = df,
                 dist = "multiphase", phases = phases, fit = TRUE,
                 control = list(n_starts = 2))
+  t_new <- c(0.5, 1, 2)
+
+  # cumulative_hazard: long per-phase + total frame.
+  res <- predict(fit, newdata = data.frame(time = t_new),
+                 type = "cumulative_hazard", se.fit = TRUE, decompose = TRUE)
+  expect_named(res, c("time", "component", "fit", "se.fit", "lower", "upper"))
+  expect_equal(levels(res$component), c("total", "early", "constant"))
+  expect_equal(nrow(res), length(t_new) * 3L)
+
+  # Total rows reproduce the aggregate se.fit output exactly.
+  agg <- predict(fit, newdata = data.frame(time = t_new),
+                 type = "cumulative_hazard", se.fit = TRUE, decompose = FALSE)
+  tot <- res[res$component == "total", ]
+  expect_equal(tot$fit, agg$fit, tolerance = 1e-10)
+  expect_equal(tot$se.fit, agg$se.fit, tolerance = 1e-10)
+  expect_equal(tot$lower, agg$lower, tolerance = 1e-10)
+  expect_equal(tot$upper, agg$upper, tolerance = 1e-10)
+
+  # Per-phase point estimates reproduce the decompose=FALSE wide cumhaz columns.
+  wide <- predict(fit, newdata = data.frame(time = t_new),
+                  type = "cumulative_hazard", se.fit = FALSE, decompose = TRUE)
+  expect_equal(res[res$component == "early", "fit"], wide$early, tolerance = 1e-10)
+  expect_equal(res[res$component == "constant", "fit"], wide$constant,
+               tolerance = 1e-10)
+
+  # survival still rejected.
   expect_error(
-    predict(fit, newdata = data.frame(time = c(0.5, 1)),
-            type = "cumulative_hazard", se.fit = TRUE, decompose = TRUE),
-    "decompose"
+    predict(fit, newdata = data.frame(time = t_new),
+            type = "survival", se.fit = TRUE, decompose = TRUE),
+    "cumulative_hazard"
   )
+})
+
+test_that("decompose + se.fit per-phase SE matches a numeric jacobian", {
+  skip_if_not_installed("numDeriv")
+  skip_on_cran()
+  df <- make_toy()
+  phases <- list(early = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1,
+                                     fixed = "shapes"),
+                 constant = hzr_phase("constant"))
+  fit <- hazard(survival::Surv(time, status) ~ 1, data = df,
+                dist = "multiphase", phases = phases, fit = TRUE,
+                control = list(n_starts = 2))
+  t_new <- c(0.5, 1, 2)
+  cov_counts <- c(early = 0L, constant = 0L)
+  x_list <- list(early = NULL, constant = NULL)
+  theta <- fit$fit$theta
+  V <- fit$fit$vcov
+  free_idx <- which(is.finite(diag(V)))
+
+  res <- predict(fit, newdata = data.frame(time = t_new),
+                 type = "cumulative_hazard", se.fit = TRUE, decompose = TRUE)
+
+  # Numeric per-phase SE for the "early" component via numDeriv.
+  H_early <- function(th) {
+    TemporalHazard:::.hzr_multiphase_cumhaz(
+      t_new, th, phases, cov_counts, x_list, per_phase = TRUE
+    )$early
+  }
+  Jn <- numDeriv::jacobian(H_early, theta)[, free_idx, drop = FALSE]
+  se_num <- sqrt(diag(Jn %*% V[free_idx, free_idx, drop = FALSE] %*% t(Jn)))
+  se_ana <- res[res$component == "early", "se.fit"]
+  expect_equal(se_ana, se_num, tolerance = 1e-5)
 })
 
 # ---------------------------------------------------------------------------

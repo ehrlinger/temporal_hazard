@@ -698,11 +698,10 @@ predict.hazard <- function(object, newdata = NULL,
           is.na(level) || level <= 0 || level >= 1) {
       stop("'level' must be a single number in (0, 1).", call. = FALSE)
     }
-    if (decompose) {
-      stop("'se.fit = TRUE' with 'decompose = TRUE' is not supported. ",
-           "Request point predictions first (decompose = TRUE, ",
-           "se.fit = FALSE), then compute CLs separately on the total.",
-           call. = FALSE)
+    if (decompose && type != "cumulative_hazard") {
+      stop("'se.fit = TRUE' with 'decompose = TRUE' is only supported for ",
+           "type = \"cumulative_hazard\" (per-phase survival is not additive). ",
+           "Got type = \"", type, "\".", call. = FALSE)
     }
   }
 
@@ -859,6 +858,12 @@ predict.hazard <- function(object, newdata = NULL,
       }
 
       if (se.fit) {
+        if (decompose) {
+          return(.hzr_predict_with_se_decomposed(
+            object = object, time = pred_time, x_list = x_list,
+            cov_counts = cov_counts, phases = phases, level = level
+          ))
+        }
         diff_fn <- function(th) {
           .hzr_multiphase_cumhaz(pred_time, th, phases, cov_counts, x_list)
         }
