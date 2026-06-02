@@ -535,3 +535,35 @@ test_that("4-phase predict(decompose=TRUE) returns 4 per-phase columns", {
   phase_sum <- d[, "early1"] + d[, "early2"] + d[, "constant"] + d[, "late"]
   expect_equal(unname(d[, "total"]), unname(phase_sum), tolerance = 1e-10)
 })
+
+test_that("weighted multiphase fit matches duplicated-row fit, covariates, CoE on", {
+  skip_on_cran()
+  set.seed(43)
+  n      <- 40
+  t      <- runif(n, 0.05, 3)
+  status <- rbinom(n, 1, 0.4)
+  x      <- rnorm(n)
+  w      <- sample(1:3, n, replace = TRUE)
+  df     <- data.frame(time = t, status = status, x = x)
+  df_exp <- df[rep(seq_len(n), times = w), , drop = FALSE]
+
+  mk_fit <- function(data, weights) {
+    hazard(
+      survival::Surv(time, status) ~ 1,
+      data = data, dist = "multiphase",
+      phases = list(
+        early    = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1,
+                             fixed = "shapes", formula = ~ x),
+        constant = hzr_phase("constant", formula = ~ x)
+      ),
+      weights = weights, fit = TRUE,
+      control = list(conserve = TRUE, n_starts = 1L, maxit = 500L)
+    )
+  }
+
+  fit_w   <- mk_fit(df,     w)
+  fit_dup <- mk_fit(df_exp, NULL)
+
+  expect_equal(coef(fit_w), coef(fit_dup), tolerance = 1e-3)
+  expect_equal(fit_w$fit$objective, fit_dup$fit$objective, tolerance = 1e-4)
+})
