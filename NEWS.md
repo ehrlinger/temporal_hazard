@@ -19,7 +19,8 @@
   was built inside a helper that has returned).  Caller-frame evaluation
   remains a fallback for objects fitted before weights were stored.  The same
   fragility applied to the call's `data` argument: `hazard()` now stores the
-  evaluated model frame on the fitted object (`object$data$frame`), and
+  evaluated `data` argument (the data frame passed to `hazard()`, not a
+  `model.frame()` result) on the fitted object (`object$data$frame`), and
   `hzr_bootstrap()` resamples that stored frame instead of re-evaluating
   `cl$data` in `parent.frame()`, so bootstrap succeeds even when the original
   `data` symbol is out of scope.  Caller-frame evaluation remains a fallback

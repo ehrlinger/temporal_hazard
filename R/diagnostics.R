@@ -1242,12 +1242,13 @@ hzr_bootstrap <- function(object, n_boot = 200L, fraction = 1.0,
 
   # Reconstruct the call components
   cl <- object$call
-  # Prefer the evaluated model frame stored on the fitted object: it is
-  # guaranteed available and needs no caller-frame lookup. Re-evaluating
-  # `cl$data` in `parent.frame()` is fragile -- the original `data` symbol may
-  # no longer be in scope (e.g. the fit was built inside a helper that has
-  # returned) -- so fall back to it only for objects fitted before the frame
-  # was stored on `object$data`.
+  # Prefer the evaluated `data` argument stored on the fitted object
+  # (`object$data$frame` -- the data frame passed to hazard(), not a
+  # model.frame() result): it is guaranteed available and needs no caller-frame
+  # lookup. Re-evaluating `cl$data` in `parent.frame()` is fragile -- the
+  # original `data` symbol may no longer be in scope (e.g. the fit was built
+  # inside a helper that has returned) -- so fall back to it only for objects
+  # fitted before the frame was stored on `object$data`.
   orig_data <- if (!is.null(object$data$frame)) {
     object$data$frame
   } else {

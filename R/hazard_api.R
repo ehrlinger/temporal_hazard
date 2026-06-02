@@ -494,10 +494,12 @@ hazard <- function(formula = NULL,
       status = as.numeric(status),
       x = x,
       weights = weights,
-      # Evaluated model frame (formula path; NULL when called with raw vectors).
-      # Stored so refit-based tooling such as hzr_bootstrap() can re-run the
-      # original call without a caller-frame lookup of the `data` symbol, which
-      # fails when that symbol has gone out of scope.
+      # The evaluated `data` argument as passed to hazard() (formula path; NULL
+      # when called with raw vectors). This is the user's data frame, not a
+      # model.frame() result. Stored so refit-based tooling such as
+      # hzr_bootstrap() can re-run the original call without a caller-frame
+      # lookup of the `data` symbol, which fails when that symbol has gone out
+      # of scope.
       frame = data
     ),
     fit = fit_state,
