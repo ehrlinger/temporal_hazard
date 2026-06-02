@@ -1247,14 +1247,19 @@ hzr_bootstrap <- function(object, n_boot = 200L, fraction = 1.0,
   sample_size <- max(1L, as.integer(n_obs * fraction))
 
   # Observation weights, if any, must be resampled in lockstep with the data.
-  # The original call binds `weights` to a symbol in the *caller's* frame, which
-  # the refit eval() below cannot resolve and which -- left untouched -- would
-  # also misalign the weights with the resampled rows. Evaluate it once here and
-  # rewire each replicate to a locally bound, resampled copy (mirroring `data`).
-  orig_weights <- if (is.null(cl$weights)) {
-    NULL
-  } else {
+  # Prefer the weights already evaluated and stored on the fitted object: they
+  # are guaranteed aligned with the original rows and need no caller-frame
+  # lookup. Re-evaluating `cl$weights` in `parent.frame()` is fragile -- the
+  # original symbol/expression may no longer be in scope, or may now resolve to
+  # a different value -- so fall back to it only for objects fitted before
+  # weights were stored on `object$data`. Each replicate is then rewired to a
+  # locally bound, resampled copy (mirroring `data`).
+  orig_weights <- if (!is.null(object$data$weights)) {
+    object$data$weights
+  } else if (!is.null(cl$weights)) {
     eval(cl$weights, envir = parent.frame())
+  } else {
+    NULL
   }
 
   # Parameter names from the fitted model. Shape parameters (e.g. mu, nu) are

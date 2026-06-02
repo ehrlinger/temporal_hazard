@@ -412,14 +412,17 @@ table(status)
 ```
 
 ::: {.callout-note}
-**`time_lower` for right-censored rows should be `0`**, not the censoring
-time.  In the Weibull and multiphase likelihoods, `time_lower` doubles as
-the counting-process *entry time* for right-censored and exact-event rows
-(`status %in% c(0, 1)`); setting it to `time` computes
-H(stop) − H(start) = 0 and silently discards those rows.  Pass
-`time_lower = 0` (or omit `time_lower` entirely) for right-censored rows.
-The exponential, log-logistic, and log-normal likelihoods do not use
-`time_lower` as an entry time and are unaffected.
+**`time_lower` as a counting-process entry time.**  In the Weibull and
+multiphase likelihoods, `time_lower` doubles as the *entry* (left-truncation)
+time for right-censored and exact-event rows (`status %in% c(0, 1)`): when
+`0 < time_lower < time`, the row contributes H(stop) − H(start), the
+counting-process form used for epoch-decomposed repeated events.  For an
+ordinary right-censored or event row with no entry time, leave `time_lower`
+at `0` or omit it.  Setting `time_lower = time` is treated as *no entry* —
+`time_lower` acts as an entry time only when strictly less than `time`, so
+it no longer zeroes the row's contribution.  The exponential, log-logistic,
+and log-normal likelihoods do not use `time_lower` as an entry time and are
+unaffected.
 :::
 
 Fit a Weibull model using both censoring types:
