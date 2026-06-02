@@ -260,6 +260,28 @@ test_that("multiphase jacobian per_phase=TRUE returns blocks that sum to the tot
   expect_true(all(J_list$constant[, 1:4] == 0))
 })
 
+test_that(".hzr_free_vcov restricts to finite-diagonal free parameters", {
+  # All-free 2x2.
+  V <- matrix(c(0.04, 0.01, 0.01, 0.09), 2, 2)
+  res <- TemporalHazard:::.hzr_free_vcov(V, p = 2L)
+  expect_equal(res$free_idx, 1:2)
+  expect_equal(res$vcov_use, V)
+
+  # One fixed parameter (NA row/col) -> restricted to the free submatrix.
+  Vf <- matrix(NA_real_, 3, 3)
+  Vf[c(1, 3), c(1, 3)] <- c(0.04, 0.00, 0.00, 0.09)
+  res2 <- TemporalHazard:::.hzr_free_vcov(Vf, p = 3L)
+  expect_equal(res2$free_idx, c(1L, 3L))
+  expect_equal(dim(res2$vcov_use), c(2L, 2L))
+
+  # Unusable vcov -> NULL with a warning.
+  expect_warning(
+    bad <- TemporalHazard:::.hzr_free_vcov(NULL, p = 3L),
+    "unavailable"
+  )
+  expect_null(bad)
+})
+
 # ---------------------------------------------------------------------------
 # (8) Backward compat: se.fit = FALSE reproduces the old scalar-vector return
 # ---------------------------------------------------------------------------

@@ -316,6 +316,48 @@ NULL
 }
 
 # ---------------------------------------------------------------------------
+# Free-parameter vcov helper (shared by aggregate and decomposed se.fit paths)
+# ---------------------------------------------------------------------------
+
+#' Free-parameter vcov submatrix for the delta-method sandwich
+#'
+#' Fixed parameters (from `fixed = "shapes"` or CoE) leave NA rows/cols in the
+#' expanded vcov. Treat them as known-with-zero-variance: restrict the sandwich
+#' to the free submatrix. Returns `NULL` (with a warning) when CLs cannot be
+#' computed. Shared by the aggregate and decomposed se.fit paths.
+#'
+#' @param vcov_mat The fitted vcov (or NULL / wrong shape).
+#' @param p Length of the parameter vector.
+#' @return `list(vcov_use, free_idx)`, or `NULL` if unusable.
+#' @keywords internal
+.hzr_free_vcov <- function(vcov_mat, p) {
+  vcov_ok <- !is.null(vcov_mat) && is.matrix(vcov_mat) &&
+               nrow(vcov_mat) == p && ncol(vcov_mat) == p
+  if (!vcov_ok) {
+    warning("Variance-covariance matrix is unavailable; ",
+            "standard errors and CLs will be NA.", call. = FALSE)
+    return(NULL)
+  }
+  free_idx <- which(is.finite(diag(vcov_mat)))
+  if (length(free_idx) < p) {
+    free_submat <- vcov_mat[free_idx, free_idx, drop = FALSE]
+    if (anyNA(free_submat)) {
+      warning("Variance-covariance matrix has NA entries outside the ",
+              "fixed-parameter rows/cols; standard errors and CLs will be NA.",
+              call. = FALSE)
+      return(NULL)
+    }
+    return(list(vcov_use = free_submat, free_idx = free_idx))
+  }
+  if (anyNA(vcov_mat)) {
+    warning("Variance-covariance matrix has NA entries; ",
+            "standard errors and CLs will be NA.", call. = FALSE)
+    return(NULL)
+  }
+  list(vcov_use = vcov_mat, free_idx = free_idx)
+}
+
+# ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
 
@@ -367,52 +409,16 @@ NULL
   dist <- object$spec$dist
   target <- diff_fn(theta)
 
-  vcov_mat <- object$fit$vcov
-  vcov_ok <- !is.null(vcov_mat) && is.matrix(vcov_mat) &&
-               nrow(vcov_mat) == p && ncol(vcov_mat) == p
-  if (!vcov_ok) {
-    warning("Variance-covariance matrix is unavailable; ",
-            "standard errors and CLs will be NA.", call. = FALSE)
+  fv <- .hzr_free_vcov(object$fit$vcov, p)
+  if (is.null(fv)) {
     n <- length(target)
     fit <- if (type == "survival") exp(-target) else target
     na_vec <- rep(NA_real_, n)
     return(data.frame(fit = fit, se.fit = na_vec,
                       lower = na_vec, upper = na_vec))
   }
-
-  # Fixed parameters (from `fixed = "shapes"` or CoE) leave NA rows/cols in
-  # the expanded vcov.  Treat them as known-with-zero-variance: restrict the
-  # delta-method sandwich to the free submatrix of vcov and the
-  # corresponding columns of J.
-  diag_vcov <- diag(vcov_mat)
-  free_idx <- which(is.finite(diag_vcov))
-  if (length(free_idx) < p) {
-    # At least one parameter is fixed -- check that the off-diagonals among
-    # free params are finite; if they aren't, something is wrong and we
-    # fall back to NA CLs.
-    free_submat <- vcov_mat[free_idx, free_idx, drop = FALSE]
-    if (anyNA(free_submat)) {
-      warning("Variance-covariance matrix has NA entries outside the ",
-              "fixed-parameter rows/cols; standard errors and CLs will be NA.",
-              call. = FALSE)
-      n <- length(target)
-      fit <- if (type == "survival") exp(-target) else target
-      na_vec <- rep(NA_real_, n)
-      return(data.frame(fit = fit, se.fit = na_vec,
-                        lower = na_vec, upper = na_vec))
-    }
-    vcov_use <- free_submat
-  } else if (anyNA(vcov_mat)) {
-    warning("Variance-covariance matrix has NA entries; ",
-            "standard errors and CLs will be NA.", call. = FALSE)
-    n <- length(target)
-    fit <- if (type == "survival") exp(-target) else target
-    na_vec <- rep(NA_real_, n)
-    return(data.frame(fit = fit, se.fit = na_vec,
-                      lower = na_vec, upper = na_vec))
-  } else {
-    vcov_use <- vcov_mat
-  }
+  vcov_use <- fv$vcov_use
+  free_idx <- fv$free_idx
 
   # --- Build Jacobian of the delta-method target ---------------------------
   if (dist == "weibull") {
