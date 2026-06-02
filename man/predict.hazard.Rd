@@ -39,7 +39,14 @@ frame with columns \code{fit}, \code{se.fit}, \code{lower}, \code{upper}.  Defau
 CLs are computed on the log-hazard / log-cumhaz scale and on the
 log(-log(survival)) scale so lower/upper stay inside the valid range
 of each prediction type; \code{linear_predictor} uses symmetric natural-scale
-CLs.  Not compatible with \code{decompose = TRUE}.}
+CLs.
+For multiphase models, \code{se.fit = TRUE} combines with \code{decompose = TRUE}
+when \code{type = "cumulative_hazard"}: the result is a long data frame with one
+row per prediction time and component (\code{component} in \code{"total"} plus each
+phase name) and columns \code{fit}, \code{se.fit}, \code{lower}, \code{upper}. Per-phase CLs
+use only that phase's parameters, so they do not sum to the total CL.
+The combination is not available for \code{type = "survival"} (per-phase
+survival is not additive).}
 
 \item{level}{Numeric confidence level in \verb{(0, 1)}; default \code{0.95}.
 Only used when \code{se.fit = TRUE}.}
@@ -66,15 +73,6 @@ For models fit with \code{time_windows}, predictions for \code{type = "linear_pr
 or \code{"hazard"} also require time values (via \code{newdata$time} or fitted-time fallback)
 so window-specific coefficients can be selected.
 }
-\section{Known limitations}{
-
-\code{decompose = TRUE} and \code{se.fit = TRUE} cannot be used together.  The
-delta-method Jacobian has not yet been extended to per-phase contributions.
-To obtain confidence limits for a multiphase model, request point predictions
-first (\verb{decompose = TRUE, se.fit = FALSE}), then separately request CLs on
-the total prediction (\verb{decompose = FALSE, se.fit = TRUE}).
-}
-
 \examples{
 # -- Basic predictions ------------------------------------------------
 set.seed(1)
