@@ -722,6 +722,38 @@ test_that("hzr_bootstrap resamples weights alongside the data", {
   expect_true(all(is.finite(bs_full$summary$mean)))
 })
 
+test_that("hzr_bootstrap uses stored weights when the original symbol is out of scope", {
+  # Robustness regression: the resample setup previously re-evaluated the call's
+  # `weights` expression in parent.frame(). If the original weights symbol is no
+  # longer in scope at bootstrap time -- e.g. the fit was built inside a helper
+  # that has since returned -- that eval() raised "object not found". The fit now
+  # carries its evaluated weights on object$data$weights, so bootstrap no longer
+  # depends on a caller-frame lookup.
+  set.seed(77)
+  n <- 80
+  # `df` stays in the test frame so the call's `data` symbol still resolves;
+  # only the `weights` symbol is confined to the local() scope and gone by the
+  # time we bootstrap, isolating the weights lookup.
+  df <- data.frame(
+    t  = stats::rexp(n, 0.1),
+    d  = stats::rbinom(n, 1, 0.6),
+    x1 = stats::rnorm(n)
+  )
+  fit <- local({
+    local_w <- stats::runif(n, 0.5, 2.0)
+    hazard(
+      survival::Surv(t, d) ~ x1,
+      data = df, weights = local_w, dist = "weibull",
+      theta = c(mu = 0.05, nu = 0.8, 0), fit = TRUE
+    )
+  })
+  # `local_w` is now out of scope; bootstrap must still resample weights via the
+  # stored copy and produce successful replicates.
+  bs <- hzr_bootstrap(fit, n_boot = 10, fraction = 0.5, seed = 5)
+  expect_gt(bs$n_success, 0)
+  expect_equal(bs$n_failed, 0)
+})
+
 
 # =========================================================================
 # hzr_competing_risks tests

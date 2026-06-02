@@ -1,4 +1,4 @@
-# TemporalHazard 1.1.0 (development version)
+# TemporalHazard 1.1.0.9000 (development version)
 
 ## Bug fixes
 
@@ -12,7 +12,12 @@
   in lockstep with the data on each replicate (mirroring how `data` is
   handled).  Unweighted bootstraps are unaffected.  A regression test covers
   both the `fraction < 1` and full-size weighted paths in
-  `test-diagnostics.R`.
+  `test-diagnostics.R`.  Follow-up: `hzr_bootstrap()` now resamples the
+  weights already stored on the fitted object (`object$data$weights`) rather
+  than re-evaluating the call's `weights` expression in `parent.frame()`,
+  which fails when the original symbol is no longer in scope (e.g. the fit
+  was built inside a helper that has returned).  Caller-frame evaluation
+  remains a fallback for objects fitted before weights were stored.
 
 * **4-phase CoE fixmu-phase selection** (Phase 7d).
   `.hzr_select_fixmu_phase()` used `which.max()` over raw per-phase cumhaz
