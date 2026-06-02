@@ -138,18 +138,28 @@ NULL
 #' @param covariate_counts Named integer vector.
 #' @param x_list Named list of per-phase design matrices.
 #' @param p Length of theta.
-#' @return Numeric n x p Jacobian of H(t|x).
+#' @param per_phase Logical; if `TRUE`, return a named list of per-phase
+#'   `n x p` Jacobians (each with only that phase's columns nonzero) instead
+#'   of their sum.
+#' @return Numeric `n x p` Jacobian of `H(t|x)` (default), or a named list of
+#'   per-phase `n x p` Jacobians when `per_phase = TRUE`.
 #' @keywords internal
 .hzr_predict_jacobian_multiphase <- function(theta, time, phases,
-                                              covariate_counts, x_list, p) {
+                                              covariate_counts, x_list, p,
+                                              per_phase = FALSE) {
   n <- length(time)
   theta_split <- .hzr_split_theta(theta, phases, covariate_counts)
-  J <- matrix(0, nrow = n, ncol = p)
+  # One n x p matrix per phase; each phase fills only its own columns.
+  J_list <- stats::setNames(
+    lapply(seq_along(phases), function(i) matrix(0, nrow = n, ncol = p)),
+    names(phases)
+  )
 
   pos <- 1L
   for (nm in names(phases)) {
     ph <- phases[[nm]]
     pars <- .hzr_unpack_phase_theta(theta_split[[nm]], ph)
+    Jp <- J_list[[nm]]
 
     # mu_j(x_i)
     if (length(pars$beta) > 0L && !is.null(x_list[[nm]])) {
@@ -162,8 +172,7 @@ NULL
     # Phi_j and shape derivatives
     if (ph$type == "constant") {
       Phi_j <- time
-      # log_mu only
-      J[, pos] <- mu_j * Phi_j
+      Jp[, pos] <- mu_j * Phi_j
       pos <- pos + 1L
     } else if (ph$type == "g3") {
       tau_j <- exp(pars$log_tau)
@@ -172,11 +181,11 @@ NULL
                                         alpha = pars$alpha,
                                         eta = pars$eta)
       Phi_j <- pd$Phi
-      J[, pos] <- mu_j * Phi_j  # log_mu
-      J[, pos + 1L] <- mu_j * pd$dPhi_dlog_tau
-      J[, pos + 2L] <- mu_j * pd$dPhi_dgamma
-      J[, pos + 3L] <- mu_j * pd$dPhi_dalpha
-      J[, pos + 4L] <- mu_j * pd$dPhi_deta
+      Jp[, pos] <- mu_j * Phi_j
+      Jp[, pos + 1L] <- mu_j * pd$dPhi_dlog_tau
+      Jp[, pos + 2L] <- mu_j * pd$dPhi_dgamma
+      Jp[, pos + 3L] <- mu_j * pd$dPhi_dalpha
+      Jp[, pos + 4L] <- mu_j * pd$dPhi_deta
       pos <- pos + 5L
     } else {
       t_half_j <- exp(pars$log_t_half)
@@ -184,10 +193,10 @@ NULL
                                     nu = pars$nu, m = pars$m,
                                     type = ph$type)
       Phi_j <- pd$Phi
-      J[, pos] <- mu_j * Phi_j  # log_mu
-      J[, pos + 1L] <- mu_j * pd$dPhi_dlog_thalf
-      J[, pos + 2L] <- mu_j * pd$dPhi_dnu
-      J[, pos + 3L] <- mu_j * pd$dPhi_dm
+      Jp[, pos] <- mu_j * Phi_j
+      Jp[, pos + 1L] <- mu_j * pd$dPhi_dlog_thalf
+      Jp[, pos + 2L] <- mu_j * pd$dPhi_dnu
+      Jp[, pos + 3L] <- mu_j * pd$dPhi_dm
       pos <- pos + 4L
     }
 
@@ -196,15 +205,20 @@ NULL
     if (n_beta > 0L && !is.null(x_list[[nm]])) {
       x_phase <- x_list[[nm]]
       for (k in seq_len(n_beta)) {
-        J[, pos] <- x_phase[, k] * mu_j * Phi_j
+        Jp[, pos] <- x_phase[, k] * mu_j * Phi_j
         pos <- pos + 1L
       }
     } else if (n_beta > 0L) {
       pos <- pos + n_beta
     }
+
+    J_list[[nm]] <- Jp
   }
 
-  J
+  if (per_phase) {
+    return(J_list)
+  }
+  Reduce(`+`, J_list)
 }
 
 # ---------------------------------------------------------------------------

@@ -227,6 +227,40 @@ test_that("multiphase CLs work with fixed shapes + CoE (free submatrix)", {
 })
 
 # ---------------------------------------------------------------------------
+# per_phase Jacobian mode (decompose + se.fit support)
+# ---------------------------------------------------------------------------
+
+test_that("multiphase jacobian per_phase=TRUE returns blocks that sum to the total", {
+  skip_on_cran()
+  t_new <- c(0.3, 0.8, 1.5, 2.2)
+  phases <- list(
+    early = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1, fixed = "shapes"),
+    constant = hzr_phase("constant")
+  )
+  cov_counts <- c(early = 0L, constant = 0L)
+  x_list <- list(early = NULL, constant = NULL)
+  theta <- c(-3, log(0.3), 1, 1, -2)
+  p <- length(theta)
+
+  J_total <- TemporalHazard:::.hzr_predict_jacobian_multiphase(
+    theta, t_new, phases, cov_counts, x_list, p
+  )
+  J_list <- TemporalHazard:::.hzr_predict_jacobian_multiphase(
+    theta, t_new, phases, cov_counts, x_list, p, per_phase = TRUE
+  )
+
+  expect_type(J_list, "list")
+  expect_named(J_list, c("early", "constant"))
+  expect_equal(dim(J_list$early), c(length(t_new), p))
+  # Blocks sum to the aggregate Jacobian.
+  expect_equal(Reduce(`+`, J_list), J_total, tolerance = 1e-12)
+  # Each block touches only its own phase's columns:
+  # early occupies cols 1:4 (log_mu, log_thalf, nu, m), constant col 5 (log_mu).
+  expect_true(all(J_list$early[, 5] == 0))
+  expect_true(all(J_list$constant[, 1:4] == 0))
+})
+
+# ---------------------------------------------------------------------------
 # (8) Backward compat: se.fit = FALSE reproduces the old scalar-vector return
 # ---------------------------------------------------------------------------
 
