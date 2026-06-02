@@ -82,19 +82,37 @@ test_that("decompose + se.fit: cumulative_hazard works, survival errors", {
   expect_equal(tot$lower, agg$lower, tolerance = 1e-10)
   expect_equal(tot$upper, agg$upper, tolerance = 1e-10)
 
-  # Per-phase point estimates reproduce the decompose=FALSE wide cumhaz columns.
+  # Per-phase point estimates reproduce the decompose=TRUE, se.fit=FALSE wide
+  # cumhaz columns.
   wide <- predict(fit, newdata = data.frame(time = t_new),
                   type = "cumulative_hazard", se.fit = FALSE, decompose = TRUE)
   expect_equal(res[res$component == "early", "fit"], wide$early, tolerance = 1e-10)
   expect_equal(res[res$component == "constant", "fit"], wide$constant,
                tolerance = 1e-10)
 
-  # survival still rejected.
+  # component is an ordered factor (documented semantics).
+  expect_true(is.ordered(res$component))
+
+  # survival still rejected for multiphase.
   expect_error(
     predict(fit, newdata = data.frame(time = t_new),
             type = "survival", se.fit = TRUE, decompose = TRUE),
     "cumulative_hazard"
   )
+})
+
+test_that("decompose is ignored (not errored) for single-distribution se.fit", {
+  # `decompose` applies only to multiphase models. A single-distribution fit
+  # must not error on decompose = TRUE -- it returns the standard aggregate
+  # se.fit frame regardless of type (decompose silently ignored).
+  skip_on_cran()
+  df <- make_toy()
+  fit <- hazard(survival::Surv(time, status) ~ x, data = df, dist = "weibull",
+                theta = c(0.5, 1, 0), fit = TRUE)
+  res <- predict(fit, newdata = data.frame(time = c(0.5, 1, 2), x = 0),
+                 type = "survival", se.fit = TRUE, decompose = TRUE)
+  expect_named(res, c("fit", "se.fit", "lower", "upper"))
+  expect_equal(nrow(res), 3L)
 })
 
 test_that("decompose + se.fit per-phase SE matches a numeric jacobian", {

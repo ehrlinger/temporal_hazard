@@ -698,7 +698,8 @@ predict.hazard <- function(object, newdata = NULL,
           is.na(level) || level <= 0 || level >= 1) {
       stop("'level' must be a single number in (0, 1).", call. = FALSE)
     }
-    if (decompose && type != "cumulative_hazard") {
+    if (decompose && object$spec$dist == "multiphase" &&
+          type != "cumulative_hazard") {
       stop("'se.fit = TRUE' with 'decompose = TRUE' is only supported for ",
            "type = \"cumulative_hazard\" (per-phase survival is not additive). ",
            "Got type = \"", type, "\".", call. = FALSE)

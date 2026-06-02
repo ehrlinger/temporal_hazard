@@ -489,7 +489,7 @@ NULL
                  stringsAsFactors = FALSE)
     })
     res <- do.call(rbind, rows)
-    res$component <- factor(res$component, levels = components)
+    res$component <- factor(res$component, levels = components, ordered = TRUE)
     rownames(res) <- NULL
     res
   }
