@@ -661,3 +661,26 @@ test_that("integer weights match duplication in multiphase LL WITH covariates", 
   )
   expect_equal(ll_w, ll_dup, tolerance = 1e-10)
 })
+
+test_that("weighted multiphase analytic gradient matches numerical WITH covariates", {
+  skip_if_not_installed("numDeriv")
+  d <- make_mp_cov(seed = 42)
+  x_list <- list(early    = matrix(d$x, ncol = 1),
+                 constant = matrix(d$x, ncol = 1))
+
+  num_g <- numDeriv::grad(
+    function(th) {
+      TemporalHazard:::.hzr_logl_multiphase(
+        theta = th, time = d$t, status = d$status,
+        phases = mp_cov_phases(), covariate_counts = mp_cov_counts,
+        x_list = x_list, weights = d$w
+      )
+    },
+    mp_cov_theta
+  )
+  ana_g <- TemporalHazard:::.hzr_gradient_multiphase(
+    theta = mp_cov_theta, time = d$t, status = d$status, weights = d$w,
+    phases = mp_cov_phases(), covariate_counts = mp_cov_counts, x_list = x_list
+  )
+  expect_equal(as.numeric(ana_g), num_g, tolerance = 1e-4)
+})
