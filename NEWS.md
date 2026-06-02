@@ -17,7 +17,14 @@
   than re-evaluating the call's `weights` expression in `parent.frame()`,
   which fails when the original symbol is no longer in scope (e.g. the fit
   was built inside a helper that has returned).  Caller-frame evaluation
-  remains a fallback for objects fitted before weights were stored.
+  remains a fallback for objects fitted before weights were stored.  The same
+  fragility applied to the call's `data` argument: `hazard()` now stores the
+  evaluated `data` argument (the data frame passed to `hazard()`, not a
+  `model.frame()` result) on the fitted object (`object$data$frame`), and
+  `hzr_bootstrap()` resamples that stored frame instead of re-evaluating
+  `cl$data` in `parent.frame()`, so bootstrap succeeds even when the original
+  `data` symbol is out of scope.  Caller-frame evaluation remains a fallback
+  for objects fitted before the frame was stored.
 
 * **4-phase CoE fixmu-phase selection** (Phase 7d).
   `.hzr_select_fixmu_phase()` used `which.max()` over raw per-phase cumhaz
