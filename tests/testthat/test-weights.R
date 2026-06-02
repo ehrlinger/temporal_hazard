@@ -613,3 +613,51 @@ test_that("zero weight drops the row's contribution across mixed censoring (log-
   )
   expect_equal(ll_w, ll_drop, tolerance = 1e-12)
 })
+
+# ---------------------------------------------------------------------------
+# Multiphase WITH covariates: weighted == duplicated (roadmap 7c)
+# ---------------------------------------------------------------------------
+
+# Shared fixture: multiphase data with a covariate in BOTH phases, integer
+# weights, and the row-duplication index. covariate enters early + constant.
+make_mp_cov <- function(seed = 41, n = 40) {
+  set.seed(seed)
+  t      <- runif(n, 0.05, 3)
+  status <- rbinom(n, 1, 0.4)
+  x      <- rnorm(n)
+  w      <- sample(1:3, n, replace = TRUE)
+  idx    <- rep(seq_len(n), times = w)
+  list(t = t, status = status, x = x, w = w, idx = idx, n = n)
+}
+
+# Phases + theta shared by the direct-LL and gradient tests.
+# Layout: [log_mu_e, log_thalf, nu, m, beta_e, log_mu_c, beta_c]
+mp_cov_phases <- function() {
+  list(
+    early    = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1, fixed = "shapes"),
+    constant = hzr_phase("constant")
+  )
+}
+mp_cov_theta   <- c(-4, log(0.3), 1, 1, 0.5, -3, -0.3)
+mp_cov_counts  <- c(early = 1L, constant = 1L)
+
+test_that("integer weights match duplication in multiphase LL WITH covariates", {
+  skip_on_cran()
+  d <- make_mp_cov()
+  x_list   <- list(early    = matrix(d$x, ncol = 1),
+                   constant = matrix(d$x, ncol = 1))
+  x_list_d <- list(early    = matrix(d$x[d$idx], ncol = 1),
+                   constant = matrix(d$x[d$idx], ncol = 1))
+
+  ll_w <- TemporalHazard:::.hzr_logl_multiphase(
+    theta = mp_cov_theta, time = d$t, status = d$status,
+    phases = mp_cov_phases(), covariate_counts = mp_cov_counts,
+    x_list = x_list, weights = d$w
+  )
+  ll_dup <- TemporalHazard:::.hzr_logl_multiphase(
+    theta = mp_cov_theta, time = d$t[d$idx], status = d$status[d$idx],
+    phases = mp_cov_phases(), covariate_counts = mp_cov_counts,
+    x_list = x_list_d, weights = rep(1, length(d$idx))
+  )
+  expect_equal(ll_w, ll_dup, tolerance = 1e-10)
+})
