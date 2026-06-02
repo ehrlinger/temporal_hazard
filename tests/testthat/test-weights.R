@@ -684,3 +684,30 @@ test_that("weighted multiphase analytic gradient matches numerical WITH covariat
   )
   expect_equal(as.numeric(ana_g), num_g, tolerance = 1e-4)
 })
+
+test_that("weighted multiphase fit matches duplicated-row fit, covariates, CoE off", {
+  skip_on_cran()
+  d  <- make_mp_cov(seed = 43)
+  df <- data.frame(time = d$t, status = d$status, x = d$x)
+  df_exp <- expand_rows(df, d$w)
+
+  mk_fit <- function(data, weights) {
+    hazard(
+      survival::Surv(time, status) ~ 1,
+      data = data, dist = "multiphase",
+      phases = list(
+        early    = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1,
+                             fixed = "shapes", formula = ~ x),
+        constant = hzr_phase("constant", formula = ~ x)
+      ),
+      weights = weights, fit = TRUE,
+      control = list(conserve = FALSE, n_starts = 1L, maxit = 500L)
+    )
+  }
+
+  fit_w   <- mk_fit(df,     d$w)
+  fit_dup <- mk_fit(df_exp, NULL)
+
+  expect_equal(coef(fit_w), coef(fit_dup), tolerance = 1e-3)
+  expect_equal(fit_w$fit$objective, fit_dup$fit$objective, tolerance = 1e-4)
+})
