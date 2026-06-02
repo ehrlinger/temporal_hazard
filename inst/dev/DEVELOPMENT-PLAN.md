@@ -527,7 +527,7 @@ or known numerical gaps. Priority order for investigation:
 | **Interval censoring under multiphase** | Code path exists; no real-data or SAS parity fixture | No parity test |
 | **Hessian stability at 12+ parameters** | Numerical Hessian inversion can become ill-conditioned; `hm.death.AVC.deciles` (13 params) passes but borderline | Passing, fragile |
 | **`hzr_competing_risks()` with weights** | Not a hardening item: `hzr_competing_risks(time, event)` has no `weights` argument — the Aalen-Johansen/Greenwood recursion counts raw row tallies. Weighting is an unbuilt **feature** (weighted at-risk + event counts + weighted-Greenwood variance), not a latent bug. Scoped as feature 8a. | Feature → 8a |
-| **Weighted multiphase + covariates** | All weighted parity tests are intercept-only; covariate + weight combination untested | No test |
+| **Weighted multiphase + covariates** | Covariate-in-phase + weight combination exercised via integer-duplication parity | ✅ Tested (LL + gradient + fit, CoE on/off) |
 
 ---
 
