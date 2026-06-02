@@ -754,6 +754,36 @@ test_that("hzr_bootstrap uses stored weights when the original symbol is out of 
   expect_equal(bs$n_failed, 0)
 })
 
+test_that("hzr_bootstrap uses stored data frame when the original symbol is out of scope", {
+  # Robustness regression (sibling of the weights case): the resample setup
+  # re-evaluated the call's `data` expression via eval(cl$data, parent.frame()).
+  # If the original data symbol is no longer in scope at bootstrap time -- e.g.
+  # the entire fit was built inside a helper that has since returned -- that
+  # eval() failed and n_obs was malformed, so bootstrap errored before the loop.
+  # The fit now carries its evaluated model frame on object$data$frame, so the
+  # resample no longer depends on a caller-frame lookup of the data symbol.
+  set.seed(91)
+  n <- 80
+  # Build EVERYTHING inside local(): both the `data` (`bdf`) and `weights`
+  # (`bw`) symbols are gone by the time we bootstrap.
+  fit <- local({
+    bdf <- data.frame(
+      t  = stats::rexp(n, 0.1),
+      d  = stats::rbinom(n, 1, 0.6),
+      x1 = stats::rnorm(n)
+    )
+    bw <- stats::runif(n, 0.5, 2.0)
+    hazard(
+      survival::Surv(t, d) ~ x1,
+      data = bdf, weights = bw, dist = "weibull",
+      theta = c(mu = 0.05, nu = 0.8, 0), fit = TRUE
+    )
+  })
+  bs <- hzr_bootstrap(fit, n_boot = 10, fraction = 0.5, seed = 7)
+  expect_gt(bs$n_success, 0)
+  expect_equal(bs$n_failed, 0)
+})
+
 
 # =========================================================================
 # hzr_competing_risks tests

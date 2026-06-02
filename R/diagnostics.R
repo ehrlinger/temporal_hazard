@@ -1242,7 +1242,17 @@ hzr_bootstrap <- function(object, n_boot = 200L, fraction = 1.0,
 
   # Reconstruct the call components
   cl <- object$call
-  orig_data <- eval(cl$data, envir = parent.frame())
+  # Prefer the evaluated model frame stored on the fitted object: it is
+  # guaranteed available and needs no caller-frame lookup. Re-evaluating
+  # `cl$data` in `parent.frame()` is fragile -- the original `data` symbol may
+  # no longer be in scope (e.g. the fit was built inside a helper that has
+  # returned) -- so fall back to it only for objects fitted before the frame
+  # was stored on `object$data`.
+  orig_data <- if (!is.null(object$data$frame)) {
+    object$data$frame
+  } else {
+    eval(cl$data, envir = parent.frame())
+  }
   n_obs <- nrow(orig_data)
   sample_size <- max(1L, as.integer(n_obs * fraction))
 

@@ -493,7 +493,12 @@ hazard <- function(formula = NULL,
       time_upper = time_upper,
       status = as.numeric(status),
       x = x,
-      weights = weights
+      weights = weights,
+      # Evaluated model frame (formula path; NULL when called with raw vectors).
+      # Stored so refit-based tooling such as hzr_bootstrap() can re-run the
+      # original call without a caller-frame lookup of the `data` symbol, which
+      # fails when that symbol has gone out of scope.
+      frame = data
     ),
     fit = fit_state,
     legacy_args = list(...),
