@@ -1,5 +1,14 @@
 # TemporalHazard 1.1.0.9000 (development version)
 
+## New features
+
+* `predict.hazard(type = "cumulative_hazard", decompose = TRUE, se.fit = TRUE)`
+  now returns per-phase **and** total delta-method confidence limits for
+  multiphase models, as a long data frame
+  (`time`, `component`, `fit`, `se.fit`, `lower`, `upper`). Each phase's CL uses
+  only that phase's parameters, so per-phase limits do not sum to the total.
+  Previously this combination raised an error.
+
 ## Bug fixes
 
 * **`hzr_bootstrap()` was non-functional for weighted fits** (Phase 7c).

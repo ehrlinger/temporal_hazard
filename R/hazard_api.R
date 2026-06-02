@@ -534,17 +534,17 @@ hazard <- function(formula = NULL,
 #'   CLs are computed on the log-hazard / log-cumhaz scale and on the
 #'   log(-log(survival)) scale so lower/upper stay inside the valid range
 #'   of each prediction type; `linear_predictor` uses symmetric natural-scale
-#'   CLs.  Not compatible with `decompose = TRUE`.
+#'   CLs.
+#'   For multiphase models, `se.fit = TRUE` combines with `decompose = TRUE`
+#'   when `type = "cumulative_hazard"`: the result is a long data frame with one
+#'   row per prediction time and component (`component` in `"total"` plus each
+#'   phase name) and columns `fit`, `se.fit`, `lower`, `upper`. Per-phase CLs
+#'   use only that phase's parameters, so they do not sum to the total CL.
+#'   The combination is not available for `type = "survival"` (per-phase
+#'   survival is not additive).
 #' @param level Numeric confidence level in `(0, 1)`; default `0.95`.
 #'   Only used when `se.fit = TRUE`.
 #' @param ... Unused; included for S3 compatibility.
-#'
-#' @section Known limitations:
-#' `decompose = TRUE` and `se.fit = TRUE` cannot be used together.  The
-#' delta-method Jacobian has not yet been extended to per-phase contributions.
-#' To obtain confidence limits for a multiphase model, request point predictions
-#' first (`decompose = TRUE, se.fit = FALSE`), then separately request CLs on
-#' the total prediction (`decompose = FALSE, se.fit = TRUE`).
 #'
 #' @details
 #' For Weibull models with survival or cumulative_hazard predictions:
@@ -698,11 +698,11 @@ predict.hazard <- function(object, newdata = NULL,
           is.na(level) || level <= 0 || level >= 1) {
       stop("'level' must be a single number in (0, 1).", call. = FALSE)
     }
-    if (decompose) {
-      stop("'se.fit = TRUE' with 'decompose = TRUE' is not supported. ",
-           "Request point predictions first (decompose = TRUE, ",
-           "se.fit = FALSE), then compute CLs separately on the total.",
-           call. = FALSE)
+    if (decompose && object$spec$dist == "multiphase" &&
+          type != "cumulative_hazard") {
+      stop("'se.fit = TRUE' with 'decompose = TRUE' is only supported for ",
+           "type = \"cumulative_hazard\" (per-phase survival is not additive). ",
+           "Got type = \"", type, "\".", call. = FALSE)
     }
   }
 
@@ -859,6 +859,12 @@ predict.hazard <- function(object, newdata = NULL,
       }
 
       if (se.fit) {
+        if (decompose) {
+          return(.hzr_predict_with_se_decomposed( # nolint: object_usage_linter.
+            object = object, time = pred_time, x_list = x_list,
+            cov_counts = cov_counts, phases = phases, level = level
+          ))
+        }
         diff_fn <- function(th) {
           .hzr_multiphase_cumhaz(pred_time, th, phases, cov_counts, x_list)
         }
