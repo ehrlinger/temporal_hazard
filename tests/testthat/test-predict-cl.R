@@ -282,6 +282,36 @@ test_that(".hzr_free_vcov restricts to finite-diagonal free parameters", {
   expect_null(bad)
 })
 
+test_that(".hzr_predict_with_se_decomposed returns a tidy long frame", {
+  skip_on_cran()
+  df <- make_toy()
+  phases <- list(
+    early = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1, fixed = "shapes"),
+    constant = hzr_phase("constant")
+  )
+  fit <- hazard(survival::Surv(time, status) ~ 1, data = df,
+                dist = "multiphase", phases = phases, fit = TRUE,
+                control = list(n_starts = 2))
+  t_new <- c(0.5, 1, 2)
+  cov_counts <- c(early = 0L, constant = 0L)
+  x_list <- list(early = NULL, constant = NULL)
+
+  res <- TemporalHazard:::.hzr_predict_with_se_decomposed(
+    object = fit, time = t_new, x_list = x_list,
+    cov_counts = cov_counts, phases = phases, level = 0.95
+  )
+
+  expect_s3_class(res, "data.frame")
+  expect_named(res, c("time", "component", "fit", "se.fit", "lower", "upper"))
+  expect_equal(levels(res$component), c("total", "early", "constant"))
+  expect_equal(nrow(res), length(t_new) * 3L)  # total + 2 phases
+  # Monotone, non-negative CLs everywhere SEs are finite.
+  ok <- is.finite(res$se.fit)
+  expect_true(all(res$lower[ok] <= res$fit[ok] + 1e-9))
+  expect_true(all(res$fit[ok] <= res$upper[ok] + 1e-9))
+  expect_true(all(res$lower[ok] >= -1e-12))
+})
+
 # ---------------------------------------------------------------------------
 # (8) Backward compat: se.fit = FALSE reproduces the old scalar-vector return
 # ---------------------------------------------------------------------------

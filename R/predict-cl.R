@@ -449,3 +449,72 @@ NULL
     stop("Unknown prediction type '", type, "' for se.fit.", call. = FALSE)
   }
 }
+
+#' Per-phase + total cumulative-hazard predictions with delta-method CLs
+#'
+#' Long-format companion to [.hzr_predict_with_se()] for multiphase models under
+#' `decompose = TRUE`. Computes log-scale CLs for the total cumulative hazard
+#' and for each phase's additive contribution `H_j(t) = mu_j(x) Phi_j(t)`.
+#' Per-phase CLs use only that phase's parameter block, so they do NOT sum to
+#' the total CL (cross-phase covariance contributes only to the total).
+#'
+#' @param object Fitted multiphase `hazard` object.
+#' @param time Numeric prediction times (length n).
+#' @param x_list Named list of per-phase design matrices.
+#' @param cov_counts Named integer covariate counts.
+#' @param phases Named list of `hzr_phase` objects.
+#' @param level Confidence level.
+#' @return Long `data.frame(time, component, fit, se.fit, lower, upper)`;
+#'   `component` is an ordered factor with levels `c("total", names(phases))`.
+#' @keywords internal
+.hzr_predict_with_se_decomposed <- function(object, time, x_list,
+                                             cov_counts, phases,
+                                             level = 0.95) {
+  theta <- object$fit$theta
+  p <- length(theta)
+  components <- c("total", names(phases))
+
+  # Point estimates: total + per-phase cumulative hazard.
+  ph <- .hzr_multiphase_cumhaz(time, theta, phases, cov_counts, x_list,
+                               per_phase = TRUE)
+  fit_by_comp <- c(list(total = ph$total),
+                   stats::setNames(lapply(names(phases), function(nm) ph[[nm]]),
+                                   names(phases)))
+
+  make_long <- function(cl_list) {
+    rows <- lapply(components, function(cmp) {
+      data.frame(time = time, component = cmp,
+                 fit = cl_list[[cmp]]$fit, se.fit = cl_list[[cmp]]$se.fit,
+                 lower = cl_list[[cmp]]$lower, upper = cl_list[[cmp]]$upper,
+                 stringsAsFactors = FALSE)
+    })
+    res <- do.call(rbind, rows)
+    res$component <- factor(res$component, levels = components)
+    rownames(res) <- NULL
+    res
+  }
+
+  fv <- .hzr_free_vcov(object$fit$vcov, p)
+  if (is.null(fv)) {
+    na_cl <- lapply(components, function(cmp) {
+      n <- length(time)
+      data.frame(fit = fit_by_comp[[cmp]], se.fit = rep(NA_real_, n),
+                 lower = rep(NA_real_, n), upper = rep(NA_real_, n))
+    })
+    names(na_cl) <- components
+    return(make_long(na_cl))
+  }
+
+  # Per-phase Jacobians; the total is their sum.
+  J_list <- .hzr_predict_jacobian_multiphase(theta, time, phases, cov_counts,
+                                             x_list, p, per_phase = TRUE)
+  J_by_comp <- c(list(total = Reduce(`+`, J_list)), J_list)
+
+  cl_list <- lapply(components, function(cmp) {
+    J <- J_by_comp[[cmp]][, fv$free_idx, drop = FALSE]
+    se <- .hzr_predict_se_from_jacobian(J, fv$vcov_use)
+    .hzr_predict_cl_from_se(fit_by_comp[[cmp]], se, level, "log")
+  })
+  names(cl_list) <- components
+  make_long(cl_list)
+}
