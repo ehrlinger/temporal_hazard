@@ -37,9 +37,13 @@ NULL
 #'   rep(-Inf, p_cov))} for Weibull so that covariate betas are unconstrained).
 #' @param hessian_fn Optional function(theta) returning the Hessian of the
 #'   negative log-likelihood at \code{theta} (same scale as
-#'   \code{numDeriv::hessian(objective)}).  When it returns a matrix, that matrix
-#'   is used for standard errors; when \code{NULL} (the default) or when the
-#'   function returns \code{NULL}, a numerical Hessian is used instead.
+#'   \code{numDeriv::hessian(objective)}).  When it returns a conformant square
+#'   matrix (dimension equal to the number of parameters), that matrix is used
+#'   for standard errors.  The numerical Hessian is used instead when
+#'   \code{hessian_fn} is \code{NULL} (the default), when the function returns
+#'   \code{NULL} (e.g. a censoring branch it does not cover analytically), or
+#'   when it errors.  A non-NULL, non-conformant return raises a warning and
+#'   also falls back to the numerical Hessian.
 #'
 #' @return List with par, value (log-likelihood), convergence, counts, message,
 #'   hessian, vcov.
