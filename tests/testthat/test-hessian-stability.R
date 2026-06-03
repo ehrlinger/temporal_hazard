@@ -45,3 +45,18 @@ test_that("summary prints a note when the fit is flagged ill-conditioned", {
   out <- capture.output(print(s))
   expect_true(any(grepl("ill-conditioned", out)))
 })
+
+test_that("summary prints a note when the fit is not positive-definite", {
+  s <- summary(structure(
+    list(spec = list(dist = "weibull", phases = NULL),
+         engine = "test",
+         fit = list(theta = c(a = 1), vcov = matrix(1, 1, 1),
+                    converged = TRUE, objective = -1,
+                    rcond = 0.5, pd = FALSE),
+         data = list(time = 1:5, x = NULL),
+         call = quote(hazard())),
+    class = "hazard"))
+  out <- capture.output(print(s))
+  expect_true(any(grepl("not positive-definite", out)))
+  expect_false(any(grepl("ill-conditioned", out)))  # rcond=0.5 is healthy
+})
