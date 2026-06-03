@@ -61,9 +61,11 @@ NULL
 #' matrix is attached as \code{"hessian"}.
 #'
 #' @details
-#' The Weibull hazard model is parameterized as:
+#' The Weibull hazard model is parameterized via its cumulative hazard
+#' \eqn{H(t | x) = (\mu t)^{\nu} \exp(\eta)}, so the hazard is its exact
+#' derivative:
 #'
-#' \deqn{h(t | x) = \mu \nu t^{\nu-1} \exp(\eta)}
+#' \deqn{h(t | x) = \nu \mu^{\nu} t^{\nu-1} \exp(\eta) = (\nu / t)\, H(t | x)}
 #'
 #' where:
 #' - \eqn{\mu > 0} is scale (MU)
@@ -237,10 +239,12 @@ NULL
 #' The log-likelihood is:
 #'   L = sum(delta_i * log h(t_i)) - sum(H(t_i))
 #'
-#' where h is hazard and H is cumulative hazard. Derivatives are:
+#' where h(t) = nu * mu^nu * t^(nu-1) * exp(eta) and H(t) = (mu*t)^nu * exp(eta)
+#' (so log h = log(nu) + nu*log(mu) + (nu-1)*log(t) + eta). Derivatives are:
 #'
-#' dL/dmu  = sum(delta_i / mu) - (nu / mu) * sum(H(t_i))
-#' dL/dnu  = sum(delta_i / nu) + sum(delta_i * log(t_i)) - sum(log(mu * t_i) * H(t_i))
+#' dL/dmu  = (nu / mu) * sum(delta_i) - (nu / mu) * sum(H(t_i))
+#' dL/dnu  = sum(delta_i / nu) + sum(delta_i) * log(mu) + sum(delta_i * log(t_i))
+#'           - sum(log(mu * t_i) * H(t_i))
 #' dL/dbeta_j = sum(delta_i * x_ij) - sum(H(t_i) * x_ij)  = t(X) %*% (delta - H)
 #'
 #' @noRd
