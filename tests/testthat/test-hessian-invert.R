@@ -65,6 +65,34 @@ test_that("explicit tol drives the ill-conditioned threshold", {
   expect_warning(.hzr_safe_solve(H, tol = 0.5), "ill-conditioned")  # above rcond: warns
 })
 
+test_that(".hzr_optim_generic uses a supplied analytic hessian_fn", {
+  set.seed(1)
+  time <- rexp(100, rate = 0.5); status <- rep(1L, 100)
+  marker <- matrix(42, 1, 1)
+  res <- .hzr_optim_generic(
+    logl_fn = .hzr_logl_exponential, gradient_fn = .hzr_gradient_exponential,
+    time = time, status = status, x = NULL, theta_start = c(log_rate = 0),
+    control = list(maxit = 200, reltol = 1e-8, abstol = 1e-8),
+    hessian_fn = function(par) marker
+  )
+  expect_equal(unname(res$hessian), unname(marker))
+  expect_equal(unname(res$vcov), solve(marker), tolerance = 1e-10)
+})
+
+test_that(".hzr_optim_generic falls back to numDeriv when hessian_fn returns NULL", {
+  skip_if_not_installed("numDeriv")
+  set.seed(1)
+  time <- rexp(100, rate = 0.5); status <- rep(1L, 100)
+  res <- .hzr_optim_generic(
+    logl_fn = .hzr_logl_exponential, gradient_fn = .hzr_gradient_exponential,
+    time = time, status = status, x = NULL, theta_start = c(log_rate = 0),
+    control = list(maxit = 200, reltol = 1e-8, abstol = 1e-8),
+    hessian_fn = function(par) NULL
+  )
+  expect_true(is.matrix(res$hessian) && is.finite(res$hessian[1, 1]))
+  expect_true(isTRUE(res$pd))
+})
+
 test_that(".hzr_optim_generic returns rcond and pd diagnostics", {
   skip_if_not_installed("numDeriv")
   set.seed(1)
