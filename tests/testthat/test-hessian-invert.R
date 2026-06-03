@@ -53,6 +53,7 @@ test_that("explicit tol drives the ill-conditioned threshold", {
 })
 
 test_that(".hzr_optim_generic returns rcond and pd diagnostics", {
+  skip_if_not_installed("numDeriv")
   set.seed(1)
   n <- 200L
   time <- rexp(n, rate = 0.5)
