@@ -91,7 +91,7 @@
   inversion layer; analytic Hessians (more accurate standard errors) follow
   in subsequent releases.
 
-## New features
+## Documentation
 
 * `vignette("fitting-hazard-models")` gains an **Interval and left censoring**
   section covering: status coding reference (`-1`/`0`/`1`/`2`), a cardiac
