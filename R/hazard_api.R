@@ -74,6 +74,10 @@ NULL
 #' @details
 #' Control parameters:
 #' - `maxit`: Maximum iterations (default 1000)
+#' - `n_starts`: Number of optimization starts for multiphase fits (default 5).
+#'   Starts after the first perturb the initial values with random noise drawn
+#'   from the ambient RNG stream; call `set.seed()` before fitting for
+#'   reproducible results.
 #' - `reltol`: Relative parameter change tolerance (default 1e-5)
 #' - `abstol`: Absolute gradient norm tolerance (default 1e-6)
 #' - `method`: Optimization method: "bfgs" or "nm" (default "bfgs")

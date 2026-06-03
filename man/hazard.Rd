@@ -88,6 +88,10 @@ optimize to produce fitted estimates.
 Control parameters:
 \itemize{
 \item \code{maxit}: Maximum iterations (default 1000)
+\item \code{n_starts}: Number of optimization starts for multiphase fits (default 5).
+Starts after the first perturb the initial values with random noise drawn
+from the ambient RNG stream; call \code{set.seed()} before fitting for
+reproducible results.
 \item \code{reltol}: Relative parameter change tolerance (default 1e-5)
 \item \code{abstol}: Absolute gradient norm tolerance (default 1e-6)
 \item \code{method}: Optimization method: "bfgs" or "nm" (default "bfgs")
