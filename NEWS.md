@@ -77,7 +77,21 @@
   `g = dG/dt` internal consistency, CDF sanity, and stability at extreme
   `t_half`.
 
-## New features
+## Improvements
+
+* **Hardened Hessian inversion for standard errors (Phase 7c).**
+  Post-fit variance-covariance estimation now symmetrizes the Hessian,
+  checks its reciprocal condition number, inverts via Cholesky with a
+  `solve()` fallback for non-positive-definite Hessians, and guards
+  non-positive variances instead of silently emitting `NaN` standard
+  errors. Ill-conditioned, non-positive-definite, and non-finite Hessians
+  now raise specific, named warnings, and fits carry `rcond` / `pd`
+  diagnostics that `summary()` surfaces as a note when a fit is flagged.
+  This closes the "12+-parameter Hessian stability" hardening item for the
+  inversion layer; analytic Hessians (more accurate standard errors) follow
+  in subsequent releases.
+
+## Documentation
 
 * `vignette("fitting-hazard-models")` gains an **Interval and left censoring**
   section covering: status coding reference (`-1`/`0`/`1`/`2`), a cardiac

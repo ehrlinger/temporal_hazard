@@ -446,6 +446,8 @@ hazard <- function(formula = NULL,
     fit_state$converged <- (optim_result$convergence == 0)
     fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
     fit_state$vcov <- optim_result$vcov
+    fit_state$rcond <- optim_result$rcond
+    fit_state$pd <- optim_result$pd
     fit_state$counts <- optim_result$counts
     fit_state$message <- optim_result$message
     # Store optimizer metadata for predict/summary
@@ -476,6 +478,8 @@ hazard <- function(formula = NULL,
     fit_state$converged <- (optim_result$convergence == 0)
     fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
     fit_state$vcov <- optim_result$vcov
+    fit_state$rcond <- optim_result$rcond
+    fit_state$pd <- optim_result$pd
     fit_state$counts <- optim_result$counts
     fit_state$message <- optim_result$message
   }
@@ -1134,6 +1138,8 @@ summary.hazard <- function(object, ...) {
     message = object$fit$message,
     coefficients = coef_table,
     has_vcov = !is.null(vcov_mat) && is.matrix(vcov_mat),
+    rcond = object$fit$rcond,
+    pd = object$fit$pd,
     phases = object$spec$phases
   )
 
@@ -1145,7 +1151,9 @@ summary.hazard <- function(object, ...) {
 #'
 #' Formatted console display of [summary.hazard()] output: distribution,
 #' phase list (for multiphase), coefficient table with standard errors,
-#' and log-likelihood.  S3 dispatch only -- users call `print(summary(fit))`
+#' and log-likelihood.  When the post-fit Hessian is ill-conditioned or not
+#' positive-definite, a note is printed warning that the standard errors may
+#' be unreliable.  S3 dispatch only -- users call `print(summary(fit))`
 #' rather than invoking this directly.
 #'
 #' @param x A `summary.hazard` object returned by [summary.hazard()].
@@ -1183,6 +1191,15 @@ print.summary.hazard <- function(x, ...) {
   }
   if (!is.null(x$log_lik) && !is.na(x$log_lik)) {
     cat("  log-lik:     ", format(x$log_lik, digits = 6), "\n")
+  }
+  if (!is.null(x$rcond) && !is.na(x$rcond) && x$rcond < .hzr_rcond_tol) {
+    cat("  Note: Hessian ill-conditioned (rcond = ",
+        format(x$rcond, digits = 3),
+        "); standard errors may be unreliable.\n", sep = "")
+  }
+  if (!is.null(x$pd) && !is.na(x$pd) && !isTRUE(x$pd)) {
+    cat("  Note: Hessian not positive-definite at the optimum; ",
+        "standard errors may be unreliable.\n", sep = "")
   }
   if (!is.null(x$counts)) {
     fn_count <- x$counts[["function"]] %||% x$counts[["fn"]] %||% NA_integer_
