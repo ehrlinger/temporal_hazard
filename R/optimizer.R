@@ -138,6 +138,14 @@ NULL
   hess_result <- NULL
   if (!is.null(hessian_fn)) {
     hess_result <- tryCatch(hessian_fn(result$par), error = function(e) NULL)
+    # A non-NULL hook result must be a square matrix matching the parameter
+    # dimension; a misbehaving hook should not silently produce a wrong vcov.
+    p_dim <- length(result$par)
+    if (!is.null(hess_result) &&
+        !(is.matrix(hess_result) && all(dim(hess_result) == p_dim))) {
+      warning("hessian_fn returned a non-conformant result; using numerical Hessian")
+      hess_result <- NULL
+    }
   }
   if (is.null(hess_result)) {
     hess_result <- tryCatch(

@@ -93,6 +93,24 @@ test_that(".hzr_optim_generic falls back to numDeriv when hessian_fn returns NUL
   expect_true(isTRUE(res$pd))
 })
 
+test_that(".hzr_optim_generic warns and falls back on a non-conformant hessian_fn", {
+  skip_if_not_installed("numDeriv")
+  set.seed(1)
+  time <- rexp(100, rate = 0.5); status <- rep(1L, 100)
+  # Wrong dimension (2x2 for a 1-parameter fit) -> warn + numerical fallback.
+  expect_warning(
+    res <- .hzr_optim_generic(
+      logl_fn = .hzr_logl_exponential, gradient_fn = .hzr_gradient_exponential,
+      time = time, status = status, x = NULL, theta_start = c(log_rate = 0),
+      control = list(maxit = 200, reltol = 1e-8, abstol = 1e-8),
+      hessian_fn = function(par) matrix(1, 2, 2)
+    ),
+    "non-conformant"
+  )
+  expect_true(is.matrix(res$hessian) && all(dim(res$hessian) == 1L))
+  expect_true(isTRUE(res$pd))
+})
+
 test_that(".hzr_optim_generic returns rcond and pd diagnostics", {
   skip_if_not_installed("numDeriv")
   set.seed(1)
