@@ -57,8 +57,8 @@ test_that("exponential fit vcov uses the analytic Hessian (matches numDeriv)", {
 test_that("exponential SEs are invariant to covariate rescaling", {
   set.seed(6)
   n <- 600
-  z <- rnorm(n, mean = 50, sd = 10)
-  time <- rexp(n, rate = exp(log(0.3) + 0.02 * (z - 50)))
+  z <- rnorm(n, mean = 0, sd = 1)   # centered -> well-conditioned design
+  time <- rexp(n, rate = exp(log(0.3) + 0.5 * z))
   status <- rbinom(n, 1, 0.9)
   f1 <- hazard(survival::Surv(time, status) ~ z,
                data = data.frame(time, status, z = z),
@@ -68,7 +68,7 @@ test_that("exponential SEs are invariant to covariate rescaling", {
                dist = "exponential", theta = c(log_rate = 0, z = 0), fit = TRUE)
   se1 <- sqrt(diag(f1$fit$vcov)); se2 <- sqrt(diag(f2$fit$vcov))
   # log_rate SE is invariant to covariate rescaling.
-  expect_equal(unname(se1[1]), unname(se2[1]), tolerance = 1e-2)
+  expect_equal(unname(se1[1]), unname(se2[1]), tolerance = 1e-3)
   # The beta z-statistic is invariant under x -> x / 100.
   z1 <- unname(f1$fit$theta[2] / se1[2])
   z2 <- unname(f2$fit$theta[2] / se2[2])
