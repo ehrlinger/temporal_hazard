@@ -215,6 +215,7 @@ NULL
     grad <- .hzr_gradient_weibull(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper, x = x,
+      weights = weights,
       eta = eta, cumhaz = cumhaz_event, haz = haz_event,
       mu = mu, nu = nu, n_shape = n_shape
     )
