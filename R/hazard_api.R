@@ -442,6 +442,8 @@ hazard <- function(formula = NULL,
     fit_state$converged <- (optim_result$convergence == 0)
     fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
     fit_state$vcov <- optim_result$vcov
+    fit_state$rcond <- optim_result$rcond
+    fit_state$pd <- optim_result$pd
     fit_state$counts <- optim_result$counts
     fit_state$message <- optim_result$message
     # Store optimizer metadata for predict/summary
@@ -472,6 +474,8 @@ hazard <- function(formula = NULL,
     fit_state$converged <- (optim_result$convergence == 0)
     fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
     fit_state$vcov <- optim_result$vcov
+    fit_state$rcond <- optim_result$rcond
+    fit_state$pd <- optim_result$pd
     fit_state$counts <- optim_result$counts
     fit_state$message <- optim_result$message
   }
