@@ -45,3 +45,9 @@ test_that("scalar / non-matrix input is handled as non-finite", {
   expect_warning(res <- .hzr_safe_solve(NA), "non-finite")
   expect_true(all(is.na(res$vcov)))
 })
+
+test_that("explicit tol drives the ill-conditioned threshold", {
+  H <- matrix(c(4, 1, 1, 3), 2, 2)        # well-conditioned (rcond ~ 0.4)
+  expect_silent(.hzr_safe_solve(H, tol = 1e-8))      # below rcond: no warning
+  expect_warning(.hzr_safe_solve(H, tol = 0.5), "ill-conditioned")  # above rcond: warns
+})
