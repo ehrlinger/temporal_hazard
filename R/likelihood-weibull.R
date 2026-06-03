@@ -8,8 +8,8 @@ NULL
 # -----
 # Proportional-hazards (PH) parameterization:
 #
-#   h(t | x)  = mu nu t^(nu-1) exp(eta)         hazard
 #   H(t | x)  = (mu t)^nu exp(eta)              cumulative hazard
+#   h(t | x)  = nu mu^nu t^(nu-1) exp(eta)      hazard = dH/dt = (nu/t) H
 #   S(t | x)  = exp(-H(t | x))              survival
 #
 # where mu > 0 (scale), nu > 0 (shape), eta = x beta (linear predictor).
