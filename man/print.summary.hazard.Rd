@@ -18,8 +18,9 @@
 Formatted console display of \code{\link[=summary.hazard]{summary.hazard()}} output: distribution,
 phase list (for multiphase), coefficient table with standard errors,
 and log-likelihood.  When the post-fit Hessian is ill-conditioned or not
-positive-definite, a note is printed warning that the standard errors may
-be unreliable.  S3 dispatch only -- users call \code{print(summary(fit))}
+positive-definite, a note warns that the standard errors may be unreliable;
+when the Hessian could not be inverted at all, a note reports that standard
+errors are unavailable.  S3 dispatch only -- users call \code{print(summary(fit))}
 rather than invoking this directly.
 }
 \keyword{internal}

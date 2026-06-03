@@ -410,8 +410,11 @@ hazard <- function(formula = NULL,
       expr,
       warning = function(w) {
         msg <- conditionMessage(w)
-        if (grepl("NaNs produced", msg, fixed = TRUE) ||
-            grepl("Hessian not invertible; standard errors unavailable", msg, fixed = TRUE)) {
+        # Muffle only benign numerical noise from optim().  The hardened-inversion
+        # diagnostics (ill-conditioned / not positive-definite / not invertible /
+        # non-finite) are deliberately allowed to surface so a fit that cannot
+        # produce reliable standard errors is never silent.
+        if (grepl("NaNs produced", msg, fixed = TRUE)) {
           invokeRestart("muffleWarning")
         }
       }
@@ -1152,8 +1155,9 @@ summary.hazard <- function(object, ...) {
 #' Formatted console display of [summary.hazard()] output: distribution,
 #' phase list (for multiphase), coefficient table with standard errors,
 #' and log-likelihood.  When the post-fit Hessian is ill-conditioned or not
-#' positive-definite, a note is printed warning that the standard errors may
-#' be unreliable.  S3 dispatch only -- users call `print(summary(fit))`
+#' positive-definite, a note warns that the standard errors may be unreliable;
+#' when the Hessian could not be inverted at all, a note reports that standard
+#' errors are unavailable.  S3 dispatch only -- users call `print(summary(fit))`
 #' rather than invoking this directly.
 #'
 #' @param x A `summary.hazard` object returned by [summary.hazard()].
@@ -1200,6 +1204,10 @@ print.summary.hazard <- function(x, ...) {
   if (!is.null(x$pd) && !is.na(x$pd) && !isTRUE(x$pd)) {
     cat("  Note: Hessian not positive-definite at the optimum; ",
         "standard errors may be unreliable.\n", sep = "")
+  }
+  if (!is.null(x$converged) && !is.na(x$converged) && !isTRUE(x$has_vcov)) {
+    cat("  Note: standard errors unavailable; the Hessian could not be ",
+        "inverted at the optimum.\n", sep = "")
   }
   if (!is.null(x$counts)) {
     fn_count <- x$counts[["function"]] %||% x$counts[["fn"]] %||% NA_integer_

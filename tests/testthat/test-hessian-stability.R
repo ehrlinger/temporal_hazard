@@ -104,3 +104,28 @@ test_that("13-parameter multiphase deciles fit is stable (anchor)", {
   expect_true(all(se > 0))                    # positive variances
   expect_true(is.finite(fit$fit$rcond))       # conditioning was measured
 })
+
+test_that("summary reports when standard errors are unavailable", {
+  # A fitted object whose Hessian could not be inverted: vcov is NA (scalar),
+  # so has_vcov is FALSE while converged is TRUE.
+  s <- summary(structure(
+    list(spec = list(dist = "weibull", phases = NULL),
+         engine = "test",
+         fit = list(theta = c(a = 1), vcov = NA,
+                    converged = TRUE, objective = -1,
+                    rcond = NA_real_, pd = NA),
+         data = list(time = 1:5, x = NULL),
+         call = quote(hazard())),
+    class = "hazard"))
+  out <- capture.output(print(s))
+  expect_true(any(grepl("standard errors unavailable", out)))
+})
+
+test_that("clean fit reports no standard-errors-unavailable note", {
+  set.seed(7)
+  dat <- data.frame(t = rweibull(250, 1.4, 3), d = rep(1L, 250))
+  fit <- hazard(survival::Surv(t, d) ~ 1, data = dat, dist = "weibull",
+                fit = TRUE, theta = c(mu = 1, nu = 1))
+  out <- capture.output(print(summary(fit)))
+  expect_false(any(grepl("standard errors unavailable", out)))
+})
