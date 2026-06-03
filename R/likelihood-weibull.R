@@ -140,7 +140,10 @@ NULL
   }
 
   # Event-time hazard/cumulative-hazard (exact events only).
-  haz_event <- mu * nu * (time ^ (nu - 1)) * exp(eta)
+  # Hazard is the exact derivative of the cumulative hazard H = (mu t)^nu e^eta:
+  #   h = dH/dt = nu * mu^nu * t^(nu-1) * e^eta = (nu / t) * H
+  # (Form A, matching the C/SAS HAZARD reference where HF = MU * dG/dt.)
+  haz_event <- nu * mu ^ nu * (time ^ (nu - 1)) * exp(eta)
   cumhaz_event <- (mu * time) ^ nu * exp(eta)
 
   # Lower/upper cumulative hazards for censoring contributions.
@@ -284,7 +287,7 @@ NULL
       eta <- rep(0, n)
     }
 
-    haz <- mu * nu * (time ^ (nu - 1)) * exp(eta)
+    haz <- nu * mu ^ nu * (time ^ (nu - 1)) * exp(eta)
     cumhaz <- (mu * time) ^ nu * exp(eta)
   }
 
@@ -305,17 +308,22 @@ NULL
   w_cumhaz_net <- weights * (cumhaz - cumhaz_start)
 
   # ===== Gradient w.r.t. mu (scale parameter) =====
-  # dH(t)/dmu = (nu / mu) * H(t), so dL/dmu picks up a matching
-  # contribution at start: -(nu/mu) * (H(stop) - H(start)).
-  grad[1] <- sum(w_status) / mu - (nu / mu) * sum(w_cumhaz_net)
+  # log h = log(nu) + nu*log(mu) + (nu-1)*log(t) + eta, so the event term
+  # contributes d log h/dmu = nu/mu.  dH(t)/dmu = (nu / mu) * H(t), so the
+  # cumulative term subtracts -(nu/mu) * (H(stop) - H(start)).
+  grad[1] <- (nu / mu) * (sum(w_status) - sum(w_cumhaz_net))
 
   # ===== Gradient w.r.t. nu (shape parameter) =====
   # dH(t)/dnu = log(mu*t) * H(t).  When start = 0, H(start) = 0 and the
   # log(mu*start) term is undefined; `ifelse` picks the well-defined 0
   # limit there.
+  # log h = log(nu) + nu*log(mu) + (nu-1)*log(t) + eta, so the event term
+  # contributes d log h/dnu = 1/nu + log(mu) + log(t); the log(mu) piece is
+  # constant across rows.
   log_mu_start <- ifelse(start_vec > 0, log(mu * start_vec), 0)
   d_nu_start <- weights * log_mu_start * cumhaz_start
   grad[2] <- sum(w_status) / nu +
+             sum(w_status) * log(mu) +
              sum(w_status * log(time)) -
              (sum(log(mu * time) * weights * cumhaz) - sum(d_nu_start))
 
