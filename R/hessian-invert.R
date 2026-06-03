@@ -57,6 +57,7 @@ NULL
       warning("Hessian not invertible; standard errors unavailable")
       return(list(vcov = NA, rcond = rc, pd = NA))
     }
+    warning("Hessian is not positive-definite at the optimum; standard errors may be unreliable")
   }
   dimnames(vcov) <- dimnames(H)  # chol2inv() drops names
 

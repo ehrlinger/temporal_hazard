@@ -28,10 +28,23 @@ test_that("non-PD Hessian falls back to solve and reports pd = FALSE", {
 })
 
 test_that("non-positive variance diagonals are NA'd with a warning", {
-  # Indefinite matrix whose inverse has a negative diagonal entry.
+  # Indefinite matrix whose inverse has a negative diagonal entry. A non-PD
+  # Hessian emits both the positive-definiteness and the non-positive-variance
+  # warning, so capture all warnings rather than matching a single one.
   H <- matrix(c(1, 2, 2, 1), 2, 2)
-  expect_warning(res <- .hzr_safe_solve(H), "[Nn]on-positive variance")
+  w <- testthat::capture_warnings(res <- .hzr_safe_solve(H))
+  expect_true(any(grepl("[Nn]on-positive variance", w)))
   expect_true(any(is.na(diag(res$vcov))))
+})
+
+test_that("non-PD Hessian with positive inverse-variances warns about positive-definiteness", {
+  # Indefinite (eigenvalues +1, -3) but the inverse diagonal is +1/3 on both
+  # entries, so the non-positive-variance guard does NOT fire -- this isolates
+  # the positive-definiteness warning on its own.
+  H <- matrix(c(-1, 2, 2, -1), 2, 2)
+  expect_warning(res <- .hzr_safe_solve(H), "positive-definite")
+  expect_false(res$pd)
+  expect_true(all(diag(res$vcov) > 0))
 })
 
 test_that("non-finite Hessian returns NA vcov with a warning", {
