@@ -1134,6 +1134,8 @@ summary.hazard <- function(object, ...) {
     message = object$fit$message,
     coefficients = coef_table,
     has_vcov = !is.null(vcov_mat) && is.matrix(vcov_mat),
+    rcond = object$fit$rcond,
+    pd = object$fit$pd,
     phases = object$spec$phases
   )
 
@@ -1183,6 +1185,15 @@ print.summary.hazard <- function(x, ...) {
   }
   if (!is.null(x$log_lik) && !is.na(x$log_lik)) {
     cat("  log-lik:     ", format(x$log_lik, digits = 6), "\n")
+  }
+  if (!is.null(x$rcond) && !is.na(x$rcond) && x$rcond < .hzr_rcond_tol) {
+    cat("  Note: Hessian ill-conditioned (rcond = ",
+        format(x$rcond, digits = 3),
+        "); standard errors may be unreliable.\n", sep = "")
+  }
+  if (!is.null(x$pd) && !is.na(x$pd) && !isTRUE(x$pd)) {
+    cat("  Note: Hessian not positive-definite at the optimum; ",
+        "standard errors may be unreliable.\n", sep = "")
   }
   if (!is.null(x$counts)) {
     fn_count <- x$counts[["function"]] %||% x$counts[["fn"]] %||% NA_integer_

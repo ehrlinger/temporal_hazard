@@ -22,3 +22,26 @@ test_that("fit object carries rcond and pd diagnostics (multiphase)", {
   expect_true(is.finite(fit$fit$rcond))
   expect_false(is.null(fit$fit$pd))
 })
+
+test_that("summary prints no Hessian note for a clean fit", {
+  set.seed(3)
+  dat <- data.frame(t = rweibull(250, 1.4, 3), d = rep(1L, 250))
+  fit <- hazard(survival::Surv(t, d) ~ 1, data = dat, dist = "weibull",
+                fit = TRUE, theta = c(mu = 1, nu = 1))
+  out <- capture.output(print(summary(fit)))
+  expect_false(any(grepl("ill-conditioned|not positive-definite", out)))
+})
+
+test_that("summary prints a note when the fit is flagged ill-conditioned", {
+  s <- summary(structure(
+    list(spec = list(dist = "weibull", phases = NULL),
+         engine = "test",
+         fit = list(theta = c(a = 1), vcov = matrix(1, 1, 1),
+                    converged = TRUE, objective = -1,
+                    rcond = 1e-12, pd = TRUE),
+         data = list(time = 1:5, x = NULL),
+         call = quote(hazard())),
+    class = "hazard"))
+  out <- capture.output(print(s))
+  expect_true(any(grepl("ill-conditioned", out)))
+})
