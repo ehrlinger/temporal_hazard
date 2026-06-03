@@ -83,3 +83,13 @@ test_that(".hzr_optim_generic returns rcond and pd diagnostics", {
   expect_true(isTRUE(res$pd))
   expect_true(is.matrix(res$vcov) && all(is.finite(diag(res$vcov))))
 })
+
+test_that("singular Hessian (chol and solve both fail) warns 'not invertible'", {
+  # Rank-deficient PSD matrix: chol() fails (not PD) and solve() fails
+  # (singular), so the helper takes the not-invertible path.
+  H <- matrix(c(1, 1, 1, 1), 2, 2)
+  w <- testthat::capture_warnings(res <- .hzr_safe_solve(H))
+  expect_true(any(grepl("not invertible", w)))
+  expect_true(all(is.na(res$vcov)))
+  expect_true(is.na(res$pd))
+})
