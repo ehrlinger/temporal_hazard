@@ -138,16 +138,11 @@ NULL
     error = function(e) NA
   )
 
-  vcov <- if (!anyNA(hess_result)) {
-    tryCatch(
-      solve(hess_result),
-      error = function(e) {
-        warning("Hessian not invertible; standard errors unavailable")
-        NA
-      }
-    )
+  # Hardened inversion + conditioning diagnostics (Layer 1).
+  inv <- if (is.matrix(hess_result)) {
+    .hzr_safe_solve(hess_result)
   } else {
-    NA
+    list(vcov = NA, rcond = NA_real_, pd = NA)
   }
 
   list(
@@ -157,6 +152,8 @@ NULL
     counts = result$counts,
     message = result$message,
     hessian = hess_result,
-    vcov = vcov
+    vcov = inv$vcov,
+    rcond = inv$rcond,
+    pd = inv$pd
   )
 }

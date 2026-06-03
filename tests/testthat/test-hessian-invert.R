@@ -51,3 +51,21 @@ test_that("explicit tol drives the ill-conditioned threshold", {
   expect_silent(.hzr_safe_solve(H, tol = 1e-8))      # below rcond: no warning
   expect_warning(.hzr_safe_solve(H, tol = 0.5), "ill-conditioned")  # above rcond: warns
 })
+
+test_that(".hzr_optim_generic returns rcond and pd diagnostics", {
+  set.seed(1)
+  n <- 200L
+  time <- rexp(n, rate = 0.5)
+  status <- rep(1L, n)
+  res <- .hzr_optim_generic(
+    logl_fn = .hzr_logl_exponential,
+    gradient_fn = .hzr_gradient_exponential,
+    time = time, status = status,
+    x = NULL, theta_start = c(log_rate = 0),
+    control = list(maxit = 200, reltol = 1e-8, abstol = 1e-8),
+    use_bounds = FALSE
+  )
+  expect_true(is.finite(res$rcond))
+  expect_true(isTRUE(res$pd))
+  expect_true(is.matrix(res$vcov) && all(is.finite(diag(res$vcov))))
+})
