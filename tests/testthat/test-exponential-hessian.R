@@ -36,3 +36,41 @@ test_that(".hzr_hessian_exponential returns NULL for left/interval censoring", {
   expect_null(.hzr_hessian_exponential(c(log_rate = 0), time, status2,
                                        time_upper = tu, x = NULL))
 })
+
+test_that("exponential fit vcov uses the analytic Hessian (matches numDeriv)", {
+  skip_if_not_installed("numDeriv")
+  set.seed(5)
+  n <- 500
+  z <- rnorm(n)
+  time <- rexp(n, rate = exp(log(0.4) + 0.6 * z)); status <- rbinom(n, 1, 0.85)
+  fit <- hazard(
+    survival::Surv(time, status) ~ z,
+    data = data.frame(time, status, z),
+    dist = "exponential", theta = c(log_rate = 0, z = 0), fit = TRUE
+  )
+  obj <- function(par) -.hzr_logl_exponential(par, time, status, x = cbind(z))
+  v_nd <- solve(numDeriv::hessian(obj, fit$fit$theta))
+  expect_equal(unname(fit$fit$vcov), unname(v_nd), tolerance = 1e-4)
+  expect_true(isTRUE(fit$fit$pd))
+})
+
+test_that("exponential SEs are invariant to covariate rescaling", {
+  set.seed(6)
+  n <- 600
+  z <- rnorm(n, mean = 50, sd = 10)
+  time <- rexp(n, rate = exp(log(0.3) + 0.02 * (z - 50)))
+  status <- rbinom(n, 1, 0.9)
+  f1 <- hazard(survival::Surv(time, status) ~ z,
+               data = data.frame(time, status, z = z),
+               dist = "exponential", theta = c(log_rate = 0, z = 0), fit = TRUE)
+  f2 <- hazard(survival::Surv(time, status) ~ z,
+               data = data.frame(time, status, z = z / 100),
+               dist = "exponential", theta = c(log_rate = 0, z = 0), fit = TRUE)
+  se1 <- sqrt(diag(f1$fit$vcov)); se2 <- sqrt(diag(f2$fit$vcov))
+  # log_rate SE is invariant to covariate rescaling.
+  expect_equal(unname(se1[1]), unname(se2[1]), tolerance = 1e-2)
+  # The beta z-statistic is invariant under x -> x / 100.
+  z1 <- unname(f1$fit$theta[2] / se1[2])
+  z2 <- unname(f2$fit$theta[2] / se2[2])
+  expect_equal(z1, z2, tolerance = 1e-2)
+})
