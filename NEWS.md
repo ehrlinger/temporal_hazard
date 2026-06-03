@@ -22,6 +22,14 @@
   **mixed event + interval/left-censored Weibull fits**, which delegate to this
   likelihood and previously optimized a slightly mis-specified event term.
 
+* **Weibull gradient attribute ignored observation weights.**
+  `.hzr_logl_weibull(..., return_gradient = TRUE)` attached an unweighted
+  gradient even when `weights` were supplied (the analytic gradient was off by
+  the weight scale, e.g. halved under `weights = 2`). `weights` is now forwarded
+  to the score computation. The model-fitting path was unaffected (it uses a
+  separate internal weighted gradient); this only changes callers reading the
+  `return_gradient = TRUE` attribute on weighted data.
+
 * **`hzr_bootstrap()` was non-functional for weighted fits** (Phase 7c).
   The resample loop rewired only `data` in the refit call, leaving the
   original `weights` argument bound to a symbol in the *caller's* frame.
