@@ -525,7 +525,7 @@ or known numerical gaps. Priority order for investigation:
 | **`hzr_bootstrap()` with weights** | Non-unit weights path through bootstrap resampling untested | No test |
 | **`predict(..., decompose=TRUE, se.fit=TRUE)`** | Currently blocked with clean error — delta-method Jacobian needs per-phase extension | Blocked |
 | **Interval censoring under multiphase** | Code path exists; no real-data or SAS parity fixture | No parity test |
-| **Hessian stability at 12+ parameters** | Numerical Hessian inversion can become ill-conditioned; `hm.death.AVC.deciles` (13 params) passes but borderline | Passing, fragile |
+| **Hessian stability at 12+ parameters** | Numerical Hessian inversion could become ill-conditioned at high parameter counts; `hm.death.AVC.deciles` (13 params) was passing but borderline | ✅ Inversion layer hardened (PR #54): symmetrize → rcond check → Cholesky-with-`solve()`-fallback → non-positive-variance guard; fits carry `rcond`/`pd` diagnostics with a `summary()` note + named warnings; 13-param anchor test added (`test-hessian-stability.R`). Analytic Hessians for *more accurate* SEs pending (Layer 2, future PRs) |
 | **`hzr_competing_risks()` with weights** | Not a hardening item: `hzr_competing_risks(time, event)` has no `weights` argument — the Aalen-Johansen/Greenwood recursion counts raw row tallies. Weighting is an unbuilt **feature** (weighted at-risk + event counts + weighted-Greenwood variance), not a latent bug. Scoped as feature 8a. | Feature → 8a |
 | **Weighted multiphase + covariates** | Covariate-in-phase + weight combination exercised via integer-duplication parity | ✅ Tested (LL + gradient + fit, CoE on/off) |
 
