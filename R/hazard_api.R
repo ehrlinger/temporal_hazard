@@ -1205,9 +1205,9 @@ print.summary.hazard <- function(x, ...) {
     cat("  Note: Hessian not positive-definite at the optimum; ",
         "standard errors may be unreliable.\n", sep = "")
   }
-  if (!is.null(x$converged) && !is.na(x$converged) && !isTRUE(x$has_vcov)) {
+  if (!is.null(x$converged) && !is.na(x$converged) && isFALSE(x$has_vcov)) {
     cat("  Note: standard errors unavailable; the Hessian could not be ",
-        "inverted at the optimum.\n", sep = "")
+        "inverted.\n", sep = "")
   }
   if (!is.null(x$counts)) {
     fn_count <- x$counts[["function"]] %||% x$counts[["fn"]] %||% NA_integer_
