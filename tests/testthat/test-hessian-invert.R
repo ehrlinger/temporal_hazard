@@ -67,7 +67,8 @@ test_that("explicit tol drives the ill-conditioned threshold", {
 
 test_that(".hzr_optim_generic uses a supplied analytic hessian_fn", {
   set.seed(1)
-  time <- rexp(100, rate = 0.5); status <- rep(1L, 100)
+  time <- rexp(100, rate = 0.5)
+  status <- rep(1L, 100)
   marker <- matrix(42, 1, 1)
   res <- .hzr_optim_generic(
     logl_fn = .hzr_logl_exponential, gradient_fn = .hzr_gradient_exponential,
@@ -82,7 +83,8 @@ test_that(".hzr_optim_generic uses a supplied analytic hessian_fn", {
 test_that(".hzr_optim_generic falls back to numDeriv when hessian_fn returns NULL", {
   skip_if_not_installed("numDeriv")
   set.seed(1)
-  time <- rexp(100, rate = 0.5); status <- rep(1L, 100)
+  time <- rexp(100, rate = 0.5)
+  status <- rep(1L, 100)
   res <- .hzr_optim_generic(
     logl_fn = .hzr_logl_exponential, gradient_fn = .hzr_gradient_exponential,
     time = time, status = status, x = NULL, theta_start = c(log_rate = 0),
@@ -96,7 +98,8 @@ test_that(".hzr_optim_generic falls back to numDeriv when hessian_fn returns NUL
 test_that(".hzr_optim_generic warns and falls back on a non-conformant hessian_fn", {
   skip_if_not_installed("numDeriv")
   set.seed(1)
-  time <- rexp(100, rate = 0.5); status <- rep(1L, 100)
+  time <- rexp(100, rate = 0.5)
+  status <- rep(1L, 100)
   # Wrong dimension (2x2 for a 1-parameter fit) -> warn + numerical fallback.
   expect_warning(
     res <- .hzr_optim_generic(
