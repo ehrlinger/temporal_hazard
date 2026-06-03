@@ -1147,7 +1147,9 @@ summary.hazard <- function(object, ...) {
 #'
 #' Formatted console display of [summary.hazard()] output: distribution,
 #' phase list (for multiphase), coefficient table with standard errors,
-#' and log-likelihood.  S3 dispatch only -- users call `print(summary(fit))`
+#' and log-likelihood.  When the post-fit Hessian is ill-conditioned or not
+#' positive-definite, a note is printed warning that the standard errors may
+#' be unreliable.  S3 dispatch only -- users call `print(summary(fit))`
 #' rather than invoking this directly.
 #'
 #' @param x A `summary.hazard` object returned by [summary.hazard()].
