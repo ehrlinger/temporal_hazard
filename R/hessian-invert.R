@@ -62,7 +62,7 @@ NULL
 
   # (5) Non-positive-variance guard
   d <- diag(vcov)
-  bad <- !is.finite(d) | d < 0
+  bad <- !is.finite(d) | d <= 0
   if (any(bad)) {
     warning("Non-positive variance estimates; the optimum may not be a proper maximum")
     vcov[bad, ] <- NA_real_
