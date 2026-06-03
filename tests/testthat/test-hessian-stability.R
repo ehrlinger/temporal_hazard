@@ -60,3 +60,45 @@ test_that("summary prints a note when the fit is not positive-definite", {
   expect_true(any(grepl("not positive-definite", out)))
   expect_false(any(grepl("ill-conditioned", out)))  # rcond=0.5 is healthy
 })
+
+test_that("13-parameter multiphase deciles fit is stable (anchor)", {
+  skip_on_cran()
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+
+  # Continuous covariates in `avc` span wildly different scales (age up to
+  # ~286, op_age into the thousands). Unscaled, the multiphase Hessian picks
+  # up non-finite entries and collapses to < 12 identifiable directions, so
+  # scale them as any analyst fitting this model would. This is what makes
+  # the high-dimensional inversion path a *meaningful* (not degenerate) test.
+  for (cl in c("age", "opmos", "op_age", "inc_surg")) {
+    avc[[cl]] <- as.numeric(scale(avc[[cl]]))
+  }
+
+  # A high-dimensional multiphase fit with covariates in both phases,
+  # exercising the 12+-parameter inversion path named in DEVELOPMENT-PLAN
+  # §7c ("hm.death.AVC.deciles"). Six covariates per phase plus the phase
+  # shape parameters drive the free-parameter count past 12.
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~ 1, data = avc, dist = "multiphase",
+    phases = list(
+      early    = hzr_phase("cdf",
+                           formula = ~ age + mal + inc_surg + opmos +
+                             op_age + status,
+                           t_half = 0.15, nu = 1.4, m = 1, fixed = "m"),
+      constant = hzr_phase("constant",
+                           formula = ~ age + mal + inc_surg + opmos +
+                             op_age + status)
+    ),
+    fit = TRUE, control = list(n_starts = 3, maxit = 800, conserve = TRUE)
+  )
+
+  expect_true(fit$fit$converged)
+
+  free <- which(is.finite(diag(fit$fit$vcov)))
+  expect_gte(length(free), 12L)               # genuinely high-dimensional
+  se <- sqrt(diag(fit$fit$vcov)[free])
+  expect_true(all(is.finite(se)))             # no NaN/NA SEs on free params
+  expect_true(all(se > 0))                    # positive variances
+  expect_true(is.finite(fit$fit$rcond))       # conditioning was measured
+})
