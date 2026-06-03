@@ -1264,7 +1264,7 @@
       theta_try <- theta_start_optim
     } else {
       # Random perturbation of the starting values, drawn from the ambient RNG
-      # stream (not internally seeded).  Call set.seed() before the fit for
+      # stream (not internally seeded). Call set.seed() before fitting for
       # reproducible multi-start results.
       theta_try <- theta_start_optim +
         stats::rnorm(length(theta_start_optim), sd = 0.5)
