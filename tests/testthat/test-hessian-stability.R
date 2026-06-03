@@ -10,6 +10,7 @@ test_that("fit object carries rcond and pd diagnostics (weibull)", {
 })
 
 test_that("fit object carries rcond and pd diagnostics (multiphase)", {
+  set.seed(101)
   data(avc, package = "TemporalHazard")
   avc <- na.omit(avc)
   fit <- hazard(
@@ -63,6 +64,7 @@ test_that("summary prints a note when the fit is not positive-definite", {
 
 test_that("13-parameter multiphase deciles fit is stable (anchor)", {
   skip_on_cran()
+  set.seed(102)
   data(avc, package = "TemporalHazard")
   avc <- na.omit(avc)
 
