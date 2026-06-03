@@ -61,9 +61,11 @@ NULL
 #' matrix is attached as \code{"hessian"}.
 #'
 #' @details
-#' The Weibull hazard model is parameterized as:
+#' The Weibull hazard model is parameterized via its cumulative hazard
+#' \eqn{H(t | x) = (\mu t)^{\nu} \exp(\eta)}, so the hazard is its exact
+#' derivative:
 #'
-#' \deqn{h(t | x) = \mu \nu t^{\nu-1} \exp(\eta)}
+#' \deqn{h(t | x) = \nu \mu^{\nu} t^{\nu-1} \exp(\eta) = (\nu / t)\, H(t | x)}
 #'
 #' where:
 #' - \eqn{\mu > 0} is scale (MU)
@@ -140,7 +142,10 @@ NULL
   }
 
   # Event-time hazard/cumulative-hazard (exact events only).
-  haz_event <- mu * nu * (time ^ (nu - 1)) * exp(eta)
+  # Hazard is the exact derivative of the cumulative hazard H = (mu t)^nu e^eta:
+  #   h = dH/dt = nu * mu^nu * t^(nu-1) * e^eta = (nu / t) * H
+  # (Form A, matching the C/SAS HAZARD reference where HF = MU * dG/dt.)
+  haz_event <- nu * mu ^ nu * (time ^ (nu - 1)) * exp(eta)
   cumhaz_event <- (mu * time) ^ nu * exp(eta)
 
   # Lower/upper cumulative hazards for censoring contributions.
@@ -234,10 +239,12 @@ NULL
 #' The log-likelihood is:
 #'   L = sum(delta_i * log h(t_i)) - sum(H(t_i))
 #'
-#' where h is hazard and H is cumulative hazard. Derivatives are:
+#' where h(t) = nu * mu^nu * t^(nu-1) * exp(eta) and H(t) = (mu*t)^nu * exp(eta)
+#' (so log h = log(nu) + nu*log(mu) + (nu-1)*log(t) + eta). Derivatives are:
 #'
-#' dL/dmu  = sum(delta_i / mu) - (nu / mu) * sum(H(t_i))
-#' dL/dnu  = sum(delta_i / nu) + sum(delta_i * log(t_i)) - sum(log(mu * t_i) * H(t_i))
+#' dL/dmu  = (nu / mu) * sum(delta_i) - (nu / mu) * sum(H(t_i))
+#' dL/dnu  = sum(delta_i / nu) + sum(delta_i) * log(mu) + sum(delta_i * log(t_i))
+#'           - sum(log(mu * t_i) * H(t_i))
 #' dL/dbeta_j = sum(delta_i * x_ij) - sum(H(t_i) * x_ij)  = t(X) %*% (delta - H)
 #'
 #' @noRd
@@ -284,7 +291,7 @@ NULL
       eta <- rep(0, n)
     }
 
-    haz <- mu * nu * (time ^ (nu - 1)) * exp(eta)
+    haz <- nu * mu ^ nu * (time ^ (nu - 1)) * exp(eta)
     cumhaz <- (mu * time) ^ nu * exp(eta)
   }
 
@@ -305,17 +312,22 @@ NULL
   w_cumhaz_net <- weights * (cumhaz - cumhaz_start)
 
   # ===== Gradient w.r.t. mu (scale parameter) =====
-  # dH(t)/dmu = (nu / mu) * H(t), so dL/dmu picks up a matching
-  # contribution at start: -(nu/mu) * (H(stop) - H(start)).
-  grad[1] <- sum(w_status) / mu - (nu / mu) * sum(w_cumhaz_net)
+  # log h = log(nu) + nu*log(mu) + (nu-1)*log(t) + eta, so the event term
+  # contributes d log h/dmu = nu/mu.  dH(t)/dmu = (nu / mu) * H(t), so the
+  # cumulative term subtracts -(nu/mu) * (H(stop) - H(start)).
+  grad[1] <- (nu / mu) * (sum(w_status) - sum(w_cumhaz_net))
 
   # ===== Gradient w.r.t. nu (shape parameter) =====
   # dH(t)/dnu = log(mu*t) * H(t).  When start = 0, H(start) = 0 and the
   # log(mu*start) term is undefined; `ifelse` picks the well-defined 0
   # limit there.
+  # log h = log(nu) + nu*log(mu) + (nu-1)*log(t) + eta, so the event term
+  # contributes d log h/dnu = 1/nu + log(mu) + log(t); the log(mu) piece is
+  # constant across rows.
   log_mu_start <- ifelse(start_vec > 0, log(mu * start_vec), 0)
   d_nu_start <- weights * log_mu_start * cumhaz_start
   grad[2] <- sum(w_status) / nu +
+             sum(w_status) * log(mu) +
              sum(w_status * log(time)) -
              (sum(log(mu * time) * weights * cumhaz) - sum(d_nu_start))
 

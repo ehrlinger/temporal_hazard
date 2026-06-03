@@ -11,6 +11,17 @@
 
 ## Bug fixes
 
+* **Weibull event hazard was inconsistent with its cumulative hazard.**
+  `.hzr_logl_weibull()` defined the event hazard as `mu*nu*t^(nu-1)*exp(eta)`
+  while the cumulative hazard was `(mu*t)^nu*exp(eta)`; the former is missing a
+  `mu^(nu-1)` factor (the exact derivative is `nu*mu^nu*t^(nu-1)*exp(eta) =
+  (nu/t)*H`, Form A as in the C/SAS HAZARD reference). The natural-scale
+  log-likelihood and its analytic gradient (`d/dmu`, `d/dnu` event terms) are
+  corrected to match. Pure event/right-censored fits were already correct (they
+  use the self-consistent internal reparameterization); the visible effect is on
+  **mixed event + interval/left-censored Weibull fits**, which delegate to this
+  likelihood and previously optimized a slightly mis-specified event term.
+
 * **`hzr_bootstrap()` was non-functional for weighted fits** (Phase 7c).
   The resample loop rewired only `data` in the refit call, leaving the
   original `weights` argument bound to a symbol in the *caller's* frame.
