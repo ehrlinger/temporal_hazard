@@ -91,6 +91,13 @@
   inversion layer; analytic Hessians (more accurate standard errors) follow
   in subsequent releases.
 
+* **Analytic Hessian for exponential standard errors (Phase 7c, Layer 2).**
+  The exponential distribution now computes its post-fit Hessian in closed form
+  (`X~' diag(wH) X~` over event + right-censored rows) rather than numerically,
+  giving more accurate standard errors. The shared optimizer gained a
+  `hessian_fn` hook that analytic Hessians for the remaining families will reuse;
+  left/interval-censored exponential fits fall back to the numerical Hessian.
+
 ## Documentation
 
 * `vignette("fitting-hazard-models")` gains an **Interval and left censoring**
