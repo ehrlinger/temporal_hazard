@@ -372,8 +372,9 @@ NULL
   g <- exp(psi)
   p <- length(theta)
   p_cov <- p - 2L
-  beta <- if (p_cov > 0) theta[3:p] else numeric(0)
-  eta <- if (p_cov > 0 && !is.null(x)) as.numeric(x %*% beta) else rep(0, n)
+  has_cov <- p_cov > 0L && !is.null(x)
+  beta <- if (has_cov) theta[3:p] else numeric(0)
+  eta <- if (has_cov) as.numeric(x %*% beta) else rep(0, n)
 
   # Cumulative hazards and counting-process entry-time (epochs only).
   base <- exp(alpha + eta)
@@ -401,13 +402,13 @@ NULL
           g^2 * (sum(w * cumhaz * log_t^2) - sum(w * cumhaz_start * log_ts^2))
 
   # Design augmented with the alpha intercept column.
-  x_tilde <- if (p_cov > 0) cbind(1, x) else matrix(1, nrow = n, ncol = 1L)
+  x_tilde <- if (has_cov) cbind(1, x) else matrix(1, nrow = n, ncol = 1L)
 
   hq <- crossprod(x_tilde, wA * x_tilde)             # (alpha,beta) block
   v  <- g * as.numeric(crossprod(x_tilde, wD))        # psi cross (alpha,beta)
 
   # Assemble p x p with order (alpha = 1, psi = 2, beta = 3..p).
-  idx_q <- if (p_cov > 0) c(1L, 3:p) else 1L
+  idx_q <- if (has_cov) c(1L, 3:p) else 1L
   hess <- matrix(0, p, p)
   hess[idx_q, idx_q] <- hq
   hess[2L, idx_q] <- v
