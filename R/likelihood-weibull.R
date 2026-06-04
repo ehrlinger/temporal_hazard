@@ -342,6 +342,81 @@ NULL
   grad
 }
 
+#' Analytic Hessian of the Weibull negative log-likelihood (internal scale)
+#'
+#' Returns the Hessian of the objective (negative log-likelihood) on the internal
+#' \code{phi = (alpha, psi, beta)} parameterization that \code{.hzr_optim_weibull}
+#' optimizes, where \code{g = exp(psi)} and \code{H(t) = exp(alpha + eta) t^g}.
+#' This matches \code{numDeriv::hessian(objective)} so it can be used directly by
+#' \code{.hzr_optim_generic()}; the downstream delta-method transform to the
+#' natural \code{(mu, nu, beta)} scale is applied by the caller.  Coverage mirrors
+#' the analytic gradient: event + right-censored rows only; returns \code{NULL}
+#' for any left/interval-censored row (\code{status \%in\% c(-1, 2)}) to request
+#' the numerical-Hessian fallback.
+#'
+#' @noRd
+.hzr_hessian_weibull_internal <- function(
+    theta, time, status,
+    time_lower = NULL, time_upper = NULL, x = NULL, weights = NULL) {
+
+  n <- length(time)
+  if (is.null(weights)) weights <- rep(1, n)
+
+  # Coverage contract: closed form is event + right censored only.
+  if (any(status %in% c(-1, 2))) {
+    return(NULL)
+  }
+
+  alpha <- theta[1]
+  psi <- theta[2]
+  g <- exp(psi)
+  p <- length(theta)
+  p_cov <- p - 2L
+  beta <- if (p_cov > 0) theta[3:p] else numeric(0)
+  eta <- if (p_cov > 0 && !is.null(x)) as.numeric(x %*% beta) else rep(0, n)
+
+  # Cumulative hazards and counting-process entry-time (epochs only).
+  base <- exp(alpha + eta)
+  cumhaz <- base * (time ^ g)
+  start_vec <- rep(0, n)
+  if (!is.null(time_lower)) {
+    epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+    start_vec[epoch_idx] <- time_lower[epoch_idx]
+  }
+  cumhaz_start <- base * (start_vec ^ g)
+
+  log_t <- log(time)
+  log_ts <- ifelse(start_vec > 0, log(start_vec), 0)
+
+  w <- weights
+  delta <- as.numeric(status == 1)
+  net <- cumhaz - cumhaz_start                       # A_i
+
+  # Weighted aggregate building blocks.
+  wA   <- w * net
+  wD   <- w * (cumhaz * log_t - cumhaz_start * log_ts)
+  # psi,psi scalar.
+  hpp <- -g * (sum(w * delta * log_t) - sum(w * cumhaz * log_t) +
+                 sum(w * cumhaz_start * log_ts)) +
+          g^2 * (sum(w * cumhaz * log_t^2) - sum(w * cumhaz_start * log_ts^2))
+
+  # Design augmented with the alpha intercept column.
+  x_tilde <- if (p_cov > 0) cbind(1, x) else matrix(1, nrow = n, ncol = 1L)
+
+  hq <- crossprod(x_tilde, wA * x_tilde)             # (alpha,beta) block
+  v  <- g * as.numeric(crossprod(x_tilde, wD))        # psi cross (alpha,beta)
+
+  # Assemble p x p with order (alpha = 1, psi = 2, beta = 3..p).
+  idx_q <- if (p_cov > 0) c(1L, 3:p) else 1L
+  hess <- matrix(0, p, p)
+  hess[idx_q, idx_q] <- hq
+  hess[2L, idx_q] <- v
+  hess[idx_q, 2L] <- v
+  hess[2L, 2L] <- hpp
+  dimnames(hess) <- list(names(theta), names(theta))
+  hess
+}
+
 #' @noRd
 .hzr_optim_weibull <- function(
     time, status, time_lower = NULL, time_upper = NULL,
