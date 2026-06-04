@@ -373,13 +373,21 @@ NULL
 .hzr_optim_lognormal <- function(
     time, status, time_lower = NULL, time_upper = NULL,
     x = NULL, theta_start, weights = NULL, control = list()) {
+  hessian_fn <- function(par) {
+    .hzr_hessian_lognormal(
+      theta = par, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x, weights = weights
+    )
+  }
   .hzr_optim_generic(
     logl_fn = .hzr_logl_lognormal,
     gradient_fn = .hzr_gradient_lognormal,
     time = time, status = status,
     time_lower = time_lower, time_upper = time_upper,
     x = x, theta_start = theta_start, weights = weights,
-    control = control, use_bounds = FALSE
+    control = control, use_bounds = FALSE,
+    hessian_fn = hessian_fn
   )
 }
 

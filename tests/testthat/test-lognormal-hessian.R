@@ -54,3 +54,42 @@ test_that(".hzr_hessian_lognormal returns NULL for left/interval censoring", {
   expect_null(.hzr_hessian_lognormal(
     c(mu = 0, log_sigma = 0), time, status2, time_upper = time + 0.5))
 })
+
+test_that("lognormal fit vcov uses the analytic Hessian (matches numDeriv)", {
+  skip_if_not_installed("numDeriv")
+  set.seed(55)
+  n <- 500
+  z <- rnorm(n)
+  time <- exp(rnorm(n, 0.2 + 0.5 * z, 0.7))
+  status <- rbinom(n, 1, 0.85)
+  fit <- hazard(
+    survival::Surv(time, status) ~ z,
+    data = data.frame(time, status, z),
+    dist = "lognormal",
+    theta = c(mu = 0, log_sigma = 0, z = 0), fit = TRUE
+  )
+  obj <- function(th) -.hzr_logl_lognormal(th, time, status, x = cbind(z))
+  v_nd <- solve(numDeriv::hessian(obj, fit$fit$theta))
+  expect_equal(unname(fit$fit$vcov), unname(v_nd), tolerance = 1e-4)
+  expect_true(isTRUE(fit$fit$pd))
+})
+
+test_that("lognormal SEs are invariant to covariate rescaling", {
+  set.seed(56)
+  n <- 600
+  z <- rnorm(n)
+  time <- exp(rnorm(n, 0.1 + 0.4 * z, 0.6))
+  status <- rbinom(n, 1, 0.9)
+  f1 <- hazard(survival::Surv(time, status) ~ z,
+               data = data.frame(time, status, z = z),
+               dist = "lognormal",
+               theta = c(mu = 0, log_sigma = 0, z = 0), fit = TRUE)
+  f2 <- hazard(survival::Surv(time, status) ~ z,
+               data = data.frame(time, status, z = z / 100),
+               dist = "lognormal",
+               theta = c(mu = 0, log_sigma = 0, z = 0), fit = TRUE)
+  se1 <- sqrt(diag(f1$fit$vcov))
+  se2 <- sqrt(diag(f2$fit$vcov))
+  expect_equal(unname(se1[1]), unname(se2[1]), tolerance = 1e-2)
+  expect_equal(unname(se1[2]), unname(se2[2]), tolerance = 1e-2)
+})
