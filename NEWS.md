@@ -139,6 +139,12 @@
   giving more accurate standard errors. Covers event + right-censored data;
   left/interval-censored fits fall back to the numerical Hessian.
 
+* **Analytic Hessian for log-normal standard errors (Phase 7c, Layer 2).**
+  The log-normal distribution now computes its post-fit Hessian in closed form
+  on the internal `(mu, log_sigma, beta_coef)` scale rather than numerically,
+  giving more accurate standard errors. Covers event + right-censored data;
+  left/interval-censored fits fall back to the numerical Hessian.
+
 ## Documentation
 
 * `vignette("fitting-hazard-models")` gains an **Interval and left censoring**

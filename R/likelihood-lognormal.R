@@ -303,17 +303,99 @@ NULL
   grad
 }
 
+#' Analytic Hessian of the log-normal negative log-likelihood
+#'
+#' Returns the Hessian of the objective (negative log-likelihood) on the internal
+#' \code{theta = (mu, log_sigma, beta_coef)} scale, matching
+#' \code{numDeriv::hessian(objective)} so it can be used directly by
+#' \code{.hzr_optim_generic()}.  Coverage mirrors the analytic gradient: event +
+#' right-censored rows only; returns \code{NULL} for any left/interval-censored
+#' row (\code{status \%in\% c(-1, 2)}) to request the numerical-Hessian fallback.
+#'
+#' With \code{z = (log t - eta)/sigma}, \code{eta = mu + x beta_coef}, and the
+#' inverse Mills ratio \code{m = phi(z)/Phi(-z)} (\code{dm/dz = m(m - z)}), the
+#' objective Hessian assembles per-row coefficients A (eta,eta), B (eta,log_sigma),
+#' C (log_sigma,log_sigma) through the design \code{Xtilde = [1 | X]} for the
+#' \code{(mu, beta_coef)} block.
+#'
+#' @noRd
+.hzr_hessian_lognormal <- function(
+    theta, time, status,
+    time_lower = NULL, time_upper = NULL, x = NULL, weights = NULL) {
+
+  n <- length(time)
+  if (is.null(weights)) weights <- rep(1, n)
+
+  # Coverage contract: closed form is event + right censored only.
+  if (any(status %in% c(-1, 2))) {
+    return(NULL)
+  }
+
+  mu <- theta[1]
+  log_sigma <- theta[2]
+  sigma <- exp(log_sigma)
+  p <- length(theta)
+  p_cov <- p - 2L
+  # Fail loud on inconsistent theta/x: a silent has_cov = FALSE would zero the
+  # covariate rows/cols and yield a conformant-but-wrong vcov the optimizer's
+  # dimension check cannot catch.
+  n_x <- if (is.null(x)) 0L else ncol(x)
+  if (n_x != p_cov) {
+    stop(".hzr_hessian_lognormal(): ncol(x) (", n_x, ") must equal the number ",
+         "of covariate parameters in theta (", p_cov, ").", call. = FALSE)
+  }
+  has_cov <- p_cov > 0L
+  beta_coef <- if (has_cov) theta[3:p] else numeric(0)
+  eta <- if (has_cov) mu + as.numeric(x %*% beta_coef) else rep(mu, n)
+
+  z <- (log(time) - eta) / sigma
+  # Inverse Mills ratio on the log scale, clamped like the analytic gradient.
+  m <- pmin(exp(dnorm(z, log = TRUE) - pnorm(-z, log.p = TRUE)), 1e6)
+
+  delta <- as.numeric(status == 1)
+  cens <- 1 - delta
+
+  # Per-row objective Hessian coefficients (negation of the LL second derivs).
+  a_coef <- (delta + cens * m * (m - z)) / sigma^2                 # (eta, eta)
+  b_coef <- (delta * 2 * z + cens * m * (z * (m - z) + 1)) / sigma # (eta, log_sigma)
+  c_coef <- delta * 2 * z^2 + cens * m * z * (z * (m - z) + 1)     # (log_sigma)^2
+
+  x_tilde <- if (has_cov) cbind(1, x) else matrix(1, nrow = n, ncol = 1L)
+
+  hqq <- crossprod(x_tilde, (weights * a_coef) * x_tilde)
+  v <- as.numeric(crossprod(x_tilde, weights * b_coef))
+  hss <- sum(weights * c_coef)
+
+  # Assemble p x p with order (mu = 1, log_sigma = 2, beta_coef = 3..p).
+  idx_q <- if (has_cov) c(1L, 3:p) else 1L
+  hess <- matrix(0, p, p)
+  hess[idx_q, idx_q] <- hqq
+  hess[2L, idx_q] <- v
+  hess[idx_q, 2L] <- v
+  hess[2L, 2L] <- hss
+  dimnames(hess) <- list(names(theta), names(theta))
+  hess
+}
+
 #' @noRd
 .hzr_optim_lognormal <- function(
     time, status, time_lower = NULL, time_upper = NULL,
     x = NULL, theta_start, weights = NULL, control = list()) {
+  hessian_fn <- function(par) {
+    .hzr_hessian_lognormal(
+      theta = par, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x, weights = weights
+    )
+  }
   .hzr_optim_generic(
     logl_fn = .hzr_logl_lognormal,
     gradient_fn = .hzr_gradient_lognormal,
     time = time, status = status,
     time_lower = time_lower, time_upper = time_upper,
     x = x, theta_start = theta_start, weights = weights,
-    control = control, use_bounds = FALSE
+    control = control, use_bounds = FALSE,
+    hessian_fn = hessian_fn
   )
 }
 
