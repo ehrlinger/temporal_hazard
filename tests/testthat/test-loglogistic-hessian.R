@@ -55,3 +55,42 @@ test_that(".hzr_hessian_loglogistic returns NULL for left/interval censoring", {
   expect_null(.hzr_hessian_loglogistic(
     c(log_alpha = 0, log_beta = 0), time, status2, time_upper = time + 0.5))
 })
+
+test_that("loglogistic fit vcov uses the analytic Hessian (matches numDeriv)", {
+  skip_if_not_installed("numDeriv")
+  set.seed(35)
+  n <- 500
+  z <- rnorm(n)
+  time <- rexp(n, rate = exp(-0.5 * z) * 0.4) + 0.01
+  status <- rbinom(n, 1, 0.85)
+  fit <- hazard(
+    survival::Surv(time, status) ~ z,
+    data = data.frame(time, status, z),
+    dist = "loglogistic",
+    theta = c(log_alpha = 0, log_beta = 0, z = 0), fit = TRUE
+  )
+  obj <- function(th) -.hzr_logl_loglogistic(th, time, status, x = cbind(z))
+  v_nd <- solve(numDeriv::hessian(obj, fit$fit$theta))
+  expect_equal(unname(fit$fit$vcov), unname(v_nd), tolerance = 1e-4)
+  expect_true(isTRUE(fit$fit$pd))
+})
+
+test_that("loglogistic SEs are invariant to covariate rescaling", {
+  set.seed(36)
+  n <- 600
+  z <- rnorm(n)
+  time <- rexp(n, rate = exp(-0.4 * z) * 0.5) + 0.01
+  status <- rbinom(n, 1, 0.9)
+  f1 <- hazard(survival::Surv(time, status) ~ z,
+               data = data.frame(time, status, z = z),
+               dist = "loglogistic",
+               theta = c(log_alpha = 0, log_beta = 0, z = 0), fit = TRUE)
+  f2 <- hazard(survival::Surv(time, status) ~ z,
+               data = data.frame(time, status, z = z / 100),
+               dist = "loglogistic",
+               theta = c(log_alpha = 0, log_beta = 0, z = 0), fit = TRUE)
+  se1 <- sqrt(diag(f1$fit$vcov))
+  se2 <- sqrt(diag(f2$fit$vcov))
+  expect_equal(unname(se1[1]), unname(se2[1]), tolerance = 1e-2)
+  expect_equal(unname(se1[2]), unname(se2[2]), tolerance = 1e-2)
+})

@@ -383,13 +383,21 @@ NULL
 .hzr_optim_loglogistic <- function(
     time, status, time_lower = NULL, time_upper = NULL,
     x = NULL, theta_start, weights = NULL, control = list()) {
+  hessian_fn <- function(par) {
+    .hzr_hessian_loglogistic(
+      theta = par, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x, weights = weights
+    )
+  }
   .hzr_optim_generic(
     logl_fn = .hzr_logl_loglogistic,
     gradient_fn = .hzr_gradient_loglogistic,
     time = time, status = status,
     time_lower = time_lower, time_upper = time_upper,
     x = x, theta_start = theta_start, weights = weights,
-    control = control, use_bounds = FALSE
+    control = control, use_bounds = FALSE,
+    hessian_fn = hessian_fn
   )
 }
 
