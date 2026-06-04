@@ -325,12 +325,17 @@ NULL
   # log h = log(nu) + nu*log(mu) + (nu-1)*log(t) + eta, so the event term
   # contributes d log h/dnu = 1/nu + log(mu) + log(t); the log(mu) piece is
   # constant across rows.
+  # Guard log(time): a legal right-censored time = 0 row has w_status = 0 and
+  # cumhaz = 0, but an unguarded log(0) = -Inf turns those into 0 * -Inf = NaN,
+  # poisoning the entire summed nu (shape) gradient component (start is already
+  # guarded by the ifelse below).
+  log_t <- log(pmax(time, .Machine$double.xmin))
   log_mu_start <- ifelse(start_vec > 0, log(mu * start_vec), 0)
   d_nu_start <- weights * log_mu_start * cumhaz_start
   grad[2] <- sum(w_status) / nu +
              sum(w_status) * log(mu) +
-             sum(w_status * log(time)) -
-             (sum(log(mu * time) * weights * cumhaz) - sum(d_nu_start))
+             sum(w_status * log_t) -
+             (sum((log(mu) + log_t) * weights * cumhaz) - sum(d_nu_start))
 
   # ===== Gradient w.r.t. beta (covariate coefficients) =====
   if (n_shape < p && !is.null(x)) {
