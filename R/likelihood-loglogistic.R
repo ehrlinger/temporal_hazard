@@ -363,6 +363,7 @@ NULL
   p_cov <- p - 2L
   # Fail loud on inconsistent theta/x: a silent has_cov = FALSE would zero the
   # covariate rows/cols and yield a conformant-but-wrong vcov.
+  if (!is.null(x)) x <- as.matrix(x)
   n_x <- if (is.null(x)) 0L else NCOL(x)
   if (n_x != p_cov) {
     stop(".hzr_hessian_loglogistic(): ncol(x) (", n_x, ") must equal the number ",

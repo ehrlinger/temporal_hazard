@@ -109,3 +109,17 @@ test_that(".hzr_hessian_exponential guard handles vector x (NCOL robustness)", {
                              x = rnorm(n)),
     "ncol")
 })
+
+test_that(".hzr_hessian_exponential coerces a vector x to a 1-column design", {
+  skip_if_not_installed("numDeriv")
+  set.seed(65)
+  n <- 200
+  z <- rnorm(n)
+  time <- rexp(n, rate = exp(-0.4 * z) * 0.5) + 0.01
+  status <- rbinom(n, 1, 0.8)
+  theta <- c(log_rate = log(0.5), z = -0.4)
+  h_vec <- .hzr_hessian_exponential(theta, time, status, x = z)            # bare vector
+  h_mat <- .hzr_hessian_exponential(theta, time, status, x = matrix(z, n, 1))
+  expect_equal(unname(h_vec), unname(h_mat), tolerance = 1e-10)
+  expect_equal(dim(h_vec), c(2L, 2L))
+})
