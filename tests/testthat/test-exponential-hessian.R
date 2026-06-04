@@ -82,3 +82,17 @@ test_that("exponential SEs are invariant to covariate rescaling", {
   z2 <- unname(f2$fit$theta[2] / se2[2])
   expect_equal(z1, z2, tolerance = 1e-2)
 })
+
+test_that(".hzr_hessian_exponential errors on inconsistent theta/x", {
+  set.seed(61)
+  n <- 30
+  time <- rexp(n, 0.5) + 0.01
+  status <- rbinom(n, 1, 0.7)
+  expect_error(
+    .hzr_hessian_exponential(c(log_rate = 0, z = 0.3), time, status, x = NULL),
+    "ncol")
+  x2 <- cbind(a = rnorm(n), b = rnorm(n))
+  expect_error(
+    .hzr_hessian_exponential(c(log_rate = 0, z = 0.3), time, status, x = x2),
+    "ncol")
+})

@@ -137,3 +137,17 @@ test_that("weibull SEs are invariant to covariate rescaling", {
   expect_equal(unname(se1[1]), unname(se2[1]), tolerance = 1e-2)
   expect_equal(unname(se1[2]), unname(se2[2]), tolerance = 1e-2)
 })
+
+test_that(".hzr_hessian_weibull_internal errors on inconsistent theta/x", {
+  set.seed(62)
+  n <- 30
+  time <- rexp(n, 0.5) + 0.01
+  status <- rbinom(n, 1, 0.7)
+  expect_error(
+    .hzr_hessian_weibull_internal(c(alpha = 0, psi = 0, z = 0.3), time, status, x = NULL),
+    "ncol")
+  x2 <- cbind(a = rnorm(n), b = rnorm(n))
+  expect_error(
+    .hzr_hessian_weibull_internal(c(alpha = 0, psi = 0, z = 0.3), time, status, x = x2),
+    "ncol")
+})

@@ -291,7 +291,15 @@ NULL
 
   log_lambda <- theta[1]
   lambda <- exp(log_lambda)
-  if (!is.null(x)) {
+  # Fail loud on inconsistent theta/x: a mismatch would otherwise yield a wrong
+  # or non-conformant Hessian used for vcov without a clear error.
+  p_cov <- length(theta) - 1L
+  n_x <- if (is.null(x)) 0L else ncol(x)
+  if (n_x != p_cov) {
+    stop(".hzr_hessian_exponential(): ncol(x) (", n_x, ") must equal the number ",
+         "of covariate parameters in theta (", p_cov, ").", call. = FALSE)
+  }
+  if (p_cov > 0L) {
     beta <- theta[2:length(theta)]
     eta <- as.numeric(x %*% beta)
   } else {
