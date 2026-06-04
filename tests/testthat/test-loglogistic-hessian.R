@@ -109,3 +109,17 @@ test_that(".hzr_logl_loglogistic gradient is finite for right-censored time = 0 
   g_nd <- numDeriv::grad(obj, theta)
   expect_equal(g_an, g_nd, tolerance = 1e-5)
 })
+
+test_that(".hzr_hessian_loglogistic errors on inconsistent theta/x", {
+  set.seed(63)
+  n <- 30
+  time <- rexp(n, 0.5) + 0.01
+  status <- rbinom(n, 1, 0.7)
+  expect_error(
+    .hzr_hessian_loglogistic(c(log_alpha = 0, log_beta = 0, z = 0.3), time, status, x = NULL),
+    "ncol")
+  x2 <- cbind(a = rnorm(n), b = rnorm(n))
+  expect_error(
+    .hzr_hessian_loglogistic(c(log_alpha = 0, log_beta = 0, z = 0.3), time, status, x = x2),
+    "ncol")
+})

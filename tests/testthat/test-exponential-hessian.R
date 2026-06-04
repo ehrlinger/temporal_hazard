@@ -82,3 +82,44 @@ test_that("exponential SEs are invariant to covariate rescaling", {
   z2 <- unname(f2$fit$theta[2] / se2[2])
   expect_equal(z1, z2, tolerance = 1e-2)
 })
+
+test_that(".hzr_hessian_exponential errors on inconsistent theta/x", {
+  set.seed(61)
+  n <- 30
+  time <- rexp(n, 0.5) + 0.01
+  status <- rbinom(n, 1, 0.7)
+  expect_error(
+    .hzr_hessian_exponential(c(log_rate = 0, z = 0.3), time, status, x = NULL),
+    "ncol")
+  x2 <- cbind(a = rnorm(n), b = rnorm(n))
+  expect_error(
+    .hzr_hessian_exponential(c(log_rate = 0, z = 0.3), time, status, x = x2),
+    "ncol")
+})
+
+test_that(".hzr_hessian_exponential guard handles vector x (NCOL robustness)", {
+  set.seed(64)
+  n <- 30
+  time <- rexp(n, 0.5) + 0.01
+  status <- rbinom(n, 1, 0.7)
+  # x as a bare vector (NCOL = 1) with a 2-covariate theta -> clean "ncol" error,
+  # not a cryptic "argument is of length zero" from ncol(vector) == NULL.
+  expect_error(
+    .hzr_hessian_exponential(c(log_rate = 0, a = 0.1, b = 0.2), time, status,
+                             x = rnorm(n)),
+    "ncol")
+})
+
+test_that(".hzr_hessian_exponential coerces a vector x to a 1-column design", {
+  skip_if_not_installed("numDeriv")
+  set.seed(65)
+  n <- 200
+  z <- rnorm(n)
+  time <- rexp(n, rate = exp(-0.4 * z) * 0.5) + 0.01
+  status <- rbinom(n, 1, 0.8)
+  theta <- c(log_rate = log(0.5), z = -0.4)
+  h_vec <- .hzr_hessian_exponential(theta, time, status, x = z)            # bare vector
+  h_mat <- .hzr_hessian_exponential(theta, time, status, x = matrix(z, n, 1))
+  expect_equal(unname(h_vec), unname(h_mat), tolerance = 1e-10)
+  expect_equal(dim(h_vec), c(2L, 2L))
+})
