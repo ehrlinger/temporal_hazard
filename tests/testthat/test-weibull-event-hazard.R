@@ -30,3 +30,18 @@ test_that(".hzr_gradient_weibull matches numDeriv of the (corrected) log-likelih
   g_nd <- numDeriv::grad(obj, theta)
   expect_equal(g_an, g_nd, tolerance = 1e-5)
 })
+
+test_that(".hzr_gradient_weibull is finite for right-censored time = 0 rows", {
+  skip_if_not_installed("numDeriv")
+  set.seed(41)
+  n <- 60
+  time <- c(0, rexp(n - 1, 0.5) + 0.05)
+  status <- c(0L, rbinom(n - 1, 1, 0.7))
+  theta <- c(mu = 0.6, nu = 1.3)
+  ll <- .hzr_logl_weibull(theta, time, status, return_gradient = TRUE)
+  g_an <- attr(ll, "gradient")
+  expect_true(all(is.finite(g_an)))
+  obj <- function(th) .hzr_logl_weibull(th, time, status)
+  g_nd <- numDeriv::grad(obj, theta)
+  expect_equal(g_an, g_nd, tolerance = 1e-5)
+})

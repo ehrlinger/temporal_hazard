@@ -11,6 +11,16 @@
 
 ## Bug fixes
 
+* **Weibull analytic gradient produced `NaN` for right-censored `time = 0` rows.**
+  `.hzr_gradient_weibull()` used an unguarded `log(time)` in the shape (`nu`)
+  score; a legal right-censored row at `time = 0` made `0 * -Inf = NaN`, which
+  poisoned the entire summed shape-gradient component (then silently zeroed by
+  the optimizer, harming convergence). `log(time)` is now guarded with
+  `log(pmax(time, .Machine$double.xmin))`, matching the analytic Hessian. The
+  other families were audited: exponential (no `log(time)` in the score),
+  log-normal (rejects `time = 0`), and multiphase (the decomposition clamps
+  `time`) are unaffected.
+
 * **Weibull event hazard was inconsistent with its cumulative hazard.**
   `.hzr_logl_weibull()` defined the event hazard as `mu*nu*t^(nu-1)*exp(eta)`
   while the cumulative hazard was `(mu*t)^nu*exp(eta)`; the former is missing a
