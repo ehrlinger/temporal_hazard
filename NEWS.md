@@ -125,7 +125,7 @@
   numerical Hessian.
 * **Analytic Hessian for log-logistic standard errors (Phase 7c, Layer 2).**
   The log-logistic distribution now computes its post-fit Hessian in closed form
-  on the internal `(log alpha, log beta, beta)` scale rather than numerically,
+  on the internal `(log alpha, log beta, beta_coef)` scale rather than numerically,
   giving more accurate standard errors. Covers event + right-censored data;
   left/interval-censored fits fall back to the numerical Hessian.
 

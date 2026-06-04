@@ -312,7 +312,10 @@ NULL
   grad[1] <- sum(w_status) - sum(wm)
 
   # dL/d(log beta) = sum(w * delta) + beta * [sum(w * delta * log t) - sum(wm * log t)]
-  log_t <- log(time)
+  # Guard log(time): a legal right-censored time = 0 row has w_status = 0 and
+  # wm = 0, but an unguarded log(0) = -Inf turns those into 0 * -Inf = NaN, which
+  # would poison the entire summed log_beta gradient component.
+  log_t <- log(pmax(time, .Machine$double.xmin))
   grad[2] <- sum(w_status) +
              beta * (sum(w_status * log_t) - sum(wm * log_t))
 

@@ -94,3 +94,18 @@ test_that("loglogistic SEs are invariant to covariate rescaling", {
   expect_equal(unname(se1[1]), unname(se2[1]), tolerance = 1e-2)
   expect_equal(unname(se1[2]), unname(se2[2]), tolerance = 1e-2)
 })
+
+test_that(".hzr_logl_loglogistic gradient is finite for right-censored time = 0 rows", {
+  skip_if_not_installed("numDeriv")
+  set.seed(37)
+  n <- 60
+  time <- c(0, rexp(n - 1, 0.6) + 0.01)
+  status <- c(0L, rbinom(n - 1, 1, 0.7))
+  theta <- c(log_alpha = log(0.6), log_beta = log(1.2))
+  ll <- .hzr_logl_loglogistic(theta, time, status, return_gradient = TRUE)
+  g_an <- attr(ll, "gradient")
+  expect_true(all(is.finite(g_an)))
+  obj <- function(th) .hzr_logl_loglogistic(th, time, status)
+  g_nd <- numDeriv::grad(obj, theta)
+  expect_equal(g_an, g_nd, tolerance = 1e-5)
+})
