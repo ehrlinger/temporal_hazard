@@ -339,7 +339,7 @@ NULL
   # Fail loud on inconsistent theta/x: a silent has_cov = FALSE would zero the
   # covariate rows/cols and yield a conformant-but-wrong vcov the optimizer's
   # dimension check cannot catch.
-  n_x <- if (is.null(x)) 0L else ncol(x)
+  n_x <- if (is.null(x)) 0L else NCOL(x)
   if (n_x != p_cov) {
     stop(".hzr_hessian_lognormal(): ncol(x) (", n_x, ") must equal the number ",
          "of covariate parameters in theta (", p_cov, ").", call. = FALSE)

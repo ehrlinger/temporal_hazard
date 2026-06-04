@@ -96,3 +96,16 @@ test_that(".hzr_hessian_exponential errors on inconsistent theta/x", {
     .hzr_hessian_exponential(c(log_rate = 0, z = 0.3), time, status, x = x2),
     "ncol")
 })
+
+test_that(".hzr_hessian_exponential guard handles vector x (NCOL robustness)", {
+  set.seed(64)
+  n <- 30
+  time <- rexp(n, 0.5) + 0.01
+  status <- rbinom(n, 1, 0.7)
+  # x as a bare vector (NCOL = 1) with a 2-covariate theta -> clean "ncol" error,
+  # not a cryptic "argument is of length zero" from ncol(vector) == NULL.
+  expect_error(
+    .hzr_hessian_exponential(c(log_rate = 0, a = 0.1, b = 0.2), time, status,
+                             x = rnorm(n)),
+    "ncol")
+})
