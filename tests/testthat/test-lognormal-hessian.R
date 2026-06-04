@@ -93,3 +93,19 @@ test_that("lognormal SEs are invariant to covariate rescaling", {
   expect_equal(unname(se1[1]), unname(se2[1]), tolerance = 1e-2)
   expect_equal(unname(se1[2]), unname(se2[2]), tolerance = 1e-2)
 })
+
+test_that(".hzr_hessian_lognormal errors on inconsistent theta/x", {
+  set.seed(57)
+  n <- 30
+  time <- exp(rnorm(n, 0, 0.5))
+  status <- rbinom(n, 1, 0.7)
+  # theta declares one covariate but x is NULL.
+  expect_error(
+    .hzr_hessian_lognormal(c(mu = 0, log_sigma = 0, z = 0.3), time, status, x = NULL),
+    "ncol")
+  # x supplied with the wrong number of columns.
+  x2 <- cbind(a = rnorm(n), b = rnorm(n))
+  expect_error(
+    .hzr_hessian_lognormal(c(mu = 0, log_sigma = 0, z = 0.3), time, status, x = x2),
+    "ncol")
+})
