@@ -385,7 +385,7 @@ NULL
   }
   cumhaz_start <- base * (start_vec ^ g)
 
-  log_t <- log(time)
+  log_t <- log(pmax(time, .Machine$double.xmin))
   log_ts <- ifelse(start_vec > 0, log(start_vec), 0)
 
   w <- weights

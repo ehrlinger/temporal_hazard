@@ -72,3 +72,17 @@ test_that(".hzr_hessian_weibull_internal returns NULL for left/interval censorin
   expect_null(.hzr_hessian_weibull_internal(
     c(alpha = 0, psi = 0), time, status2, time_upper = time + 0.5))
 })
+
+test_that(".hzr_hessian_weibull_internal handles right-censored time = 0 rows", {
+  skip_if_not_installed("numDeriv")
+  set.seed(27)
+  n <- 60
+  time <- c(0, rexp(n - 1, 0.6) + 0.01)      # row 1: right-censored at time 0
+  status <- c(0L, rbinom(n - 1, 1, 0.7))
+  phi <- c(alpha = 0.3, psi = log(1.3))
+  H_an <- .hzr_hessian_weibull_internal(phi, time, status)
+  expect_true(all(is.finite(H_an)))
+  obj <- function(p) .wb_obj_internal(p, time, status)
+  H_nd <- numDeriv::hessian(obj, phi)
+  expect_equal(unname(H_an), unname(H_nd), tolerance = 1e-4)
+})
