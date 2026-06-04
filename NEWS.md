@@ -116,6 +116,13 @@
   giving more accurate standard errors. The shared optimizer gained a
   `hessian_fn` hook that analytic Hessians for the remaining families will reuse;
   left/interval-censored exponential fits fall back to the numerical Hessian.
+* **Analytic Hessian for Weibull standard errors (Phase 7c, Layer 2).**
+  The Weibull distribution now computes its post-fit Hessian in closed form on
+  the internal `(alpha, psi, beta)` optimization scale (then mapped to the
+  natural scale by the existing delta method) rather than numerically, giving
+  more accurate standard errors. Covers event + right-censored data (including
+  counting-process start times); left/interval-censored fits fall back to the
+  numerical Hessian.
 
 ## Documentation
 
