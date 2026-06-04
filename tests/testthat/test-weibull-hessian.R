@@ -86,3 +86,51 @@ test_that(".hzr_hessian_weibull_internal handles right-censored time = 0 rows", 
   H_nd <- numDeriv::hessian(obj, phi)
   expect_equal(unname(H_an), unname(H_nd), tolerance = 1e-4)
 })
+
+test_that("weibull fit vcov uses the analytic Hessian (matches numDeriv+delta)", {
+  skip_if_not_installed("numDeriv")
+  set.seed(25)
+  n <- 500
+  z <- rnorm(n)
+  time <- rweibull(n, shape = 1.5, scale = exp(-0.5 * z / 1.5)) + 0.01
+  status <- rbinom(n, 1, 0.85)
+  fit <- hazard(
+    survival::Surv(time, status) ~ z,
+    data = data.frame(time, status, z),
+    dist = "weibull", theta = c(mu = 1, nu = 1, z = 0), fit = TRUE
+  )
+  # Reference: numDeriv internal-scale Hessian -> invert -> delta-method J.
+  th <- fit$fit$theta              # natural (mu, nu, beta)
+  mu <- th[1]; nu <- th[2]; beta <- th[-(1:2)]
+  alpha <- unname(nu * log(mu)); psi <- unname(log(nu))
+  phi <- c(alpha, psi, unname(beta))
+  obj <- function(p) .wb_obj_internal(p, time, status, x = cbind(z))
+  v_int <- solve(numDeriv::hessian(obj, phi))
+  pdim <- length(phi)
+  jmat <- diag(pdim)
+  jmat[1, 1] <- mu / nu
+  jmat[1, 2] <- -mu * alpha / nu
+  jmat[2, 2] <- nu
+  v_ref <- jmat %*% v_int %*% t(jmat)
+  expect_equal(unname(fit$fit$vcov), unname(v_ref), tolerance = 1e-3)
+  expect_true(isTRUE(fit$fit$pd))
+})
+
+test_that("weibull SEs are invariant to covariate rescaling", {
+  set.seed(26)
+  n <- 600
+  z <- rnorm(n)
+  time <- rweibull(n, shape = 1.3, scale = exp(-0.4 * z / 1.3)) + 0.01
+  status <- rbinom(n, 1, 0.9)
+  f1 <- hazard(survival::Surv(time, status) ~ z,
+               data = data.frame(time, status, z = z),
+               dist = "weibull", theta = c(mu = 1, nu = 1, z = 0), fit = TRUE)
+  f2 <- hazard(survival::Surv(time, status) ~ z,
+               data = data.frame(time, status, z = z / 100),
+               dist = "weibull", theta = c(mu = 1, nu = 1, z = 0), fit = TRUE)
+  se1 <- sqrt(diag(f1$fit$vcov))
+  se2 <- sqrt(diag(f2$fit$vcov))
+  # mu and nu SEs are invariant to covariate rescaling.
+  expect_equal(unname(se1[1]), unname(se2[1]), tolerance = 1e-2)
+  expect_equal(unname(se1[2]), unname(se2[2]), tolerance = 1e-2)
+})

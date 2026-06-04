@@ -586,6 +586,15 @@ NULL
     grad
   }
 
+  # -- Analytic Hessian closure (internal scale) --------------------------------
+  hessian_fn <- function(par) {
+    .hzr_hessian_weibull_internal(
+      theta = par, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x, weights = weights
+    )
+  }
+
   # -- Optimise (all unconstrained) ------------------------------------------
   result <- .hzr_optim_generic(
     logl_fn     = logl_internal,
@@ -596,7 +605,8 @@ NULL
     theta_start = phi_start,
     weights     = weights,
     control     = control,
-    use_bounds  = FALSE
+    use_bounds  = FALSE,
+    hessian_fn  = hessian_fn
   )
 
   # -- Back-transform to natural scale (mu, nu, beta) ----------------------------
