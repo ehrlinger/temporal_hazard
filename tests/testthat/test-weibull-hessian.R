@@ -101,8 +101,11 @@ test_that("weibull fit vcov uses the analytic Hessian (matches numDeriv+delta)",
   )
   # Reference: numDeriv internal-scale Hessian -> invert -> delta-method J.
   th <- fit$fit$theta              # natural (mu, nu, beta)
-  mu <- th[1]; nu <- th[2]; beta <- th[-(1:2)]
-  alpha <- unname(nu * log(mu)); psi <- unname(log(nu))
+  mu <- th[1]
+  nu <- th[2]
+  beta <- th[-(1:2)]
+  alpha <- unname(nu * log(mu))
+  psi <- unname(log(nu))
   phi <- c(alpha, psi, unname(beta))
   obj <- function(p) .wb_obj_internal(p, time, status, x = cbind(z))
   v_int <- solve(numDeriv::hessian(obj, phi))
