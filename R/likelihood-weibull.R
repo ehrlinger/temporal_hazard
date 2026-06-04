@@ -8,8 +8,8 @@ NULL
 # -----
 # Proportional-hazards (PH) parameterization:
 #
-#   h(t | x)  = mu nu t^(nu-1) exp(eta)         hazard
 #   H(t | x)  = (mu t)^nu exp(eta)              cumulative hazard
+#   h(t | x)  = nu mu^nu t^(nu-1) exp(eta)      hazard = dH/dt = (nu/t) H
 #   S(t | x)  = exp(-H(t | x))              survival
 #
 # where mu > 0 (scale), nu > 0 (shape), eta = x beta (linear predictor).
@@ -215,6 +215,7 @@ NULL
     grad <- .hzr_gradient_weibull(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper, x = x,
+      weights = weights,
       eta = eta, cumhaz = cumhaz_event, haz = haz_event,
       mu = mu, nu = nu, n_shape = n_shape
     )

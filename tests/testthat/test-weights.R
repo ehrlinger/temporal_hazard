@@ -711,3 +711,28 @@ test_that("weighted multiphase fit matches duplicated-row fit, covariates, CoE o
   expect_equal(coef(fit_w), coef(fit_dup), tolerance = 1e-3)
   expect_equal(fit_w$fit$objective, fit_dup$fit$objective, tolerance = 1e-4)
 })
+
+test_that(".hzr_logl_weibull gradient attribute respects weights", {
+  # Regression: return_gradient = TRUE previously called .hzr_gradient_weibull
+  # without forwarding `weights`, so the attached gradient was unit-weighted
+  # even for weighted data.
+  skip_if_not_installed("numDeriv")
+  set.seed(314)
+  n <- 120
+  x <- cbind(z = rnorm(n))
+  time <- rexp(n, 0.5) + 0.01
+  status <- rbinom(n, 1, 0.75)
+  w <- runif(n, 0.5, 2.5)
+  theta <- c(mu = 0.8, nu = 1.4, z = 0.3)
+
+  ll <- .hzr_logl_weibull(theta, time, status, x = x, weights = w,
+                          return_gradient = TRUE)
+  g_attr <- attr(ll, "gradient")
+
+  obj <- function(th) {
+    .hzr_logl_weibull(th, time, status, x = x, weights = w)
+  }
+  g_num <- numDeriv::grad(obj, theta)
+
+  expect_equal(g_attr, g_num, tolerance = 1e-5)
+})
