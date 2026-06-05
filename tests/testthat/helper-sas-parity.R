@@ -450,6 +450,63 @@
   do.call(rbind, rows)
 }
 
+# Parse a SAS %KAPLAN / %NELSONT life-table block. These are printed by the
+# kaplan.sas / nelsont.sas actuarial macros as a wide table with a header line
+#   Obs INT_DEAD NUMBER CENSORED DEAD CUM_SURV SE_EXACT CL_LOWER ... PROPLIFE
+# (KAPLAN) or a slightly different column set (NELSONT adds NUMRISK, drops
+# SE_EXACT). Header-driven so it tolerates either layout. `which` selects the
+# block: "kaplan" (first block with an SE_EXACT column), "nelson" (block with a
+# NUMRISK column), or a `_CATG=<x>` stratum marker like "catg0"/"catg1".
+# Returns a data frame named by the header columns (leading Obs dropped, "."
+# -> NA), or NULL if the block is absent.
+.hzr_parse_sas_lifetable <- function(path, which = c("kaplan", "nelson",
+                                                     "catg0", "catg1")) {
+  which <- match.arg(which)
+  lines <- .hzr_read_lst(path)
+  headers <- grep("^\\s*Obs\\s+INT_DEAD\\s+NUMBER", lines)
+  if (!length(headers)) return(NULL)
+
+  pick <- NULL
+  if (which == "nelson") {
+    pick <- headers[grepl("NUMRISK", lines[headers])][1]
+  } else if (which == "kaplan") {
+    # First KAPLAN-style header (has SE_EXACT, no NUMRISK).
+    cand <- headers[grepl("SE_EXACT", lines[headers]) &
+                      !grepl("NUMRISK", lines[headers])]
+    pick <- cand[1]
+  } else {
+    # Stratum: the header following the matching _CATG=<n> rule line.
+    n <- sub("catg", "", which)
+    catg <- grep(paste0("_CATG=", n, "\\b"), lines)
+    if (length(catg)) {
+      after <- headers[headers > catg[1]]
+      pick <- after[1]
+    }
+  }
+  if (is.null(pick) || is.na(pick)) return(NULL)
+
+  cols <- strsplit(trimws(lines[pick]), "\\s+")[[1]]
+  rows <- list()
+  for (ln in lines[(pick + 1L):length(lines)]) {
+    if (grepl("^\\s*-{5,}", ln)) break          # summary rule ends the block
+    if (!nzchar(trimws(ln))) next
+    toks <- strsplit(trimws(ln), "\\s+")[[1]]
+    # Data rows lead with the integer Obs counter.
+    if (!grepl("^[0-9]+$", toks[1])) {
+      if (length(rows)) break else next
+    }
+    if (length(toks) < length(cols)) next
+    vals <- toks[seq_along(cols)]
+    vals[vals == "."] <- NA
+    rows[[length(rows) + 1L]] <- as.numeric(vals)
+  }
+  if (!length(rows)) return(NULL)
+  df <- as.data.frame(do.call(rbind, rows))
+  names(df) <- cols
+  df[["Obs"]] <- NULL
+  df
+}
+
 # Default discovery: ~/Documents/GitHub/hazard/examples/ if it exists,
 # else NULL.  Skip tests when fixtures are unavailable.
 .hzr_sas_fixture_dir <- function() {
