@@ -303,6 +303,126 @@ test_that("hm.death.patient: 2-phase both-phase covariate model matches SAS", {
 })
 
 # ---------------------------------------------------------------------------
+# hm.death.AVC.deciles: 2-phase Early(CDF, free THALF/NU, M fixed) + Constant,
+# 6 Early covariates + 3 Constant covariates, with STATUS shared across both
+# phases. Plus a %DECILES goodness-of-fit call -> hzr_deciles() smoke check.
+# ---------------------------------------------------------------------------
+# Same warm-start rationale as hm.death.patient (blind multi-start does not
+# reach this basin -- note the extreme MUC ~ 4.4e-7 constant phase). Validates
+# likelihood/spec parity. The SAS %DECILES output is NOT captured in the .lst,
+# so the decile goodness-of-fit table has no SAS reference to assert against;
+# hzr_deciles() is exercised as a smoke check only (see gap-list: "deciles
+# comparison needs hzr_deciles() parity tolerance defined" -- blocked on a
+# captured %DECILES reference).
+test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
+  testthat::skip_on_cran()
+  dir <- skip_if_no_sas_fixtures()
+
+  # Be RNG-neutral: seed for our own determinism, but restore the global RNG
+  # state on exit so later tests in this file (which inherit RNG state for
+  # their multi-start fits) are unaffected by anything we draw here.
+  old_seed <- if (exists(".Random.seed", envir = .GlobalEnv)) {
+    get(".Random.seed", envir = .GlobalEnv)
+  } else {
+    NULL
+  }
+  on.exit({
+    if (is.null(old_seed)) {
+      if (exists(".Random.seed", envir = .GlobalEnv)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      }
+    } else {
+      assign(".Random.seed", old_seed, envir = .GlobalEnv)
+    }
+  }, add = TRUE)
+  set.seed(20260605)
+
+  ref <- .hzr_parse_sas_lst(file.path(dir, "hm.death.AVC.deciles.lst"))$fits[[1]]
+  expect_equal(ref$loglik,   -160.408, tolerance = 1e-2)
+  expect_equal(ref$n_obs,    310L)
+  expect_equal(ref$n_events, 70L)
+
+  nat <- ref$natural
+  mue <- nat$estimate[nat$name == "MUE"]
+  muc <- nat$estimate[nat$name == "MUC"]
+  thalf <- nat$estimate[nat$name == "THALF" & nat$phase == "Early"]
+  nu    <- nat$estimate[nat$name == "NU"    & nat$phase == "Early"]
+  par_beta <- function(phase, name) {
+    ref$params$estimate[ref$params$phase == phase & ref$params$name == name]
+  }
+  # SAS covariate labels -> R `avc` column names (lowercase, identical here).
+  early_cov <- c(AGE = "age", COM_IV = "com_iv", MAL = "mal",
+                 OPMOS = "opmos", OP_AGE = "op_age", STATUS = "status")
+  const_cov <- c(INC_SURG = "inc_surg", ORIFICE = "orifice", STATUS = "status")
+  beta_early <- vapply(names(early_cov), par_beta, numeric(1), phase = "Early")
+  beta_const <- vapply(names(const_cov), par_beta, numeric(1), phase = "Constant")
+
+  data(avc, package = "TemporalHazard")
+  d <- avc
+  # SAS PROC STANDARD ... REPLACE fills missing INC_SURG with the variable mean.
+  d$inc_surg[is.na(d$inc_surg)] <- mean(d$inc_surg, na.rm = TRUE)
+
+  theta0 <- c(log(mue), log(thalf), nu, 1, unname(beta_early),
+              log(muc), unname(beta_const))
+
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data   = d,
+    dist   = "multiphase",
+    phases = list(
+      early    = hzr_phase("cdf", t_half = thalf, nu = nu, m = 1, fixed = "m",
+                           formula = ~ age + com_iv + mal + opmos + op_age + status),
+      constant = hzr_phase("constant", formula = ~ inc_surg + orifice + status)
+    ),
+    theta   = theta0,
+    fit     = TRUE,
+    control = list(n_starts = 1, maxit = 2000, conserve = TRUE)
+  )
+
+  expect_true(isTRUE(fit$fit$converged))
+  expect_equal(fit$fit$objective, ref$loglik, tolerance = 1e-2,
+               label = "R log-likelihood vs SAS reference")
+
+  th <- fit$fit$theta
+  expect_equal(unname(exp(th[["early.log_mu"]])),     mue,   tolerance = 1e-4,
+               label = "MUE (Early) natural-scale")
+  expect_equal(unname(exp(th[["early.log_t_half"]])), thalf, tolerance = 5e-3,
+               label = "THALF (Early) natural-scale")
+  expect_equal(unname(th[["early.nu"]]),              nu,    tolerance = 5e-3,
+               label = "NU (Early) natural-scale")
+  # MUC ~ 4.4e-7: the constant phase is barely identified here (near-singular
+  # Hessian), so compare on the log scale with a relative tolerance rather than
+  # an absolute one on a tiny number.
+  expect_equal(unname(th[["constant.log_mu"]]),       log(muc), tolerance = 5e-3,
+               label = "log MUC (Constant) internal-scale")
+
+  for (nm in names(early_cov)) {
+    expect_equal(unname(th[[paste0("early.", early_cov[[nm]])]]),
+                 unname(beta_early[[nm]]), tolerance = 5e-3,
+                 label = paste0("early.", nm, " coefficient"))
+  }
+  for (nm in names(const_cov)) {
+    expect_equal(unname(th[[paste0("constant.", const_cov[[nm]])]]),
+                 unname(beta_const[[nm]]), tolerance = 5e-3,
+                 label = paste0("constant.", nm, " coefficient"))
+  }
+
+  # STATUS enters both phases and must resolve to distinct named vcov slots.
+  V <- vcov(fit)
+  expect_true(is.matrix(V))
+  expect_true(all(c("early.status", "constant.status") %in% rownames(V)))
+
+  # %DECILES smoke check: hzr_deciles() runs on the fit and returns a
+  # well-formed 5-group calibration table at the 120-month horizon. No SAS
+  # decile reference is captured, so we do not assert numeric GOF parity here.
+  dec <- hzr_deciles(fit, time = 120, groups = 5)
+  expect_s3_class(dec, "hzr_deciles")
+  expect_equal(nrow(dec), 5L)
+  expect_true(all(c("group", "events", "expected") %in% names(dec)))
+  expect_true(all(is.finite(dec$expected)) && sum(dec$expected) > 0)
+})
+
+# ---------------------------------------------------------------------------
 # hz.te123.OMC: 2-phase (Early CDF + Late Weibull) repeated TE events
 # ---------------------------------------------------------------------------
 # Two fits:
