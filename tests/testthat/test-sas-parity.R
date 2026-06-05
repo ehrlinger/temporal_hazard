@@ -423,6 +423,9 @@ test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
   # cohort. hzr_deciles() labels group 1 = lowest risk, the reverse of SAS
   # _DECILE_ 0 = highest risk, so align by reversing R's group order.
   sas_dec <- .hzr_parse_sas_deciles(file.path(dir, "hm.death.AVC.deciles.lst"))
+  expect_false(is.null(sas_dec),
+               label = "SAS decile table parsed from the .lst")
+  expect_equal(nrow(sas_dec), 6L)                        # overall row + 5 groups
   sas_grp <- sas_dec[!is.na(sas_dec$decile), ]
   sas_grp <- sas_grp[order(sas_grp$decile), ]           # deciles 0..4
 

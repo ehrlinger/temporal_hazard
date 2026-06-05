@@ -209,9 +209,12 @@ hzr_deciles <- function(object, time, groups = 10L,
   }
 
   # --- Overall chi-square ---------------------------------------------------
-  valid <- !is.na(result$chi_sq)
+  # Only groups with a positive expected count contribute (a zero-expected
+  # group has an undefined (O-E)^2/E term and NA chi_sq). Clamp df at 0 so
+  # degenerate inputs (<=1 contributing group) never yield a negative df.
+  valid <- result$expected > 0 & !is.na(result$chi_sq)
   overall_chi_sq <- sum(result$chi_sq[valid])
-  overall_df <- sum(valid) - 1L
+  overall_df <- max(0L, sum(valid) - 1L)
   overall_p <- if (overall_df > 0) {
     stats::pchisq(overall_chi_sq, df = overall_df, lower.tail = FALSE)
   } else {
@@ -256,10 +259,9 @@ hzr_deciles <- function(object, time, groups = 10L,
 #' @export
 print.hzr_deciles <- function(x, digits = 3, ...) {
   ov <- attr(x, "overall")
-  cat("Decile-of-risk calibration at time =", ov$time, "\n")
-  if (!is.null(ov$n_included) && !is.null(ov$n_excluded)) {
-    cat("Included", ov$n_included, "observations (excluded", ov$n_excluded,
-        "censored before horizon).\n")
+  cat("Decile-of-risk calibration (risk grouped at time =", ov$time, ")\n")
+  if (!is.null(ov$n_included)) {
+    cat(ov$n_included, "subjects, all included.\n")
   }
   cat(ov$groups, "groups,", ov$total_events, "observed events,",
       signif(ov$total_expected, digits), "expected\n\n")
