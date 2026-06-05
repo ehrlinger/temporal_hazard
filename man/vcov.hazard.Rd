@@ -13,8 +13,13 @@
 }
 \value{
 A numeric matrix containing the estimated variance-covariance matrix
-of the fitted coefficients, or \code{NA} if the model has not been fitted
-or the covariance matrix is unavailable.
+of the fitted coefficients, with rows and columns named by the coefficient
+labels (phase-prefixed for multiphase models, e.g. \code{early.x}). Rows
+and columns for parameters held fixed, or for the
+Conservation-of-Events-conserved phase \code{log_mu}, are \code{NA} because
+those parameters carry no Hessian-based variance; the finite free-parameter
+block is still usable. Returns a scalar \code{NA} only when the model has
+not been fitted or no covariance matrix is available.
 }
 \description{
 Returns the estimated variance-covariance matrix of the fitted coefficients.
