@@ -1,0 +1,19 @@
+# PHI / raw data — never commit
+# Flat files (fixed-width, CSV, TSV) that may be patient-level
+data/
+*.sas7bdat
+*.ssd01
+*.xpt
+*.csv
+*.tsv
+*.txt
+
+# SAS work and log files
+*.log
+*.sas7bndx
+WORK/
+
+# R temporary files
+.Rhistory
+.RData
+*.Rcheck/

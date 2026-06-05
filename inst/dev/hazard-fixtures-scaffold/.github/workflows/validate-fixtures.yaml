@@ -1,0 +1,100 @@
+name: Validate Fixtures
+
+# Runs on every push to main. Checks that every .lst file in examples/
+# parses without error using the TemporalHazard parser, and that no
+# raw data files have been accidentally committed.
+#
+# This workflow catches:
+#   - Corrupted or malformed .lst captures (encoding issues, truncation)
+#   - Accidentally committed data files (PHI guard)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Guard: fail if any raw data file was committed ──────────────────────
+  phi-guard:
+    name: PHI policy check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if raw data directory exists
+        run: |
+          if [ -d "data/" ]; then
+            echo "ERROR: data/ directory found. Raw data must not be committed."
+            exit 1
+          fi
+
+      - name: Fail if SAS dataset files exist
+        run: |
+          if find . -name "*.sas7bdat" -o -name "*.ssd01" -o -name "*.xpt" | grep -q .; then
+            echo "ERROR: SAS dataset files found. These must not be committed."
+            find . -name "*.sas7bdat" -o -name "*.ssd01" -o -name "*.xpt"
+            exit 1
+          fi
+
+  # ── Validate every .lst file parses cleanly ─────────────────────────────
+  parse-lst:
+    name: Parse .lst captures
+    runs-on: ubuntu-latest
+    needs: phi-guard
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Check out temporal_hazard to get the parser helper
+      - uses: actions/checkout@v4
+        with:
+          repository: ehrlinger/temporal_hazard
+          path: temporal_hazard
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          working-directory: temporal_hazard
+          extra-packages: any::testthat, any::survival
+          needs: check
+
+      - name: Install TemporalHazard
+        run: R CMD INSTALL temporal_hazard
+
+      - name: Parse all .lst files
+        run: |
+          Rscript -e "
+            source('temporal_hazard/tests/testthat/helper-sas-parity.R')
+
+            lst_files <- list.files('examples', pattern = '\\\\.lst$',
+                                    full.names = TRUE)
+            if (length(lst_files) == 0) stop('No .lst files found in examples/')
+
+            errors <- character()
+            for (f in lst_files) {
+              result <- tryCatch(
+                .hzr_parse_sas_lst(f),
+                error = function(e) e
+              )
+              if (inherits(result, 'error')) {
+                errors <- c(errors, paste0(basename(f), ': ', result\$message))
+              } else if (length(result\$fits) == 0) {
+                errors <- c(errors, paste0(basename(f), ': parsed 0 fits'))
+              } else {
+                cat('OK:', basename(f), '—', length(result\$fits), 'fit(s)\n')
+              }
+            }
+
+            if (length(errors) > 0) {
+              cat('\nFAILED:\n')
+              cat(paste0('  ', errors, '\n'))
+              quit(status = 1)
+            }
+            cat('\nAll', length(lst_files), '.lst files parsed successfully.\n')
+          "
