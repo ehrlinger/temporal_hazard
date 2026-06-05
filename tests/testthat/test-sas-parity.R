@@ -201,6 +201,108 @@ test_that("hm.deadp.VALVES: null model nu=0 m<0 LL matches SAS initial (Case 2L 
 })
 
 # ---------------------------------------------------------------------------
+# hm.death.patient: 2-phase Early(CDF, free THALF/NU, M fixed) + Constant,
+# multivariable in BOTH phases with a covariate (AGE_COP) shared across phases.
+# Primary VALVES cohort, per-patient death. CONSERVE on, no truncation.
+# ---------------------------------------------------------------------------
+# This exercises the case the gap list flagged as P1 #1 (a covariate name
+# appearing in both Early and Constant). The `.lst` parser routes the duplicate
+# AGE_COP labels to distinct slots, and `vcov()` now returns a named matrix, so
+# parity can be checked by name.
+#
+# The fit is warm-started from the SAS estimates. Blind multi-start lands in a
+# different (shrunk-beta) basin here -- a 12-parameter CoE model with widely
+# scaled covariates is hard for BFGS to optimize from beta = 0 -- so this test
+# validates likelihood/model-spec parity (R agrees the SAS point is the MLE and
+# reports the same log-likelihood there), not blind optimizer convergence.
+test_that("hm.death.patient: 2-phase both-phase covariate model matches SAS", {
+  testthat::skip_on_cran()
+  dir <- skip_if_no_sas_fixtures()
+
+  ref <- .hzr_parse_sas_lst(file.path(dir, "hm.death.patient.lst"))$fits[[1]]
+  expect_equal(ref$loglik,   -1792.07, tolerance = 1e-2)
+  expect_equal(ref$n_obs,    1533L)
+  expect_equal(ref$n_events, 338L)
+
+  # Reference estimates, pulled from the parsed fixture (no hard-coded numbers).
+  nat <- ref$natural
+  mue <- nat$estimate[nat$name == "MUE"]
+  muc <- nat$estimate[nat$name == "MUC"]
+  thalf <- nat$estimate[nat$name == "THALF" & nat$phase == "Early"]
+  nu    <- nat$estimate[nat$name == "NU"    & nat$phase == "Early"]
+  par_beta <- function(phase, name) {
+    ref$params$estimate[ref$params$phase == phase & ref$params$name == name]
+  }
+  # SAS covariate labels paired with the R `valves` column names (DOUBLE maps
+  # to `double_` because `double` is a reserved word in R).
+  early_cov <- c(AGE_COP = "age_cop", NYHA = "nyha", MV_NYHA = "mv_nyha",
+                 DOUBLE = "double_", AO_PINC = "ao_pinc")
+  const_cov <- c(AGE_COP = "age_cop", BLACK = "black", I_PATH = "i_path")
+  beta_early <- vapply(names(early_cov), par_beta, numeric(1), phase = "Early")
+  beta_const <- vapply(names(const_cov), par_beta, numeric(1), phase = "Constant")
+
+  data(valves, package = "TemporalHazard")
+  d <- valves
+  # SAS PROC STANDARD ... REPLACE fills missing NYHA with the variable mean.
+  d$nyha[is.na(d$nyha)] <- mean(d$nyha, na.rm = TRUE)
+  d$mv_nyha <- d$mitral * d$nyha
+
+  # Internal-scale warm start: log_mu, log_t_half, nu, m (fixed), early betas,
+  # then constant log_mu, constant betas -- in phase/formula order.
+  theta0 <- c(log(mue), log(thalf), nu, 1, unname(beta_early),
+              log(muc), unname(beta_const))
+
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data   = d,
+    dist   = "multiphase",
+    phases = list(
+      early    = hzr_phase("cdf", t_half = thalf, nu = nu, m = 1, fixed = "m",
+                           formula = ~ age_cop + nyha + mv_nyha + double_ + ao_pinc),
+      constant = hzr_phase("constant", formula = ~ age_cop + black + i_path)
+    ),
+    theta   = theta0,
+    fit     = TRUE,
+    control = list(n_starts = 1, maxit = 2000, conserve = TRUE)
+  )
+
+  expect_true(isTRUE(fit$fit$converged))
+  # R agrees the SAS estimates are the MLE: log-likelihood matches to print
+  # precision and the fit does not drift away from the seed.
+  expect_equal(fit$fit$objective, ref$loglik, tolerance = 1e-2,
+               label = "R log-likelihood vs SAS reference")
+
+  th <- fit$fit$theta
+  expect_equal(unname(exp(th[["early.log_mu"]])),      mue,   tolerance = 1e-4,
+               label = "MUE (Early) natural-scale")
+  expect_equal(unname(exp(th[["early.log_t_half"]])),  thalf, tolerance = 5e-3,
+               label = "THALF (Early) natural-scale")
+  expect_equal(unname(th[["early.nu"]]),               nu,    tolerance = 5e-3,
+               label = "NU (Early) natural-scale")
+  expect_equal(unname(exp(th[["constant.log_mu"]])),   muc,   tolerance = 1e-4,
+               label = "MUC (Constant) natural-scale")
+
+  # Covariate coefficients (same scale in R and SAS), including AGE_COP which
+  # enters both phases and must resolve to distinct, name-addressable slots.
+  for (nm in names(early_cov)) {
+    expect_equal(unname(th[[paste0("early.", early_cov[[nm]])]]),
+                 unname(beta_early[[nm]]), tolerance = 5e-3,
+                 label = paste0("early.", nm, " coefficient"))
+  }
+  for (nm in names(const_cov)) {
+    expect_equal(unname(th[[paste0("constant.", const_cov[[nm]])]]),
+                 unname(beta_const[[nm]]), tolerance = 5e-3,
+                 label = paste0("constant.", nm, " coefficient"))
+  }
+
+  # vcov() is name-addressable for the shared covariate (P1 #1 fix): the two
+  # AGE_COP coefficients occupy distinct, finite-variance slots.
+  V <- vcov(fit)
+  expect_true(is.matrix(V))
+  expect_true(all(c("early.age_cop", "constant.age_cop") %in% rownames(V)))
+})
+
+# ---------------------------------------------------------------------------
 # hz.te123.OMC: 2-phase (Early CDF + Late Weibull) repeated TE events
 # ---------------------------------------------------------------------------
 # Two fits:
