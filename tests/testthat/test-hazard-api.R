@@ -133,6 +133,70 @@ test_that("optimizer produces valid vcov and SEs for all distributions", {
   expect_true(all(is.finite(fit_ln$fit$se)))
 })
 
+test_that("vcov.hazard returns a named matrix and preserves NA rows", {
+  # A multiphase fit legitimately has NA variance rows: parameters held fixed
+  # (e.g. early shapes) and the Conservation-of-Events-conserved phase log_mu
+  # carry no Hessian-based variance. The old contract returned a scalar NA for
+  # the whole matrix whenever any cell was NA, making vcov() unusable for
+  # multiphase models and discarding the finite free-parameter block.
+  theta <- c(early.log_mu = -1.5, early.log_t_half = log(0.5),
+             early.nu = 1, early.m = 1, early.x = 0.8,
+             constant.log_mu = -3.0, constant.x = -0.4)
+  V <- matrix(NA_real_, 7, 7)
+  free <- c(1L, 5L, 7L)               # early.log_mu, early.x, constant.x
+  V[free, free] <- matrix(c(0.0101, -0.0065, 0.0002,
+                            -0.0065, 0.0072, -0.0004,
+                            0.0002, -0.0004, 0.0012), 3, 3)
+  fit <- structure(list(fit = list(theta = theta, vcov = V)), class = "hazard")
+
+  Vout <- vcov(fit)
+  expect_true(is.matrix(Vout))                       # not scalar NA
+  expect_equal(dim(Vout), c(7L, 7L))
+  expect_equal(rownames(Vout), names(theta))         # named for alignment
+  expect_equal(colnames(Vout), names(theta))
+  expect_true(anyNA(Vout))                           # NA rows preserved
+  expect_true(all(is.na(diag(Vout)[c(2, 3, 4, 6)]))) # fixed/conserved -> NA
+  expect_true(all(is.finite(diag(Vout)[free])))      # free block intact
+})
+
+test_that("vcov.hazard distinguishes a covariate shared across phases by name", {
+  theta <- c(early.log_mu = -1.5, early.x = 0.8,
+             constant.log_mu = -3.0, constant.x = -0.4)
+  V <- diag(c(0.01, 0.02, NA_real_, 0.03))
+  fit <- structure(list(fit = list(theta = theta, vcov = V)), class = "hazard")
+
+  Vout <- vcov(fit)
+  expect_setequal(rownames(Vout), c("early.log_mu", "early.x",
+                                    "constant.log_mu", "constant.x"))
+  # The two phase-specific x coefficients must resolve to distinct slots.
+  expect_equal(Vout["early.x", "early.x"], 0.02)
+  expect_equal(Vout["constant.x", "constant.x"], 0.03)
+})
+
+test_that("vcov.hazard returns scalar NA only when the matrix is truly absent", {
+  fit_null <- structure(list(fit = list(theta = c(a = 1), vcov = NULL)),
+                        class = "hazard")
+  expect_true(is.na(vcov(fit_null)) && !is.matrix(vcov(fit_null)))
+
+  fit_scalar <- structure(list(fit = list(theta = c(a = 1), vcov = NA)),
+                          class = "hazard")
+  expect_true(is.na(vcov(fit_scalar)) && !is.matrix(vcov(fit_scalar)))
+})
+
+test_that("vcov.hazard names single-phase (weibull) coefficients", {
+  skip_if_not_installed("numDeriv")
+  set.seed(7)
+  n <- 200
+  time <- rexp(n, 0.5)
+  status <- rep(1L, n)
+  fit <- hazard(time = time, status = status,
+                theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
+  Vout <- vcov(fit)
+  expect_true(is.matrix(Vout))
+  expect_false(is.null(rownames(Vout)))
+  expect_equal(rownames(Vout), colnames(Vout))
+})
+
 test_that("summary shows finite z-stats and p-values from fitted model", {
   skip_if_not_installed("numDeriv")
 

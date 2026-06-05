@@ -1277,14 +1277,37 @@ coef.hazard <- function(object, ...) {
 #'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 #' vcov(fit)
 #' @return A numeric matrix containing the estimated variance-covariance matrix
-#'   of the fitted coefficients, or \code{NA} if the model has not been fitted
-#'   or the covariance matrix is unavailable.
+#'   of the fitted coefficients, with rows and columns named by the coefficient
+#'   labels (phase-prefixed for multiphase models, e.g. \code{early.x}). Rows
+#'   and columns for parameters held fixed, or for the
+#'   Conservation-of-Events-conserved phase \code{log_mu}, are \code{NA} because
+#'   those parameters carry no Hessian-based variance; the finite free-parameter
+#'   block is still usable. Returns a scalar \code{NA} only when the model has
+#'   not been fitted or no covariance matrix is available.
 #' @export
 vcov.hazard <- function(object, ...) {
-  if (is.null(object$fit$vcov) || anyNA(object$fit$vcov)) {
+  v <- object$fit$vcov
+  if (is.null(v) || !is.matrix(v)) {
     return(NA)
   }
-  object$fit$vcov
+  # Label rows/cols with the coefficient names so callers can align the matrix
+  # by name. This matters for multiphase models where the same covariate can
+  # enter more than one phase (e.g. early.x vs constant.x): without names the
+  # two coefficients are indistinguishable. NA variance rows are retained
+  # rather than collapsing the whole matrix to a scalar NA -- a multiphase fit
+  # legitimately has NA rows for parameters held fixed (e.g. early shapes) and
+  # for the Conservation-of-Events-conserved phase log_mu, neither of which has
+  # a Hessian-based variance. The finite free-parameter block is still usable.
+  theta <- object$fit$theta
+  nm <- names(theta)
+  if (is.null(nm) || !all(nzchar(nm))) {
+    p <- if (is.null(object$data$x)) 0L else ncol(object$data$x)
+    nm <- .hzr_parameter_names(theta = theta, dist = object$spec$dist, p = p)
+  }
+  if (!is.null(nm) && length(nm) == nrow(v)) {
+    dimnames(v) <- list(nm, nm)
+  }
+  v
 }
 
 .hzr_parameter_names <- function(theta, dist, p) {

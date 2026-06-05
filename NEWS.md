@@ -11,6 +11,18 @@
 
 ## Bug fixes
 
+* **`vcov()` was unusable for multiphase fits and returned an unnamed matrix.**
+  `vcov.hazard()` collapsed the entire matrix to a scalar `NA` whenever any cell
+  was `NA`. Multiphase fits legitimately have `NA` variance rows -- for
+  parameters held fixed (e.g. early shapes) and for the
+  Conservation-of-Events-conserved phase `log_mu` -- so the finite
+  free-parameter block was discarded for almost every multiphase model. The
+  method now returns the full matrix with `NA` rows preserved and labels rows
+  and columns with the coefficient names (phase-prefixed for multiphase, e.g.
+  `early.x` vs `constant.x`), so a covariate shared across phases resolves to
+  distinct, name-addressable slots. A scalar `NA` is returned only when no
+  covariance matrix is available.
+
 * **Weibull analytic gradient produced `NaN` for right-censored `time = 0` rows.**
   `.hzr_gradient_weibull()` used an unguarded `log(time)` in the shape (`nu`)
   score; a legal right-censored row at `time = 0` made `0 * -Inf = NaN`, which
