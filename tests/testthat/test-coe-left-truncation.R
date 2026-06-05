@@ -38,7 +38,12 @@
   )
 }
 
-.coe_fit <- function(d, conserve) {
+.coe_fit <- function(d, conserve, seed = 202) {
+  # Reset the RNG before fitting so the multi-start perturbations are
+  # deterministic: the CoE and free fits must not drift into different local
+  # optima from back-to-back RNG draws (which would make the objective
+  # comparison flaky across platforms/R versions).
+  set.seed(seed)
   hazard(
     survival::Surv(start, stop, event) ~ 1,
     data    = d,
@@ -46,6 +51,17 @@
     phases  = .coe_phases(),
     fit     = TRUE,
     control = list(n_starts = 5, maxit = 1500, reltol = 1e-9, conserve = conserve)
+  )
+}
+
+# Recompute the multiphase log-likelihood at a fitted object's returned
+# coefficients (no further CoE applied). A self-consistent fit must reproduce
+# its own reported objective here.
+.coe_ll_at_par <- function(fit, d) {
+  TemporalHazard:::.hzr_logl_multiphase(
+    theta = fit$fit$theta, time = d$stop, status = d$event,
+    time_lower = d$start, phases = fit$fit$phases,
+    covariate_counts = fit$fit$covariate_counts, x_list = fit$fit$x_list
   )
 }
 
@@ -64,6 +80,13 @@ test_that("CoE conserves events on the entry-time scale (left-truncated)", {
   expect_equal(fit_coe$fit$objective, fit_free$fit$objective,
                tolerance = 1e-3,
                label = "objective(conserve=TRUE) vs conserve=FALSE, left-truncated")
+
+  # The returned coefficients must be self-consistent with the objective: the
+  # final post-optimization CoE adjustment has to solve the conserved log_mu on
+  # the same entry-time scale, else the returned mu drifts off the optimum.
+  expect_equal(.coe_ll_at_par(fit_coe, d), fit_coe$fit$objective,
+               tolerance = 1e-6,
+               label = "LL at returned coefficients vs reported objective")
 })
 
 test_that("CoE matches the free fit for untruncated data (control)", {

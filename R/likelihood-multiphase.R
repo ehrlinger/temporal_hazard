@@ -296,6 +296,10 @@
 #' @param weights Optional numeric vector of row weights (length n). Defaults to
 #'   unit weights. Applied when summing per-phase cumhaz so that selection
 #'   happens on the same scale as the (weighted) observed event count.
+#' @param time_lower Optional numeric vector of counting-process entry (start)
+#'   times. When supplied, phases are ranked by entry-time cumulative hazard
+#'   `H(stop) - H(start)`, the scale on which events are conserved. `NULL` (the
+#'   default) means no truncation, i.e. `H(start) = 0`.
 #' @return Character: name of the phase to fix.
 #' @keywords internal
 .hzr_select_fixmu_phase <- function(theta, time, status,
@@ -1366,12 +1370,15 @@
     theta_full[free_idx] <- best_result$par
     best_result$par <- theta_full
 
-    # Final CoE adjustment: solve fixmu log_mu at the optimum
+    # Final CoE adjustment: solve fixmu log_mu at the optimum. Must pass
+    # time_lower so the conserved log_mu in the returned coefficients is solved
+    # on the same entry-time scale the objective was optimized on; otherwise a
+    # left-truncated fit returns a conserved mu inconsistent with its objective.
     if (use_conserve && !is.null(fixmu_pos)) {
       best_result$par <- .hzr_conserve_events(
         best_result$par, fixmu_phase, fixmu_pos,
         time, status, phases, covariate_counts, x_list, total_events,
-        weights = weights
+        weights = weights, time_lower = time_lower
       )
     }
 
