@@ -11,7 +11,8 @@
   phases,
   covariate_counts,
   x_list,
-  weights = NULL
+  weights = NULL,
+  time_lower = NULL
 )
 }
 \arguments{

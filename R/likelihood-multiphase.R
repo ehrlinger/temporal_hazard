@@ -300,10 +300,21 @@
 #' @keywords internal
 .hzr_select_fixmu_phase <- function(theta, time, status,
                                      phases, covariate_counts, x_list,
-                                     weights = NULL) {
+                                     weights = NULL, time_lower = NULL) {
   decomp <- .hzr_multiphase_cumhaz(time, theta, phases,
                                      covariate_counts, x_list,
                                      per_phase = TRUE)
+  # Left truncation (counting-process entry times): rank phases by the cumulative
+  # hazard accrued over follow-up, H(stop) - H(start), the same scale on which
+  # events are conserved. See `.hzr_conserve_events`.
+  if (!is.null(time_lower)) {
+    decomp_start <- .hzr_multiphase_cumhaz(time_lower, theta, phases,
+                                            covariate_counts, x_list,
+                                            per_phase = TRUE)
+    for (nm in names(phases)) {
+      decomp[[nm]] <- decomp[[nm]] - decomp_start[[nm]]
+    }
+  }
   if (is.null(weights)) weights <- rep(1, length(time))
   phase_sums <- vapply(names(phases), function(nm) {
     sum(weights * decomp[[nm]])
@@ -352,16 +363,35 @@
 #' @param weights Optional numeric vector of row weights (length n). Defaults to
 #'   unit weights. Applied when summing per-phase cumhaz so Turner's adjustment
 #'   is computed on the same scale as `total_events`.
+#' @param time_lower Optional numeric vector of counting-process entry (start)
+#'   times. When supplied, conservation is enforced on the entry-time scale --
+#'   `Sum E = Sum [H(stop) - H(start)]` -- by subtracting the entry-time
+#'   cumulative hazard, matching the multiphase likelihood (and C HAZARD
+#'   `setcoe` under `LCENSOR`/`STARTTME`). `NULL` (the default) means no
+#'   truncation, i.e. `H(start) = 0`.
 #' @return Updated theta vector with fixmu phase's log_mu adjusted.
 #' @keywords internal
 .hzr_conserve_events <- function(theta, fixmu_phase, fixmu_pos,
                                   time, status,
                                   phases, covariate_counts, x_list,
-                                  total_events, weights = NULL) {
+                                  total_events, weights = NULL,
+                                  time_lower = NULL) {
   # Compute per-phase cumulative hazard contributions
   decomp <- .hzr_multiphase_cumhaz(time, theta, phases,
                                      covariate_counts, x_list,
                                      per_phase = TRUE)
+
+  # Left truncation: subtract the per-phase entry-time cumulative hazard so the
+  # conserved quantity is H(stop) - H(start), the same constraint the score
+  # equation for mu satisfies. Without this, CoE conserves Sum H(stop) and the
+  # fixmu phase absorbs the spurious Sum H(start), biasing its intercept.
+  if (!is.null(time_lower)) {
+    decomp_start <- .hzr_multiphase_cumhaz(time_lower, theta, phases,
+                                            covariate_counts, x_list,
+                                            per_phase = TRUE)
+    decomp$total <- decomp$total - decomp_start$total
+    decomp[[fixmu_phase]] <- decomp[[fixmu_phase]] - decomp_start[[fixmu_phase]]
+  }
 
   if (is.null(weights)) weights <- rep(1, length(time))
 
@@ -1141,7 +1171,16 @@
         time, theta_start, phases, covariate_counts, x_list,
         per_phase = TRUE
       )
-      sumcz_init <- sum(weights * decomp_init$total)
+      # Entry-time scale under left truncation: conserve H(stop) - H(start).
+      init_total <- decomp_init$total
+      if (!is.null(time_lower)) {
+        decomp_init_start <- .hzr_multiphase_cumhaz(
+          time_lower, theta_start, phases, covariate_counts, x_list,
+          per_phase = TRUE
+        )
+        init_total <- init_total - decomp_init_start$total
+      }
+      sumcz_init <- sum(weights * init_total)
       if (sumcz_init > 0 && is.finite(sumcz_init)) {
         init_factor <- log(total_events / sumcz_init)
         if (is.finite(init_factor)) {
@@ -1155,7 +1194,7 @@
       # Select fixmu phase (largest weighted cumhaz contributor after scaling)
       fixmu_phase <- .hzr_select_fixmu_phase(
         theta_start, time, status, phases, covariate_counts, x_list,
-        weights = weights
+        weights = weights, time_lower = time_lower
       )
       fixmu_pos <- log_mu_positions[[fixmu_phase]]
 
@@ -1163,7 +1202,7 @@
       theta_start <- .hzr_conserve_events(
         theta_start, fixmu_phase, fixmu_pos,
         time, status, phases, covariate_counts, x_list, total_events,
-        weights = weights
+        weights = weights, time_lower = time_lower
       )
 
       # Wrap logl and gradient: apply CoE before each evaluation
@@ -1173,7 +1212,7 @@
         theta <- .hzr_conserve_events(
           theta, fixmu_phase, fixmu_pos,
           time, status, phases, covariate_counts, x_list, total_events,
-          weights = weights
+          weights = weights, time_lower = time_lower
         )
         logl_fn_pre_coe(theta, time, status, time_lower,
                         time_upper, x, weights = weights, ...)
@@ -1185,7 +1224,7 @@
         theta <- .hzr_conserve_events(
           theta, fixmu_phase, fixmu_pos,
           time, status, phases, covariate_counts, x_list, total_events,
-          weights = weights
+          weights = weights, time_lower = time_lower
         )
         gradient_fn_pre_coe(theta, time, status, time_lower,
                             time_upper, x, weights = weights, ...)

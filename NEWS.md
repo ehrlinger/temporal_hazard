@@ -11,6 +11,17 @@
 
 ## Bug fixes
 
+* **Conservation of Events ignored left-truncation (counting-process entry
+  times).** For multiphase fits on `Surv(start, stop, event)` data, the CoE
+  reparameterization conserved `Sum H(stop)` while the likelihood scores the
+  intercepts on the entry-time scale, `Sum E = Sum [H(stop) - H(start)]`. The
+  conserved phase therefore absorbed the spurious `Sum H(start)`, biasing its
+  intercept and lowering the attained log-likelihood (the `hz.te123.OMC` fit-1
+  parity offset, gap-list P1 #6). `.hzr_conserve_events()` and
+  `.hzr_select_fixmu_phase()` now subtract the per-phase entry-time cumulative
+  hazard, matching the likelihood and C HAZARD `setcoe` under `LCENSOR`/
+  `STARTTME`. Plain right-censored fits (no `start` time) are unaffected.
+
 * **`vcov()` was unusable for multiphase fits and returned an unnamed matrix.**
   `vcov.hazard()` collapsed the entire matrix to a scalar `NA` whenever any cell
   was `NA`. Multiphase fits legitimately have `NA` variance rows -- for
