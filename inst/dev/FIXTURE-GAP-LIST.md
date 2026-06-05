@@ -53,17 +53,21 @@ need to author `.sas` jobs + capture `.lst` output, then wire them into both har
 
 | Feature | R test file | SAS HAZARD statement | Notes |
 |---|---|---|---|
-| Interval censoring (`status = 2`, `Surv(t_low, t_high, event)`) | `test-interval-censoring-weibull.R`, `test-interval-censoring-other-dists.R` | `LCENSOR` + `RCENSOR` pair | Need a dataset where actual intervals exist, not just endpoints. Clinical calibration data (echo re-read windows?) would be ideal. |
+| Interval censoring (`status = 2`, `Surv(t_low, t_high, event)`) | `test-interval-censoring-weibull.R`, `test-interval-censoring-other-dists.R` | `ICENSOR c3_var = ctime_var` (verified — see Q1) | Need a dataset where actual intervals exist, not just endpoints. Clinical calibration data (echo re-read windows?) would be ideal. |
 | Left censoring (`status = -1`) | `test-formula-helpers.R` (parsing only) | `LCENSOR` only | Verify SAS HAZARD handles pure left-censoring; confirm contribution formula matches. |
 | Counting-process / left-truncated at nonzero entry (`Surv(start, stop, event)`) | `test-repeating-events.R` | `LCENSOR STARTTME` (already in `hz.te123.OMC`) | The OMC fixture already covers this! Cross-check the epoch-split invariant test against the OMC expected values to close this. |
 
 ### B2. Distribution families (non-multiphase)
 
+**SAS HAZARD has no `DIST=` keyword** — it is hard-wired to the three-phase
+early/constant/late model (verified from `structures.h`; see Q2). So there is
+no general distribution dispatch to write parity jobs against.
+
 | Distribution | R test file | In SAS HAZARD? | Action |
 |---|---|---|---|
-| Exponential | `test-exponential-dist.R` | Yes (`DIST=EXP` or equivalent) | Create minimal univariate + covariate job |
-| Log-logistic | `test-loglogistic-dist.R` | Unknown — verify | If SAS supports it, create sample job. If not, document as R-only. |
-| Log-normal | `test-lognormal-dist.R` | Unknown — verify | Same as log-logistic |
+| Exponential | `test-exponential-dist.R` | Only as a degenerate case — a constant-phase-only HAZARD model **is** an exponential. No `DIST=EXP` keyword. | Optional: a constant-only HAZARD job gives an exponential reference. Low value. |
+| Log-logistic | `test-loglogistic-dist.R` | **No** (verified, Q2) — R-only extension | Document as R-only; no SAS counterpart. These test files stand alone. |
+| Log-normal | `test-lognormal-dist.R` | **No** (verified, Q2) — R-only extension | Document as R-only; no SAS counterpart. |
 
 ### B3. Multiphase structural variants
 

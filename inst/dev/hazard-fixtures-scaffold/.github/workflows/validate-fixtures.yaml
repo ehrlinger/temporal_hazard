@@ -29,11 +29,18 @@ jobs:
             exit 1
           fi
 
-      - name: Fail if SAS dataset files exist
+      - name: Fail if raw data files exist
         run: |
-          if find . -name "*.sas7bdat" -o -name "*.ssd01" -o -name "*.xpt" | grep -q .; then
-            echo "ERROR: SAS dataset files found. These must not be committed."
-            find . -name "*.sas7bdat" -o -name "*.ssd01" -o -name "*.xpt"
+          # SAS dataset formats AND raw flat-file formats (matching .gitignore):
+          # only .sas (jobs), .lst (aggregate captures), .rds (golden fixtures),
+          # and docs belong here — never per-patient data.
+          matches=$(find . \( \
+            -name "*.sas7bdat" -o -name "*.sas7bndx" -o -name "*.ssd01" \
+            -o -name "*.xpt" -o -name "*.csv" -o -name "*.tsv" -o -name "*.txt" \
+          \) -not -path "./.git/*")
+          if [ -n "$matches" ]; then
+            echo "ERROR: raw/PHI-risk data files found. These must not be committed:"
+            echo "$matches"
             exit 1
           fi
 

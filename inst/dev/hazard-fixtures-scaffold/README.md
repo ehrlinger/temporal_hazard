@@ -38,7 +38,7 @@ hazard-fixtures/
 │   ├── hz.deadp.KUL.lst
 │   ├── hz.death.AVC.sas
 │   ├── hz.death.AVC.lst
-│   ├── hz.te123.OMC.sas    # .sas only — .lst depends on raw omc data
+│   ├── hz.te123.OMC.sas    # .lst IS committed (aggregate); re-running needs raw omc data
 │   ├── hz.te123.OMC.lst
 │   ├── hz.tm123.OMC.sas
 │   ├── hz.tm123.OMC.lst
@@ -88,7 +88,7 @@ Add to your shell profile or `.Renviron`:
 
 ```bash
 export HAZARD_EXAMPLES_DIR="$HOME/Documents/GitHub/hazard-fixtures/examples"
-export HAZARD_OMC_RAW="/path/to/ccf/network/share/omc"   # local only, never export
+export HAZARD_OMC_RAW="/path/to/ccf/network/share/omc"   # local machine only — never set in CI or commit the path
 export TEMPORAL_HAZARD_BIN="$HOME/Documents/GitHub/hazard/hazard"
 ```
 
@@ -105,7 +105,11 @@ The capture vintage is recorded in the file header comment and in the table belo
 | Windows reference | v4.4.5 | Windows x64 + SAS | 2026-04-28 |
 
 When a new binary version changes output format or numerical results, re-capture
-on the same platform and update this table. CI will detect mismatches.
+on the same platform and update this table. Note: the validate-fixtures CI only
+checks that each `.lst` still **parses** — it does not compare numeric results
+across versions, so it will catch format-breaking changes but not silent
+numerical drift. Cross-version numerical regression is the consuming repos'
+parity tests' job (run with the env vars above).
 
 ---
 
