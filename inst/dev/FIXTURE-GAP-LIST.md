@@ -31,8 +31,8 @@ the parser handles them, and we just need to write the `test_that` blocks.
 
 | Fixture | Feature exercised | Blocker before writing tests |
 |---|---|---|
-| `hm.death.patient` | Per-patient (not aggregated) data, 12-param multivariable EARLY-phase fit | P1 #1: wide-vcov asymmetry when parameters share names across phases (e.g., `STATUS` appears in both Early and Constant). Fix cursor-based routing first. |
-| `hm.death.AVC.deciles` | Multivariable EARLY-phase fit (6 covariates: AGE, COM_IV, MAL, OPMOS, OP_AGE, STATUS) + `%DECILES` → `hzr_deciles()` | Same P1 #1 blocker for vcov; deciles comparison needs `hzr_deciles()` parity tolerance defined |
+| `hm.death.patient` | Per-patient (not aggregated) data, 12-param multivariable EARLY-phase fit | ~~P1 #1 wide-vcov asymmetry~~ **UNBLOCKED (PR #65).** The `.lst` parser already routed duplicate cross-phase labels correctly (since v0.9.8); the real blocker was R-side `vcov()` returning scalar `NA` and unnamed for multiphase fits — now fixed. Ready to write the `test_that` block. |
+| `hm.death.AVC.deciles` | Multivariable EARLY-phase fit (6 covariates: AGE, COM_IV, MAL, OPMOS, OP_AGE, STATUS) + `%DECILES` → `hzr_deciles()` | Same vcov path **UNBLOCKED (PR #65)**; deciles comparison still needs `hzr_deciles()` parity tolerance defined |
 | `hm.death.AVC` fit 1 | Stepwise selection (`SELECTION SLE=0.2 SLS=0.1`) | Fixture template at `inst/extdata/stepwise-fixtures/cabgkul-forward-wald.sas` exists; must run SAS and call `.hzr_build_stepwise_fixture()` to materialize the `.rds` |
 | `hm.dthar.TGA` | Arterial switch (TGA), EARLY-phase only, 9 covariates, E+C, stepwise + final model | `hm.dthar.TGA.sas` created 2026-06-03; needs CCF run to fill `?` PARMS and capture `.lst`. **Public harness** — goes in `hazard/examples/` + `test-sas-parity.R` same as other primary fixtures. |
 | `hm.death.AVC` fit 2 | Shaping modifiers `/S`, `/I`, `/E` on covariates | Not in R public API — defer to v1.1 or hand-translate; mark as known gap |
@@ -98,14 +98,15 @@ datasets.  The following phase-structure variants lack dedicated sample jobs:
 
 ### B6. Conservation of Events (CoE) variants
 
-The P1 #6 gap (Lagrange vs. closed-form CoE for 2-phase early+late) needs a dedicated
+The P1 #6 gap (RESOLVED in PR #65 — left-truncation `CF(ST)` term omitted from CoE,
+**not** Lagrange vs. closed-form; see Q4) had needed a dedicated
 fixture to drive the fix:
 
 | Scenario | Status |
 |---|---|
 | 2-phase E+C (standard): CoE via closed-form μ_C | Covered — `hz.death.AVC` |
 | 3-phase E+C+L (standard): CoE distributes across 3 phases | Covered — `hz.deadp.KUL` |
-| 2-phase E+L (no constant): CoE needs Lagrange — **P1 #6 gap** | `hz.te123.OMC` fit 1 and `hz.tm123.OMC` document the discrepancy; gap is in the R implementation, not missing fixtures |
+| 2-phase E+L (no constant): CoE under left-truncation — ~~**P1 #6 gap**~~ **FIXED (PR #65)** | `hz.te123.OMC` fit 1 / `hz.tm123.OMC` documented the discrepancy; root cause was the omitted `CF(ST)` term, fixed in R. SAS parity assertion still gated on `HAZARD_OMC_RAW`. |
 | NOCONSERVE explicit: no CoE applied | Covered — `hz.deadp.KUL` (NOCONSERVE) |
 | CONSERVE with all phases free-shape | Need a job where CoE interacts with free-shape estimation | No fixture |
 
@@ -205,11 +206,11 @@ feature value and estimated complexity, not release blocking.
 |---|---|---|
 | P0 — gates everything else | **Email Rajes** for 3–5 production `.sas`/`.lst` pairs (4-phase, phase-specific covariates, shaping modifiers, high-dim, weighted events) | 15 min |
 | P1 — high value, low effort | Run `hm.dthar.TGA.sas` on CCF, fill PARMS, capture `.lst`, add to `hazard/examples/`, write R parity test | 0.5 days (CCF run + test) |
-| P1 — high value, low effort | Fix P1 #1 wide-vcov asymmetry; write `hm.death.patient` + `hm.death.AVC.deciles` parity tests | 2–3 days total |
+| ~~P1~~ DONE | ~~Fix P1 #1 wide-vcov asymmetry~~ — fixed in PR #65 (R-side `vcov()`, not the parser). Remaining: write `hm.death.patient` + `hm.death.AVC.deciles` parity tests (now unblocked) | ~1 day (tests only) |
 | P1 — high value, low effort | Materialize stepwise parity fixture (`cabgkul-forward-wald.rds`) and confirm `test-stepwise-parity.R` passes | 1 day |
 | P1 — high value, low effort | Kaplan + Nelson parity tests (`ac.death.AVC`) | 0.5 days |
 | P1 — high value, low effort | Predict parity tests (`hp.*` fixtures) | 1 day |
-| P2 — high value, more work | Fix P1 #6 CoE Lagrange for 2-phase E+L; add tighter tolerances to `hz.te123.OMC` fit 1 | 2–3 days |
+| ~~P2~~ DONE | ~~Fix P1 #6 CoE Lagrange~~ — fixed in PR #65 (left-truncation `CF(ST)` term, not Lagrange). Remaining: tighten `hz.te123.OMC` fit-1 tolerances once `HAZARD_OMC_RAW` is available | ~0.5 day (tolerances) |
 | P2 — high value, more work | Interval censoring SAS sample job (confirm SAS HAZARD syntax first) | 1–2 days |
 | P2 — high value, more work | TGA dataset sample jobs (null model + multivariable) | 1 day |
 | P2 — high value, more work | 3-phase free-shape SAS job + R parity | 1 day |
@@ -338,23 +339,39 @@ example use `/S`, `/O=`, `RESTRICT`, or `BUNDLE`? If only `/I` and plain variabl
 
 ---
 
-**Q4: CoE P1 #6 — what does the C binary actually do?**  
-The C code (`setcoe_calc_scaling.c`) applies CoE as a **proportional log-scale shift
-applied equally to ALL active phase μ parameters**:
+**Q4: CoE P1 #6 — what does the C binary actually do?** ✅ **RESOLVED 2026-06-05
+(PR #65) — original diagnosis was wrong.**
 
-```c
-lfactr = ln(total_events / sum_cumhaz);   // single scalar
-for each active phase j:
-    theta[log_mu_j] += lfactr;            // same shift to every phase
-```
+The C source has **two distinct routines**, and an earlier reading of
+`setcoe_calc_scaling.c` conflated them:
 
-This is the Lagrange approach: all phases get the same multiplicative factor. R's
-current implementation substitutes μ_C (or μ_L in the 2-phase E+L case) in closed
-form, leaving the other μ parameters free. That divergence is exactly P1 #6. **The
-correct fix is to match the C approach**: compute one scaling factor and apply it
-additively to all active log-μ parameters at each optimizer step, rather than
-solving for one μ analytically. No new `conserve_method` argument needed —
-the C behavior should just become the R behavior.
+- **`SETCOE_calc_scaling`** (`setcoe_calc_scaling.c`) applies one scalar
+  `lfactr = ln(total_events / sum_cumhaz)` to **all** active phase intercepts —
+  but it runs **once at setup** (the initial equal-proportion rescaling; C docs
+  REMARK 4: *"INITIALLY, ALL INPUT SCALING PARAMETERS ARE ADJUSTED BY AN EQUAL
+  PROPORTION"*). It is **not** the per-iteration constraint.
+- **`consrv`** (`consrv.c`) is the per-iteration entry (called before each
+  objective evaluation). It computes `lfactr = ln(jevent/sumchj)` and updates
+  **only the fixmu phase** (`theta[fixmu] += lfactr`), then turns off that
+  intercept's optimizer flag.
+
+**R already matches both exactly**: `init_factor` rescales all phases once
+([likelihood-multiphase.R], CoE setup), and `.hzr_conserve_events()` is a
+line-for-line port of `consrv` (fixes one mu). The C binary therefore does
+**not** keep all μ free — it fixes one, same as R. So "apply additively to all
+log-μ each step" would make R *diverge* from C, not converge.
+
+**The real P1 #6 root cause** is left-truncation. `hz.te123.OMC` fit 1 is a
+counting-process fit (`LCENSOR STARTTME` → `Surv(start, stop, event)`). C's
+`setcoe` derivation requires, under left-truncation,
+`ΣE = Σ(C1·W1 + C2 + C3·W3)·(CF(T) − CF(ST))`. R's CoE summed `CF(T)` from 0 and
+**omitted the `CF(ST)` entry-time term**, so the conserved phase absorbed the
+spurious `Σ CF(ST)`, biasing its intercept (MUE 0.01601 vs SAS 0.01740) and
+offsetting the LL by ~0.14 while leaving the shapes correct — exactly the
+observed symptom. Fixed in PR #65 by threading `time_lower` into
+`.hzr_conserve_events()` / `.hzr_select_fixmu_phase()` and subtracting the
+per-phase entry-time cumulative hazard. No `conserve_method` argument; plain
+right-censored fits are unaffected.
 
 ---
 
