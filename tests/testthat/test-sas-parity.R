@@ -22,6 +22,7 @@ skip_if_no_omc_raw <- function() {
 test_that("hz.deadp.KUL: 3-phase fixed-shape Weibull-tail matches SAS LL/MLEs", {
   testthat::skip_on_cran()
   dir <- skip_if_no_sas_fixtures()
+  set.seed(101)  # deterministic multi-start; independent of test order
 
   ref <- .hzr_parse_sas_lst(file.path(dir, "hz.deadp.KUL.lst"))$fits[[1]]
   expect_equal(ref$loglik,           -3740.52,  tolerance = 1e-2)
@@ -91,6 +92,7 @@ test_that("hz.deadp.KUL: 3-phase fixed-shape Weibull-tail matches SAS LL/MLEs", 
 test_that("hz.death.AVC: 2-phase free-shape Early matches SAS LL/MLEs", {
   testthat::skip_on_cran()
   dir <- skip_if_no_sas_fixtures()
+  set.seed(102)  # deterministic multi-start; independent of test order
 
   ref <- .hzr_parse_sas_lst(file.path(dir, "hz.death.AVC.lst"))$fits[[1]]
   expect_equal(ref$loglik,    -210.501, tolerance = 1e-2)
@@ -166,6 +168,7 @@ test_that("hz.death.AVC: 2-phase free-shape Early matches SAS LL/MLEs", {
 test_that("hm.deadp.VALVES: null model nu=0 m<0 LL matches SAS initial (Case 2L check)", {
   testthat::skip_on_cran()
   skip_if_no_sas_fixtures()
+  set.seed(103)  # deterministic multi-start; independent of test order
 
   # SAS Initial Summary LL (no covariates, before stepwise selection):
   # shapes THALF=0.6781774 FIXTHALF, NU=0 FIXNU, M=-2.15596 FIXM; free: MUE, MUC.
@@ -230,7 +233,9 @@ test_that("hm.death.patient: 2-phase both-phase covariate model matches SAS", {
   muc <- nat$estimate[nat$name == "MUC"]
   thalf <- nat$estimate[nat$name == "THALF" & nat$phase == "Early"]
   nu    <- nat$estimate[nat$name == "NU"    & nat$phase == "Early"]
-  par_beta <- function(phase, name) {
+  # name first so vapply(names(cov), par_beta, ..., phase = "Early") reads
+  # unambiguously: the positional covariate name fills `name`, `phase` is named.
+  par_beta <- function(name, phase) {
     ref$params$estimate[ref$params$phase == phase & ref$params$name == name]
   }
   # SAS covariate labels paired with the R `valves` column names (DOUBLE maps
@@ -320,24 +325,10 @@ test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
   testthat::skip_on_cran()
   dir <- skip_if_no_sas_fixtures()
 
-  # Be RNG-neutral: seed for our own determinism, but restore the global RNG
-  # state on exit so later tests in this file (which inherit RNG state for
-  # their multi-start fits) are unaffected by anything we draw here.
-  old_seed <- if (exists(".Random.seed", envir = .GlobalEnv)) {
-    get(".Random.seed", envir = .GlobalEnv)
-  } else {
-    NULL
-  }
-  on.exit({
-    if (is.null(old_seed)) {
-      if (exists(".Random.seed", envir = .GlobalEnv)) {
-        rm(".Random.seed", envir = .GlobalEnv)
-      }
-    } else {
-      assign(".Random.seed", old_seed, envir = .GlobalEnv)
-    }
-  }, add = TRUE)
-  set.seed(20260605)
+  # Seed for determinism. Every multi-start parity test in this file now seeds
+  # itself, so the previous save/restore RNG-neutral workaround is unnecessary:
+  # tests no longer depend on the RNG state left by whatever ran before them.
+  set.seed(107)
 
   ref <- .hzr_parse_sas_lst(file.path(dir, "hm.death.AVC.deciles.lst"))$fits[[1]]
   expect_equal(ref$loglik,   -160.408, tolerance = 1e-2)
@@ -349,7 +340,9 @@ test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
   muc <- nat$estimate[nat$name == "MUC"]
   thalf <- nat$estimate[nat$name == "THALF" & nat$phase == "Early"]
   nu    <- nat$estimate[nat$name == "NU"    & nat$phase == "Early"]
-  par_beta <- function(phase, name) {
+  # name first so vapply(names(cov), par_beta, ..., phase = "Early") reads
+  # unambiguously: the positional covariate name fills `name`, `phase` is named.
+  par_beta <- function(name, phase) {
     ref$params$estimate[ref$params$phase == phase & ref$params$name == name]
   }
   # SAS covariate labels -> R `avc` column names (lowercase, identical here).
@@ -471,6 +464,7 @@ test_that("hz.te123.OMC fit 1: left-truncated 2-phase shape params match SAS", {
   testthat::skip_on_cran()
   dir  <- skip_if_no_sas_fixtures()
   skip_if_no_omc_raw()
+  set.seed(104)  # deterministic multi-start; independent of test order
 
   ref  <- .hzr_parse_sas_lst(file.path(dir, "hz.te123.OMC.lst"))$fits[[1]]
   expect_equal(ref$loglik,   -322.226, tolerance = 1e-2)
@@ -523,6 +517,7 @@ test_that("hz.te123.OMC fit 2: modulated renewal + late covariates matches SAS L
   testthat::skip_on_cran()
   dir  <- skip_if_no_sas_fixtures()
   skip_if_no_omc_raw()
+  set.seed(105)  # deterministic multi-start; independent of test order
 
   ref  <- .hzr_parse_sas_lst(file.path(dir, "hz.te123.OMC.lst"))$fits[[2]]
   expect_equal(ref$loglik,   -311.597, tolerance = 1e-2)
@@ -605,6 +600,7 @@ test_that("hz.tm123.OMC: morbidity-weighted 2-phase shape params match SAS", {
   testthat::skip_on_cran()
   dir  <- skip_if_no_sas_fixtures()
   skip_if_no_omc_raw()
+  set.seed(106)  # deterministic multi-start; independent of test order
 
   ref  <- .hzr_parse_sas_lst(file.path(dir, "hz.tm123.OMC.lst"))$fits[[1]]
   expect_equal(ref$loglik,   -581.528, tolerance = 1e-2)
