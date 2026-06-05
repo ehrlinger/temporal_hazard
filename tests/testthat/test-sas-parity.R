@@ -22,6 +22,7 @@ skip_if_no_omc_raw <- function() {
 test_that("hz.deadp.KUL: 3-phase fixed-shape Weibull-tail matches SAS LL/MLEs", {
   testthat::skip_on_cran()
   dir <- skip_if_no_sas_fixtures()
+  set.seed(101)  # deterministic multi-start; independent of test order
 
   ref <- .hzr_parse_sas_lst(file.path(dir, "hz.deadp.KUL.lst"))$fits[[1]]
   expect_equal(ref$loglik,           -3740.52,  tolerance = 1e-2)
@@ -91,6 +92,7 @@ test_that("hz.deadp.KUL: 3-phase fixed-shape Weibull-tail matches SAS LL/MLEs", 
 test_that("hz.death.AVC: 2-phase free-shape Early matches SAS LL/MLEs", {
   testthat::skip_on_cran()
   dir <- skip_if_no_sas_fixtures()
+  set.seed(102)  # deterministic multi-start; independent of test order
 
   ref <- .hzr_parse_sas_lst(file.path(dir, "hz.death.AVC.lst"))$fits[[1]]
   expect_equal(ref$loglik,    -210.501, tolerance = 1e-2)
@@ -166,6 +168,7 @@ test_that("hz.death.AVC: 2-phase free-shape Early matches SAS LL/MLEs", {
 test_that("hm.deadp.VALVES: null model nu=0 m<0 LL matches SAS initial (Case 2L check)", {
   testthat::skip_on_cran()
   skip_if_no_sas_fixtures()
+  set.seed(103)  # deterministic multi-start; independent of test order
 
   # SAS Initial Summary LL (no covariates, before stepwise selection):
   # shapes THALF=0.6781774 FIXTHALF, NU=0 FIXNU, M=-2.15596 FIXM; free: MUE, MUC.
@@ -230,7 +233,9 @@ test_that("hm.death.patient: 2-phase both-phase covariate model matches SAS", {
   muc <- nat$estimate[nat$name == "MUC"]
   thalf <- nat$estimate[nat$name == "THALF" & nat$phase == "Early"]
   nu    <- nat$estimate[nat$name == "NU"    & nat$phase == "Early"]
-  par_beta <- function(phase, name) {
+  # name first so vapply(names(cov), par_beta, ..., phase = "Early") reads
+  # unambiguously: the positional covariate name fills `name`, `phase` is named.
+  par_beta <- function(name, phase) {
     ref$params$estimate[ref$params$phase == phase & ref$params$name == name]
   }
   # SAS covariate labels paired with the R `valves` column names (DOUBLE maps
@@ -303,6 +308,145 @@ test_that("hm.death.patient: 2-phase both-phase covariate model matches SAS", {
 })
 
 # ---------------------------------------------------------------------------
+# hm.death.AVC.deciles: 2-phase Early(CDF, free THALF/NU, M fixed) + Constant,
+# 6 Early covariates + 3 Constant covariates, with STATUS shared across both
+# phases. Plus a %DECILES goodness-of-fit table that hzr_deciles() reproduces.
+# ---------------------------------------------------------------------------
+# The fit starts from the SAS job's documented PARMS starting values (NOT the
+# converged .lst estimates), with n_starts = 1: a deterministic, non-circular
+# convergence test (start where SAS started, check R reaches where SAS
+# finished). Blind multi-start lands in a different basin for this 12-parameter
+# CoE model (extreme MUC ~ 4.4e-7 constant phase), so we seed deterministically.
+#
+# The %DECILES goodness-of-fit table IS captured in the .lst (under the spaced
+# title "D E C I L E   A N A L Y S I S"); .hzr_parse_sas_deciles() reads it and
+# we assert full CASES/EXPECTED/ACTUAL parity against hzr_deciles().
+test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
+  testthat::skip_on_cran()
+  dir <- skip_if_no_sas_fixtures()
+
+  # Seed for determinism. Every multi-start parity test in this file now seeds
+  # itself, so the previous save/restore RNG-neutral workaround is unnecessary:
+  # tests no longer depend on the RNG state left by whatever ran before them.
+  set.seed(107)
+
+  ref <- .hzr_parse_sas_lst(file.path(dir, "hm.death.AVC.deciles.lst"))$fits[[1]]
+  expect_equal(ref$loglik,   -160.408, tolerance = 1e-2)
+  expect_equal(ref$n_obs,    310L)
+  expect_equal(ref$n_events, 70L)
+
+  nat <- ref$natural
+  mue <- nat$estimate[nat$name == "MUE"]
+  muc <- nat$estimate[nat$name == "MUC"]
+  thalf <- nat$estimate[nat$name == "THALF" & nat$phase == "Early"]
+  nu    <- nat$estimate[nat$name == "NU"    & nat$phase == "Early"]
+  # name first so vapply(names(cov), par_beta, ..., phase = "Early") reads
+  # unambiguously: the positional covariate name fills `name`, `phase` is named.
+  par_beta <- function(name, phase) {
+    ref$params$estimate[ref$params$phase == phase & ref$params$name == name]
+  }
+  # SAS covariate labels -> R `avc` column names (lowercase, identical here).
+  early_cov <- c(AGE = "age", COM_IV = "com_iv", MAL = "mal",
+                 OPMOS = "opmos", OP_AGE = "op_age", STATUS = "status")
+  const_cov <- c(INC_SURG = "inc_surg", ORIFICE = "orifice", STATUS = "status")
+  beta_early <- vapply(names(early_cov), par_beta, numeric(1), phase = "Early")
+  beta_const <- vapply(names(const_cov), par_beta, numeric(1), phase = "Constant")
+
+  data(avc, package = "TemporalHazard")
+  d <- avc
+  # SAS PROC STANDARD ... REPLACE fills missing INC_SURG with the variable mean.
+  d$inc_surg[is.na(d$inc_surg)] <- mean(d$inc_surg, na.rm = TRUE)
+
+  # Deterministic start from the SAS job's PARMS statement (the documented
+  # starting values, not the converged answer). Order: early log_mu, log_t_half,
+  # nu, m(fixed), early betas; then constant log_mu, constant betas.
+  start_thalf <- 0.1905077
+  start_nu    <- 1.437416
+  theta0 <- c(
+    log(0.3504743), log(start_thalf), start_nu, 1,
+    -0.03205774, 1.336675, 0.6872028, -0.01963377, 0.0002086689, 0.5169533,
+    log(4.391673e-07), 1.375285, 3.11765, 1.054988
+  )
+
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data   = d,
+    dist   = "multiphase",
+    phases = list(
+      early    = hzr_phase("cdf", t_half = start_thalf, nu = start_nu, m = 1,
+                           fixed = "m",
+                           formula = ~ age + com_iv + mal + opmos + op_age + status),
+      constant = hzr_phase("constant", formula = ~ inc_surg + orifice + status)
+    ),
+    theta   = theta0,
+    fit     = TRUE,
+    control = list(n_starts = 1, maxit = 2000, conserve = TRUE)
+  )
+
+  expect_true(isTRUE(fit$fit$converged))
+  expect_equal(fit$fit$objective, ref$loglik, tolerance = 1e-2,
+               label = "R log-likelihood vs SAS reference")
+
+  th <- fit$fit$theta
+  # Tolerances are looser than the previous (circular) warm-start-from-the-
+  # answer version: starting from SAS's PARMS, R converges to its own optimum,
+  # which agrees with SAS's reported MLEs to ~1e-4 on a flat likelihood.
+  expect_equal(unname(exp(th[["early.log_mu"]])),     mue,   tolerance = 1e-3,
+               label = "MUE (Early) natural-scale")
+  expect_equal(unname(exp(th[["early.log_t_half"]])), thalf, tolerance = 5e-3,
+               label = "THALF (Early) natural-scale")
+  expect_equal(unname(th[["early.nu"]]),              nu,    tolerance = 5e-3,
+               label = "NU (Early) natural-scale")
+  # MUC ~ 4.4e-7: the constant phase is barely identified here (near-singular
+  # Hessian), so compare on the log scale with a relative tolerance rather than
+  # an absolute one on a tiny number.
+  expect_equal(unname(th[["constant.log_mu"]]),       log(muc), tolerance = 5e-3,
+               label = "log MUC (Constant) internal-scale")
+
+  for (nm in names(early_cov)) {
+    expect_equal(unname(th[[paste0("early.", early_cov[[nm]])]]),
+                 unname(beta_early[[nm]]), tolerance = 5e-3,
+                 label = paste0("early.", nm, " coefficient"))
+  }
+  for (nm in names(const_cov)) {
+    expect_equal(unname(th[[paste0("constant.", const_cov[[nm]])]]),
+                 unname(beta_const[[nm]]), tolerance = 5e-3,
+                 label = paste0("constant.", nm, " coefficient"))
+  }
+
+  # STATUS enters both phases and must resolve to distinct named vcov slots.
+  V <- vcov(fit)
+  expect_true(is.matrix(V))
+  expect_true(all(c("early.status", "constant.status") %in% rownames(V)))
+
+  # %DECILES goodness-of-fit parity. SAS GROUPS=5 at TIME=120 over the same
+  # cohort. hzr_deciles() labels group 1 = lowest risk, the reverse of SAS
+  # _DECILE_ 0 = highest risk, so align by reversing R's group order.
+  sas_dec <- .hzr_parse_sas_deciles(file.path(dir, "hm.death.AVC.deciles.lst"))
+  expect_false(is.null(sas_dec),
+               label = "SAS decile table parsed from the .lst")
+  expect_equal(nrow(sas_dec), 6L)                        # overall row + 5 groups
+  sas_grp <- sas_dec[!is.na(sas_dec$decile), ]
+  sas_grp <- sas_grp[order(sas_grp$decile), ]           # deciles 0..4
+
+  dec <- hzr_deciles(fit, time = 120, groups = 5)
+  expect_s3_class(dec, "hzr_deciles")
+  r <- dec[order(-dec$group), ]                         # group 5..1 == decile 0..4
+
+  expect_equal(r$n, sas_grp$cases,
+               label = "decile group sizes (CASES) vs SAS")
+  expect_equal(r$events, sas_grp$actual,
+               label = "observed events per decile (ACTUAL) vs SAS")
+  expect_equal(r$expected, sas_grp$expected, tolerance = 1e-2,
+               label = "expected events per decile vs SAS")
+
+  # Conservation of events: total expected == total observed == SAS total (70).
+  ov <- attr(dec, "overall")
+  expect_equal(ov$total_expected, ov$total_events, tolerance = 1e-3)
+  expect_equal(ov$total_events, 70L)
+})
+
+# ---------------------------------------------------------------------------
 # hz.te123.OMC: 2-phase (Early CDF + Late Weibull) repeated TE events
 # ---------------------------------------------------------------------------
 # Two fits:
@@ -323,6 +467,7 @@ test_that("hz.te123.OMC fit 1: left-truncated 2-phase shape params match SAS", {
   testthat::skip_on_cran()
   dir  <- skip_if_no_sas_fixtures()
   skip_if_no_omc_raw()
+  set.seed(104)  # deterministic multi-start; independent of test order
 
   ref  <- .hzr_parse_sas_lst(file.path(dir, "hz.te123.OMC.lst"))$fits[[1]]
   expect_equal(ref$loglik,   -322.226, tolerance = 1e-2)
@@ -375,6 +520,7 @@ test_that("hz.te123.OMC fit 2: modulated renewal + late covariates matches SAS L
   testthat::skip_on_cran()
   dir  <- skip_if_no_sas_fixtures()
   skip_if_no_omc_raw()
+  set.seed(105)  # deterministic multi-start; independent of test order
 
   ref  <- .hzr_parse_sas_lst(file.path(dir, "hz.te123.OMC.lst"))$fits[[2]]
   expect_equal(ref$loglik,   -311.597, tolerance = 1e-2)
@@ -457,6 +603,7 @@ test_that("hz.tm123.OMC: morbidity-weighted 2-phase shape params match SAS", {
   testthat::skip_on_cran()
   dir  <- skip_if_no_sas_fixtures()
   skip_if_no_omc_raw()
+  set.seed(106)  # deterministic multi-start; independent of test order
 
   ref  <- .hzr_parse_sas_lst(file.path(dir, "hz.tm123.OMC.lst"))$fits[[1]]
   expect_equal(ref$loglik,   -581.528, tolerance = 1e-2)

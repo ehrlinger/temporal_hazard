@@ -9,9 +9,10 @@ hzr_deciles(object, time, groups = 10L, status = NULL, event_time = NULL)
 \arguments{
 \item{object}{A fitted \code{hazard} object (with \code{fit = TRUE}).}
 
-\item{time}{Numeric scalar: the time point at which to evaluate
-predicted survival / cumulative hazard.  For example, \code{time = 12}
-evaluates 12-month predictions.}
+\item{time}{Numeric scalar: the horizon at which predicted survival is used
+to \strong{rank subjects into risk groups} (e.g. \code{time = 12} ranks by 12-month
+predicted survival). It does not restrict the event/expected counts, which
+are accumulated over each subject's full follow-up.}
 
 \item{groups}{Integer: number of risk groups (default 10 for deciles).}
 
@@ -25,22 +26,23 @@ times.  If \code{NULL} (default), extracted from the fitted object.}
 \value{
 A data frame with one row per risk group and columns:
 \describe{
-\item{group}{Integer group label (1 = lowest risk).}
+\item{group}{Integer group label (1 = lowest risk, ranked by predicted
+survival at \code{time}).}
 \item{n}{Number of observations in the group.}
-\item{events}{Observed event count by the requested horizon
-(event indicator = 1 and event time <= \code{time}).}
-\item{expected}{Expected event count by the requested horizon,
-computed as the sum of individual event probabilities
-(\eqn{1 - S(time)}).}
+\item{events}{Observed event count in the group (all events over
+follow-up).}
+\item{expected}{Expected event count: the sum of each subject's predicted
+cumulative hazard at its own follow-up time.}
 \item{observed_rate}{Observed event rate (events / n).}
 \item{expected_rate}{Expected event rate (expected / n).}
 \item{chi_sq}{Chi-square contribution: (events - expected)^2 /
 expected.}
 \item{p_value}{Upper-tail p-value from the chi-square test for
 this group (1 df).}
-\item{mean_survival}{Mean predicted survival probability in the
+\item{mean_survival}{Mean predicted survival probability at the horizon
+in the group.}
+\item{mean_cumhaz}{Mean predicted cumulative hazard at follow-up in the
 group.}
-\item{mean_cumhaz}{Mean predicted cumulative hazard in the group.}
 }
 
 An attribute \code{"overall"} is attached with the overall chi-square
@@ -52,11 +54,14 @@ compare observed vs. expected event counts in each group.  Good
 calibration means the two track each other across the risk spectrum.
 }
 \details{
-This implements the workflow of the SAS \code{deciles.hazard.sas} macro.
-Patients are ranked by predicted cumulative hazard at a specified time
-point, grouped into quantile bins, and each bin is tested with a
-chi-square goodness-of-fit statistic. Subjects censored before the
-requested horizon are excluded from the observed-vs-expected comparison.
+This reproduces the SAS \code{deciles.hazard.sas} macro. \strong{All} subjects are
+ranked by predicted survival at the horizon \code{time} and split into equal-sized
+risk groups. Within each group the \strong{expected} event count is the sum of
+each subject's predicted cumulative hazard at its \emph{own} follow-up time, and
+the \strong{observed} count is its number of events; under conservation of events
+the group totals sum to the total observed events. The horizon therefore only
+stratifies subjects into risk groups -- it does not restrict or exclude any
+subject, and the expected/observed totals are independent of it.
 }
 \examples{
 \donttest{

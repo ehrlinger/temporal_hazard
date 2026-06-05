@@ -408,6 +408,48 @@
   list(fits = parsed)
 }
 
+# Parse the %DECILES goodness-of-fit table printed by the SAS deciles.hazard
+# macro. The block is introduced by a spaced-out title "D E C I L E ..." and
+# has one row per group: the leading token is the _DECILE_ index ("." for the
+# overall row, then 0..groups-1), followed by numeric columns whose first four
+# are CASES, EXPECTED (sum of cumulative hazard), CUM_HAZ (mean), ACTUAL
+# (observed events). Returns a data frame with columns decile/cases/expected/
+# actual (NA decile = overall row), or NULL if no decile block is present.
+.hzr_parse_sas_deciles <- function(path) {
+  lines <- .hzr_read_lst(path)
+  start <- grep("D E C I L E   A N A L Y S I S", lines)
+  if (!length(start)) return(NULL)
+  body <- lines[start[1]:length(lines)]
+
+  rows <- list()
+  started <- FALSE
+  num_only <- "^[0-9eE+.[:space:]-]+$"
+  for (ln in body) {
+    if (!nzchar(trimws(ln))) next
+    m <- regmatches(ln, regexec("^[[:space:]]*([.]|[0-9]+)[[:space:]]+(.+)$", ln))[[1]]
+    is_row <- length(m) >= 3 && grepl(num_only, m[3])
+    if (is_row) {
+      nums <- suppressWarnings(as.numeric(strsplit(trimws(m[3]),
+                                                   "[[:space:]]+")[[1]]))
+      nums <- nums[!is.na(nums)]
+      if (length(nums) >= 4) {
+        rows[[length(rows) + 1L]] <- data.frame(
+          decile   = if (m[2] == ".") NA_integer_ else as.integer(m[2]),
+          cases    = nums[1],
+          expected = nums[2],
+          actual   = nums[4]
+        )
+        started <- TRUE
+        next
+      }
+    }
+    # A non-blank, non-data line after the table has started ends the block.
+    if (started) break
+  }
+  if (!length(rows)) return(NULL)
+  do.call(rbind, rows)
+}
+
 # Default discovery: ~/Documents/GitHub/hazard/examples/ if it exists,
 # else NULL.  Skip tests when fixtures are unavailable.
 .hzr_sas_fixture_dir <- function() {

@@ -11,16 +11,20 @@ NULL
 #' compare observed vs. expected event counts in each group.  Good
 #' calibration means the two track each other across the risk spectrum.
 #'
-#' This implements the workflow of the SAS `deciles.hazard.sas` macro.
-#' Patients are ranked by predicted cumulative hazard at a specified time
-#' point, grouped into quantile bins, and each bin is tested with a
-#' chi-square goodness-of-fit statistic. Subjects censored before the
-#' requested horizon are excluded from the observed-vs-expected comparison.
+#' This reproduces the SAS `deciles.hazard.sas` macro. **All** subjects are
+#' ranked by predicted survival at the horizon `time` and split into equal-sized
+#' risk groups. Within each group the **expected** event count is the sum of
+#' each subject's predicted cumulative hazard at its *own* follow-up time, and
+#' the **observed** count is its number of events; under conservation of events
+#' the group totals sum to the total observed events. The horizon therefore only
+#' stratifies subjects into risk groups -- it does not restrict or exclude any
+#' subject, and the expected/observed totals are independent of it.
 #'
 #' @param object A fitted `hazard` object (with `fit = TRUE`).
-#' @param time Numeric scalar: the time point at which to evaluate
-#'   predicted survival / cumulative hazard.  For example, `time = 12`
-#'   evaluates 12-month predictions.
+#' @param time Numeric scalar: the horizon at which predicted survival is used
+#'   to **rank subjects into risk groups** (e.g. `time = 12` ranks by 12-month
+#'   predicted survival). It does not restrict the event/expected counts, which
+#'   are accumulated over each subject's full follow-up.
 #' @param groups Integer: number of risk groups (default 10 for deciles).
 #' @param status Optional numeric vector of event indicators (1 = event,
 #'   0 = censored).
@@ -30,22 +34,23 @@ NULL
 #'
 #' @return A data frame with one row per risk group and columns:
 #' \describe{
-#'   \item{group}{Integer group label (1 = lowest risk).}
+#'   \item{group}{Integer group label (1 = lowest risk, ranked by predicted
+#'     survival at \code{time}).}
 #'   \item{n}{Number of observations in the group.}
-#'   \item{events}{Observed event count by the requested horizon
-#'     (event indicator = 1 and event time <= \code{time}).}
-#'   \item{expected}{Expected event count by the requested horizon,
-#'     computed as the sum of individual event probabilities
-#'     (\eqn{1 - S(time)}).}
+#'   \item{events}{Observed event count in the group (all events over
+#'     follow-up).}
+#'   \item{expected}{Expected event count: the sum of each subject's predicted
+#'     cumulative hazard at its own follow-up time.}
 #'   \item{observed_rate}{Observed event rate (events / n).}
 #'   \item{expected_rate}{Expected event rate (expected / n).}
 #'   \item{chi_sq}{Chi-square contribution: (events - expected)^2 /
 #'     expected.}
 #'   \item{p_value}{Upper-tail p-value from the chi-square test for
 #'     this group (1 df).}
-#'   \item{mean_survival}{Mean predicted survival probability in the
+#'   \item{mean_survival}{Mean predicted survival probability at the horizon
+#'     in the group.}
+#'   \item{mean_cumhaz}{Mean predicted cumulative hazard at follow-up in the
 #'     group.}
-#'   \item{mean_cumhaz}{Mean predicted cumulative hazard in the group.}
 #' }
 #'
 #' An attribute `"overall"` is attached with the overall chi-square
@@ -113,59 +118,55 @@ hzr_deciles <- function(object, time, groups = 10L,
          n_model, ").", call. = FALSE)
   }
 
-  # --- Predicted cumulative hazard and survival at the target time ----------
-  # Compute per-observation predictions at the calibration horizon.
-  if (identical(object$spec$dist, "multiphase")) {
-    phases <- object$fit$phases
-    if (is.null(phases)) phases <- object$spec$phases
-    cov_counts <- object$fit$covariate_counts
-    x_list <- object$fit$x_list
-    cumhaz <- .hzr_multiphase_cumhaz(
-      rep(time, n_model), object$fit$theta, phases, cov_counts, x_list,
-      per_phase = FALSE
-    )
-  } else if (!is.null(object$data$x) && ncol(object$data$x) > 0) {
-    nd <- as.data.frame(object$data$x)
-    nd$time <- time
-    cumhaz <- predict(object, newdata = nd, type = "cumulative_hazard")
-  } else {
-    nd <- data.frame(time = rep(time, n_model))
-    cumhaz <- predict(object, newdata = nd, type = "cumulative_hazard")
-  }
-  survival <- exp(-cumhaz)
-
-  # Exclude subjects censored before the calibration horizon.
-  include <- (status == 1) | (event_time >= time)
-  n_excluded <- sum(!include)
-  if (!any(include)) {
-    stop("No observations are available at the requested horizon after ",
-         "excluding subjects censored before 'time'.", call. = FALSE)
+  # --- Per-observation predicted cumulative hazard --------------------------
+  # SAS %DECILES method (Blackstone/Naftel HAZARD): the "expected events" in a
+  # group are the sum of predicted cumulative hazard at each subject's OWN
+  # follow-up time, so the total expected equals the observed event count under
+  # conservation of events.  Risk grouping is by predicted survival at the
+  # calibration horizon `time`; the horizon only stratifies subjects into risk
+  # groups -- it does not restrict the event or expected counts, and all
+  # subjects are included.
+  cumhaz_at <- function(times) {
+    if (identical(object$spec$dist, "multiphase")) {
+      phases <- object$fit$phases
+      if (is.null(phases)) phases <- object$spec$phases
+      .hzr_multiphase_cumhaz(times, object$fit$theta, phases,
+                             object$fit$covariate_counts, object$fit$x_list,
+                             per_phase = FALSE)
+    } else if (!is.null(object$data$x) && ncol(object$data$x) > 0) {
+      nd <- as.data.frame(object$data$x)
+      nd$time <- times
+      predict(object, newdata = nd, type = "cumulative_hazard")
+    } else {
+      predict(object, newdata = data.frame(time = times),
+              type = "cumulative_hazard")
+    }
   }
 
-  status <- status[include]
-  event_time <- event_time[include]
-  cumhaz <- cumhaz[include]
-  survival <- survival[include]
-  observed <- as.integer(status == 1 & event_time <= time)
-  n_included <- length(observed)
+  cumhaz_fu    <- cumhaz_at(event_time)        # expected-event contribution
+  cumhaz_hor   <- cumhaz_at(rep(time, n_obs))  # risk grouping at the horizon
+  survival_hor <- exp(-cumhaz_hor)
+  observed     <- as.integer(status == 1)
+  n_included   <- n_obs
+  n_excluded   <- 0L
 
-  if (groups > n_included) {
-    stop("'groups' must be <= number of included observations at horizon (",
-         n_included, ").", call. = FALSE)
+  if (groups > n_obs) {
+    stop("'groups' must be <= number of observations (", n_obs, ").",
+         call. = FALSE)
   }
 
-  # --- Rank into groups by predicted risk (cumulative hazard) ---------------
-  # Higher cumhaz = higher risk; group 1 = lowest risk.
-  # Use ntile-style assignment that handles ties gracefully (no duplicate
-
-  # breaks).  When all predictions are identical (intercept-only model),
-  # observations are distributed as evenly as possible across groups.
-  ranks <- rank(cumhaz, ties.method = "first")
-  group <- as.integer(cut(ranks,
-                          breaks = seq(0, n_included,
-                                       length.out = groups + 1L),
-                          include.lowest = TRUE,
-                          labels = seq_len(groups)))
+  # --- Rank into equal-sized groups by predicted risk at the horizon --------
+  # Rank by cumulative hazard at the horizon, ascending, so group 1 = lowest
+  # risk (highest predicted survival).  This is the same partition SAS PROC
+  # RANK GROUPS= produces on predicted survival, with the opposite label order
+  # (SAS _DECILE_ 0 = highest risk).  Equal-count bins via PROC RANK's floor
+  # rule.  Ties are broken by order of appearance ("first") so that an
+  # intercept-only model (all predictions identical) still yields equal-sized
+  # groups rather than collapsing into one; for models with distinct
+  # predictions the tie rule is irrelevant.
+  ranks <- rank(cumhaz_hor, ties.method = "first")
+  group <- as.integer(floor(groups * (ranks - 1) / n_obs)) + 1L
+  group[group > groups] <- groups
 
   # --- Aggregate by group ---------------------------------------------------
   result <- data.frame(
@@ -185,15 +186,15 @@ hzr_deciles <- function(object, time, groups = 10L,
     idx <- which(group == g)
     ng <- length(idx)
     obs_events <- sum(observed[idx] == 1)
-    exp_events <- sum(1 - survival[idx])
+    exp_events <- sum(cumhaz_fu[idx])
 
     result$n[g] <- ng
     result$events[g] <- obs_events
     result$expected[g] <- exp_events
     result$observed_rate[g] <- if (ng > 0) obs_events / ng else NA_real_
     result$expected_rate[g] <- if (ng > 0) exp_events / ng else NA_real_
-    result$mean_survival[g] <- if (ng > 0) mean(survival[idx]) else NA_real_
-    result$mean_cumhaz[g] <- if (ng > 0) mean(cumhaz[idx]) else NA_real_
+    result$mean_survival[g] <- if (ng > 0) mean(survival_hor[idx]) else NA_real_
+    result$mean_cumhaz[g] <- if (ng > 0) mean(cumhaz_fu[idx]) else NA_real_
 
     # Per-group chi-square: (O - E)^2 / E
     if (exp_events > 0) {
@@ -208,9 +209,12 @@ hzr_deciles <- function(object, time, groups = 10L,
   }
 
   # --- Overall chi-square ---------------------------------------------------
-  valid <- !is.na(result$chi_sq)
+  # Only groups with a positive expected count contribute (a zero-expected
+  # group has an undefined (O-E)^2/E term and NA chi_sq). Clamp df at 0 so
+  # degenerate inputs (<=1 contributing group) never yield a negative df.
+  valid <- result$expected > 0 & !is.na(result$chi_sq)
   overall_chi_sq <- sum(result$chi_sq[valid])
-  overall_df <- sum(valid) - 1L
+  overall_df <- max(0L, sum(valid) - 1L)
   overall_p <- if (overall_df > 0) {
     stats::pchisq(overall_chi_sq, df = overall_df, lower.tail = FALSE)
   } else {
@@ -224,7 +228,7 @@ hzr_deciles <- function(object, time, groups = 10L,
     time = time,
     groups = groups,
     total_events = sum(observed == 1),
-    total_expected = sum(1 - survival),
+    total_expected = sum(cumhaz_fu),
     n_included = n_included,
     n_excluded = n_excluded
   )
@@ -255,10 +259,9 @@ hzr_deciles <- function(object, time, groups = 10L,
 #' @export
 print.hzr_deciles <- function(x, digits = 3, ...) {
   ov <- attr(x, "overall")
-  cat("Decile-of-risk calibration at time =", ov$time, "\n")
-  if (!is.null(ov$n_included) && !is.null(ov$n_excluded)) {
-    cat("Included", ov$n_included, "observations (excluded", ov$n_excluded,
-        "censored before horizon).\n")
+  cat("Decile-of-risk calibration (risk grouped at time =", ov$time, ")\n")
+  if (!is.null(ov$n_included)) {
+    cat(ov$n_included, "subjects, all included.\n")
   }
   cat(ov$groups, "groups,", ov$total_events, "observed events,",
       signif(ov$total_expected, digits), "expected\n\n")
