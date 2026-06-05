@@ -9,6 +9,21 @@
   only that phase's parameters, so per-phase limits do not sum to the total.
   Previously this combination raised an error.
 
+## Changes
+
+* **`hzr_deciles()` now matches the SAS `deciles.hazard` macro exactly.**
+  Previously it excluded subjects censored before the horizon and defined the
+  expected count as `sum(1 - S(horizon))`. It now follows the SAS method: **all**
+  subjects are ranked into equal-sized risk groups by predicted survival at the
+  horizon, and the expected count per group is the **sum of predicted cumulative
+  hazard at each subject's own follow-up time** (so group totals sum to the total
+  observed events under conservation of events). The `time` argument now only
+  stratifies subjects into risk groups; it no longer restricts or excludes any
+  subject, and the expected/observed totals are horizon-independent. Verified to
+  reproduce the `hm.death.AVC.deciles` SAS decile table (CASES/EXPECTED/ACTUAL)
+  to print precision. The output columns are unchanged; their definitions are
+  updated in `?hzr_deciles`.
+
 ## Bug fixes
 
 * **Conservation of Events ignored left-truncation (counting-process entry

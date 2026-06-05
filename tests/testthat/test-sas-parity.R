@@ -305,15 +305,17 @@ test_that("hm.death.patient: 2-phase both-phase covariate model matches SAS", {
 # ---------------------------------------------------------------------------
 # hm.death.AVC.deciles: 2-phase Early(CDF, free THALF/NU, M fixed) + Constant,
 # 6 Early covariates + 3 Constant covariates, with STATUS shared across both
-# phases. Plus a %DECILES goodness-of-fit call -> hzr_deciles() smoke check.
+# phases. Plus a %DECILES goodness-of-fit table that hzr_deciles() reproduces.
 # ---------------------------------------------------------------------------
-# Same warm-start rationale as hm.death.patient (blind multi-start does not
-# reach this basin -- note the extreme MUC ~ 4.4e-7 constant phase). Validates
-# likelihood/spec parity. The SAS %DECILES output is NOT captured in the .lst,
-# so the decile goodness-of-fit table has no SAS reference to assert against;
-# hzr_deciles() is exercised as a smoke check only (see gap-list: "deciles
-# comparison needs hzr_deciles() parity tolerance defined" -- blocked on a
-# captured %DECILES reference).
+# The fit starts from the SAS job's documented PARMS starting values (NOT the
+# converged .lst estimates), with n_starts = 1: a deterministic, non-circular
+# convergence test (start where SAS started, check R reaches where SAS
+# finished). Blind multi-start lands in a different basin for this 12-parameter
+# CoE model (extreme MUC ~ 4.4e-7 constant phase), so we seed deterministically.
+#
+# The %DECILES goodness-of-fit table IS captured in the .lst (under the spaced
+# title "D E C I L E   A N A L Y S I S"); .hzr_parse_sas_deciles() reads it and
+# we assert full CASES/EXPECTED/ACTUAL parity against hzr_deciles().
 test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
   testthat::skip_on_cran()
   dir <- skip_if_no_sas_fixtures()
@@ -362,15 +364,24 @@ test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
   # SAS PROC STANDARD ... REPLACE fills missing INC_SURG with the variable mean.
   d$inc_surg[is.na(d$inc_surg)] <- mean(d$inc_surg, na.rm = TRUE)
 
-  theta0 <- c(log(mue), log(thalf), nu, 1, unname(beta_early),
-              log(muc), unname(beta_const))
+  # Deterministic start from the SAS job's PARMS statement (the documented
+  # starting values, not the converged answer). Order: early log_mu, log_t_half,
+  # nu, m(fixed), early betas; then constant log_mu, constant betas.
+  start_thalf <- 0.1905077
+  start_nu    <- 1.437416
+  theta0 <- c(
+    log(0.3504743), log(start_thalf), start_nu, 1,
+    -0.03205774, 1.336675, 0.6872028, -0.01963377, 0.0002086689, 0.5169533,
+    log(4.391673e-07), 1.375285, 3.11765, 1.054988
+  )
 
   fit <- hazard(
     survival::Surv(int_dead, dead) ~ 1,
     data   = d,
     dist   = "multiphase",
     phases = list(
-      early    = hzr_phase("cdf", t_half = thalf, nu = nu, m = 1, fixed = "m",
+      early    = hzr_phase("cdf", t_half = start_thalf, nu = start_nu, m = 1,
+                           fixed = "m",
                            formula = ~ age + com_iv + mal + opmos + op_age + status),
       constant = hzr_phase("constant", formula = ~ inc_surg + orifice + status)
     ),
@@ -384,7 +395,10 @@ test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
                label = "R log-likelihood vs SAS reference")
 
   th <- fit$fit$theta
-  expect_equal(unname(exp(th[["early.log_mu"]])),     mue,   tolerance = 1e-4,
+  # Tolerances are looser than the previous (circular) warm-start-from-the-
+  # answer version: starting from SAS's PARMS, R converges to its own optimum,
+  # which agrees with SAS's reported MLEs to ~1e-4 on a flat likelihood.
+  expect_equal(unname(exp(th[["early.log_mu"]])),     mue,   tolerance = 1e-3,
                label = "MUE (Early) natural-scale")
   expect_equal(unname(exp(th[["early.log_t_half"]])), thalf, tolerance = 5e-3,
                label = "THALF (Early) natural-scale")
@@ -412,14 +426,28 @@ test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
   expect_true(is.matrix(V))
   expect_true(all(c("early.status", "constant.status") %in% rownames(V)))
 
-  # %DECILES smoke check: hzr_deciles() runs on the fit and returns a
-  # well-formed 5-group calibration table at the 120-month horizon. No SAS
-  # decile reference is captured, so we do not assert numeric GOF parity here.
+  # %DECILES goodness-of-fit parity. SAS GROUPS=5 at TIME=120 over the same
+  # cohort. hzr_deciles() labels group 1 = lowest risk, the reverse of SAS
+  # _DECILE_ 0 = highest risk, so align by reversing R's group order.
+  sas_dec <- .hzr_parse_sas_deciles(file.path(dir, "hm.death.AVC.deciles.lst"))
+  sas_grp <- sas_dec[!is.na(sas_dec$decile), ]
+  sas_grp <- sas_grp[order(sas_grp$decile), ]           # deciles 0..4
+
   dec <- hzr_deciles(fit, time = 120, groups = 5)
   expect_s3_class(dec, "hzr_deciles")
-  expect_equal(nrow(dec), 5L)
-  expect_true(all(c("group", "events", "expected") %in% names(dec)))
-  expect_true(all(is.finite(dec$expected)) && sum(dec$expected) > 0)
+  r <- dec[order(-dec$group), ]                         # group 5..1 == decile 0..4
+
+  expect_equal(r$n, sas_grp$cases,
+               label = "decile group sizes (CASES) vs SAS")
+  expect_equal(r$events, sas_grp$actual,
+               label = "observed events per decile (ACTUAL) vs SAS")
+  expect_equal(r$expected, sas_grp$expected, tolerance = 1e-2,
+               label = "expected events per decile vs SAS")
+
+  # Conservation of events: total expected == total observed == SAS total (70).
+  ov <- attr(dec, "overall")
+  expect_equal(ov$total_expected, ov$total_events, tolerance = 1e-3)
+  expect_equal(ov$total_events, 70L)
 })
 
 # ---------------------------------------------------------------------------

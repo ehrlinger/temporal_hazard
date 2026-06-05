@@ -40,16 +40,15 @@ test_that("hzr_deciles returns correct structure", {
   expect_equal(ov$groups, 10)
 })
 
-test_that("hzr_deciles group counts sum to evaluable n", {
+test_that("hzr_deciles includes all subjects and counts all events (SAS method)", {
   fit <- .fit_avc_weibull()
   avc <- .avc_data()
   cal <- hzr_deciles(fit, time = 120)
-  included <- with(avc, dead == 1 | int_dead >= 120)
-  events_120 <- with(avc, dead == 1 & int_dead <= 120 & included)
 
-  expect_equal(sum(cal$n), sum(included))
-  expect_equal(sum(cal$events), sum(events_120))
-  expect_equal(attr(cal, "overall")$n_excluded, sum(!included))
+  # SAS %DECILES uses every subject; the horizon only stratifies risk.
+  expect_equal(sum(cal$n), nrow(avc))
+  expect_equal(sum(cal$events), sum(avc$dead == 1))
+  expect_equal(attr(cal, "overall")$n_excluded, 0L)
 })
 
 test_that("hzr_deciles works with non-default groups", {
@@ -57,41 +56,34 @@ test_that("hzr_deciles works with non-default groups", {
   avc <- .avc_data()
   cal5 <- hzr_deciles(fit, time = 60, groups = 5)
   expect_equal(nrow(cal5), 5)
-  expect_equal(sum(cal5$n), sum(avc$dead == 1 | avc$int_dead >= 60))
+  expect_equal(sum(cal5$n), nrow(avc))
 })
 
-test_that("hzr_deciles events and expected totals increase with horizon", {
+test_that("hzr_deciles totals are horizon-invariant; only the grouping changes", {
   fit <- .fit_avc_weibull()
   avc <- .avc_data()
-  status_all <- avc$dead
-  time_all <- ifelse(avc$dead == 1, avc$int_dead, 1e9)
 
-  cal60 <- hzr_deciles(fit, time = 60, status = status_all,
-                       event_time = time_all)
-  cal120 <- hzr_deciles(fit, time = 120, status = status_all,
-                        event_time = time_all)
+  cal60  <- hzr_deciles(fit, time = 60)
+  cal120 <- hzr_deciles(fit, time = 120)
 
-  events_60 <- with(avc, sum(dead == 1 & int_dead <= 60))
-  events_120 <- with(avc, sum(dead == 1 & int_dead <= 120))
-
-  expect_equal(sum(cal60$events), events_60)
-  expect_equal(sum(cal120$events), events_120)
+  # Expected = sum of cumulative hazard at each subject's own follow-up time,
+  # and events = all observed deaths: both totals are independent of the
+  # grouping horizon. Only the assignment of subjects to risk groups changes.
   expect_equal(sum(cal60$n), nrow(avc))
   expect_equal(sum(cal120$n), nrow(avc))
-  expect_true(sum(cal120$events) >= sum(cal60$events))
-  expect_true(sum(cal120$expected) >= sum(cal60$expected))
+  expect_equal(sum(cal60$events), sum(avc$dead == 1))
+  expect_equal(sum(cal120$events), sum(avc$dead == 1))
+  expect_equal(sum(cal60$expected), sum(cal120$expected), tolerance = 1e-8)
 })
 
-test_that("hzr_deciles risk ordering is monotone", {
+test_that("hzr_deciles risk ordering is monotone in horizon survival", {
   fit <- .fit_avc_weibull()
   cal <- hzr_deciles(fit, time = 120)
 
-  # Mean cumhaz should increase across groups (group 1 = lowest risk)
-  expect_true(all(diff(cal$mean_cumhaz) >= -1e-10),
-              label = "mean cumulative hazard should increase across groups")
-  # Mean survival should decrease across groups
+  # Groups are ranked by predicted survival at the horizon, group 1 = lowest
+  # risk (highest survival), so mean horizon survival decreases across groups.
   expect_true(all(diff(cal$mean_survival) <= 1e-10),
-              label = "mean survival should decrease across groups")
+              label = "mean horizon survival should decrease across groups")
 })
 
 test_that("hzr_deciles chi-square values are non-negative", {
@@ -117,13 +109,13 @@ test_that("hzr_deciles works with intercept-only model", {
     fit   = TRUE
   )
   cal <- hzr_deciles(fit, time = 12)
-  included <- with(cabgkul, dead == 1 | int_dead >= 12)
 
   expect_s3_class(cal, "hzr_deciles")
   expect_equal(nrow(cal), 10)
-  expect_equal(sum(cal$n), sum(included))
-  # All expected rates should be equal (same prediction for everyone)
-  expect_true(max(cal$expected_rate) - min(cal$expected_rate) < 1e-10)
+  expect_equal(sum(cal$n), nrow(cabgkul))
+  # Everyone shares the same horizon survival, so risk grouping is arbitrary
+  # but mean horizon survival is identical across groups.
+  expect_true(max(cal$mean_survival) - min(cal$mean_survival) < 1e-8)
 })
 
 test_that("hzr_deciles works with multiphase model", {
@@ -143,11 +135,10 @@ test_that("hzr_deciles works with multiphase model", {
     control = list(n_starts = 3, maxit = 500)
   )
   cal <- hzr_deciles(fit_mp, time = 60)
-  included <- with(cabgkul, dead == 1 | int_dead >= 60)
 
   expect_s3_class(cal, "hzr_deciles")
   expect_equal(nrow(cal), 10)
-  expect_equal(sum(cal$n), sum(included))
+  expect_equal(sum(cal$n), nrow(cabgkul))
 })
 
 test_that("hzr_deciles rejects invalid inputs", {
@@ -157,7 +148,7 @@ test_that("hzr_deciles rejects invalid inputs", {
   expect_error(hzr_deciles(fit, time = -1), "positive")
   expect_error(hzr_deciles(fit, time = 120, groups = 1), "at least 2")
   expect_error(hzr_deciles(fit, time = 120, groups = nrow(avc) + 1),
-               "included observations")
+               "number of observations")
   expect_error(hzr_deciles("not_a_model", time = 12), "hazard object")
 })
 
