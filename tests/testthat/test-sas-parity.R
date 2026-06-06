@@ -447,6 +447,63 @@ test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
 })
 
 # ---------------------------------------------------------------------------
+# ac.death.AVC: actuarial life tables -- Kaplan-Meier (%KAPLAN) and
+# Nelson-Aalen (%NELSONT), overall and KM stratified by COM_IV.
+# ---------------------------------------------------------------------------
+# No model fit: hzr_kaplan()/hzr_nelson() are non-parametric, deterministic.
+# SAS prints times to ~3 decimals, so rows are aligned by index (both tables
+# are sorted by time with the same event times). Tolerances reflect SAS print
+# rounding (~5e-6 in practice).
+test_that("ac.death.AVC: Kaplan-Meier and Nelson-Aalen life tables match SAS", {
+  testthat::skip_on_cran()
+  dir <- skip_if_no_sas_fixtures()
+  lst <- file.path(dir, "ac.death.AVC.lst")
+  # An older local fixture set may predate this capture; skip cleanly rather
+  # than hard-error in readLines() if this specific .lst is absent.
+  testthat::skip_if_not(file.exists(lst), "ac.death.AVC.lst fixture not present")
+
+  data(avc, package = "TemporalHazard")
+
+  # --- Kaplan-Meier, overall (%KAPLAN _CATG=ALL) ---------------------------
+  km <- hzr_kaplan(avc$int_dead, avc$dead)
+  sk <- .hzr_parse_sas_lifetable(lst, "kaplan")
+  expect_false(is.null(sk), label = "KAPLAN life table parsed")
+  expect_equal(nrow(km), nrow(sk))
+  expect_equal(km$n_risk,  sk$NUMBER)
+  expect_equal(km$n_event, sk$DEAD)
+  expect_equal(km$survival, sk$CUM_SURV, tolerance = 1e-4,
+               label = "KM survival vs SAS CUM_SURV")
+  expect_equal(km$std_err, sk$SE_EXACT, tolerance = 1e-4,
+               label = "KM standard error vs SAS SE_EXACT")
+  # CUM_HAZ = -log(CUM_SURV); the final all-events row is S=0 (NA in SAS).
+  ok <- !is.na(sk$CUM_HAZ)
+  expect_equal(km$cumhaz[ok], sk$CUM_HAZ[ok], tolerance = 1e-4,
+               label = "KM cumulative hazard (-log S) vs SAS CUM_HAZ")
+
+  # --- Nelson-Aalen, overall (%NELSONT _CATG=ALL) --------------------------
+  ne <- hzr_nelson(avc$int_dead, avc$dead)
+  sn <- .hzr_parse_sas_lifetable(lst, "nelson")
+  expect_false(is.null(sn), label = "NELSONT life table parsed")
+  expect_equal(nrow(ne), nrow(sn))
+  ok_n <- !is.na(sn$CUM_HAZ)
+  expect_equal(ne$cumhaz[ok_n], sn$CUM_HAZ[ok_n], tolerance = 1e-4,
+               label = "Nelson-Aalen cumulative hazard vs SAS CUM_HAZ")
+
+  # --- Kaplan-Meier stratified by COM_IV (%KAPLAN STRATIFY=COM_IV) ----------
+  for (g in 0:1) {
+    sub <- avc[avc$com_iv == g, ]
+    kg  <- hzr_kaplan(sub$int_dead, sub$dead)
+    sg  <- .hzr_parse_sas_lifetable(lst, paste0("catg", g))
+    expect_false(is.null(sg), label = paste0("COM_IV=", g, " stratum parsed"))
+    expect_equal(nrow(kg), nrow(sg))
+    expect_equal(kg$n_risk, sg$NUMBER,
+                 label = paste0("COM_IV=", g, " n at risk"))
+    expect_equal(kg$survival, sg$CUM_SURV, tolerance = 1e-4,
+                 label = paste0("COM_IV=", g, " KM survival"))
+  }
+})
+
+# ---------------------------------------------------------------------------
 # hz.te123.OMC: 2-phase (Early CDF + Late Weibull) repeated TE events
 # ---------------------------------------------------------------------------
 # Two fits:
