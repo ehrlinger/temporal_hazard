@@ -2,6 +2,16 @@
 
 ## New features
 
+* `predict.hazard(type = "hazard")` now works for **multiphase** models,
+  returning the instantaneous additive hazard
+  `h(t|x) = sum_j mu_j(x) phi_j'(t)` (previously only single-distribution
+  models supported `"hazard"`, via `exp(eta)`). Like `"survival"` /
+  `"cumulative_hazard"` it is time-based (requires `newdata$time`), supports
+  covariate `newdata`, and `se.fit = TRUE` (delta-method limits on the log
+  scale via a numeric Jacobian of the hazard evaluator). `decompose = TRUE` is
+  not supported for `"hazard"`. This gives the multiphase instantaneous hazard a
+  public route (it was previously reachable only through internal functions).
+
 * `predict.hazard(..., se.fit = TRUE, conf.type = )` selects the survival
   confidence-limit transform. The default `"log-log"` builds limits on
   `log(-log S)` (the `survival::survfit` standard); `"logit"` builds them on

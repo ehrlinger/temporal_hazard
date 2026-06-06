@@ -533,7 +533,11 @@ hazard <- function(formula = NULL,
 #'   column, or time will be taken from the fitted object's data.
 #' @param type Prediction type:
 #'   - `"linear_predictor"`: Linear predictor eta = x*beta (not available for multiphase)
-#'   - `"hazard"`: Hazard scale exp(eta) (not available for multiphase)
+#'   - `"hazard"`: Instantaneous hazard. Single-distribution models return the
+#'     hazard scale exp(eta); multiphase models return the additive hazard
+#'     h(t|x) = sum_j mu_j(x) phi_j'(t) and so require time values (like
+#'     `"survival"`/`"cumulative_hazard"`). `decompose` is not supported for
+#'     `"hazard"`.
 #'   - `"survival"`: Survival probability S(t|x) = exp(-H(t|x))
 #'   - `"cumulative_hazard"`: Cumulative hazard H(t|x) at event times
 #' @param decompose Logical; if `TRUE` and the model is multiphase, return a
@@ -732,10 +736,16 @@ predict.hazard <- function(object, newdata = NULL,
   # Shape parameters are stripped from theta; only covariate beta's are used.
   # hazard returns exp(eta), which is the relative-hazard multiplier (not the
   # baseline conditional hazard, which would require time + distribution).
-  if (type %in% c("hazard", "linear_predictor")) {
+  # Multiphase `hazard` is the instantaneous additive hazard h(t) = sum_j
+  # mu_j(x) * phi_j'(t); it is time-based, so it is handled in the time-based
+  # branch below alongside survival / cumulative_hazard. Only the eta-based
+  # types (single-dist hazard = exp(eta); linear_predictor) are handled here.
+  if (type %in% c("hazard", "linear_predictor") &&
+      !(type == "hazard" && object$spec$dist == "multiphase")) {
     if (object$spec$dist == "multiphase") {
-      stop("Prediction type '", type, "' is not supported for multiphase models. ",
-           "Use 'survival' or 'cumulative_hazard' instead.", call. = FALSE)
+      stop("Prediction type 'linear_predictor' is not supported for multiphase ",
+           "models. Use 'survival', 'cumulative_hazard', or 'hazard' instead.",
+           call. = FALSE)
     }
     n_pred <- NULL
     pred_time <- NULL
@@ -831,7 +841,9 @@ predict.hazard <- function(object, newdata = NULL,
   # This is because the log-normal is an AFT model where H(t) = -log Phi(-z)
   # is numerically better computed directly from the normal CDF rather than
   # via exp(-H).
-  if (type %in% c("survival", "cumulative_hazard")) {
+  # `hazard` is included here only for multiphase (single-dist hazard returned
+  # above via exp(eta)); it is the instantaneous additive hazard h(t).
+  if (type %in% c("survival", "cumulative_hazard", "hazard")) {
     supported <- c("weibull", "exponential", "loglogistic", "lognormal", "multiphase")
     if (!object$spec$dist %in% supported) {
       stop("Prediction type '", type, "' is only supported for ",
@@ -877,6 +889,13 @@ predict.hazard <- function(object, newdata = NULL,
         }
       }
 
+      # Instantaneous additive hazard is not phase-decomposable through this
+      # path (the internal hazard evaluator returns the total only).
+      if (type == "hazard" && decompose) {
+        stop("decompose = TRUE is not supported for type = 'hazard'.",
+             call. = FALSE)
+      }
+
       if (se.fit) {
         if (decompose) {
           return(.hzr_predict_with_se_decomposed( # nolint: object_usage_linter.
@@ -884,14 +903,25 @@ predict.hazard <- function(object, newdata = NULL,
             cov_counts = cov_counts, phases = phases, level = level
           ))
         }
-        diff_fn <- function(th) {
-          .hzr_multiphase_cumhaz(pred_time, th, phases, cov_counts, x_list)
+        diff_fn <- if (type == "hazard") {
+          function(th) {
+            .hzr_multiphase_hazard(pred_time, th, phases, cov_counts, x_list)
+          }
+        } else {
+          function(th) {
+            .hzr_multiphase_cumhaz(pred_time, th, phases, cov_counts, x_list)
+          }
         }
         return(.hzr_predict_with_se(
           object = object, type = type, time = pred_time,
           x_list = x_list, cov_counts = cov_counts, phases = phases,
           level = level, diff_fn = diff_fn, conf_type = conf.type
         ))
+      }
+
+      if (type == "hazard") {
+        return(.hzr_multiphase_hazard(pred_time, theta, phases, cov_counts,
+                                      x_list))
       }
 
       result <- .hzr_multiphase_cumhaz(
