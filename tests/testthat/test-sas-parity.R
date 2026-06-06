@@ -511,15 +511,16 @@ test_that("ac.death.AVC: Kaplan-Meier and Nelson-Aalen life tables match SAS", {
 # fit). We refit that model deterministically from its .sas PARMS and predict at
 # the same exact times (reconstructed from the SAS DO loop; the printed MONTHS
 # are rounded to 3 decimals, so predicting at the rounded values would inflate
-# the error). Survival via the public predict(type = "survival"); the
-# instantaneous multiphase hazard is not yet a public predict type, so it is
-# checked via the internal .hzr_multiphase_hazard(). HAZPRED confidence limits
-# are not asserted. predict(type = "survival", se.fit = TRUE) IS available
-# (multiphase included), but R's survival CLs do not reproduce SAS HAZPRED's to
-# parity tolerance (different delta-method transform: even at SAS's 1-SD level
-# the limits differ by ~0.02). The hazard CLs additionally have no public path
-# (multiphase hazard is not a predict() type). Follow-ups: reconcile the
-# survival-CL construction with HAZPRED, and expose predict(type = "hazard").
+# the error). Survival and the instantaneous multiphase hazard both go through
+# the public predict() path (type = "survival" / type = "hazard"). HAZPRED
+# confidence limits are not asserted here. predict(se.fit = TRUE) is available
+# for both survival and hazard (multiphase included), but R's CLs use a
+# different delta-method transform than SAS HAZPRED -- R uses complementary-
+# log-log for survival (the survfit standard), HAZPRED uses a logit transform --
+# so the limits do not match to parity tolerance (~0.02 even at SAS's 1-SD
+# level). Follow-up: a `conf.type = "logit"` option to optionally reproduce
+# HAZPRED's CLs (it matches to ~1e-5 once the full-information vcov for CoE fits
+# is in place).
 test_that("hp.death.AVC: HAZPRED survival/hazard nomogram matches SAS", {
   testthat::skip_on_cran()
   dir <- skip_if_no_sas_fixtures()
@@ -561,11 +562,8 @@ test_that("hp.death.AVC: HAZPRED survival/hazard nomogram matches SAS", {
   expect_equal(unname(surv), nom$SURVIV, tolerance = 1e-4,
                label = "HAZPRED _SURVIV nomogram")
 
-  # Instantaneous multiphase hazard (internal; not a public predict type yet).
-  haz <- TemporalHazard:::.hzr_multiphase_hazard(
-    months, fit$fit$theta, fit$fit$phases,
-    fit$fit$covariate_counts, fit$fit$x_list
-  )
+  # Instantaneous multiphase hazard via the public predict() path.
+  haz <- predict(fit, newdata = data.frame(time = months), type = "hazard")
   expect_equal(unname(haz), nom$HAZARD, tolerance = 1e-3,
                label = "HAZPRED _HAZARD nomogram")
 })
