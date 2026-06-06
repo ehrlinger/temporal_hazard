@@ -9,6 +9,11 @@ parametric hazard model of Blackstone, Naftel, and Turner (1986).
 For detailed feature-level parity analysis against the original C/SAS HAZARD
 system, see `SAS-PARITY-GAP-ANALYSIS.md` in this directory.
 
+For how the R and SAS/C codebases are used together to assure correctness
+**efficiently** — the tiered model (R-only invariants → cross-engine
+differential gate → frozen golden anchors), the reference-authority principle,
+and when to stop hand-porting fixtures — see `CORRECTNESS-STRATEGY.md`.
+
 ---
 
 ## Phase 1: Migration from C/SAS — COMPLETE
