@@ -504,6 +504,73 @@ test_that("ac.death.AVC: Kaplan-Meier and Nelson-Aalen life tables match SAS", {
 })
 
 # ---------------------------------------------------------------------------
+# hp.death.AVC: HAZPRED predictions from the saved hz.death.AVC fit.
+# ---------------------------------------------------------------------------
+# %HAZPRED predicts survival and hazard at a "digital nomogram" of time points
+# from a saved model (EXAMPLES.HZDEATH = the hz.death.AVC 2-phase Early+Constant
+# fit). We refit that model deterministically from its .sas PARMS and predict at
+# the same exact times (reconstructed from the SAS DO loop; the printed MONTHS
+# are rounded to 3 decimals, so predicting at the rounded values would inflate
+# the error). Survival via the public predict(type = "survival"); the
+# instantaneous multiphase hazard is not yet a public predict type, so it is
+# checked via the internal .hzr_multiphase_hazard(). HAZPRED confidence limits
+# are not asserted. predict(type = "survival", se.fit = TRUE) IS available
+# (multiphase included), but R's survival CLs do not reproduce SAS HAZPRED's to
+# parity tolerance (different delta-method transform: even at SAS's 1-SD level
+# the limits differ by ~0.02). The hazard CLs additionally have no public path
+# (multiphase hazard is not a predict() type). Follow-ups: reconcile the
+# survival-CL construction with HAZPRED, and expose predict(type = "hazard").
+test_that("hp.death.AVC: HAZPRED survival/hazard nomogram matches SAS", {
+  testthat::skip_on_cran()
+  dir <- skip_if_no_sas_fixtures()
+  lst <- file.path(dir, "hp.death.AVC.lst")
+  testthat::skip_if_not(file.exists(lst), "hp.death.AVC.lst fixture not present")
+
+  nom <- .hzr_parse_sas_nomogram(lst)
+  expect_false(is.null(nom), label = "HAZPRED nomogram parsed")
+
+  # Exact prediction times from hp.death.AVC.sas:
+  #   DO MONTHS = 1*DTY..7*DTY, 14*DTY, 30*DTY, 1,2,3,6,12,18, 24 TO 180 BY 12
+  # with DTY = 12 / 365.2425 (one day, in months).
+  dty <- 12 / 365.2425
+  months <- c((1:7) * dty, 14 * dty, 30 * dty, 1, 2, 3, 6, 12, 18,
+              seq(24, 180, by = 12))
+  expect_equal(length(months), nrow(nom))
+
+  # Saved model = hz.death.AVC fit; refit deterministically from its .sas PARMS.
+  data(avc, package = "TemporalHazard")
+  theta0 <- c(log(0.2361727), log(0.1512095), 1.438652, 1, log(0.0005437099))
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data    = avc,
+    dist    = "multiphase",
+    phases  = list(
+      early    = hzr_phase("cdf", t_half = 0.1512095, nu = 1.438652, m = 1,
+                           fixed = "m"),
+      constant = hzr_phase("constant")
+    ),
+    theta   = theta0,
+    fit     = TRUE,
+    control = list(n_starts = 1, maxit = 2000, conserve = TRUE)
+  )
+  expect_equal(fit$fit$objective, -210.501, tolerance = 1e-2,
+               label = "saved-model LL vs SAS")
+
+  # Survival predictions (public API).
+  surv <- predict(fit, newdata = data.frame(time = months), type = "survival")
+  expect_equal(unname(surv), nom$SURVIV, tolerance = 1e-4,
+               label = "HAZPRED _SURVIV nomogram")
+
+  # Instantaneous multiphase hazard (internal; not a public predict type yet).
+  haz <- TemporalHazard:::.hzr_multiphase_hazard(
+    months, fit$fit$theta, fit$fit$phases,
+    fit$fit$covariate_counts, fit$fit$x_list
+  )
+  expect_equal(unname(haz), nom$HAZARD, tolerance = 1e-3,
+               label = "HAZPRED _HAZARD nomogram")
+})
+
+# ---------------------------------------------------------------------------
 # hz.te123.OMC: 2-phase (Early CDF + Late Weibull) repeated TE events
 # ---------------------------------------------------------------------------
 # Two fits:
