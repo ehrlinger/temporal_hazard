@@ -41,6 +41,10 @@ multiphase; use \code{x_list} instead.}
 returning the delta-method target (H, exp(eta), or eta depending on
 \code{type}).  Used for the point estimate AND for the numeric jacobian
 fallback in exp / loglogistic / lognormal.}
+
+\item{conf_type}{Survival CL transform: \code{"log-log"} (default, on
+\verb{log(-log S)}) or \code{"logit"} (on \code{logit(1 - S)}, HAZPRED-compatible).
+Only consulted when \code{type == "survival"}.}
 }
 \value{
 data.frame with columns \code{fit}, \code{se.fit}, \code{lower}, \code{upper}.

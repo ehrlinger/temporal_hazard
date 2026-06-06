@@ -12,7 +12,7 @@
   not supported for `"hazard"`. This gives the multiphase instantaneous hazard a
   public route (it was previously reachable only through internal functions).
 
-* `predict.hazard(..., se.fit = TRUE, conf.type = )` selects the survival
+* `predict.hazard(..., se.fit = TRUE, conf.type = "logit")` selects the survival
   confidence-limit transform. The default `"log-log"` builds limits on
   `log(-log S)` (the `survival::survfit` standard); `"logit"` builds them on
   `logit(1 - S)`, reproducing SAS HAZARD's `HAZPRED` survival limits. With the

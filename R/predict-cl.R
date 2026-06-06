@@ -318,8 +318,10 @@ NULL
     pos <- is.finite(H) & H > 0 & Fc > 0
     Z <- ifelse(pos, log(expm1(H)), NA_real_)
     seZ <- ifelse(pos, se_nat / Fc, NA_real_)
-    lower[pos] <- 1 / (exp(Z[pos] + z * seZ[pos]) + 1)
-    upper[pos] <- 1 / (exp(Z[pos] - z * seZ[pos]) + 1)
+    # S = 1 / (e^Z + 1) = plogis(-Z); use plogis for a numerically stable
+    # logistic back-transform (avoids exp() overflow at large |Z +/- z*seZ|).
+    lower[pos] <- stats::plogis(-(Z[pos] + z * seZ[pos]))
+    upper[pos] <- stats::plogis(-(Z[pos] - z * seZ[pos]))
   } else {
     stop("Unknown CL scale: '", scale, "'.", call. = FALSE)
   }
@@ -412,6 +414,9 @@ NULL
 #'   returning the delta-method target (H, exp(eta), or eta depending on
 #'   `type`).  Used for the point estimate AND for the numeric jacobian
 #'   fallback in exp / loglogistic / lognormal.
+#' @param conf_type Survival CL transform: `"log-log"` (default, on
+#'   `log(-log S)`) or `"logit"` (on `logit(1 - S)`, HAZPRED-compatible).
+#'   Only consulted when `type == "survival"`.
 #' @return data.frame with columns `fit`, `se.fit`, `lower`, `upper`.
 #' @keywords internal
 .hzr_predict_with_se <- function(object, type, time = NULL,
@@ -419,7 +424,9 @@ NULL
                                    cov_counts = NULL, phases = NULL,
                                    level = 0.95, diff_fn,
                                    conf_type = c("log-log", "logit")) {
-  conf_type <- match.arg(conf_type)
+  # Only survival CLs use conf_type; validate only then so an ignored value
+  # (hazard / cumulative_hazard / linear_predictor) is not an error.
+  if (type == "survival") conf_type <- match.arg(conf_type)
 
   theta <- object$fit$theta
   p <- length(theta)

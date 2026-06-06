@@ -578,7 +578,13 @@ hazard <- function(formula = NULL,
 #' or `"hazard"` also require time values (via `newdata$time` or fitted-time fallback)
 #' so window-specific coefficients can be selected.
 #'
-#' @return Numeric vector of predictions.
+#' @return When `se.fit = FALSE` (default), a numeric vector of predictions.
+#'   When `se.fit = TRUE`, a data frame with columns `fit`, `se.fit`, `lower`,
+#'   `upper` (delta-method point estimate, standard error, and confidence
+#'   limits at `level`). For multiphase `type = "cumulative_hazard"` with
+#'   `decompose = TRUE`, a long data frame (`time`, `component`, `fit`,
+#'   `se.fit`, `lower`, `upper`); with `decompose = TRUE` and `se.fit = FALSE`,
+#'   a wide data frame of per-phase contributions.
 #' @examples
 #' # -- Basic predictions ------------------------------------------------
 #' set.seed(1)
@@ -705,7 +711,9 @@ predict.hazard <- function(object, newdata = NULL,
                            se.fit = FALSE, level = 0.95,
                            conf.type = c("log-log", "logit"), ...) {
   type <- match.arg(type)
-  conf.type <- match.arg(conf.type)
+  # `conf.type` is validated lazily inside the se.fit survival path (it only
+  # affects survival CLs); validating here would error on an otherwise-ignored
+  # value (e.g. se.fit = FALSE, or a non-survival type).
   theta <- object$fit$theta
   time_windows <- object$spec$time_windows
 

@@ -66,7 +66,13 @@ HAZPRED). Only used when \code{se.fit = TRUE}.}
 \item{...}{Unused; included for S3 compatibility.}
 }
 \value{
-Numeric vector of predictions.
+When \code{se.fit = FALSE} (default), a numeric vector of predictions.
+When \code{se.fit = TRUE}, a data frame with columns \code{fit}, \code{se.fit}, \code{lower},
+\code{upper} (delta-method point estimate, standard error, and confidence
+limits at \code{level}). For multiphase \code{type = "cumulative_hazard"} with
+\code{decompose = TRUE}, a long data frame (\code{time}, \code{component}, \code{fit},
+\code{se.fit}, \code{lower}, \code{upper}); with \code{decompose = TRUE} and \code{se.fit = FALSE},
+a wide data frame of per-phase contributions.
 }
 \description{
 Produces prediction outputs from a \code{hazard} object. Supports multiple prediction
