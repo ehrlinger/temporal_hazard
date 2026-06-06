@@ -24,7 +24,11 @@ column, or time will be taken from the fitted object's data.}
 \item{type}{Prediction type:
 \itemize{
 \item \code{"linear_predictor"}: Linear predictor eta = x*beta (not available for multiphase)
-\item \code{"hazard"}: Hazard scale exp(eta) (not available for multiphase)
+\item \code{"hazard"}: Instantaneous hazard. Single-distribution models return the
+hazard scale exp(eta); multiphase models return the additive hazard
+h(t|x) = sum_j mu_j(x) phi_j'(t) and so require time values (like
+\code{"survival"}/\code{"cumulative_hazard"}). \code{decompose} is not supported for
+\code{"hazard"}.
 \item \code{"survival"}: Survival probability S(t|x) = exp(-H(t|x))
 \item \code{"cumulative_hazard"}: Cumulative hazard H(t|x) at event times
 }}
