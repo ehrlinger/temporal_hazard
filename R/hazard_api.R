@@ -1279,11 +1279,14 @@ coef.hazard <- function(object, ...) {
 #' @return A numeric matrix containing the estimated variance-covariance matrix
 #'   of the fitted coefficients, with rows and columns named by the coefficient
 #'   labels (phase-prefixed for multiphase models, e.g. \code{early.x}). Rows
-#'   and columns for parameters held fixed, or for the
-#'   Conservation-of-Events-conserved phase \code{log_mu}, are \code{NA} because
-#'   those parameters carry no Hessian-based variance; the finite free-parameter
-#'   block is still usable. Returns a scalar \code{NA} only when the model has
-#'   not been fitted or no covariance matrix is available.
+#'   and columns for parameters held fixed (e.g. fixed shape parameters) are
+#'   \code{NA} because they carry no variance; the finite free-parameter block
+#'   is still usable. For Conservation-of-Events fits the conserved phase
+#'   \code{log_mu} \emph{does} carry a variance: it is removed from the
+#'   optimizer search but the vcov is the full-information matrix at the optimum
+#'   (the CoE solution is the unconstrained MLE). Returns a scalar \code{NA}
+#'   only when the model has not been fitted or no covariance matrix is
+#'   available.
 #' @export
 vcov.hazard <- function(object, ...) {
   v <- object$fit$vcov
@@ -1295,9 +1298,10 @@ vcov.hazard <- function(object, ...) {
   # enter more than one phase (e.g. early.x vs constant.x): without names the
   # two coefficients are indistinguishable. NA variance rows are retained
   # rather than collapsing the whole matrix to a scalar NA -- a multiphase fit
-  # legitimately has NA rows for parameters held fixed (e.g. early shapes) and
-  # for the Conservation-of-Events-conserved phase log_mu, neither of which has
-  # a Hessian-based variance. The finite free-parameter block is still usable.
+  # legitimately has NA rows for parameters held fixed (e.g. early shapes),
+  # which carry no Hessian-based variance. (The CoE-conserved log_mu is NOT
+  # NA: it is removed from the search but gets the full-information variance.)
+  # The finite free-parameter block is still usable.
   theta <- object$fit$theta
   nm <- names(theta)
   if (is.null(nm) || !all(nzchar(nm))) {

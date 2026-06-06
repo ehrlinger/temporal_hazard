@@ -321,10 +321,12 @@ NULL
 
 #' Free-parameter vcov submatrix for the delta-method sandwich
 #'
-#' Fixed parameters (from `fixed = "shapes"` or CoE) leave NA rows/cols in the
-#' expanded vcov. Treat them as known-with-zero-variance: restrict the sandwich
-#' to the free submatrix. Returns `NULL` (with a warning) when CLs cannot be
-#' computed. Shared by the aggregate and decomposed se.fit paths.
+#' Fixed parameters (e.g. `fixed = "shapes"`) leave NA rows/cols in the expanded
+#' vcov. Treat them as known-with-zero-variance: restrict the sandwich to the
+#' free submatrix. (The CoE-conserved `log_mu` is not NA here -- CoE fits use
+#' the full-information vcov, so it participates in the sandwich.) Returns `NULL`
+#' (with a warning) when CLs cannot be computed. Shared by the aggregate and
+#' decomposed se.fit paths.
 #'
 #' @param vcov_mat The fitted vcov (or NULL / wrong shape).
 #' @param p Length of the parameter vector.
