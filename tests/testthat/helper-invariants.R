@@ -135,6 +135,17 @@
   models
 }
 
+# Memoized accessor: the model matrix is fit once per test-file run and reused
+# across the invariant test_that() blocks (otherwise .inv_models() refits the
+# whole matrix once per block).
+.inv_models_cache <- new.env(parent = emptyenv())
+.inv_models_cached <- function() {
+  if (is.null(.inv_models_cache$models)) {
+    .inv_models_cache$models <- .inv_models()
+  }
+  .inv_models_cache$models
+}
+
 # ---------------------------------------------------------------------------
 # Invariant assertions.
 # ---------------------------------------------------------------------------
@@ -183,6 +194,8 @@
     TemporalHazard:::.hzr_multiphase_cumhaz(m$time_lower, th, ph, cc, xl)
   pred <- sum(w * (H_stop - H_start))
   obs  <- sum(w * m$status)
-  testthat::expect_equal(pred, obs, tolerance = 1e-3 * obs,
+  # Relative tolerance with an absolute floor so a zero-event group does not
+  # demand exact floating-point equality.
+  testthat::expect_equal(pred, obs, tolerance = max(1e-6, 1e-3 * obs),
                          label = paste0(m$name, ": CoE sum H == sum events"))
 }

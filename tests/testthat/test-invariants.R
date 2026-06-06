@@ -7,7 +7,7 @@
 test_that("predicted survival and cumulative hazard are distributionally sane", {
   skip_on_cran()
   skip_if_not_installed("survival")
-  for (m in .inv_models()) {
+  for (m in .inv_models_cached()) {
     .inv_assert_distribution(m)
   }
 })
@@ -15,7 +15,7 @@ test_that("predicted survival and cumulative hazard are distributionally sane", 
 test_that("multiphase log-likelihood is self-consistent with returned coefficients", {
   skip_on_cran()
   skip_if_not_installed("survival")
-  for (m in .inv_models()) {
+  for (m in .inv_models_cached()) {
     if (isTRUE(m$multiphase)) .inv_assert_self_consistent(m)
   }
 })
@@ -23,7 +23,7 @@ test_that("multiphase log-likelihood is self-consistent with returned coefficien
 test_that("Conservation of Events identity holds for conserve = TRUE multiphase fits", {
   skip_on_cran()
   skip_if_not_installed("survival")
-  for (m in .inv_models()) {
+  for (m in .inv_models_cached()) {
     if (isTRUE(m$multiphase) && isTRUE(m$conserve)) .inv_assert_coe(m)
   }
 })
