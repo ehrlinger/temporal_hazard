@@ -513,13 +513,14 @@ test_that("ac.death.AVC: Kaplan-Meier and Nelson-Aalen life tables match SAS", {
 # are rounded to 3 decimals, so predicting at the rounded values would inflate
 # the error). Survival and the instantaneous multiphase hazard both go through
 # the public predict() path (type = "survival" / type = "hazard"). HAZPRED
-# confidence limits
-# are not asserted. predict(type = "survival", se.fit = TRUE) IS available
-# (multiphase included), but R's survival CLs do not reproduce SAS HAZPRED's to
-# parity tolerance (different delta-method transform: even at SAS's 1-SD level
-# the limits differ by ~0.02). The hazard CLs additionally have no public path
-# (multiphase hazard is not a predict() type). Follow-ups: reconcile the
-# survival-CL construction with HAZPRED, and expose predict(type = "hazard").
+# confidence limits are not asserted here. predict(se.fit = TRUE) is available
+# for both survival and hazard (multiphase included), but R's CLs use a
+# different delta-method transform than SAS HAZPRED -- R uses complementary-
+# log-log for survival (the survfit standard), HAZPRED uses a logit transform --
+# so the limits do not match to parity tolerance (~0.02 even at SAS's 1-SD
+# level). Follow-up: a `conf.type = "logit"` option to optionally reproduce
+# HAZPRED's CLs (it matches to ~1e-5 once the full-information vcov for CoE fits
+# is in place).
 test_that("hp.death.AVC: HAZPRED survival/hazard nomogram matches SAS", {
   testthat::skip_on_cran()
   dir <- skip_if_no_sas_fixtures()
