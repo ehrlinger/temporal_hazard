@@ -1402,33 +1402,47 @@
     # objective Hessian over the free set with the conserved log_mu restored,
     # so the conserved phase (and anything depending on it, e.g. se(H) and
     # survival CLs) gets a proper standard error.
-    if (use_conserve && !is.null(fixmu_pos) &&
-        requireNamespace("numDeriv", quietly = TRUE)) {
-      free_unc <- free_mask
-      free_unc[fixmu_pos] <- TRUE
-      idx_unc <- which(free_unc)
-      base_theta <- best_result$par
-      neg_ll_unc <- function(th_free) {
-        th <- base_theta
-        th[idx_unc] <- th_free
-        -logl_fn_pre_coe(th, time, status, time_lower, time_upper, x,
-                         weights = weights, return_gradient = FALSE)
-      }
-      H_unc <- tryCatch(numDeriv::hessian(neg_ll_unc, base_theta[idx_unc]),
-                        error = function(e) NULL)
-      if (is.matrix(H_unc)) {
-        inv_unc <- .hzr_safe_solve(H_unc)
-        if (is.matrix(inv_unc$vcov)) {
-          p_full <- length(base_theta)
-          vcov_full <- matrix(NA_real_, p_full, p_full)
-          vcov_full[idx_unc, idx_unc] <- inv_unc$vcov
-          best_result$vcov  <- vcov_full
-          best_result$rcond <- inv_unc$rcond
-          best_result$pd    <- inv_unc$pd
-          # The conserved log_mu now carries a variance; it is fixed only for
-          # the search, not for inference.
-          best_result$fixed_mask <- !free_unc
+    if (use_conserve && !is.null(fixmu_pos)) {
+      recomputed <- FALSE
+      if (requireNamespace("numDeriv", quietly = TRUE)) {
+        free_unc <- free_mask
+        free_unc[fixmu_pos] <- TRUE
+        idx_unc <- which(free_unc)
+        base_theta <- best_result$par
+        neg_ll_unc <- function(th_free) {
+          th <- base_theta
+          th[idx_unc] <- th_free
+          -logl_fn_pre_coe(th, time, status, time_lower, time_upper, x,
+                           weights = weights, return_gradient = FALSE)
         }
+        H_unc <- tryCatch(numDeriv::hessian(neg_ll_unc, base_theta[idx_unc]),
+                          error = function(e) NULL)
+        if (is.matrix(H_unc)) {
+          inv_unc <- .hzr_safe_solve(H_unc)
+          if (is.matrix(inv_unc$vcov)) {
+            p_full <- length(base_theta)
+            vcov_full <- matrix(NA_real_, p_full, p_full)
+            vcov_full[idx_unc, idx_unc] <- inv_unc$vcov
+            best_result$vcov  <- vcov_full
+            best_result$rcond <- inv_unc$rcond
+            best_result$pd    <- inv_unc$pd
+            # The conserved log_mu now carries a variance; it is fixed only for
+            # the search, not for inference.
+            best_result$fixed_mask <- !free_unc
+            recomputed <- TRUE
+          }
+        }
+      }
+      if (!recomputed) {
+        # Fall back to the reduced (search-only) vcov, in which the conserved
+        # log_mu has no variance. Warn loudly so the understated uncertainty is
+        # visible rather than silent.
+        warning(
+          "Could not compute the full-information variance for the ",
+          "Conservation-of-Events-conserved phase 'log_mu' (numDeriv ",
+          "unavailable or the Hessian was not invertible). Its standard error ",
+          "stays NA and downstream standard errors / confidence limits for ",
+          "that phase may be understated.", call. = FALSE)
       }
     }
   }

@@ -47,6 +47,9 @@
   conserved `log_mu`), matching an all-`mu`-free (`conserve = FALSE`) fit at the
   same point. On `hz.death.AVC` every parameter SE now matches the SAS HAZARD
   reference (e.g. the conserved early `log_mu`: 0.133 vs the previous ~0.059).
+  The recomputation uses `numDeriv` (Suggests) and an invertible Hessian; if
+  either is unavailable the fit emits a warning and the conserved `log_mu`
+  retains an `NA` standard error (as before).
 
 * **Conservation of Events ignored left-truncation (counting-process entry
   times).** For multiphase fits on `Surv(start, stop, event)` data, the CoE
