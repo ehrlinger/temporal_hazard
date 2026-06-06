@@ -133,21 +133,19 @@ test_that("hz.death.AVC: 2-phase free-shape Early matches SAS LL/MLEs", {
   expect_equal(unname(exp(th["constant.log_mu"])),  muc_ref,   tolerance = 1e-3,
                label = "MUC natural-scale (CoE-constrained)")
 
-  # SE comparison: SAS reports log-scale SEs for E2=log_t_half and E0=log_mu;
-  # E3=NU is on natural scale.  We compare log-scale SEs where R also
-  # parameterizes on log scale.  CoE constraint zeroes C0 SE in R; SAS
-  # still reports one — note as gap, don't assert.
-  V <- fit$fit$vcov
-  idx <- c(log_t_half = which(names(th) == "early.log_t_half"),
-           log_mu     = which(names(th) == "early.log_mu"))
-
-  se_e2_ref <- ref$params$se[ref$params$name == "E2"]
-  expect_equal(sqrt(V[idx["log_t_half"], idx["log_t_half"]]), se_e2_ref,
-               tolerance = 5e-3, label = "SE(log_t_half / E2)")
-  # NOTE: SE(log_mu / E0) disagrees with SAS (R ~0.059 vs SAS 0.133).
-  # SAS reports asymptotic vcov projected onto the CoE conservation
-  # manifold; R returns the raw inverse Hessian on the free-parameter
-  # submatrix.  Logged as P2 gap #11 in PRE-CRAN-PARITY-INVENTORY.md.
+  # SE comparison (log-mu / log-t_half scale). With the full-information vcov
+  # for CoE fits, all three log-scale SEs match SAS -- including E0, the
+  # CoE-conserved early log_mu, whose variance was previously dropped (the old
+  # ~0.059-vs-0.133 gap; now resolved).
+  se <- sqrt(diag(fit$fit$vcov))
+  names(se) <- names(th)
+  se_ref <- function(nm) ref$params$se[ref$params$name == nm]
+  expect_equal(unname(se[["early.log_t_half"]]), se_ref("E2"), tolerance = 5e-3,
+               label = "SE(log_t_half / E2)")
+  expect_equal(unname(se[["early.log_mu"]]),     se_ref("E0"), tolerance = 5e-3,
+               label = "SE(early log_mu / E0) -- conserved phase, full-info vcov")
+  expect_equal(unname(se[["constant.log_mu"]]),  se_ref("C0"), tolerance = 5e-3,
+               label = "SE(constant log_mu / C0)")
 })
 
 # ---------------------------------------------------------------------------

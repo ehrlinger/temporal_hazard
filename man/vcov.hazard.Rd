@@ -15,11 +15,16 @@
 A numeric matrix containing the estimated variance-covariance matrix
 of the fitted coefficients, with rows and columns named by the coefficient
 labels (phase-prefixed for multiphase models, e.g. \code{early.x}). Rows
-and columns for parameters held fixed, or for the
-Conservation-of-Events-conserved phase \code{log_mu}, are \code{NA} because
-those parameters carry no Hessian-based variance; the finite free-parameter
-block is still usable. Returns a scalar \code{NA} only when the model has
-not been fitted or no covariance matrix is available.
+and columns for parameters held fixed (e.g. fixed shape parameters) are
+\code{NA} because they carry no variance; the finite free-parameter block
+is still usable. For Conservation-of-Events fits the conserved phase
+\code{log_mu} \emph{normally} carries a variance: it is removed from the
+optimizer search but the vcov is the full-information matrix at the optimum
+(the CoE solution is the unconstrained MLE). That recomputation requires
+\pkg{numDeriv} and an invertible Hessian; if either is unavailable the fit
+emits a warning and the conserved \code{log_mu} stays \code{NA} (the rest
+of the matrix is unaffected). Returns a scalar \code{NA} only when the
+model has not been fitted or no covariance matrix is available.
 }
 \description{
 Returns the estimated variance-covariance matrix of the fitted coefficients.
