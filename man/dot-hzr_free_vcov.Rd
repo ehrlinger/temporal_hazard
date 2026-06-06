@@ -15,9 +15,11 @@
 \code{list(vcov_use, free_idx)}, or \code{NULL} if unusable.
 }
 \description{
-Fixed parameters (from \code{fixed = "shapes"} or CoE) leave NA rows/cols in the
-expanded vcov. Treat them as known-with-zero-variance: restrict the sandwich
-to the free submatrix. Returns \code{NULL} (with a warning) when CLs cannot be
-computed. Shared by the aggregate and decomposed se.fit paths.
+Fixed parameters (e.g. \code{fixed = "shapes"}) leave NA rows/cols in the expanded
+vcov. Treat them as known-with-zero-variance: restrict the sandwich to the
+free submatrix. (The CoE-conserved \code{log_mu} is not NA here -- CoE fits use
+the full-information vcov, so it participates in the sandwich.) Returns \code{NULL}
+(with a warning) when CLs cannot be computed. Shared by the aggregate and
+decomposed se.fit paths.
 }
 \keyword{internal}
