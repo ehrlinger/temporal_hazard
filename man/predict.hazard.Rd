@@ -11,6 +11,7 @@
   decompose = FALSE,
   se.fit = FALSE,
   level = 0.95,
+  conf.type = c("log-log", "logit"),
   ...
 )
 }
@@ -50,6 +51,13 @@ survival is not additive).}
 
 \item{level}{Numeric confidence level in \verb{(0, 1)}; default \code{0.95}.
 Only used when \code{se.fit = TRUE}.}
+
+\item{conf.type}{Transform for \code{type = "survival"} confidence limits when
+\code{se.fit = TRUE}: \code{"log-log"} (default) builds them on \verb{log(-log S)} (the
+\code{survival::survfit} standard); \code{"logit"} builds them on \code{logit(1 - S)},
+reproducing SAS HAZARD's \code{HAZPRED} survival limits. Other types are
+unaffected (hazard/cumulative-hazard use a log scale that already matches
+HAZPRED). Only used when \code{se.fit = TRUE}.}
 
 \item{...}{Unused; included for S3 compatibility.}
 }

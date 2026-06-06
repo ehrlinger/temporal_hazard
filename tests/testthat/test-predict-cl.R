@@ -413,3 +413,40 @@ test_that("se.fit = FALSE preserves pre-0.9.8 return shape", {
     expect_false(is.data.frame(out))
   }
 })
+
+# ---------------------------------------------------------------------------
+# conf.type for survival confidence limits (log-log default vs logit/HAZPRED)
+# ---------------------------------------------------------------------------
+test_that("predict(type='survival') conf.type selects the CL transform", {
+  skip_if_not_installed("numDeriv")
+  set.seed(7)
+  n <- 400
+  tev <- rexp(n, 0.3) + 0.01
+  cens <- runif(n, 0.2, 6)
+  d <- data.frame(time = pmin(tev, cens), status = as.integer(tev <= cens))
+  set.seed(1)
+  fit <- hazard(survival::Surv(time, status) ~ 1, data = d, dist = "multiphase",
+    phases = list(early = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1, fixed = "shapes"),
+                  constant = hzr_phase("constant")),
+    fit = TRUE, control = list(n_starts = 1, maxit = 500, conserve = TRUE))
+  grid <- data.frame(time = c(0.5, 1, 3))
+
+  default <- predict(fit, newdata = grid, type = "survival", se.fit = TRUE)
+  loglog  <- predict(fit, newdata = grid, type = "survival", se.fit = TRUE,
+                     conf.type = "log-log")
+  logit   <- predict(fit, newdata = grid, type = "survival", se.fit = TRUE,
+                     conf.type = "logit")
+
+  # Default is log-log.
+  expect_equal(default$lower, loglog$lower)
+  expect_equal(default$upper, loglog$upper)
+  # logit differs from log-log but shares the point estimate and stays in (0,1).
+  expect_equal(logit$fit, loglog$fit, tolerance = 1e-10)
+  expect_false(isTRUE(all.equal(logit$lower, loglog$lower)))
+  expect_true(all(logit$lower > 0 & logit$upper < 1))
+  expect_true(all(logit$lower <= logit$fit & logit$fit <= logit$upper))
+
+  # Invalid conf.type is rejected.
+  expect_error(predict(fit, newdata = grid, type = "survival", se.fit = TRUE,
+                       conf.type = "bogus"))
+})

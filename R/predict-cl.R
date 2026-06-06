@@ -308,6 +308,18 @@ NULL
     se_logH <- ifelse(pos, se_nat / H, NA_real_)
     lower[pos] <- exp(-H[pos] * exp(z * se_logH[pos]))
     upper[pos] <- exp(-H[pos] * exp(-z * se_logH[pos]))
+  } else if (scale == "logit_survival") {
+    # SAS HAZPRED's survival CL: build on the logit of cumulative incidence,
+    # Z = logit(1 - S) = log(e^H - 1), with se(Z) = se(H) / (1 - S), then
+    # back-transform S = 1 / (e^Z + 1).  `fit` is S = exp(-H); `se_nat` is
+    # se(H).  (Reproduces hzp_calc_srv_CL.c.)
+    H <- -log(pmin(pmax(fit, .Machine$double.xmin), 1))
+    Fc <- 1 - fit
+    pos <- is.finite(H) & H > 0 & Fc > 0
+    Z <- ifelse(pos, log(expm1(H)), NA_real_)
+    seZ <- ifelse(pos, se_nat / Fc, NA_real_)
+    lower[pos] <- 1 / (exp(Z[pos] + z * seZ[pos]) + 1)
+    upper[pos] <- 1 / (exp(Z[pos] - z * seZ[pos]) + 1)
   } else {
     stop("Unknown CL scale: '", scale, "'.", call. = FALSE)
   }
@@ -404,7 +416,9 @@ NULL
 .hzr_predict_with_se <- function(object, type, time = NULL,
                                    x = NULL, x_list = NULL,
                                    cov_counts = NULL, phases = NULL,
-                                   level = 0.95, diff_fn) {
+                                   level = 0.95, diff_fn,
+                                   conf_type = c("log-log", "logit")) {
+  conf_type <- match.arg(conf_type)
 
   theta <- object$fit$theta
   p <- length(theta)
@@ -442,7 +456,8 @@ NULL
   # --- Scale transform -----------------------------------------------------
   if (type == "survival") {
     fit <- exp(-target)
-    .hzr_predict_cl_from_se(fit, se_target, level, "loglog_survival")
+    surv_scale <- if (conf_type == "logit") "logit_survival" else "loglog_survival"
+    .hzr_predict_cl_from_se(fit, se_target, level, surv_scale)
   } else if (type == "cumulative_hazard" || type == "hazard") {
     .hzr_predict_cl_from_se(target, se_target, level, "log")
   } else if (type == "linear_predictor") {

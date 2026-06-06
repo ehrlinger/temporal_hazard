@@ -559,6 +559,17 @@ test_that("hp.death.AVC: HAZPRED survival/hazard nomogram matches SAS", {
   expect_equal(unname(surv), nom$SURVIV, tolerance = 1e-4,
                label = "HAZPRED _SURVIV nomogram")
 
+  # Survival confidence limits: conf.type = "logit" reproduces HAZPRED's
+  # logit-scale CLs (the default "log-log" intentionally does not). SAS HAZPRED
+  # uses a 1-SD level (CLEVEL = 0.68268948 -> z = 1).
+  lvl <- 2 * stats::pnorm(1) - 1
+  scl <- predict(fit, newdata = data.frame(time = months), type = "survival",
+                 se.fit = TRUE, level = lvl, conf.type = "logit")
+  expect_equal(scl$lower, nom$CLLSURV, tolerance = 1e-4,
+               label = "HAZPRED _CLLSURV (logit CL)")
+  expect_equal(scl$upper, nom$CLUSURV, tolerance = 1e-4,
+               label = "HAZPRED _CLUSURV (logit CL)")
+
   # Instantaneous multiphase hazard (internal; not a public predict type yet).
   haz <- TemporalHazard:::.hzr_multiphase_hazard(
     months, fit$fit$theta, fit$fit$phases,

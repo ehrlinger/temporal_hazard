@@ -2,6 +2,14 @@
 
 ## New features
 
+* `predict.hazard(..., se.fit = TRUE, conf.type = )` selects the survival
+  confidence-limit transform. The default `"log-log"` builds limits on
+  `log(-log S)` (the `survival::survfit` standard); `"logit"` builds them on
+  `logit(1 - S)`, reproducing SAS HAZARD's `HAZPRED` survival limits. With the
+  full-information vcov for CoE fits, `conf.type = "logit"` matches the SAS
+  `hp.death.AVC` survival CLs to ~1e-5. Hazard / cumulative-hazard limits are
+  unaffected (their log scale already matches HAZPRED).
+
 * `predict.hazard(type = "cumulative_hazard", decompose = TRUE, se.fit = TRUE)`
   now returns per-phase **and** total delta-method confidence limits for
   multiphase models, as a long data frame
