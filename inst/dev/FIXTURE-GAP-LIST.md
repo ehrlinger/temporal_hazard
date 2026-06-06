@@ -9,6 +9,14 @@ complete cross-codebase parity harness.
 primary fixtures in `~/Documents/GitHub/hazard/examples/`. The gaps below are
 everything not yet covered.
 
+> **Read first — strategy context:** [CORRECTNESS-STRATEGY.md](CORRECTNESS-STRATEGY.md)
+> reframes this exhaustive-parity goal. Direct SAS parity was the right tool for
+> *porting/debugging*; steady-state correctness now leans on R-only invariant
+> tests (Tier 1, shipped) + a cross-engine differential gate (Tier 2, the v5 V9
+> gate), with a small **frozen** golden-anchor set rather than hand-porting
+> every fixture. Treat the "remaining" items below as *optional* unless they buy
+> new structural coverage (see the feature-coverage matrix in the strategy).
+
 ---
 
 ## How fixtures are consumed
