@@ -1391,6 +1391,46 @@
     }
 
     best_result$fixed_mask <- !free_mask
+
+    # --- Full-information vcov for Conservation-of-Events fits ---------------
+    # CoE removes the conserved phase's log_mu from the *search* (its score
+    # equation IS the CoE constraint), so the optimizer's Hessian leaves that
+    # parameter with no variance. But at the optimum the CoE solution is the
+    # unconstrained MLE, so the reported *uncertainty* should be the full-
+    # information vcov -- exactly what an all-mu-free (conserve = FALSE) fit
+    # gives at the same point. Recompute the vcov from the unconstrained-
+    # objective Hessian over the free set with the conserved log_mu restored,
+    # so the conserved phase (and anything depending on it, e.g. se(H) and
+    # survival CLs) gets a proper standard error.
+    if (use_conserve && !is.null(fixmu_pos) &&
+        requireNamespace("numDeriv", quietly = TRUE)) {
+      free_unc <- free_mask
+      free_unc[fixmu_pos] <- TRUE
+      idx_unc <- which(free_unc)
+      base_theta <- best_result$par
+      neg_ll_unc <- function(th_free) {
+        th <- base_theta
+        th[idx_unc] <- th_free
+        -logl_fn_pre_coe(th, time, status, time_lower, time_upper, x,
+                         weights = weights, return_gradient = FALSE)
+      }
+      H_unc <- tryCatch(numDeriv::hessian(neg_ll_unc, base_theta[idx_unc]),
+                        error = function(e) NULL)
+      if (is.matrix(H_unc)) {
+        inv_unc <- .hzr_safe_solve(H_unc)
+        if (is.matrix(inv_unc$vcov)) {
+          p_full <- length(base_theta)
+          vcov_full <- matrix(NA_real_, p_full, p_full)
+          vcov_full[idx_unc, idx_unc] <- inv_unc$vcov
+          best_result$vcov  <- vcov_full
+          best_result$rcond <- inv_unc$rcond
+          best_result$pd    <- inv_unc$pd
+          # The conserved log_mu now carries a variance; it is fixed only for
+          # the search, not for inference.
+          best_result$fixed_mask <- !free_unc
+        }
+      }
+    }
   }
 
   # Restore parameter names

@@ -26,6 +26,18 @@
 
 ## Bug fixes
 
+* **Conservation-of-Events fits now report the full-information variance.**
+  CoE removes one phase's `log_mu` from the optimizer *search* (its score
+  equation is the CoE constraint), but the previous code also dropped it from
+  the *uncertainty* -- the conserved phase got an `NA` standard error, and
+  anything depending on it (other SEs, `se(H)`, prediction confidence limits)
+  was understated wherever that phase contributed. At the optimum the CoE
+  solution is the unconstrained MLE, so `vcov()` is now recomputed from the
+  unconstrained-objective Hessian over the full free set (including the
+  conserved `log_mu`), matching an all-`mu`-free (`conserve = FALSE`) fit at the
+  same point. On `hz.death.AVC` every parameter SE now matches the SAS HAZARD
+  reference (e.g. the conserved early `log_mu`: 0.133 vs the previous ~0.059).
+
 * **Conservation of Events ignored left-truncation (counting-process entry
   times).** For multiphase fits on `Surv(start, stop, event)` data, the CoE
   reparameterization conserved `Sum H(stop)` while the likelihood scores the
