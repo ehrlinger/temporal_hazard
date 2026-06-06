@@ -458,6 +458,9 @@ test_that("ac.death.AVC: Kaplan-Meier and Nelson-Aalen life tables match SAS", {
   testthat::skip_on_cran()
   dir <- skip_if_no_sas_fixtures()
   lst <- file.path(dir, "ac.death.AVC.lst")
+  # An older local fixture set may predate this capture; skip cleanly rather
+  # than hard-error in readLines() if this specific .lst is absent.
+  testthat::skip_if_not(file.exists(lst), "ac.death.AVC.lst fixture not present")
 
   data(avc, package = "TemporalHazard")
 
