@@ -13,7 +13,8 @@
   cov_counts = NULL,
   phases = NULL,
   level = 0.95,
-  diff_fn
+  diff_fn,
+  conf_type = c("log-log", "logit")
 )
 }
 \arguments{
