@@ -510,7 +510,9 @@
 # Parse the HAZPRED "digital nomogram" prediction table printed by jobs like
 # hp.death.AVC.sas: a PROC PRINT with header
 #   Obs YEARS MONTHS _SURVIV _CLLSURV _CLUSURV _HAZARD _CLLHAZ _CLUHAZ
-# Returns a data frame with those columns (Obs dropped), or NULL if absent.
+# Returns a data frame (Obs dropped) with the leading underscores stripped from
+# the column names: YEARS, MONTHS, SURVIV, CLLSURV, CLUSURV, HAZARD, CLLHAZ,
+# CLUHAZ. NULL if the table is absent.
 .hzr_parse_sas_nomogram <- function(path) {
   lines <- .hzr_read_lst(path)
   h <- grep("YEARS[[:space:]]+MONTHS[[:space:]]+_SURVIV", lines)

@@ -514,8 +514,12 @@ test_that("ac.death.AVC: Kaplan-Meier and Nelson-Aalen life tables match SAS", {
 # the error). Survival via the public predict(type = "survival"); the
 # instantaneous multiphase hazard is not yet a public predict type, so it is
 # checked via the internal .hzr_multiphase_hazard(). HAZPRED confidence limits
-# (delta method) are not asserted here -- se.fit is not exposed for survival /
-# hazard prediction yet (follow-up).
+# are not asserted. predict(type = "survival", se.fit = TRUE) IS available
+# (multiphase included), but R's survival CLs do not reproduce SAS HAZPRED's to
+# parity tolerance (different delta-method transform: even at SAS's 1-SD level
+# the limits differ by ~0.02). The hazard CLs additionally have no public path
+# (multiphase hazard is not a predict() type). Follow-ups: reconcile the
+# survival-CL construction with HAZPRED, and expose predict(type = "hazard").
 test_that("hp.death.AVC: HAZPRED survival/hazard nomogram matches SAS", {
   testthat::skip_on_cran()
   dir <- skip_if_no_sas_fixtures()
