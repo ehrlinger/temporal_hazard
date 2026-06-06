@@ -11,6 +11,7 @@
   decompose = FALSE,
   se.fit = FALSE,
   level = 0.95,
+  conf.type = c("log-log", "logit"),
   ...
 )
 }
@@ -55,10 +56,23 @@ survival is not additive).}
 \item{level}{Numeric confidence level in \verb{(0, 1)}; default \code{0.95}.
 Only used when \code{se.fit = TRUE}.}
 
+\item{conf.type}{Transform for \code{type = "survival"} confidence limits when
+\code{se.fit = TRUE}: \code{"log-log"} (default) builds them on \verb{log(-log S)} (the
+\code{survival::survfit} standard); \code{"logit"} builds them on \code{logit(1 - S)},
+reproducing SAS HAZARD's \code{HAZPRED} survival limits. Other types are
+unaffected (hazard/cumulative-hazard use a log scale that already matches
+HAZPRED). Only used when \code{se.fit = TRUE}.}
+
 \item{...}{Unused; included for S3 compatibility.}
 }
 \value{
-Numeric vector of predictions.
+When \code{se.fit = FALSE} (default), a numeric vector of predictions.
+When \code{se.fit = TRUE}, a data frame with columns \code{fit}, \code{se.fit}, \code{lower},
+\code{upper} (delta-method point estimate, standard error, and confidence
+limits at \code{level}). For multiphase \code{type = "cumulative_hazard"} with
+\code{decompose = TRUE}, a long data frame (\code{time}, \code{component}, \code{fit},
+\code{se.fit}, \code{lower}, \code{upper}); with \code{decompose = TRUE} and \code{se.fit = FALSE},
+a wide data frame of per-phase contributions.
 }
 \description{
 Produces prediction outputs from a \code{hazard} object. Supports multiple prediction

@@ -559,6 +559,12 @@ hazard <- function(formula = NULL,
 #'   survival is not additive).
 #' @param level Numeric confidence level in `(0, 1)`; default `0.95`.
 #'   Only used when `se.fit = TRUE`.
+#' @param conf.type Transform for `type = "survival"` confidence limits when
+#'   `se.fit = TRUE`: `"log-log"` (default) builds them on `log(-log S)` (the
+#'   `survival::survfit` standard); `"logit"` builds them on `logit(1 - S)`,
+#'   reproducing SAS HAZARD's `HAZPRED` survival limits. Other types are
+#'   unaffected (hazard/cumulative-hazard use a log scale that already matches
+#'   HAZPRED). Only used when `se.fit = TRUE`.
 #' @param ... Unused; included for S3 compatibility.
 #'
 #' @details
@@ -572,7 +578,13 @@ hazard <- function(formula = NULL,
 #' or `"hazard"` also require time values (via `newdata$time` or fitted-time fallback)
 #' so window-specific coefficients can be selected.
 #'
-#' @return Numeric vector of predictions.
+#' @return When `se.fit = FALSE` (default), a numeric vector of predictions.
+#'   When `se.fit = TRUE`, a data frame with columns `fit`, `se.fit`, `lower`,
+#'   `upper` (delta-method point estimate, standard error, and confidence
+#'   limits at `level`). For multiphase `type = "cumulative_hazard"` with
+#'   `decompose = TRUE`, a long data frame (`time`, `component`, `fit`,
+#'   `se.fit`, `lower`, `upper`); with `decompose = TRUE` and `se.fit = FALSE`,
+#'   a wide data frame of per-phase contributions.
 #' @examples
 #' # -- Basic predictions ------------------------------------------------
 #' set.seed(1)
@@ -696,8 +708,12 @@ predict.hazard <- function(object, newdata = NULL,
                            type = c("hazard", "linear_predictor",
                                     "survival", "cumulative_hazard"),
                            decompose = FALSE,
-                           se.fit = FALSE, level = 0.95, ...) {
+                           se.fit = FALSE, level = 0.95,
+                           conf.type = c("log-log", "logit"), ...) {
   type <- match.arg(type)
+  # `conf.type` is validated lazily inside the se.fit survival path (it only
+  # affects survival CLs); validating here would error on an otherwise-ignored
+  # value (e.g. se.fit = FALSE, or a non-survival type).
   theta <- object$fit$theta
   time_windows <- object$spec$time_windows
 
@@ -907,7 +923,7 @@ predict.hazard <- function(object, newdata = NULL,
         return(.hzr_predict_with_se(
           object = object, type = type, time = pred_time,
           x_list = x_list, cov_counts = cov_counts, phases = phases,
-          level = level, diff_fn = diff_fn
+          level = level, diff_fn = diff_fn, conf_type = conf.type
         ))
       }
 
@@ -1030,7 +1046,7 @@ predict.hazard <- function(object, newdata = NULL,
     if (se.fit) {
       return(.hzr_predict_with_se(
         object = object, type = type, time = time, x = x,
-        level = level, diff_fn = cumhaz_of
+        level = level, diff_fn = cumhaz_of, conf_type = conf.type
       ))
     }
 

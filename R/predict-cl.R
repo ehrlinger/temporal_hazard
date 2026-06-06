@@ -308,6 +308,20 @@ NULL
     se_logH <- ifelse(pos, se_nat / H, NA_real_)
     lower[pos] <- exp(-H[pos] * exp(z * se_logH[pos]))
     upper[pos] <- exp(-H[pos] * exp(-z * se_logH[pos]))
+  } else if (scale == "logit_survival") {
+    # SAS HAZPRED's survival CL: build on the logit of cumulative incidence,
+    # Z = logit(1 - S) = log(e^H - 1), with se(Z) = se(H) / (1 - S), then
+    # back-transform S = 1 / (e^Z + 1).  `fit` is S = exp(-H); `se_nat` is
+    # se(H).  (Reproduces hzp_calc_srv_CL.c.)
+    H <- -log(pmin(pmax(fit, .Machine$double.xmin), 1))
+    Fc <- 1 - fit
+    pos <- is.finite(H) & H > 0 & Fc > 0
+    Z <- ifelse(pos, log(expm1(H)), NA_real_)
+    seZ <- ifelse(pos, se_nat / Fc, NA_real_)
+    # S = 1 / (e^Z + 1) = plogis(-Z); use plogis for a numerically stable
+    # logistic back-transform (avoids exp() overflow at large |Z +/- z*seZ|).
+    lower[pos] <- stats::plogis(-(Z[pos] + z * seZ[pos]))
+    upper[pos] <- stats::plogis(-(Z[pos] - z * seZ[pos]))
   } else {
     stop("Unknown CL scale: '", scale, "'.", call. = FALSE)
   }
@@ -400,12 +414,19 @@ NULL
 #'   returning the delta-method target (H, exp(eta), or eta depending on
 #'   `type`).  Used for the point estimate AND for the numeric jacobian
 #'   fallback in exp / loglogistic / lognormal.
+#' @param conf_type Survival CL transform: `"log-log"` (default, on
+#'   `log(-log S)`) or `"logit"` (on `logit(1 - S)`, HAZPRED-compatible).
+#'   Only consulted when `type == "survival"`.
 #' @return data.frame with columns `fit`, `se.fit`, `lower`, `upper`.
 #' @keywords internal
 .hzr_predict_with_se <- function(object, type, time = NULL,
                                    x = NULL, x_list = NULL,
                                    cov_counts = NULL, phases = NULL,
-                                   level = 0.95, diff_fn) {
+                                   level = 0.95, diff_fn,
+                                   conf_type = c("log-log", "logit")) {
+  # Only survival CLs use conf_type; validate only then so an ignored value
+  # (hazard / cumulative_hazard / linear_predictor) is not an error.
+  if (type == "survival") conf_type <- match.arg(conf_type)
 
   theta <- object$fit$theta
   p <- length(theta)
@@ -450,7 +471,8 @@ NULL
   # --- Scale transform -----------------------------------------------------
   if (type == "survival") {
     fit <- exp(-target)
-    .hzr_predict_cl_from_se(fit, se_target, level, "loglog_survival")
+    surv_scale <- if (conf_type == "logit") "logit_survival" else "loglog_survival"
+    .hzr_predict_cl_from_se(fit, se_target, level, surv_scale)
   } else if (type == "cumulative_hazard" || type == "hazard") {
     .hzr_predict_cl_from_se(target, se_target, level, "log")
   } else if (type == "linear_predictor") {
