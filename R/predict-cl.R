@@ -424,9 +424,16 @@ NULL
   if (dist == "weibull") {
     J <- .hzr_predict_jacobian_weibull(type, theta, time, x, p)
   } else if (dist == "multiphase") {
-    # hazard / linear_predictor are rejected upstream for multiphase.
-    J <- .hzr_predict_jacobian_multiphase(theta, time, phases,
-                                            cov_counts, x_list, p)
+    # The analytic multiphase Jacobian is for the cumulative hazard; the
+    # instantaneous hazard has no analytic Jacobian here, so fall back to a
+    # numeric Jacobian of its evaluator. (linear_predictor is rejected
+    # upstream for multiphase.)
+    if (type == "hazard") {
+      J <- .hzr_predict_jacobian_numeric(diff_fn, theta)
+    } else {
+      J <- .hzr_predict_jacobian_multiphase(theta, time, phases,
+                                              cov_counts, x_list, p)
+    }
   } else {
     J <- .hzr_predict_jacobian_numeric(diff_fn, theta)
   }
