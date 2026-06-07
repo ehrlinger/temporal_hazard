@@ -587,8 +587,11 @@
 # coefficient statements (documented starting values, not the converged
 # answer).  Returns the fitted hazard object.
 .hzr_fit_avc_hmdeath <- function() {
-  data(avc, package = "TemporalHazard", envir = environment())
-  d <- avc
+  # Load via an explicit env + `$` so object_usage_linter sees a binding
+  # (a bare `avc` from data() reads as an undefined global under lint_package).
+  e <- new.env()
+  utils::data("avc", package = "TemporalHazard", envir = e)
+  d <- e$avc
   # SAS PROC STANDARD ... REPLACE fills missing INC_SURG with the column mean.
   d$inc_surg[is.na(d$inc_surg)] <- mean(d$inc_surg, na.rm = TRUE)
   start_thalf <- 0.1905077
