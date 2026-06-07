@@ -647,7 +647,6 @@
   lines <- .hzr_read_lst(path)
   rules <- grep("Interventricular communication=([0-9])", lines)
   if (!length(rules)) return(NULL)
-  cols <- c("YEARS", "NSURVIV", "MSURVIV", "MCLLSURV", "MCLUSURV")
   out <- list()
   for (r in rules) {
     g <- as.integer(sub(".*communication=([0-9]).*", "\\1", lines[r]))
