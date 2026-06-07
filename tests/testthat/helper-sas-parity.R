@@ -535,6 +535,61 @@
   df
 }
 
+# Parse the SAS %HAZBOOT bootstrap output printed by bs.death.AVC.sas: one
+# per-phase coefficient table (Early/Constant/Late) where each row is one
+# bootstrap resample's *selected* model -- a "." marks a covariate that was
+# NOT selected in that resample.  Header looks like
+#   Obs  E0  AGE STATUS COM_IV OPMOS OP_AGE RESAMPL ORIFICE MAL INC_SURG
+# (intercept E0/C0/L0 identifies the phase: early/constant/late).
+#
+# Returns a named list with one data frame per present phase (covariate
+# coefficients, NA where unselected; plus the RESAMPL id), and a
+# `selection_freq` attribute: per-phase named integer vector counting, over
+# the resamples, how often each covariate was selected.  NULL if no bootstrap
+# table is present.  A phase whose covariates are all unselected (e.g. the
+# placeholder Late table of a 2-phase fit) is dropped.
+.hzr_parse_sas_bootstrap <- function(path) {
+  lines <- .hzr_read_lst(path)
+  phase_for <- c(E0 = "early", C0 = "constant", L0 = "late")
+
+  parse_phase <- function(intercept) {
+    h <- grep(paste0("Obs[[:space:]]+", intercept, "\\b.*RESAMPL"), lines)
+    if (!length(h)) return(NULL)
+    cols <- strsplit(trimws(lines[h[1]]), "[[:space:]]+")[[1]]
+    rows <- list()
+    for (ln in lines[(h[1] + 1L):length(lines)]) {
+      toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+      if (!grepl("^[0-9]+$", toks[1])) {
+        if (length(rows)) break else next
+      }
+      if (length(toks) < length(cols)) next
+      vals <- toks[seq_along(cols)]
+      vals[vals == "."] <- NA
+      rows[[length(rows) + 1L]] <- suppressWarnings(as.numeric(vals))
+    }
+    if (!length(rows)) return(NULL)
+    df <- as.data.frame(do.call(rbind, rows))
+    names(df) <- cols
+    df[["Obs"]] <- NULL
+    df
+  }
+
+  out <- list()
+  freq <- list()
+  for (ic in names(phase_for)) {
+    df <- parse_phase(ic)
+    if (is.null(df)) next
+    covs <- setdiff(names(df), c(ic, "RESAMPL"))
+    f <- vapply(df[covs], function(x) sum(!is.na(x)), integer(1))
+    if (sum(f) == 0L) next                     # drop empty placeholder phase
+    out[[phase_for[[ic]]]] <- df
+    freq[[phase_for[[ic]]]] <- f
+  }
+  if (!length(out)) return(NULL)
+  attr(out, "selection_freq") <- freq
+  out
+}
+
 # Default discovery: ~/Documents/GitHub/hazard/examples/ if it exists,
 # else NULL.  Skip tests when fixtures are unavailable.
 .hzr_sas_fixture_dir <- function() {

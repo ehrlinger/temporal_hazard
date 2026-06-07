@@ -583,6 +583,71 @@ test_that("hp.death.AVC: HAZPRED survival/hazard nomogram matches SAS", {
 })
 
 # ---------------------------------------------------------------------------
+# bs.death.AVC: %HAZBOOT bootstrap + per-resample stepwise (DOCUMENTED GAP)
+# ---------------------------------------------------------------------------
+# SAS %HAZBOOT(RESAMPL=5, SLE=0.12, SLS=0.1) draws bootstrap resamples and runs
+# a *fresh stepwise variable selection* on each, reporting one selected model
+# per resample (bs.death.AVC.lst: a "." marks a covariate not selected in that
+# resample).  The headline result is a variable-selection FREQUENCY per phase
+# (e.g. Early STATUS/COM_IV selected in 5/5 resamples, OP_AGE 3/5, MAL 2/5).
+#
+# R has no equivalent procedure.  hzr_bootstrap() resamples and refits a FIXED
+# model (covariate-stability bootstrap); it has no embedded-selection mode, and
+# building one would call hzr_stepwise() per resample -- which already diverges
+# from SAS on this exact AVC model (see the hm.death.AVC stepwise documented
+# gap).  Combined with %HAZBOOT's intrinsic non-determinism (SEED=-1) and the
+# tiny RESAMPL=5, selection-frequency parity is not a meaningful target today.
+#
+# This block therefore (1) captures and asserts the SAS reference frequencies
+# in parseable form -- so the parity test is half-written for if/when R gains a
+# bootstrap-with-selection capability -- and (2) regression-guards that R's
+# (fixed-model) hzr_bootstrap() runs end-to-end on this dataset.  It does NOT
+# assert R-vs-SAS frequency parity.  See inst/dev/FIXTURE-GAP-LIST.md.
+test_that("bs.death.AVC: SAS bootstrap selection frequencies parse (parity is a documented gap)", {
+  testthat::skip_on_cran()
+  dir <- skip_if_no_sas_fixtures()
+  lst <- file.path(dir, "bs.death.AVC.lst")
+  testthat::skip_if_not(file.exists(lst), "bs.death.AVC.lst fixture not present")
+
+  boot <- .hzr_parse_sas_bootstrap(lst)
+  expect_false(is.null(boot), label = "SAS %HAZBOOT tables parsed")
+  expect_true(all(c("early", "constant") %in% names(boot)))
+  expect_equal(nrow(boot$early), 5L)          # RESAMPL = 5
+
+  # SAS reference selection frequencies (out of 5 resamples).  Names are the
+  # SAS column labels (upper case), preserved as parsed.
+  freq <- attr(boot, "selection_freq")
+  expect_equal(freq$early[["STATUS"]], 5L)
+  expect_equal(freq$early[["COM_IV"]], 5L)
+  expect_equal(freq$early[["AGE"]],    4L)
+  expect_equal(freq$early[["OPMOS"]],  4L)
+  expect_equal(freq$early[["OP_AGE"]], 3L)
+  expect_equal(freq$early[["MAL"]],    2L)
+  expect_equal(freq$constant[["OPMOS"]],   5L)
+  expect_equal(freq$constant[["ORIFICE"]], 3L)
+})
+
+test_that("bs.death.AVC: R fixed-model bootstrap runs on the AVC cohort", {
+  testthat::skip_on_cran()
+  skip_if_no_sas_fixtures()
+  set.seed(111)
+
+  data(avc, package = "TemporalHazard")
+  # Null 2-phase AVC model (matches hz.death.AVC), bootstrapped.  This exercises
+  # R's bootstrap path on the fixture cohort; it is NOT the %HAZBOOT procedure.
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~ 1, data = avc, dist = "multiphase",
+    phases = list(
+      early    = hzr_phase("cdf", t_half = 0.1512, nu = 1.44, m = 1, fixed = "m"),
+      constant = hzr_phase("constant")),
+    fit = TRUE, control = list(n_starts = 1, conserve = TRUE))
+
+  bs <- hzr_bootstrap(fit, n_boot = 20L, seed = 111L)
+  expect_s3_class(bs, "hzr_bootstrap")
+  expect_gt(bs$n_success, 0L)
+})
+
+# ---------------------------------------------------------------------------
 # hz.te123.OMC: 2-phase (Early CDF + Late Weibull) repeated TE events
 # ---------------------------------------------------------------------------
 # Two fits:
