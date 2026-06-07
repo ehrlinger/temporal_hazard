@@ -478,11 +478,10 @@ test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
 # See inst/dev/FIXTURE-GAP-LIST.md (Group A, hm.death.AVC fit 1).
 test_that("hm.death.AVC stepwise: multiphase selection runs (SAS path is a documented gap)", {
   testthat::skip_on_cran()
-  dir <- skip_if_no_sas_fixtures()
+  skip_if_no_sas_fixtures()
   set.seed(110)
 
   # Recorded SAS reference (hm.death.AVC.lst): final stepwise model.
-  sas_stepwise_loglik <- -160.64
   sas_final_vars <- list(
     early    = c("age", "status", "com_iv", "mal", "opmos", "op_age"),
     constant = c("status", "orifice", "inc_surg")
@@ -515,15 +514,15 @@ test_that("hm.death.AVC stepwise: multiphase selection runs (SAS path is a docum
     control = list(n_starts = 1, conserve = TRUE), trace = FALSE)
 
   # Regression guard only: the phase-aware multiphase stepwise path completes
-  # and returns a well-formed result on real data.
+  # and returns a well-formed result on real data.  We deliberately do NOT
+  # assert anything about WHICH variables R selects or the attained
+  # log-likelihood relative to SAS -- the selection path is a documented gap
+  # (see the block comment above), and asserting divergence would perversely
+  # fail if hzr_stepwise() later improved toward SAS.
   expect_s3_class(sw, "hzr_stepwise")
   expect_true(is.data.frame(sw$steps))
   expect_true(all(c("action", "variable", "phase") %in% names(sw$steps)))
   expect_true(is.finite(sw$fit$objective))
-
-  # Document (do not assert parity): R reaches a different basin than SAS.
-  expect_gt(abs(sw$fit$objective - sas_stepwise_loglik), 1,
-            label = "R stepwise diverges from SAS (documented gap)")
 })
 
 # ---------------------------------------------------------------------------
