@@ -535,6 +535,76 @@
   df
 }
 
+# Parse the multivariable HAZPRED "digital nomogram" printed by the
+# patient-specific prediction jobs (hp.death.AVC.hm1 / hm2).  Unlike the null
+# model nomogram above, these PROC PRINT tables carry the full covariate
+# profile on every row and are printed BY a grouping variable (MAL or COM_IV),
+# so each row is a self-contained (time + covariates -> predictions) record:
+#   Obs MONTHS YEARS OPYEAR OPMOS AGE COM_IV MAL INC_SURG ORIFICE STATUS
+#       _SURVIV _CLLSURV _CLUSURV _HAZARD _CLLHAZ _CLUHAZ
+# Header-driven (reads column names from the printed header), so it tolerates
+# layout differences between fixtures; data rows lead with the integer Obs
+# counter and may be split across pages / BY-groups (all are concatenated).
+# Returns a data frame with the leading "_" stripped from the prediction
+# columns and Obs dropped; NULL if no such table is present.
+.hzr_parse_sas_nomogram_mv <- function(path) {
+  lines <- .hzr_read_lst(path)
+  h <- grep("MONTHS[[:space:]].*_SURVIV", lines)
+  if (!length(h)) return(NULL)
+  cols <- strsplit(trimws(lines[h[1]]), "[[:space:]]+")[[1]]
+  ncol <- length(cols)
+  rows <- list()
+  for (ln in lines) {
+    toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+    if (length(toks) < ncol) next
+    if (!grepl("^[0-9]+$", toks[1])) next          # data rows lead with Obs
+    vals <- toks[seq_len(ncol)]
+    vals[vals == "."] <- NA
+    v <- suppressWarnings(as.numeric(vals))
+    if (anyNA(v[seq_len(ncol)]) && all(is.na(v))) next
+    rows[[length(rows) + 1L]] <- v
+  }
+  if (!length(rows)) return(NULL)
+  df <- as.data.frame(do.call(rbind, rows))
+  names(df) <- sub("^_", "", cols)
+  df[["Obs"]] <- NULL
+  df
+}
+
+# Fit the saved multivariable both-phase "HMDEATH" model used by the AVC
+# patient-specific prediction fixtures (hm.death.AVC final model; consumed by
+# hp.death.AVC.hm1 / hm2).  Early phase carries 6 covariates, Constant phase 3
+# (STATUS appears in both).  Deterministic warm start from the .sas PARMS /
+# coefficient statements (documented starting values, not the converged
+# answer).  Returns the fitted hazard object.
+.hzr_fit_avc_hmdeath <- function() {
+  data(avc, package = "TemporalHazard", envir = environment())
+  d <- avc
+  # SAS PROC STANDARD ... REPLACE fills missing INC_SURG with the column mean.
+  d$inc_surg[is.na(d$inc_surg)] <- mean(d$inc_surg, na.rm = TRUE)
+  start_thalf <- 0.1905077
+  start_nu    <- 1.437416
+  theta0 <- c(
+    log(0.3504743), log(start_thalf), start_nu, 1,
+    -0.03205774, 1.336675, 0.6872028, -0.01963377, 0.0002086689, 0.5169533,
+    log(4.391673e-07), 1.375285, 3.11765, 1.054988
+  )
+  hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data   = d,
+    dist   = "multiphase",
+    phases = list(
+      early    = hzr_phase("cdf", t_half = start_thalf, nu = start_nu, m = 1,
+                           fixed = "m",
+                           formula = ~ age + com_iv + mal + opmos + op_age + status),
+      constant = hzr_phase("constant", formula = ~ inc_surg + orifice + status)
+    ),
+    theta   = theta0,
+    fit     = TRUE,
+    control = list(n_starts = 1, maxit = 2000, conserve = TRUE)
+  )
+}
+
 # Default discovery: ~/Documents/GitHub/hazard/examples/ if it exists,
 # else NULL.  Skip tests when fixtures are unavailable.
 .hzr_sas_fixture_dir <- function() {
