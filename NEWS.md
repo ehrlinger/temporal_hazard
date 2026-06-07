@@ -233,6 +233,18 @@
 
 ## Testing
 
+* **`hm.death.AVC` stepwise documented as a non-parity gap** (Group A).  The
+  phase-aware forward `SELECTION SLE=0.2 SLS=0.1` fit's *final* selected model
+  is the saved "HMDEATH" fit already verified by the `hm.death.AVC.deciles` /
+  `hp.death.AVC.hm1` / `hm2` parity tests; its *selection path* cannot be
+  reproduced (SAS uses approximate variances during selection while R's full
+  Hessian is near-singular here; SAS's `/I` `/S` flags are phase-level but R's
+  `force_in` is phase-blind; R oscillates at p ~ slstay and lands in a worse
+  basin -- the same divergence already documented for `hm.deadp.VALVES`).
+  `test-sas-parity.R` gains a regression-guard test that exercises the
+  multiphase phase-aware stepwise path end-to-end on real data without
+  asserting path parity; see `inst/dev/FIXTURE-GAP-LIST.md`.
+
 * **Phase-specific covariate recovery tests** (Phase 7d).  New
   `test-phase-specific-covariates.R` confirms that `hzr_phase(formula = ~ ...)`
   is correct, not just runnable: simulation-based recovery tests verify that a

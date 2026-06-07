@@ -445,6 +445,88 @@ test_that("hm.death.AVC.deciles: 2-phase multivariable model matches SAS", {
 })
 
 # ---------------------------------------------------------------------------
+# hm.death.AVC fit 1: phase-aware forward stepwise selection (DOCUMENTED GAP)
+# ---------------------------------------------------------------------------
+# This fixture runs SAS's `SELECTION SLE=0.2 SLS=0.1` with shaping parameters
+# fixed during selection, offering the same candidate variables to BOTH the
+# Early and Constant phases with per-variable flags (/I include, /S start,
+# /E exclude).  SAS converges in 10 steps to Early{AGE,STATUS,COM_IV,MAL,
+# OPMOS,OP_AGE} + Constant{STATUS,ORIFICE,INC_SURG}, log-likelihood -160.64
+# (hm.death.AVC.lst step trace, lines 104-650).  That FINAL selected model is
+# the saved "HMDEATH" fit, whose estimates and predictions are already covered
+# by the `hm.death.AVC.deciles`, `hp.death.AVC.hm1`, and `hp.death.AVC.hm2`
+# parity tests -- so nothing about the converged model is left unverified here.
+#
+# What is NOT a parity target is the SELECTION PATH.  Investigation (2026-06-06)
+# confirmed R's hzr_stepwise() cannot reproduce SAS's path or final set on this
+# fixture, for fundamental (not fixable-by-tuning) reasons:
+#   * SAS uses APPROXIMATE variances during selection ("variances are
+#     approximate because shaping parameter covariances are ignored", lst:101);
+#     R uses the full Hessian, which here is near-singular with non-positive
+#     variance estimates (rcond ~1e-12), so the Wald statistics that drive the
+#     enter/drop decisions are not comparable between engines.
+#   * SAS's /I and /S flags are PHASE-LEVEL (force MAL into Early only); R's
+#     force_in is variable-level (phase-blind), so the constraint sets differ.
+#   * R oscillates at p ~ slstay (= 0.1) and freezes; seeded with the SAS /S
+#     start set it lands at LL -185.8, intercept-only base already -182.8,
+#     both far worse than SAS's -160.64 -- a different optimizer basin, the
+#     same phenomenon already documented for hm.deadp.VALVES above.
+#
+# This block is therefore a REGRESSION GUARD for the multiphase phase-aware
+# stepwise code path on a real fixture (it must run end-to-end and return a
+# well-formed result), plus a recorded SAS reference -- NOT a parity assertion.
+# See inst/dev/FIXTURE-GAP-LIST.md (Group A, hm.death.AVC fit 1).
+test_that("hm.death.AVC stepwise: multiphase selection runs (SAS path is a documented gap)", {
+  testthat::skip_on_cran()
+  dir <- skip_if_no_sas_fixtures()
+  set.seed(110)
+
+  # Recorded SAS reference (hm.death.AVC.lst): final stepwise model.
+  sas_stepwise_loglik <- -160.64
+  sas_final_vars <- list(
+    early    = c("age", "status", "com_iv", "mal", "opmos", "op_age"),
+    constant = c("status", "orifice", "inc_surg")
+  )
+  expect_length(sas_final_vars$early,    6L)
+  expect_length(sas_final_vars$constant, 3L)
+
+  data(avc, package = "TemporalHazard")
+  d <- avc
+  d$inc_surg[is.na(d$inc_surg)] <- mean(d$inc_surg, na.rm = TRUE)
+
+  # Base model seeds the SAS /S (start) + /I (include) variables in their
+  # phases; shapes fixed, as SAS fixes them during selection.
+  base <- hazard(
+    survival::Surv(int_dead, dead) ~ 1, data = d, dist = "multiphase",
+    phases = list(
+      early    = hzr_phase("cdf", t_half = 0.1511909, nu = 1.438631, m = 1,
+                           fixed = "shapes", formula = ~ com_iv + mal),
+      constant = hzr_phase("constant",
+                           formula = ~ orifice + mal + op_age + inc_surg)),
+    fit = TRUE, control = list(n_starts = 1, conserve = TRUE))
+
+  sw <- hzr_stepwise(
+    base,
+    scope = list(early    = ~ age + status + orifice + inc_surg + opmos + op_age,
+                 constant = ~ age + status + opmos),
+    data = d, direction = "both", criterion = "wald",
+    slentry = 0.2, slstay = 0.1,
+    force_in = c("mal", "inc_surg"),
+    control = list(n_starts = 1, conserve = TRUE), trace = FALSE)
+
+  # Regression guard only: the phase-aware multiphase stepwise path completes
+  # and returns a well-formed result on real data.
+  expect_s3_class(sw, "hzr_stepwise")
+  expect_true(is.data.frame(sw$steps))
+  expect_true(all(c("action", "variable", "phase") %in% names(sw$steps)))
+  expect_true(is.finite(sw$fit$objective))
+
+  # Document (do not assert parity): R reaches a different basin than SAS.
+  expect_gt(abs(sw$fit$objective - sas_stepwise_loglik), 1,
+            label = "R stepwise diverges from SAS (documented gap)")
+})
+
+# ---------------------------------------------------------------------------
 # ac.death.AVC: actuarial life tables -- Kaplan-Meier (%KAPLAN) and
 # Nelson-Aalen (%NELSONT), overall and KM stratified by COM_IV.
 # ---------------------------------------------------------------------------
