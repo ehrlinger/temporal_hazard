@@ -613,22 +613,22 @@ test_that("hp.death.AVC: HAZPRED survival/hazard nomogram matches SAS", {
   )
 
   surv <- predict(fit, newdata = nd, type = "survival")
-  expect_equal(unname(surv), df$SURVIV, tolerance = 5e-4,
+  testthat::expect_equal(unname(surv), df$SURVIV, tolerance = 5e-4,
                label = "HAZPRED _SURVIV (multivariable nomogram)")
   scl <- predict(fit, newdata = nd, type = "survival", se.fit = TRUE,
                  level = lvl, conf.type = "logit")
-  expect_equal(scl$lower, df$CLLSURV, tolerance = 5e-4,
+  testthat::expect_equal(scl$lower, df$CLLSURV, tolerance = 5e-4,
                label = "HAZPRED _CLLSURV (logit CL)")
-  expect_equal(scl$upper, df$CLUSURV, tolerance = 5e-4,
+  testthat::expect_equal(scl$upper, df$CLUSURV, tolerance = 5e-4,
                label = "HAZPRED _CLUSURV (logit CL)")
 
   haz <- predict(fit, newdata = nd, type = "hazard")
-  expect_equal(unname(haz), df$HAZARD, tolerance = 8e-3,
+  testthat::expect_equal(unname(haz), df$HAZARD, tolerance = 8e-3,
                label = "HAZPRED _HAZARD (multivariable nomogram)")
   hcl <- predict(fit, newdata = nd, type = "hazard", se.fit = TRUE, level = lvl)
-  expect_equal(hcl$lower, df$CLLHAZ, tolerance = 8e-3,
+  testthat::expect_equal(hcl$lower, df$CLLHAZ, tolerance = 8e-3,
                label = "HAZPRED _CLLHAZ")
-  expect_equal(hcl$upper, df$CLUHAZ, tolerance = 8e-3,
+  testthat::expect_equal(hcl$upper, df$CLUHAZ, tolerance = 8e-3,
                label = "HAZPRED _CLUHAZ")
 }
 
