@@ -233,6 +233,19 @@
 
 ## Testing
 
+* **Patient-specific HAZPRED prediction parity** (Group A fixtures
+  `hp.death.AVC.hm1` / `hm2`).  New `test-sas-parity.R` blocks predict survival
+  and instantaneous hazard -- with logit survival CLs and log hazard CLs at the
+  SAS 1-SD level -- from the saved multivariable both-phase model
+  (`hm.death.AVC` final fit, "HMDEATH") for two covariate profiles each
+  (hm1: with/without an associated cardiac anomaly; hm2: complete vs partial
+  canal by date of repair), matching SAS to ~5e-4 (survival) / ~8e-3 (hazard;
+  the looser hazard tolerance reflects the near-singular 9-coefficient fit and
+  the steep early-phase times).  Adds a header-driven
+  `.hzr_parse_sas_nomogram_mv()` (parses the BY-group "digital nomogram" whose
+  rows each carry their own covariate vector) and a shared
+  `.hzr_fit_avc_hmdeath()` helper.
+
 * **`bs.death.AVC` bootstrap documented as a non-parity gap** (Group A).  SAS
   `%HAZBOOT` runs a fresh stepwise selection on each bootstrap resample and
   reports a variable-selection frequency; R's `hzr_bootstrap()` resamples and
