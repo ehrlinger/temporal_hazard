@@ -583,6 +583,90 @@ test_that("hp.death.AVC: HAZPRED survival/hazard nomogram matches SAS", {
 })
 
 # ---------------------------------------------------------------------------
+# hp.death.AVC.hm1 / hm2: patient-specific HAZPRED predictions from the saved
+# multivariable both-phase model (hm.death.AVC final fit, "HMDEATH").
+# ---------------------------------------------------------------------------
+# Both jobs predict survival + instantaneous hazard (with logit survival CLs
+# and log hazard CLs at the 1-SD level) for two covariate profiles printed as
+# a BY-group "digital nomogram".  Each printed row carries its own covariate
+# vector, so newdata is built directly from the parsed table -- the test is
+# agnostic to the specific profiles (hm1 varies MAL 0/1; hm2 varies COM_IV 0/1
+# across dates of repair).
+#
+# Tolerances are looser than the null-model nomogram (hp.death.AVC): this is a
+# 9-coefficient, near-singular fit (rcond ~5e-12; see hm.death.AVC.deciles),
+# so R converges to its own optimum a few e-4 from SAS's reported MLEs, which
+# propagates to ~5e-4 in survival and (amplified at the steep early-phase
+# times) ~8e-3 in the instantaneous hazard.  SAS 1-SD level: CLEVEL = z = 1.
+.hzr_check_hmdeath_nomogram <- function(df, fit) {
+  lvl <- 2 * stats::pnorm(1) - 1
+  nd <- data.frame(
+    time    = df$MONTHS,
+    age     = df$AGE,
+    com_iv  = df$COM_IV,
+    mal     = df$MAL,
+    opmos   = df$OPMOS,
+    op_age  = df$OPMOS * df$AGE,
+    status  = df$STATUS,
+    inc_surg = df$INC_SURG,
+    orifice = df$ORIFICE
+  )
+
+  surv <- predict(fit, newdata = nd, type = "survival")
+  testthat::expect_equal(unname(surv), df$SURVIV, tolerance = 5e-4,
+               label = "HAZPRED _SURVIV (multivariable nomogram)")
+  scl <- predict(fit, newdata = nd, type = "survival", se.fit = TRUE,
+                 level = lvl, conf.type = "logit")
+  testthat::expect_equal(scl$lower, df$CLLSURV, tolerance = 5e-4,
+               label = "HAZPRED _CLLSURV (logit CL)")
+  testthat::expect_equal(scl$upper, df$CLUSURV, tolerance = 5e-4,
+               label = "HAZPRED _CLUSURV (logit CL)")
+
+  haz <- predict(fit, newdata = nd, type = "hazard")
+  testthat::expect_equal(unname(haz), df$HAZARD, tolerance = 8e-3,
+               label = "HAZPRED _HAZARD (multivariable nomogram)")
+  hcl <- predict(fit, newdata = nd, type = "hazard", se.fit = TRUE, level = lvl)
+  testthat::expect_equal(hcl$lower, df$CLLHAZ, tolerance = 8e-3,
+               label = "HAZPRED _CLLHAZ")
+  testthat::expect_equal(hcl$upper, df$CLUHAZ, tolerance = 8e-3,
+               label = "HAZPRED _CLUHAZ")
+}
+
+test_that("hp.death.AVC.hm1: patient-specific predictions (MAL 0/1) match SAS", {
+  testthat::skip_on_cran()
+  dir <- skip_if_no_sas_fixtures()
+  lst <- file.path(dir, "hp.death.AVC.hm1.lst")
+  testthat::skip_if_not(file.exists(lst), "hp.death.AVC.hm1.lst fixture not present")
+
+  df <- .hzr_parse_sas_nomogram_mv(lst)
+  expect_false(is.null(df), label = "hm1 multivariable nomogram parsed")
+  expect_setequal(unique(df$MAL), c(0, 1))     # two covariate profiles
+
+  set.seed(108)
+  fit <- .hzr_fit_avc_hmdeath()
+  expect_equal(fit$fit$objective, -160.408, tolerance = 1e-2,
+               label = "HMDEATH saved-model LL vs SAS")
+  .hzr_check_hmdeath_nomogram(df, fit)
+})
+
+test_that("hp.death.AVC.hm2: predictions by date of repair (COM_IV 0/1) match SAS", {
+  testthat::skip_on_cran()
+  dir <- skip_if_no_sas_fixtures()
+  lst <- file.path(dir, "hp.death.AVC.hm2.lst")
+  testthat::skip_if_not(file.exists(lst), "hp.death.AVC.hm2.lst fixture not present")
+
+  df <- .hzr_parse_sas_nomogram_mv(lst)
+  expect_false(is.null(df), label = "hm2 multivariable nomogram parsed")
+  expect_setequal(unique(df$COM_IV), c(0, 1))  # complete vs partial canal
+
+  set.seed(109)
+  fit <- .hzr_fit_avc_hmdeath()
+  expect_equal(fit$fit$objective, -160.408, tolerance = 1e-2,
+               label = "HMDEATH saved-model LL vs SAS")
+  .hzr_check_hmdeath_nomogram(df, fit)
+})
+
+# ---------------------------------------------------------------------------
 # hz.te123.OMC: 2-phase (Early CDF + Late Weibull) repeated TE events
 # ---------------------------------------------------------------------------
 # Two fits:
