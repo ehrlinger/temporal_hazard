@@ -558,6 +558,7 @@
     cols <- strsplit(trimws(lines[h[1]]), "[[:space:]]+")[[1]]
     rows <- list()
     for (ln in lines[(h[1] + 1L):length(lines)]) {
+      if (!nzchar(trimws(ln))) next        # tolerate blank/pagination rows
       toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
       if (!grepl("^[0-9]+$", toks[1])) {
         if (length(rows)) break else next

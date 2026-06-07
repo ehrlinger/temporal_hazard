@@ -629,7 +629,8 @@ test_that("bs.death.AVC: SAS bootstrap selection frequencies parse (parity is a 
 
 test_that("bs.death.AVC: R fixed-model bootstrap runs on the AVC cohort", {
   testthat::skip_on_cran()
-  skip_if_no_sas_fixtures()
+  # No SAS .lst needed here -- this exercises R's bootstrap path on the shipped
+  # `avc` dataset, so it must run in public CI (do NOT gate on fixtures).
   set.seed(111)
 
   data(avc, package = "TemporalHazard")
