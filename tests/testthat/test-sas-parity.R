@@ -748,6 +748,102 @@ test_that("hp.death.AVC.hm2: predictions by date of repair (COM_IV 0/1) match SA
 })
 
 # ---------------------------------------------------------------------------
+# hs.death.AVC.hm1: stratified observed-vs-expected calibration + mean survival
+# ---------------------------------------------------------------------------
+# Patient-specific HAZPRED predictions from the saved HMDEATH model, summarized
+# BY type of AV canal (COM_IV).  Two SAS tables are reproduced:
+#   1. "Predict number of deaths" -- per stratum, EXPECTED = sum of predicted
+#      cumulative hazard at each subject's own follow-up, PEXPECT = sum of
+#      predicted death probability (1 - S), ACTUAL = observed deaths.  Totals
+#      conserve events (14.76 + 55.24 = 70 = ACTUAL total).
+#   2. Per-stratum mean survival at a digital time grid (MSURVIV = mean over the
+#      stratum of each subject's predicted survival; NSURVIV = stratum size).
+# This is the population-averaged / calibration counterpart to the per-patient
+# hp.death.AVC.hm1/hm2 nomograms.  Same fit; tolerances reflect the same
+# near-singular 9-coefficient model (sums over 154/156 subjects, so absolute
+# tolerances are scaled up accordingly).
+test_that("hs.death.AVC.hm1: stratified observed-vs-expected calibration matches SAS", {
+  testthat::skip_on_cran()
+  dir <- skip_if_no_sas_fixtures()
+  lst <- file.path(dir, "hs.death.AVC.hm1.lst")
+  testthat::skip_if_not(file.exists(lst), "hs.death.AVC.hm1.lst fixture not present")
+
+  cal <- .hzr_parse_sas_calibration(lst)
+  expect_false(is.null(cal), label = "SAS observed-vs-expected table parsed")
+  expect_equal(nrow(cal), 2L)                       # two COM_IV strata
+  cal <- cal[order(cal$com_iv), ]
+
+  set.seed(112)
+  fit <- .hzr_fit_avc_hmdeath()
+  expect_equal(fit$fit$objective, -160.408, tolerance = 1e-2)
+
+  data(avc, package = "TemporalHazard")
+  d <- avc
+  d$inc_surg[is.na(d$inc_surg)] <- mean(d$inc_surg, na.rm = TRUE)
+  nd <- data.frame(
+    time = d$int_dead, age = d$age, com_iv = d$com_iv, mal = d$mal,
+    opmos = d$opmos, op_age = d$opmos * d$age, status = d$status,
+    inc_surg = d$inc_surg, orifice = d$orifice)
+  ch <- predict(fit, newdata = nd, type = "cumulative_hazard")
+  sv <- predict(fit, newdata = nd, type = "survival")
+
+  for (k in seq_len(nrow(cal))) {
+    g <- cal$com_iv[k]
+    i <- d$com_iv == g
+    expect_equal(sum(ch[i]),       cal$expected[k], tolerance = 5e-3,
+                 label = paste0("EXPECTED (sum cumhaz), COM_IV=", g))
+    expect_equal(sum(1 - sv[i]),   cal$pexpect[k],  tolerance = 5e-3,
+                 label = paste0("PEXPECT (sum 1-S), COM_IV=", g))
+    expect_equal(sum(d$dead[i]),   cal$actual[k],
+                 label = paste0("ACTUAL (observed deaths), COM_IV=", g))
+  }
+  # Conservation of events across strata: total expected == total observed.
+  expect_equal(sum(ch), sum(cal$actual), tolerance = 1e-2,
+               label = "total expected == total observed (CoE)")
+})
+
+test_that("hs.death.AVC.hm1: per-stratum mean survival curve matches SAS", {
+  testthat::skip_on_cran()
+  dir <- skip_if_no_sas_fixtures()
+  lst <- file.path(dir, "hs.death.AVC.hm1.lst")
+  testthat::skip_if_not(file.exists(lst), "hs.death.AVC.hm1.lst fixture not present")
+
+  ms <- .hzr_parse_sas_strata_survival(lst)
+  expect_false(is.null(ms), label = "SAS per-stratum mean-survival table parsed")
+  expect_setequal(unique(ms$com_iv), c(0, 1))
+
+  set.seed(113)
+  fit <- .hzr_fit_avc_hmdeath()
+
+  data(avc, package = "TemporalHazard")
+  d <- avc
+  d$inc_surg[is.na(d$inc_surg)] <- mean(d$inc_surg, na.rm = TRUE)
+
+  # NSURVIV (stratum size) must match the cohort.
+  for (g in c(0, 1)) {
+    n_sas <- ms$NSURVIV[ms$com_iv == g][1]
+    expect_equal(sum(d$com_iv == g), n_sas,
+                 label = paste0("stratum size NSURVIV, COM_IV=", g))
+  }
+
+  # MSURVIV = mean over the stratum of each subject's predicted survival at the
+  # grid time (MONTHS = YEARS * 12).  Compare row by row.
+  r_msurviv <- numeric(nrow(ms))
+  for (k in seq_len(nrow(ms))) {
+    g <- ms$com_iv[k]
+    i <- which(d$com_iv == g)
+    nd <- data.frame(
+      time = rep(ms$YEARS[k] * 12, length(i)),
+      age = d$age[i], com_iv = d$com_iv[i], mal = d$mal[i], opmos = d$opmos[i],
+      op_age = d$opmos[i] * d$age[i], status = d$status[i],
+      inc_surg = d$inc_surg[i], orifice = d$orifice[i])
+    r_msurviv[k] <- mean(predict(fit, newdata = nd, type = "survival"))
+  }
+  expect_equal(r_msurviv, ms$MSURVIV, tolerance = 5e-4,
+               label = "per-stratum mean survival (MSURVIV) vs SAS")
+})
+
+# ---------------------------------------------------------------------------
 # hz.te123.OMC: 2-phase (Early CDF + Late Weibull) repeated TE events
 # ---------------------------------------------------------------------------
 # Two fits:
