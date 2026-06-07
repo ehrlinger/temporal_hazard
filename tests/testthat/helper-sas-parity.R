@@ -673,6 +673,74 @@
   )
 }
 
+# Parse the stratified "Predict number of deaths" observed-vs-expected table
+# printed by hs.death.AVC.hm1.sas: one row per stratum (PROC SUMMARY BY COM_IV)
+# with the printed header
+#   Obs STATUS INC_SURG OPMOS AGE MAL COM_IV ORIFICE DEAD INT_DEAD PROB
+#       CUM_HAZ DEAD PEXPECT EXPECTED ACTUAL
+# (note the duplicated DEAD column, so we read by position).  Returns a data
+# frame with one row per stratum: com_iv, pexpect (Sum 1 - S), expected
+# (Sum cumulative hazard), actual (observed deaths).  NULL if absent.
+.hzr_parse_sas_calibration <- function(path) {
+  lines <- .hzr_read_lst(path)
+  h <- grep("COM_IV.*PEXPECT.*EXPECTED.*ACTUAL", lines)
+  if (!length(h)) return(NULL)
+  rows <- list()
+  for (ln in lines[(h[1] + 1L):length(lines)]) {
+    if (!nzchar(trimws(ln))) next                  # SAS double-spaces the rows
+    toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+    if (!grepl("^[0-9]+$", toks[1])) {
+      if (length(rows)) break else next
+    }
+    if (length(toks) < 16L) next
+    v <- suppressWarnings(as.numeric(toks[1:16]))
+    rows[[length(rows) + 1L]] <- data.frame(
+      com_iv   = v[7],
+      pexpect  = v[14],
+      expected = v[15],
+      actual   = v[16]
+    )
+  }
+  if (!length(rows)) return(NULL)
+  do.call(rbind, rows)
+}
+
+# Parse the per-stratum mean-survival "digital" table printed by
+# hs.death.AVC.hm1.sas: blocks delimited by "Interventricular communication=<g>"
+# rule lines, each with header  Obs YEARS NSURVIV MSURVIV MCLLSURV MCLUSURV
+# (NSURVIV = stratum size; MSURVIV/MCLLSURV/MCLUSURV = mean of per-subject
+# survival and its CL across the stratum).  Returns a long data frame with a
+# leading `com_iv` column; NULL if absent.
+.hzr_parse_sas_strata_survival <- function(path) {
+  lines <- .hzr_read_lst(path)
+  rules <- grep("Interventricular communication=([0-9])", lines)
+  if (!length(rules)) return(NULL)
+  out <- list()
+  for (r in rules) {
+    g <- as.integer(sub(".*communication=([0-9]).*", "\\1", lines[r]))
+    hdr <- grep("Obs[[:space:]]+YEARS[[:space:]]+NSURVIV", lines)
+    hdr <- hdr[hdr > r][1]
+    if (is.na(hdr)) next
+    started <- FALSE
+    for (ln in lines[(hdr + 1L):length(lines)]) {
+      if (!nzchar(trimws(ln))) next                # tolerate blank spacer rows
+      toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+      if (!grepl("^[0-9]+$", toks[1])) {
+        if (started) break else next
+      }
+      if (length(toks) < 6L) next
+      started <- TRUE
+      v <- suppressWarnings(as.numeric(toks[2:6]))
+      out[[length(out) + 1L]] <- data.frame(
+        com_iv = g, YEARS = v[1], NSURVIV = v[2],
+        MSURVIV = v[3], MCLLSURV = v[4], MCLUSURV = v[5]
+      )
+    }
+  }
+  if (!length(out)) return(NULL)
+  do.call(rbind, out)
+}
+
 # Default discovery: ~/Documents/GitHub/hazard/examples/ if it exists,
 # else NULL.  Skip tests when fixtures are unavailable.
 .hzr_sas_fixture_dir <- function() {
