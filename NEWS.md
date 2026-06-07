@@ -246,6 +246,17 @@
   rows each carry their own covariate vector) and a shared
   `.hzr_fit_avc_hmdeath()` helper.
 
+* **Stratified HAZPRED calibration parity** (Group A fixture
+  `hs.death.AVC.hm1`).  New `test-sas-parity.R` blocks reproduce the
+  population-averaged, stratified-by-`COM_IV` outputs from the same HMDEATH
+  model: (1) the observed-vs-expected "predict number of deaths" table --
+  per stratum, EXPECTED = sum of predicted cumulative hazard at each subject's
+  own follow-up, PEXPECT = sum of predicted death probability, ACTUAL =
+  observed deaths (totals conserve events, 14.76 + 55.24 = 70), to ~5e-3; and
+  (2) the per-stratum mean survival curve (MSURVIV) at the digital time grid, to
+  ~5e-4.  Adds `.hzr_parse_sas_calibration()` and
+  `.hzr_parse_sas_strata_survival()`.
+
 * **Phase-specific covariate recovery tests** (Phase 7d).  New
   `test-phase-specific-covariates.R` confirms that `hzr_phase(formula = ~ ...)`
   is correct, not just runnable: simulation-based recovery tests verify that a
