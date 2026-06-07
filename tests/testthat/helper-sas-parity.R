@@ -543,10 +543,13 @@
 #   Obs MONTHS YEARS OPYEAR OPMOS AGE COM_IV MAL INC_SURG ORIFICE STATUS
 #       _SURVIV _CLLSURV _CLUSURV _HAZARD _CLLHAZ _CLUHAZ
 # Header-driven (reads column names from the printed header), so it tolerates
-# layout differences between fixtures; data rows lead with the integer Obs
-# counter and may be split across pages / BY-groups (all are concatenated).
-# Returns a data frame with the leading "_" stripped from the prediction
-# columns and Obs dropped; NULL if no such table is present.
+# layout differences between fixtures.  Parsing is scoped to the data block
+# immediately following each matching header line: within a block, data rows
+# lead with the integer Obs counter; the block ends at the first non-data line
+# after data have started (so unrelated `Obs ...` tables elsewhere in the
+# listing are never ingested).  Page breaks / BY-groups repeat the header, and
+# all their blocks are concatenated.  Returns a data frame with the leading "_"
+# stripped from the prediction columns and Obs dropped; NULL if absent.
 .hzr_parse_sas_nomogram_mv <- function(path) {
   lines <- .hzr_read_lst(path)
   h <- grep("MONTHS[[:space:]].*_SURVIV", lines)
@@ -554,15 +557,21 @@
   cols <- strsplit(trimws(lines[h[1]]), "[[:space:]]+")[[1]]
   ncol <- length(cols)
   rows <- list()
-  for (ln in lines) {
-    toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
-    if (length(toks) < ncol) next
-    if (!grepl("^[0-9]+$", toks[1])) next          # data rows lead with Obs
-    vals <- toks[seq_len(ncol)]
-    vals[vals == "."] <- NA
-    v <- suppressWarnings(as.numeric(vals))
-    if (anyNA(v[seq_len(ncol)]) && all(is.na(v))) next
-    rows[[length(rows) + 1L]] <- v
+  for (hi in h) {
+    if (hi >= length(lines)) next
+    started <- FALSE
+    for (ln in lines[(hi + 1L):length(lines)]) {
+      if (!nzchar(trimws(ln))) next                 # tolerate blank spacer rows
+      toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+      if (!grepl("^[0-9]+$", toks[1])) {            # data rows lead with Obs
+        if (started) break else next                # block ends after data
+      }
+      if (length(toks) < ncol) next
+      vals <- toks[seq_len(ncol)]
+      vals[vals == "."] <- NA
+      rows[[length(rows) + 1L]] <- suppressWarnings(as.numeric(vals))
+      started <- TRUE
+    }
   }
   if (!length(rows)) return(NULL)
   df <- as.data.frame(do.call(rbind, rows))
