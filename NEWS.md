@@ -269,6 +269,17 @@
   multiphase phase-aware stepwise path end-to-end on real data without
   asserting path parity; see `inst/dev/FIXTURE-GAP-LIST.md`.
 
+* **`bs.death.AVC` bootstrap documented as a non-parity gap** (Group A).  SAS
+  `%HAZBOOT` runs a fresh stepwise selection on each bootstrap resample and
+  reports a variable-selection frequency; R's `hzr_bootstrap()` resamples and
+  refits a *fixed* model (no embedded-selection mode), and reimplementing the
+  SAS procedure would inherit the documented `hm.death.AVC` stepwise
+  divergence.  `test-sas-parity.R` adds `.hzr_parse_sas_bootstrap()` and asserts
+  the SAS reference selection frequencies in parseable form (so the parity test
+  is half-written for a future bootstrap-with-selection capability), plus a
+  regression guard that R's fixed-model bootstrap runs on the cohort; see
+  `inst/dev/FIXTURE-GAP-LIST.md`.
+
 * **Phase-specific covariate recovery tests** (Phase 7d).  New
   `test-phase-specific-covariates.R` confirms that `hzr_phase(formula = ~ ...)`
   is correct, not just runnable: simulation-based recovery tests verify that a
