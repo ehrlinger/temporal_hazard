@@ -46,8 +46,8 @@ the parser handles them, and we just need to write the `test_that` blocks.
 | `hm.death.AVC` fit 2 | Shaping modifiers `/S`, `/I`, `/E` on covariates | Not in R public API — defer to v1.1 or hand-translate; mark as known gap |
 | `ac.death.AVC` | `%KAPLAN` + `%NELSONT` (actuarial Kaplan-Meier and Nelson-Aalen) | Write `hzr_kaplan()` / `hzr_nelson()` parity expectations |
 | `hp.death.AVC` | `%HAZPRED` predictions overlaid on KM (hazard, survival, cumulative hazard types) | Define parity tolerance for predict outputs; coordinates with `predict.hazard()` CI tests |
-| `hp.death.AVC.hm1`, `hm2` | Pure prediction from saved estimates — two covariate profiles | Same as above |
-| `hs.death.AVC.hm1` | Stratified predictions (two strata, two covariate vectors) | `predict.hazard()` newdata path |
+| `hp.death.AVC.hm1`, `hm2` | Pure prediction from saved estimates — two covariate profiles | **DONE (PR #76).** Per-patient survival + hazard nomograms (logit survival CLs / log hazard CLs) from HMDEATH for two profiles each, to ~5e-4 / ~8e-3; `.hzr_parse_sas_nomogram_mv()` + `.hzr_fit_avc_hmdeath()`. |
+| `hs.death.AVC.hm1` | Stratified predictions (two strata, two covariate vectors) | **DONE.** Stratified-by-`COM_IV` calibration from HMDEATH: observed-vs-expected "predict number of deaths" (EXPECTED = Σ cumhaz at own follow-up, PEXPECT = Σ(1−S), ACTUAL = deaths; totals conserve events) to ~5e-3, and per-stratum mean survival curve (MSURVIV) to ~5e-4; `.hzr_parse_sas_calibration()` + `.hzr_parse_sas_strata_survival()`. |
 | `bs.death.AVC` | `%HAZBOOT(RESAMPL=5)` with embedded stepwise (SLE=0.12, SLS=0.1) | Bootstrap output is non-deterministic; parity metric = variable selection frequency + mean LL, not point estimates |
 
 ---
