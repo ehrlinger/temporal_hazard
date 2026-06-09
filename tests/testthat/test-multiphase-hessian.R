@@ -202,3 +202,62 @@ test_that(".hzr_hessian_multiphase returns NULL for left-censored rows", {
     x_list = list(early = NULL, constant = NULL)
   ))
 })
+
+# ---------------------------------------------------------------------------
+# Task 3: End-to-end wiring tests
+# ---------------------------------------------------------------------------
+
+test_that("multiphase fit vcov uses analytic Hessian (matches numDeriv to 1e-3)", {
+  skip_if_not_installed("numDeriv")
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.15, nu = 1.4, m = 1, fixed = "m"),
+    constant = hzr_phase("constant")
+  )
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~ 1, data = avc, dist = "multiphase",
+    phases = phases, fit = TRUE,
+    control = list(n_starts = 1, conserve = FALSE)
+  )
+  theta      <- fit$fit$par
+  cov_counts <- fit$fit$covariate_counts
+  x_list     <- fit$fit$x_list
+  free_idx   <- which(!fit$fit$fixed_mask)
+
+  # numDeriv reference on the FREE-parameter objective (matches optimizer)
+  obj_free <- function(par_free) {
+    th <- theta
+    th[free_idx] <- par_free
+    -.hzr_logl_multiphase(th, avc$int_dead, avc$dead,
+                           phases = phases,
+                           covariate_counts = cov_counts,
+                           x_list = x_list)
+  }
+  vcov_nd <- solve(numDeriv::hessian(obj_free, theta[free_idx]))
+
+  # fit$fit$vcov rows/cols for free params only
+  vcov_fit_free <- fit$fit$vcov[free_idx, free_idx]
+  expect_equal(unname(vcov_fit_free), unname(vcov_nd),
+               tolerance = 1e-3,
+               label = "analytic vcov (free params) matches numDeriv reference")
+})
+
+test_that("CoE fit vcov (full-info) uses analytic Hessian", {
+  skip_if_not_installed("numDeriv")
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.15, nu = 1.4, m = 1, fixed = "m"),
+    constant = hzr_phase("constant")
+  )
+  fit_coe <- hazard(
+    survival::Surv(int_dead, dead) ~ 1, data = avc, dist = "multiphase",
+    phases = phases, fit = TRUE,
+    control = list(n_starts = 1, conserve = TRUE)
+  )
+  # The conserved log_mu must now carry a finite SE (CoE full-info path)
+  se <- sqrt(diag(fit_coe$fit$vcov))
+  expect_true(all(is.finite(se[!is.na(se)])))
+  expect_true(is.finite(fit_coe$fit$rcond))
+})

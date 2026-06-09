@@ -1339,6 +1339,28 @@
       }
     }
 
+    # Analytic Hessian closure — covers event + right-censored rows.
+    # Returns NULL for left/interval-censored data to trigger numDeriv fallback.
+    hessian_fn_mp <- function(theta_free) {
+      # theta_free is on the REDUCED (free-parameter) scale; expand to full.
+      theta_full <- if (any_fixed) {
+        th <- theta_fixed
+        th[free_idx] <- theta_free
+        th
+      } else {
+        theta_free
+      }
+      H_full <- .hzr_hessian_multiphase(
+        theta_full, time = time, status = status,
+        time_lower = time_lower, time_upper = time_upper,
+        x = x, weights = weights,
+        phases = phases, covariate_counts = covariate_counts, x_list = x_list
+      )
+      if (is.null(H_full)) return(NULL)
+      # Restrict to the free-parameter block that the optimizer sees
+      if (any_fixed) H_full[free_idx, free_idx] else H_full
+    }
+
     result <- tryCatch(
       .hzr_optim_generic(
         logl_fn     = logl_fn,
@@ -1349,7 +1371,8 @@
         theta_start = theta_try,
         weights     = weights,
         control     = control,
-        use_bounds  = FALSE
+        use_bounds  = FALSE,
+        hessian_fn  = hessian_fn_mp
       ),
       error = function(e) NULL
     )
@@ -1415,8 +1438,28 @@
           -logl_fn_pre_coe(th, time, status, time_lower, time_upper, x,
                            weights = weights, return_gradient = FALSE)
         }
-        H_unc <- tryCatch(numDeriv::hessian(neg_ll_unc, base_theta[idx_unc]),
-                          error = function(e) NULL)
+        # Prefer analytic Hessian; fall back to numDeriv if it declines
+        H_unc <- tryCatch(
+          .hzr_hessian_multiphase(
+            base_theta, time = time, status = status,
+            time_lower = time_lower, time_upper = time_upper,
+            x = x, weights = weights,
+            phases = phases, covariate_counts = covariate_counts,
+            x_list = x_list
+          ),
+          error = function(e) NULL
+        )
+        if (is.matrix(H_unc)) {
+          # Restrict to the unconstrained free set
+          H_unc <- H_unc[idx_unc, idx_unc]
+        }
+        # Fallback to numDeriv when analytic declines (left/interval rows)
+        if (is.null(H_unc) && requireNamespace("numDeriv", quietly = TRUE)) {
+          H_unc <- tryCatch(
+            numDeriv::hessian(neg_ll_unc, base_theta[idx_unc]),
+            error = function(e) NULL
+          )
+        }
         if (is.matrix(H_unc)) {
           inv_unc <- .hzr_safe_solve(H_unc)
           if (is.matrix(inv_unc$vcov)) {
