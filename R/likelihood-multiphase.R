@@ -1256,6 +1256,7 @@
   # reduced (free-only) parameter vector.
   if (any_fixed) {
     free_idx <- which(free_mask)
+    free_idx_eff <- free_idx
 
     # Expand reduced theta to full theta
     expand_theta <- function(theta_free) {
@@ -1282,6 +1283,7 @@
 
     theta_start_optim <- theta_start[free_idx]
   } else {
+    free_idx_eff <- seq_len(length(theta_start))
     theta_start_optim <- theta_start
   }
 
@@ -1301,6 +1303,30 @@
   # Nelder-Mead requires >= 2 parameters; use Brent for 1D
   use_nelder_mead_warmup <- any_fixed && length(theta_start_optim) >= 2L &&
     length(theta_start_optim) <= 10L
+
+  # Analytic Hessian closure — covers event + right-censored rows.
+  # Returns NULL for left/interval-censored data to trigger numDeriv fallback.
+  # Defined OUTSIDE the n_starts loop: it is identical across all starts and
+  # captures only stable (pre-loop) variables.
+  hessian_fn_mp <- function(theta_free) {
+    # theta_free is on the REDUCED (free-parameter) scale; expand to full.
+    theta_full <- if (any_fixed) {
+      th <- theta_fixed
+      th[free_idx_eff] <- theta_free
+      th
+    } else {
+      theta_free
+    }
+    H_full <- .hzr_hessian_multiphase(
+      theta_full, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x, weights = weights,
+      phases = phases, covariate_counts = covariate_counts, x_list = x_list
+    )
+    if (is.null(H_full)) return(NULL)
+    # Restrict to the free-parameter block that the optimizer sees
+    if (any_fixed) H_full[free_idx_eff, free_idx_eff] else H_full
+  }
 
   for (start_i in seq_len(n_starts)) {
     if (start_i == 1L) {
@@ -1337,28 +1363,6 @@
       if (!is.null(nm_result) && is.finite(nm_result$value)) {
         theta_try <- nm_result$par
       }
-    }
-
-    # Analytic Hessian closure — covers event + right-censored rows.
-    # Returns NULL for left/interval-censored data to trigger numDeriv fallback.
-    hessian_fn_mp <- function(theta_free) {
-      # theta_free is on the REDUCED (free-parameter) scale; expand to full.
-      theta_full <- if (any_fixed) {
-        th <- theta_fixed
-        th[free_idx] <- theta_free
-        th
-      } else {
-        theta_free
-      }
-      H_full <- .hzr_hessian_multiphase(
-        theta_full, time = time, status = status,
-        time_lower = time_lower, time_upper = time_upper,
-        x = x, weights = weights,
-        phases = phases, covariate_counts = covariate_counts, x_list = x_list
-      )
-      if (is.null(H_full)) return(NULL)
-      # Restrict to the free-parameter block that the optimizer sees
-      if (any_fixed) H_full[free_idx, free_idx] else H_full
     }
 
     result <- tryCatch(
@@ -1427,53 +1431,51 @@
     # survival CLs) gets a proper standard error.
     if (use_conserve && !is.null(fixmu_pos)) {
       recomputed <- FALSE
-      if (requireNamespace("numDeriv", quietly = TRUE)) {
-        free_unc <- free_mask
-        free_unc[fixmu_pos] <- TRUE
-        idx_unc <- which(free_unc)
-        base_theta <- best_result$par
-        neg_ll_unc <- function(th_free) {
-          th <- base_theta
-          th[idx_unc] <- th_free
-          -logl_fn_pre_coe(th, time, status, time_lower, time_upper, x,
-                           weights = weights, return_gradient = FALSE)
-        }
-        # Prefer analytic Hessian; fall back to numDeriv if it declines
+      free_unc <- free_mask
+      free_unc[fixmu_pos] <- TRUE
+      idx_unc <- which(free_unc)
+      base_theta <- best_result$par
+      neg_ll_unc <- function(th_free) {
+        th <- base_theta
+        th[idx_unc] <- th_free
+        -logl_fn_pre_coe(th, time, status, time_lower, time_upper, x,
+                         weights = weights, return_gradient = FALSE)
+      }
+      # Analytic Hessian attempt — no numDeriv dependency
+      H_unc <- tryCatch(
+        .hzr_hessian_multiphase(
+          base_theta, time = time, status = status,
+          time_lower = time_lower, time_upper = time_upper,
+          x = x, weights = weights,
+          phases = phases, covariate_counts = covariate_counts,
+          x_list = x_list
+        ),
+        error = function(e) NULL
+      )
+      if (is.matrix(H_unc)) {
+        # Restrict to the unconstrained free set
+        H_unc <- H_unc[idx_unc, idx_unc]
+      }
+      # numDeriv fallback only when analytic declines (left/interval rows)
+      if (is.null(H_unc) && requireNamespace("numDeriv", quietly = TRUE)) {
         H_unc <- tryCatch(
-          .hzr_hessian_multiphase(
-            base_theta, time = time, status = status,
-            time_lower = time_lower, time_upper = time_upper,
-            x = x, weights = weights,
-            phases = phases, covariate_counts = covariate_counts,
-            x_list = x_list
-          ),
+          numDeriv::hessian(neg_ll_unc, base_theta[idx_unc]),
           error = function(e) NULL
         )
-        if (is.matrix(H_unc)) {
-          # Restrict to the unconstrained free set
-          H_unc <- H_unc[idx_unc, idx_unc]
-        }
-        # Fallback to numDeriv when analytic declines (left/interval rows)
-        if (is.null(H_unc) && requireNamespace("numDeriv", quietly = TRUE)) {
-          H_unc <- tryCatch(
-            numDeriv::hessian(neg_ll_unc, base_theta[idx_unc]),
-            error = function(e) NULL
-          )
-        }
-        if (is.matrix(H_unc)) {
-          inv_unc <- .hzr_safe_solve(H_unc)
-          if (is.matrix(inv_unc$vcov)) {
-            p_full <- length(base_theta)
-            vcov_full <- matrix(NA_real_, p_full, p_full)
-            vcov_full[idx_unc, idx_unc] <- inv_unc$vcov
-            best_result$vcov  <- vcov_full
-            best_result$rcond <- inv_unc$rcond
-            best_result$pd    <- inv_unc$pd
-            # The conserved log_mu now carries a variance; it is fixed only for
-            # the search, not for inference.
-            best_result$fixed_mask <- !free_unc
-            recomputed <- TRUE
-          }
+      }
+      if (is.matrix(H_unc)) {
+        inv_unc <- .hzr_safe_solve(H_unc)
+        if (is.matrix(inv_unc$vcov)) {
+          p_full <- length(base_theta)
+          vcov_full <- matrix(NA_real_, p_full, p_full)
+          vcov_full[idx_unc, idx_unc] <- inv_unc$vcov
+          best_result$vcov  <- vcov_full
+          best_result$rcond <- inv_unc$rcond
+          best_result$pd    <- inv_unc$pd
+          # The conserved log_mu now carries a variance; it is fixed only for
+          # the search, not for inference.
+          best_result$fixed_mask <- !free_unc
+          recomputed <- TRUE
         }
       }
       if (!recomputed) {
