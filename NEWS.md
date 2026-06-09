@@ -216,6 +216,20 @@
   giving more accurate standard errors. Covers event + right-censored data;
   left/interval-censored fits fall back to the numerical Hessian.
 
+* **Analytic Hessian for multiphase standard errors (Phase 7c, Layer 2 PR-6).**
+  Post-fit standard errors for all multiphase fits now come from a closed-form
+  Hessian of the negative log-likelihood rather than a numerical Richardson
+  approximation. The Hessian is assembled from three terms: (A) a
+  phase-block-diagonal curvature of Σᵢ wᵢ H(tᵢ), (B) a dense Fisher
+  information outer product Σₑ (wᵢ/hᵢ²) ∇h ∇hᵀ capturing cross-phase
+  parameter interactions, and (C) a phase-block-diagonal curvature of
+  −Σₑ wᵢ log h(tᵢ). μ/β parameters use fully closed-form expressions;
+  shape parameters (t_half, ν, m, and G3 parameters) use second-order
+  central differences. The Conservation-of-Events full-information vcov
+  path also switches to the analytic Hessian.
+  Left/interval-censored fits fall back to the numerical Hessian.
+  Completes the 6-PR analytic-Hessian rollout across all five families.
+
 ## Documentation
 
 * `vignette("fitting-hazard-models")` gains an **Interval and left censoring**
