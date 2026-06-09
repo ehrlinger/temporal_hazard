@@ -69,24 +69,6 @@ NULL
   d2phi_nn  <- (d_np$phi - 2 * d00$phi + d_nm$phi) / h2
   d2phi_mm_ <- (d_mp$phi - 2 * d00$phi + d_mm$phi) / h2
 
-  # Four-point mixed second differences
-  # d2f/dada db = [f(a+h,b+h) - f(a+h,b-h) - f(a-h,b+h) + f(a-h,b-h)] / (4h^2)
-  four_pt_Phi <- function(p1p, p1m, p2p, p2m) {
-    dpp <- eval_at(p1p[[1]], p1p[[2]], p1p[[3]])
-    dpm <- eval_at(p1p[[1]], p1p[[2]], p1p[[3]])  # placeholder, overridden
-    dmp <- eval_at(p1m[[1]], p1m[[2]], p1m[[3]])
-    dmm <- eval_at(p1m[[1]], p1m[[2]], p1m[[3]])  # placeholder, overridden
-    # Need all four corners: (p1+, p2+), (p1+, p2-), (p1-, p2+), (p1-, p2-)
-    e_pp <- eval_at(p1p[[1]], p2p[[2]], p2p[[3]])
-    e_pm <- eval_at(p1p[[1]], p2m[[2]], p2m[[3]])
-    e_mp <- eval_at(p1m[[1]], p2p[[2]], p2p[[3]])
-    e_mm <- eval_at(p1m[[1]], p2m[[2]], p2m[[3]])
-    list(
-      Phi = (e_pp$Phi - e_pm$Phi - e_mp$Phi + e_mm$Phi) / (4 * h2),
-      phi = (e_pp$phi - e_pm$phi - e_mp$phi + e_mm$phi) / (4 * h2)
-    )
-  }
-
   # t_half / nu cross: corners (t_p, nu_p), (t_p, nu_m), (t_m, nu_p), (t_m, nu_m)
   e_tn_pp <- eval_at(t_p, nu_p, m);  e_tn_pm <- eval_at(t_p, nu_m, m)
   e_tn_mp <- eval_at(t_m, nu_p, m);  e_tn_mm <- eval_at(t_m, nu_m, m)
@@ -194,19 +176,6 @@ NULL
   # Diagonal second differences
   diag2 <- function(dp, dm, d0, which) {
     (dp[[which]] - 2 * d0[[which]] + dm[[which]]) / h2
-  }
-
-  # Four-point mixed helper
-  mixed2 <- function(tau_a, gam_a, alp_a, eta_a,
-                     tau_b, gam_b, alp_b, eta_b, which) {
-    e_pp <- safe_eval(tau_a, gam_a, alp_a, eta_a)
-    e_pm <- safe_eval(tau_a, gam_a, alp_a, eta_a)  # overridden below
-    e_mp <- safe_eval(tau_b, gam_b, alp_b, eta_b)  # overridden below
-    e_mm <- safe_eval(tau_b, gam_b, alp_b, eta_b)  # overridden below
-    # Correct: we need (par1+, par2+), (par1+, par2-), (par1-, par2+), (par1-, par2-)
-    # Since the two parameters are independent, par1+/par2+ is the combination
-    # This is handled directly below for each pair
-    stop("use explicit four-point calls")
   }
 
   # tau / gamma
