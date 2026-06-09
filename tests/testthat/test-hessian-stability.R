@@ -9,6 +9,9 @@ test_that("fit object carries rcond and pd diagnostics (weibull)", {
   expect_true(isTRUE(fit$fit$pd))
 })
 
+# NOTE: A more comprehensive version of this test (13-param, CoE, scale-invariance)
+# lives in test-multiphase-hessian.R (Task 4). This simpler 2-param fit
+# remains useful for the Layer-1 diagnostics contract.
 test_that("fit object carries rcond and pd diagnostics (multiphase)", {
   set.seed(101)
   data(avc, package = "TemporalHazard")

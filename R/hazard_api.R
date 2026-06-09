@@ -264,7 +264,24 @@ hazard <- function(formula = NULL,
     if (is.null(data)) {
       stop("'data' is required when 'formula' is provided.", call. = FALSE)
     }
-    parsed <- .hzr_parse_formula(formula = formula, data = data)
+
+    # For multiphase models, the formula RHS may contain phase-scoped terms of
+    # the form `phase_name(var1 + var2)`.  These are not valid R expressions
+    # so model.matrix() would fail.  Strip them here: replace the RHS with `1`
+    # (no global predictors) so that .hzr_parse_formula only extracts
+    # time/status from the LHS.  Covariate routing is handled per-phase via
+    # hzr_phase(formula = ...) and resolved inside .hzr_optim_multiphase().
+    formula_for_parse <- formula
+    if (!is.null(phases) && length(formula) >= 3L) {
+      # Check if RHS contains phase-scoped calls of the form `phase_name(...)`.
+      # Use a parse-tree walk (not string regex) to avoid false positives when
+      # a phase name coincides with a base-R function (e.g., "log", "exp").
+      if (.hzr_formula_has_phase_scope(formula[[3L]], names(phases))) {
+        formula_for_parse <- stats::reformulate("1", response = formula[[2L]])
+      }
+    }
+
+    parsed <- .hzr_parse_formula(formula = formula_for_parse, data = data)
     time <- parsed$time
     status <- parsed$status
     time_lower <- parsed$time_lower
@@ -445,6 +462,7 @@ hazard <- function(formula = NULL,
     ))
 
     fit_state$theta <- optim_result$par
+    fit_state$par   <- optim_result$par   # alias for downstream use
     fit_state$objective <- optim_result$value
     fit_state$converged <- (optim_result$convergence == 0)
     fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)

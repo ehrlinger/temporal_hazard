@@ -191,3 +191,53 @@ test_that("a covariate confined to one phase does not leak into the other", {
   expect_equal(unname(co[["early.x"]]),    1.0, tolerance = 0.15)
   expect_equal(unname(co[["constant.x"]]), 0.0, tolerance = 0.15)
 })
+
+# ---------------------------------------------------------------------------
+# Regression test: formula preprocessor parse-tree walk (not string regex)
+# ---------------------------------------------------------------------------
+
+test_that("formula with base-R function name matching phase name is not wrongly stripped", {
+  # Regression for: the old string-regex `grepl("\\blog\\s*\\(", rhs_txt)`
+  # would fire on `~ log(age)` when a phase happened to be named "log".
+  # The parse-tree walk in .hzr_formula_has_phase_scope() must NOT strip a
+  # formula whose only use of `log` is as a standard R function, not as a
+  # phase-scoped call — even when the phase list contains no phase named "log".
+  # Here we test the helper directly with a contrived phase name.
+  df <- .sim_phase_cov(n = 200, beta_early = 0.5, seed = 99)
+  df$log_age <- log(df$x + 2)  # a predictor that uses log()
+
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                          fixed = "shapes", formula = ~ log_age),
+    constant = hzr_phase("constant")
+  )
+  # The global formula uses log() as a base-R function on the RHS.
+  # Phase names are "early" and "constant" — neither is "log".
+  # The preprocessor must leave the formula intact (no stripping to ~ 1).
+  # If it wrongly strips, model.matrix() gets `~ 1` and the fit will lack
+  # the log_age covariate, causing covariate_counts[["early"]] == 0.
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data = df, dist = "multiphase", phases = phases,
+    fit = TRUE, control = list(n_starts = 1L)
+  )
+  # Covariate was routed via hzr_phase(formula = ~ log_age), not the global
+  # formula, so covariate_counts should still be 1 regardless.
+  expect_equal(unname(fit$fit$covariate_counts[["early"]]), 1L,
+               label = "log_age covariate routed correctly via phase formula")
+
+  # Now test the helper directly: a formula ~ log(age) with phases named
+  # "early"/"constant" must NOT trigger phase-scope detection.
+  rhs_no_scope <- quote(log(age) + offset(z))
+  expect_false(
+    .hzr_formula_has_phase_scope(rhs_no_scope, c("early", "constant")),
+    label = "log() call not mistaken for phase scope"
+  )
+
+  # And a genuine phase-scoped formula MUST trigger it.
+  rhs_with_scope <- quote(early(age + x) + constant(z))
+  expect_true(
+    .hzr_formula_has_phase_scope(rhs_with_scope, c("early", "constant")),
+    label = "early() call correctly detected as phase scope"
+  )
+})

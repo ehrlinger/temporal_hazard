@@ -28,3 +28,4 @@ vignettes/*.R
 .claude/
 .positai
 CRAN-SUBMISSION
+.worktrees/
