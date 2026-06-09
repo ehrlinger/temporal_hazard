@@ -82,3 +82,123 @@ test_that(".hzr_g3_phase_second_derivatives diagonals match numDeriv", {
                  label = paste0("d2G3/deta^2 at t=", t[i]))
   }
 })
+
+# ---------------------------------------------------------------------------
+# Task 2: .hzr_hessian_multiphase() cross-check tests
+# ---------------------------------------------------------------------------
+
+test_that(".hzr_hessian_multiphase matches numDeriv (2-phase no covariates)", {
+  skip_if_not_installed("numDeriv")
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.15, nu = 1.4, m = 1, fixed = "m"),
+    constant = hzr_phase("constant")
+  )
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data    = avc,
+    dist    = "multiphase",
+    phases  = phases,
+    fit     = TRUE,
+    control = list(n_starts = 1, conserve = FALSE)
+  )
+  theta      <- fit$fit$par
+  cov_counts <- fit$fit$covariate_counts
+  x_list     <- fit$fit$x_list
+
+  H_an <- .hzr_hessian_multiphase(
+    theta, time = avc$int_dead, status = avc$dead,
+    phases = phases, covariate_counts = cov_counts, x_list = x_list
+  )
+  expect_true(is.matrix(H_an))
+
+  obj <- function(par) {
+    -.hzr_logl_multiphase(par, avc$int_dead, avc$dead,
+                           phases = phases,
+                           covariate_counts = cov_counts,
+                           x_list = x_list)
+  }
+  H_nd <- numDeriv::hessian(obj, theta)
+  expect_equal(unname(H_an), unname(H_nd), tolerance = 1e-3,
+               label = "2-phase no-cov NLL Hessian vs numDeriv")
+})
+
+test_that(".hzr_hessian_multiphase matches numDeriv (2-phase with covariates)", {
+  skip_if_not_installed("numDeriv")
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+
+  phases <- list(
+    early    = hzr_phase("cdf",
+                          formula = ~ age + com_iv,
+                          t_half = 0.15, nu = 1.4, m = 1, fixed = "m"),
+    constant = hzr_phase("constant")
+  )
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~ early(age + com_iv),
+    data    = avc,
+    dist    = "multiphase",
+    phases  = phases,
+    fit     = TRUE,
+    control = list(n_starts = 1, conserve = FALSE)
+  )
+  theta      <- fit$fit$par
+  cov_counts <- fit$fit$covariate_counts
+  x_list     <- fit$fit$x_list
+
+  H_an <- .hzr_hessian_multiphase(
+    theta, time = avc$int_dead, status = avc$dead,
+    phases = phases, covariate_counts = cov_counts, x_list = x_list
+  )
+  obj <- function(par) {
+    -.hzr_logl_multiphase(par, avc$int_dead, avc$dead,
+                           phases = phases,
+                           covariate_counts = cov_counts,
+                           x_list = x_list)
+  }
+  H_nd <- numDeriv::hessian(obj, theta)
+  expect_equal(unname(H_an), unname(H_nd), tolerance = 1e-3,
+               label = "2-phase + covariates Hessian vs numDeriv")
+})
+
+test_that(".hzr_hessian_multiphase returns NULL for interval-censored rows", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  status_mixed <- avc$dead
+  status_mixed[1:3] <- 2L
+
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.15, nu = 1.4, m = 1, fixed = "m"),
+    constant = hzr_phase("constant")
+  )
+  theta <- c(early.log_mu = 0, early.log_t_half = log(0.15), early.nu = 1.4,
+             early.m = 1.0, constant.log_mu = 0)
+  cov_counts <- c(early = 0L, constant = 0L)
+  expect_null(.hzr_hessian_multiphase(
+    theta, time = avc$int_dead, status = status_mixed,
+    phases = phases, covariate_counts = cov_counts,
+    x_list = list(early = NULL, constant = NULL)
+  ))
+})
+
+test_that(".hzr_hessian_multiphase returns NULL for left-censored rows", {
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  status_left <- avc$dead
+  status_left[1:3] <- -1L
+
+  phases <- list(
+    early    = hzr_phase("cdf", t_half = 0.15, nu = 1.4, m = 1, fixed = "m"),
+    constant = hzr_phase("constant")
+  )
+  theta <- c(early.log_mu = 0, early.log_t_half = log(0.15), early.nu = 1.4,
+             early.m = 1.0, constant.log_mu = 0)
+  cov_counts <- c(early = 0L, constant = 0L)
+  expect_null(.hzr_hessian_multiphase(
+    theta, time = avc$int_dead, status = status_left,
+    phases = phases, covariate_counts = cov_counts,
+    x_list = list(early = NULL, constant = NULL)
+  ))
+})
