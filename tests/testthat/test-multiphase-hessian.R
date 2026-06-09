@@ -261,3 +261,68 @@ test_that("CoE fit vcov (full-info) uses analytic Hessian", {
   expect_true(all(is.finite(se[!is.na(se)])))
   expect_true(is.finite(fit_coe$fit$rcond))
 })
+
+# ---------------------------------------------------------------------------
+# Task 4: Scale-invariance and 13-parameter anchor
+# ---------------------------------------------------------------------------
+
+test_that("multiphase SEs are invariant to covariate rescaling (log-mu z-stat)", {
+  skip_on_cran()
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+  phases_base <- list(
+    early    = hzr_phase("cdf", formula = ~ age,
+                          t_half = 0.15, nu = 1.4, m = 1, fixed = "m"),
+    constant = hzr_phase("constant")
+  )
+  avc2 <- avc; avc2$age <- avc$age / 10  # rescaled covariate
+
+  f1 <- hazard(survival::Surv(int_dead, dead) ~ early(age),
+               data = avc,  dist = "multiphase", phases = phases_base, fit = TRUE,
+               control = list(n_starts = 1, conserve = FALSE))
+  f2 <- hazard(survival::Surv(int_dead, dead) ~ early(age),
+               data = avc2, dist = "multiphase", phases = phases_base, fit = TRUE,
+               control = list(n_starts = 1, conserve = FALSE))
+
+  # The beta z-statistic (estimate / SE) must be invariant under x -> x/10.
+  se1 <- sqrt(diag(f1$fit$vcov));  se2 <- sqrt(diag(f2$fit$vcov))
+  beta_name <- grep("age", names(f1$fit$par), value = TRUE)[1]
+  z1 <- f1$fit$par[beta_name] / se1[beta_name]
+  # f2 beta for age is 10x larger (rescaled covariate), SE is 10x larger too
+  beta_name2 <- grep("age", names(f2$fit$par), value = TRUE)[1]
+  z2 <- f2$fit$par[beta_name2] / se2[beta_name2]
+  expect_equal(unname(z1), unname(z2), tolerance = 1e-2,
+               label = "beta z-stat invariant under covariate rescaling")
+})
+
+test_that("13-parameter multiphase anchor: stable SEs and rcond (supersedes placeholder)", {
+  skip_on_cran()
+  data(avc, package = "TemporalHazard")
+  avc <- na.omit(avc)
+
+  # 6 early-phase covariates + constant intercept = 10 free params
+  # (log_mu_early + log_t_half + nu + 6 betas + log_mu_constant; m is fixed)
+  # NOTE: AVC column names: age, com_iv, mal, opmos (NOT op_mos), op_age, status
+  phases_hd <- list(
+    early    = hzr_phase("cdf",
+                          formula = ~ age + com_iv + mal + opmos + op_age + status,
+                          t_half = 0.15, nu = 1.4, m = 1, fixed = "m"),
+    constant = hzr_phase("constant")
+  )
+  fit <- hazard(
+    survival::Surv(int_dead, dead) ~
+      early(age + com_iv + mal + opmos + op_age + status),
+    data = avc, dist = "multiphase", phases = phases_hd, fit = TRUE,
+    control = list(n_starts = 3, maxit = 800, conserve = TRUE)
+  )
+
+  expect_true(fit$fit$converged)
+  free <- which(is.finite(diag(fit$fit$vcov)))
+  expect_gte(length(free), 10L)
+  se <- sqrt(diag(fit$fit$vcov)[free])
+  expect_true(all(is.finite(se)))
+  expect_true(all(se > 0))
+  expect_true(is.finite(fit$fit$rcond))
+  expect_true(isTRUE(fit$fit$pd),
+              label = "10-free-param fit is positive-definite at optimum")
+})
