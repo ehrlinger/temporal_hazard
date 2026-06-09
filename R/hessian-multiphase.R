@@ -436,7 +436,6 @@ NULL
 
   for (j in seq_along(phases)) {
     nm   <- names(phases)[j]
-    pars <- .hzr_unpack_phase_theta(theta_split[[nm]], phases[[nm]])
     pos  <- phase_offsets[j]
     mu_j <- phase_mu[[j]]
     phi_j <- phase_phi[[j]]
@@ -482,7 +481,6 @@ NULL
   # --- Terms A and C: per-phase block contributions -------------------------
   for (j in seq_along(phases)) {
     nm   <- names(phases)[j]
-    pars <- .hzr_unpack_phase_theta(theta_split[[nm]], phases[[nm]])
     pos  <- phase_offsets[j]
     mu_j <- phase_mu[[j]]
     Phi_j <- phase_Phi[[j]]
@@ -606,11 +604,12 @@ NULL
       for (s in seq_len(n_shape)) {
         dPhi_ds <- d1[[shape_keys_d1_Phi[s]]]
         dphi_ds <- d1[[shape_keys_d1_phi[s]]]
-        a_val <- sum(weights * mu_j * dPhi_ds)
         if (need_start && !is.null(phase_d1_start[[j]])) {
           dPhi_ds_start <- phase_d1_start[[j]][[shape_keys_d1_Phi[s]]]
           a_val <- sum(weights * mu_j * dPhi_ds) -
                    sum(weights * mu_j * dPhi_ds_start)
+        } else {
+          a_val <- sum(weights * mu_j * dPhi_ds)
         }
         c_val <- sum(wh1_e * mu_j[idx_event] * dphi_ds[idx_event])
         col_s <- idx_shape[s]
