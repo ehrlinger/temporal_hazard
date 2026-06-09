@@ -283,6 +283,421 @@ NULL
 }
 
 # ---------------------------------------------------------------------------
-# Main analytic Hessian function (.hzr_hessian_multiphase)
+# Main analytic Hessian function
 # ---------------------------------------------------------------------------
-# (Added in Task 2 below)
+#' Analytic Hessian of the multiphase NLL
+#'
+#' Returns the \eqn{p \times p} Hessian of the **objective** (negative
+#' log-likelihood) on the internal parameter scale, matching
+#' \code{numDeriv::hessian(objective)}.  Coverage: event + right-censored
+#' rows, with counting-process start-time corrections when
+#' \code{time_lower > 0}. Returns \code{NULL} for data containing
+#' left-censored (\code{status == -1}) or interval-censored
+#' (\code{status == 2}) rows; the caller falls back to numDeriv in that case.
+#'
+#' **Structure** (see derivation in PLAN-hessian-analytic-multiphase.md):
+#' \deqn{H = (\text{block-diagonal } A) + (\text{dense outer-product } B) + (\text{block-diagonal } C)}
+#'
+#' Term A: curvature of \eqn{\sum_i w_i H_i}; block-diagonal in phases.
+#' Term B: \eqn{\sum_{i\in E} (w_i/h_i^2) \nabla h_i \nabla h_i^T}; dense.
+#' Term C: curvature of \eqn{-\sum_{i\in E} w_i \log h_i}; block-diagonal.
+#'
+#' @noRd
+.hzr_hessian_multiphase <- function(
+    theta, time, status,
+    time_lower = NULL, time_upper = NULL,
+    x = NULL, weights = NULL,
+    phases, covariate_counts, x_list) {
+
+  n <- length(time)
+  p <- length(theta)
+  if (is.null(weights)) weights <- rep(1, n)
+
+  # Coverage contract: decline for left/interval-censored rows
+  if (any(status %in% c(-1L, 2L))) return(NULL)
+
+  idx_event <- which(status == 1L)
+  n_e       <- length(idx_event)
+
+  # Counting-process start-time handling (mirrors gradient)
+  need_start <- !is.null(time_lower) &&
+                any(time_lower > 0 & time_lower < time & status %in% c(0L, 1L))
+  start_vec <- if (need_start) {
+    sv <- rep(0, n)
+    epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+    sv[epoch_idx] <- time_lower[epoch_idx]
+    sv
+  } else {
+    NULL
+  }
+
+  theta_split <- .hzr_split_theta(theta, phases, covariate_counts)
+
+  # --- Per-phase quantities --------------------------------------------------
+  n_phases        <- length(phases)
+  phase_mu        <- vector("list", n_phases)
+  phase_Phi       <- vector("list", n_phases)
+  phase_phi       <- vector("list", n_phases)
+  phase_d1        <- vector("list", n_phases)   # .hzr_phase_derivatives output
+  phase_d2        <- vector("list", n_phases)   # second-derivative output
+  phase_Phi_start <- vector("list", n_phases)
+  phase_d1_start  <- vector("list", n_phases)
+  phase_d2_start  <- vector("list", n_phases)
+  phase_x_tilde   <- vector("list", n_phases)   # [1 | x_j], n x (1+p_j)
+
+  H_t <- rep(0, n)
+  h_t <- rep(0, n)
+
+  for (j in seq_along(phases)) {
+    nm   <- names(phases)[j]
+    pars <- .hzr_unpack_phase_theta(theta_split[[nm]], phases[[nm]])
+
+    # mu_j(i) and augmented covariate matrix
+    if (length(pars$beta) > 0 && !is.null(x_list[[nm]])) {
+      x_j  <- x_list[[nm]]
+      eta_j <- pars$log_mu + as.numeric(x_j %*% pars$beta)
+    } else {
+      x_j   <- NULL
+      eta_j <- rep(pars$log_mu, n)
+    }
+    mu_j <- exp(eta_j)
+    phase_mu[[j]] <- mu_j
+
+    x_tilde_j <- if (is.null(x_j)) matrix(1, n, 1L) else cbind(1, x_j)
+    phase_x_tilde[[j]] <- x_tilde_j
+
+    # Shape quantities
+    if (phases[[nm]]$type == "constant") {
+      phase_Phi[[j]] <- time
+      phase_phi[[j]] <- rep(1, n)
+      phase_d1[j]  <- list(NULL)
+      phase_d2[j]  <- list(NULL)
+      if (need_start) {
+        phase_Phi_start[[j]] <- start_vec
+        phase_d1_start[j]  <- list(NULL)
+        phase_d2_start[j]  <- list(NULL)
+      }
+    } else if (phases[[nm]]$type == "g3") {
+      tau_j <- exp(pars$log_tau)
+      d3    <- hzr_decompos_g3(time, tau = tau_j, gamma = pars$gamma,
+                                alpha = pars$alpha, eta = pars$eta)
+      phase_Phi[[j]] <- d3$G3
+      phase_phi[[j]] <- d3$g3
+      phase_d1[[j]]  <- .hzr_g3_phase_derivatives(
+        time, tau = tau_j, gamma = pars$gamma,
+        alpha = pars$alpha, eta = pars$eta)
+      phase_d2[[j]]  <- .hzr_g3_phase_second_derivatives(
+        time, tau = tau_j, gamma = pars$gamma,
+        alpha = pars$alpha, eta = pars$eta)
+      if (need_start) {
+        d3s <- hzr_decompos_g3(start_vec, tau = tau_j, gamma = pars$gamma,
+                                alpha = pars$alpha, eta = pars$eta)
+        phase_Phi_start[[j]] <- d3s$G3
+        phase_d1_start[[j]]  <- .hzr_g3_phase_derivatives(
+          start_vec, tau = tau_j, gamma = pars$gamma,
+          alpha = pars$alpha, eta = pars$eta)
+        phase_d2_start[[j]]  <- .hzr_g3_phase_second_derivatives(
+          start_vec, tau = tau_j, gamma = pars$gamma,
+          alpha = pars$alpha, eta = pars$eta)
+      }
+    } else {
+      # CDF / hazard
+      t_half_j <- exp(pars$log_t_half)
+      d1 <- .hzr_phase_derivatives(time, t_half = t_half_j, nu = pars$nu,
+                                    m = pars$m, type = phases[[nm]]$type)
+      phase_Phi[[j]] <- d1$Phi
+      phase_phi[[j]] <- d1$phi
+      phase_d1[[j]]  <- d1
+      phase_d2[[j]]  <- .hzr_phase_second_derivatives(
+        time, t_half = t_half_j, nu = pars$nu, m = pars$m,
+        type = phases[[nm]]$type)
+      if (need_start) {
+        d1s <- .hzr_phase_derivatives(start_vec, t_half = t_half_j,
+                                       nu = pars$nu, m = pars$m,
+                                       type = phases[[nm]]$type)
+        phase_Phi_start[[j]] <- d1s$Phi
+        phase_d1_start[[j]]  <- d1s
+        phase_d2_start[[j]]  <- .hzr_phase_second_derivatives(
+          start_vec, t_half = t_half_j, nu = pars$nu, m = pars$m,
+          type = phases[[nm]]$type)
+      }
+    }
+
+    H_t <- H_t + mu_j * phase_Phi[[j]]
+    h_t <- h_t + mu_j * phase_phi[[j]]
+    if (need_start) {
+      H_t <- H_t - mu_j * phase_Phi_start[[j]]  # H(t) - H(start) net
+    }
+  }
+
+  if (any(!is.finite(H_t)) || any(!is.finite(h_t))) {
+    return(NULL)
+  }
+
+  # h_e = h at event times (guard against 0)
+  h_e <- pmax(h_t[idx_event], .Machine$double.xmin)
+
+  # w/h_e^2 and w/h_e vectors (length n_e)
+  w_e     <- weights[idx_event]
+  wh2_e   <- w_e / h_e^2     # for Term B
+  wh1_e   <- w_e / h_e       # for Term C
+
+  # --- Build the full p x p Hessian matrix ----------------------------------
+  H_mat <- matrix(0, p, p)
+  dimnames(H_mat) <- list(names(theta), names(theta))
+
+  # We need a per-phase parameter offset so we know where in H_mat to write.
+  # Build an offset table.
+  phase_param_counts <- vapply(seq_along(phases), function(j) {
+    nm <- names(phases)[j]
+    if (phases[[nm]]$type == "constant") {
+      1L + covariate_counts[[nm]]
+    } else if (phases[[nm]]$type == "g3") {
+      5L + covariate_counts[[nm]]  # log_mu, log_tau, gamma, alpha, eta
+    } else {
+      4L + covariate_counts[[nm]]  # log_mu, log_t_half, nu, m
+    }
+  }, integer(1))
+
+  phase_offsets <- c(0L, cumsum(phase_param_counts))
+
+  # --- Term B: dense outer product of h-gradient ----------------------------
+  # Assemble X_h (n_e x p): row i is the gradient of h(t_i) w.r.t. theta.
+  X_h <- matrix(0, n_e, p)
+
+  for (j in seq_along(phases)) {
+    nm   <- names(phases)[j]
+    pars <- .hzr_unpack_phase_theta(theta_split[[nm]], phases[[nm]])
+    pos  <- phase_offsets[j]
+    mu_j <- phase_mu[[j]]
+    phi_j <- phase_phi[[j]]
+    d1    <- phase_d1[[j]]
+
+    mu_phi_e <- mu_j[idx_event] * phi_j[idx_event]  # length n_e
+
+    # log_mu column: dh/d(log_mu_j) = mu_j phi_j
+    X_h[, pos + 1L] <- mu_phi_e
+
+    # Shape columns
+    if (phases[[nm]]$type %in% c("cdf", "hazard")) {
+      shape_dphi <- list(d1$dphi_dlog_thalf, d1$dphi_dnu, d1$dphi_dm)
+      for (s in seq_along(shape_dphi)) {
+        X_h[, pos + 1L + s] <- mu_j[idx_event] * shape_dphi[[s]][idx_event]
+      }
+      beta_start <- pos + 5L
+    } else if (phases[[nm]]$type == "g3") {
+      shape_dphi <- list(d1$dphi_dlog_tau, d1$dphi_dgamma,
+                         d1$dphi_dalpha,   d1$dphi_deta)
+      for (s in seq_along(shape_dphi)) {
+        X_h[, pos + 1L + s] <- mu_j[idx_event] * shape_dphi[[s]][idx_event]
+      }
+      beta_start <- pos + 6L
+    } else {
+      # constant phase: no shape cols
+      beta_start <- pos + 2L
+    }
+
+    # Beta columns: dh/d(beta_jk) = mu_j phi_j x_jk
+    if (covariate_counts[[nm]] > 0 && !is.null(x_list[[nm]])) {
+      x_j_e <- x_list[[nm]][idx_event, , drop = FALSE]
+      for (k in seq_len(covariate_counts[[nm]])) {
+        X_h[, beta_start + k - 1L] <- mu_phi_e * x_j_e[, k]
+      }
+    }
+  }
+
+  # Term B = X_h' diag(wh2_e) X_h (each row of X_h weighted by wh2_e)
+  B_mat <- crossprod(X_h, wh2_e * X_h)
+  H_mat <- H_mat + B_mat
+
+  # --- Terms A and C: per-phase block contributions -------------------------
+  for (j in seq_along(phases)) {
+    nm   <- names(phases)[j]
+    pars <- .hzr_unpack_phase_theta(theta_split[[nm]], phases[[nm]])
+    pos  <- phase_offsets[j]
+    mu_j <- phase_mu[[j]]
+    Phi_j <- phase_Phi[[j]]
+    phi_j <- phase_phi[[j]]
+    d1    <- phase_d1[[j]]
+    d2    <- phase_d2[[j]]
+    x_t   <- phase_x_tilde[[j]]
+
+    wmu_Phi   <- weights * mu_j * Phi_j               # Term A weight (all rows)
+    wmu_phi_e <- wh1_e * mu_j[idx_event] * phi_j[idx_event]  # Term C weight (events)
+
+    # Counting-process start correction for Term A:
+    if (need_start) {
+      wmu_Phi_start <- weights * mu_j * phase_Phi_start[[j]]
+      wmu_Phi_net <- wmu_Phi - wmu_Phi_start   # net for H(t) - H(start)
+    } else {
+      wmu_Phi_net <- wmu_Phi
+    }
+
+    # --- mu/beta sub-block (crossprod style) ---------------------------------
+    # Term A mu/beta: X_t' diag(wmu_Phi_net) X_t
+    # Term C mu/beta: - X_t_E' diag(wmu_phi_e) X_t_E
+    x_t_e <- x_t[idx_event, , drop = FALSE]
+
+    block_A_mub <- crossprod(x_t, wmu_Phi_net * x_t)
+    block_C_mub <- crossprod(x_t_e, wmu_phi_e * x_t_e)
+
+    # Number of mu/beta parameters: 1 + p_j
+    n_mub <- 1L + covariate_counts[[nm]]
+
+    if (phases[[nm]]$type == "constant") {
+      # Only mu/beta block; no shape params
+      idx_block <- pos + seq_len(n_mub)
+      H_mat[idx_block, idx_block] <- H_mat[idx_block, idx_block] +
+        block_A_mub - block_C_mub
+
+    } else {
+      # Shape params come AFTER log_mu, BEFORE beta (log_mu | shapes | beta)
+      n_shape <- if (phases[[nm]]$type == "g3") 4L else 3L
+
+      idx_mub   <- pos + 1L                             # log_mu index
+      idx_shape <- pos + 1L + seq_len(n_shape)          # shape indices
+      idx_beta  <- if (covariate_counts[[nm]] > 0)
+                     pos + 1L + n_shape + seq_len(covariate_counts[[nm]])
+                   else integer(0)
+
+      # log_mu / log_mu (scalar)
+      H_mat[idx_mub, idx_mub] <- H_mat[idx_mub, idx_mub] +
+        sum(wmu_Phi_net) - sum(wmu_phi_e)
+
+      # log_mu / beta cross terms (only if covariates present)
+      if (length(idx_beta) > 0) {
+        x_j <- x_list[[nm]]
+        x_j_e <- x_j[idx_event, , drop = FALSE]
+        cross_A <- colSums(wmu_Phi_net * x_j)
+        cross_C <- colSums(wmu_phi_e * x_j_e)
+        H_mat[idx_mub, idx_beta] <- H_mat[idx_mub, idx_beta] + cross_A - cross_C
+        H_mat[idx_beta, idx_mub] <- H_mat[idx_beta, idx_mub] + cross_A - cross_C
+      }
+
+      # beta / beta (only if covariates)
+      if (length(idx_beta) > 0) {
+        x_j   <- x_list[[nm]]
+        x_j_e <- x_j[idx_event, , drop = FALSE]
+        bb_A  <- crossprod(x_j,   wmu_Phi_net * x_j)
+        bb_C  <- crossprod(x_j_e, wmu_phi_e   * x_j_e)
+        H_mat[idx_beta, idx_beta] <- H_mat[idx_beta, idx_beta] + bb_A - bb_C
+      }
+
+      # Shape parameters: extract first-derivative vectors
+      if (phases[[nm]]$type %in% c("cdf", "hazard")) {
+        shape_keys_d1_Phi <- c("dPhi_dlog_thalf", "dPhi_dnu", "dPhi_dm")
+        shape_keys_d1_phi <- c("dphi_dlog_thalf", "dphi_dnu", "dphi_dm")
+        shape_keys_d2_Phi <- list(
+          c("d2Phi_dlog_thalf2",    "d2Phi_dlog_thalf2"),
+          c("d2Phi_dnu2",           "d2Phi_dnu2"),
+          c("d2Phi_dm2",            "d2Phi_dm2"),
+          c("d2Phi_dlog_thalf_dnu", "d2Phi_dlog_thalf_dnu"),
+          c("d2Phi_dlog_thalf_dm",  "d2Phi_dlog_thalf_dm"),
+          c("d2Phi_dnu_dm",         "d2Phi_dnu_dm")
+        )
+        shape_keys_d2_phi <- list(
+          c("d2phi_dlog_thalf2",    "d2phi_dlog_thalf2"),
+          c("d2phi_dnu2",           "d2phi_dnu2"),
+          c("d2phi_dm2",            "d2phi_dm2"),
+          c("d2phi_dlog_thalf_dnu", "d2phi_dlog_thalf_dnu"),
+          c("d2phi_dlog_thalf_dm",  "d2phi_dlog_thalf_dm"),
+          c("d2phi_dnu_dm",         "d2phi_dnu_dm")
+        )
+        # Which pairs of shape indices correspond to the 6 unique pairs?
+        shape_pairs <- list(c(1,1), c(2,2), c(3,3), c(1,2), c(1,3), c(2,3))
+      } else {
+        # G3: 4 shape params -> 10 unique pairs
+        shape_keys_d1_Phi <- c("dPhi_dlog_tau", "dPhi_dgamma",
+                                "dPhi_dalpha",   "dPhi_deta")
+        shape_keys_d1_phi <- c("dphi_dlog_tau", "dphi_dgamma",
+                                "dphi_dalpha",   "dphi_deta")
+        shape_keys_d2_Phi <- list(
+          c("d2Phi_dlog_tau2",       "d2Phi_dlog_tau2"),
+          c("d2Phi_dgamma2",         "d2Phi_dgamma2"),
+          c("d2Phi_dalpha2",         "d2Phi_dalpha2"),
+          c("d2Phi_deta2",           "d2Phi_deta2"),
+          c("d2Phi_dlog_tau_dgamma", "d2Phi_dlog_tau_dgamma"),
+          c("d2Phi_dlog_tau_dalpha", "d2Phi_dlog_tau_dalpha"),
+          c("d2Phi_dlog_tau_deta",   "d2Phi_dlog_tau_deta"),
+          c("d2Phi_dgamma_dalpha",   "d2Phi_dgamma_dalpha"),
+          c("d2Phi_dgamma_deta",     "d2Phi_dgamma_deta"),
+          c("d2Phi_dalpha_deta",     "d2Phi_dalpha_deta")
+        )
+        shape_keys_d2_phi <- lapply(shape_keys_d2_Phi, function(k)
+          sub("Phi", "phi", k))
+        shape_pairs <- c(
+          list(c(1,1), c(2,2), c(3,3), c(4,4)),
+          list(c(1,2), c(1,3), c(1,4), c(2,3), c(2,4), c(3,4))
+        )
+      }
+
+      n_shape <- length(shape_keys_d1_Phi)
+
+      # log_mu / shape cross terms (Term A and C)
+      for (s in seq_len(n_shape)) {
+        dPhi_ds <- d1[[shape_keys_d1_Phi[s]]]
+        dphi_ds <- d1[[shape_keys_d1_phi[s]]]
+        a_val <- sum(weights * mu_j * dPhi_ds)
+        if (need_start && !is.null(phase_d1_start[[j]])) {
+          dPhi_ds_start <- phase_d1_start[[j]][[shape_keys_d1_Phi[s]]]
+          a_val <- sum(weights * mu_j * dPhi_ds) -
+                   sum(weights * mu_j * dPhi_ds_start)
+        }
+        c_val <- sum(wh1_e * mu_j[idx_event] * dphi_ds[idx_event])
+        col_s <- idx_shape[s]
+        H_mat[idx_mub, col_s] <- H_mat[idx_mub, col_s] + a_val - c_val
+        H_mat[col_s, idx_mub] <- H_mat[col_s, idx_mub] + a_val - c_val
+      }
+
+      # shape / shape block
+      for (pair_idx in seq_along(shape_pairs)) {
+        s_a <- shape_pairs[[pair_idx]][1]
+        s_b <- shape_pairs[[pair_idx]][2]
+        key_d2_Phi <- shape_keys_d2_Phi[[pair_idx]][1]
+        key_d2_phi <- shape_keys_d2_phi[[pair_idx]][1]
+
+        d2Phi_sasb <- d2[[key_d2_Phi]]
+        d2phi_sasb <- d2[[key_d2_phi]]
+
+        a_val <- sum(weights * mu_j * d2Phi_sasb)
+        if (need_start && !is.null(phase_d2_start[[j]])) {
+          a_val <- a_val - sum(weights * mu_j * phase_d2_start[[j]][[key_d2_Phi]])
+        }
+        c_val <- sum(wh1_e * mu_j[idx_event] * d2phi_sasb[idx_event])
+
+        i_idx <- idx_shape[s_a]; j_idx <- idx_shape[s_b]
+        H_mat[i_idx, j_idx] <- H_mat[i_idx, j_idx] + a_val - c_val
+        if (s_a != s_b) {
+          H_mat[j_idx, i_idx] <- H_mat[j_idx, i_idx] + a_val - c_val
+        }
+      }
+
+      # beta / shape cross terms
+      if (length(idx_beta) > 0) {
+        x_j   <- x_list[[nm]]
+        x_j_e <- x_j[idx_event, , drop = FALSE]
+        for (s in seq_len(n_shape)) {
+          dPhi_ds <- d1[[shape_keys_d1_Phi[s]]]
+          dphi_ds <- d1[[shape_keys_d1_phi[s]]]
+          if (need_start && !is.null(phase_d1_start[[j]])) {
+            dPhi_ds_start <- phase_d1_start[[j]][[shape_keys_d1_Phi[s]]]
+            a_vec <- colSums((weights * mu_j * dPhi_ds -
+                              weights * mu_j * dPhi_ds_start) * x_j)
+          } else {
+            a_vec <- colSums((weights * mu_j * dPhi_ds) * x_j)
+          }
+          c_vec <- colSums((wh1_e * mu_j[idx_event] *
+                              dphi_ds[idx_event]) * x_j_e)
+          col_s <- idx_shape[s]
+          H_mat[idx_beta, col_s] <- H_mat[idx_beta, col_s] + a_vec - c_vec
+          H_mat[col_s, idx_beta] <- H_mat[col_s, idx_beta] + a_vec - c_vec
+        }
+      }
+    }
+  }
+
+  # Guard: zero any non-finite entries (safety net; should not trigger at valid theta)
+  H_mat[!is.finite(H_mat)] <- 0
+
+  H_mat
+}
