@@ -273,14 +273,10 @@ hazard <- function(formula = NULL,
     # hzr_phase(formula = ...) and resolved inside .hzr_optim_multiphase().
     formula_for_parse <- formula
     if (!is.null(phases) && !is.null(formula[[3L]])) {
-      rhs_txt <- deparse(formula[[3L]])
-      # Check if RHS contains phase-scoped calls: any token of the form word(
-      # where `word` is a name of a phase.
-      phase_nms <- names(phases)
-      has_phase_scope <- any(vapply(phase_nms, function(nm) {
-        grepl(paste0("\\b", nm, "\\s*\\("), rhs_txt)
-      }, logical(1)))
-      if (has_phase_scope) {
+      # Check if RHS contains phase-scoped calls of the form `phase_name(...)`.
+      # Use a parse-tree walk (not string regex) to avoid false positives when
+      # a phase name coincides with a base-R function (e.g., "log", "exp").
+      if (.hzr_formula_has_phase_scope(formula[[3L]], names(phases))) {
         formula_for_parse <- stats::reformulate("1", response = formula[[2L]])
       }
     }
