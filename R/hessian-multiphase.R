@@ -47,9 +47,12 @@ NULL
   # Perturbed values on each internal scale:
   #   log_t_half: steps are multiplicative -> t_half * exp(±h)
   #   nu, m:      additive steps
-  t_p <- t_half * exp( h);  t_m <- t_half * exp(-h)
-  nu_p <- nu + h;            nu_m <- nu - h
-  m_p  <- m  + h;            m_m  <- m  - h
+  t_p  <- t_half * exp(h)
+  t_m  <- t_half * exp(-h)
+  nu_p <- nu + h
+  nu_m <- nu - h
+  m_p  <- m  + h
+  m_m  <- m  - h
 
   # Six single-parameter perturbations for diagonal second differences
   d_tp  <- eval_at(t_p,    nu,   m)
@@ -70,20 +73,26 @@ NULL
   d2phi_mm_ <- (d_mp$phi - 2 * d00$phi + d_mm$phi) / h2
 
   # t_half / nu cross: corners (t_p, nu_p), (t_p, nu_m), (t_m, nu_p), (t_m, nu_m)
-  e_tn_pp <- eval_at(t_p, nu_p, m);  e_tn_pm <- eval_at(t_p, nu_m, m)
-  e_tn_mp <- eval_at(t_m, nu_p, m);  e_tn_mm <- eval_at(t_m, nu_m, m)
+  e_tn_pp <- eval_at(t_p, nu_p, m)
+  e_tn_pm <- eval_at(t_p, nu_m, m)
+  e_tn_mp <- eval_at(t_m, nu_p, m)
+  e_tn_mm <- eval_at(t_m, nu_m, m)
   d2_tn_Phi <- (e_tn_pp$Phi - e_tn_pm$Phi - e_tn_mp$Phi + e_tn_mm$Phi) / (4 * h2)
   d2_tn_phi <- (e_tn_pp$phi - e_tn_pm$phi - e_tn_mp$phi + e_tn_mm$phi) / (4 * h2)
 
   # t_half / m cross
-  e_tm_pp <- eval_at(t_p, nu, m_p);  e_tm_pm <- eval_at(t_p, nu, m_m)
-  e_tm_mp <- eval_at(t_m, nu, m_p);  e_tm_mm <- eval_at(t_m, nu, m_m)
+  e_tm_pp <- eval_at(t_p, nu, m_p)
+  e_tm_pm <- eval_at(t_p, nu, m_m)
+  e_tm_mp <- eval_at(t_m, nu, m_p)
+  e_tm_mm <- eval_at(t_m, nu, m_m)
   d2_tm_Phi <- (e_tm_pp$Phi - e_tm_pm$Phi - e_tm_mp$Phi + e_tm_mm$Phi) / (4 * h2)
   d2_tm_phi <- (e_tm_pp$phi - e_tm_pm$phi - e_tm_mp$phi + e_tm_mm$phi) / (4 * h2)
 
   # nu / m cross
-  e_nm_pp <- eval_at(t_half, nu_p, m_p);  e_nm_pm <- eval_at(t_half, nu_p, m_m)
-  e_nm_mp <- eval_at(t_half, nu_m, m_p);  e_nm_mm <- eval_at(t_half, nu_m, m_m)
+  e_nm_pp <- eval_at(t_half, nu_p, m_p)
+  e_nm_pm <- eval_at(t_half, nu_p, m_m)
+  e_nm_mp <- eval_at(t_half, nu_m, m_p)
+  e_nm_mm <- eval_at(t_half, nu_m, m_m)
   d2_nm_Phi <- (e_nm_pp$Phi - e_nm_pm$Phi - e_nm_mp$Phi + e_nm_mm$Phi) / (4 * h2)
   d2_nm_phi <- (e_nm_pp$phi - e_nm_pm$phi - e_nm_mp$phi + e_nm_mm$phi) / (4 * h2)
 
@@ -151,10 +160,14 @@ NULL
   }
 
   # Perturbed values: log_tau, gamma, alpha, eta steps
-  tau_p <- tau * exp( h);  tau_m <- tau * exp(-h)
-  gam_p <- gamma + h;      gam_m <- gamma - h
-  alp_p <- alpha + h;      alp_m <- alpha - h
-  eta_p <- eta   + h;      eta_m <- eta   - h
+  tau_p <- tau * exp(h)
+  tau_m <- tau * exp(-h)
+  gam_p <- gamma + h
+  gam_m <- gamma - h
+  alp_p <- alpha + h
+  alp_m <- alpha - h
+  eta_p <- eta   + h
+  eta_m <- eta   - h
 
   # Fallback to d00 if perturbed eval returns NULL
   safe_eval <- function(tau_v, gam_v, alp_v, eta_v) {
@@ -571,7 +584,7 @@ NULL
           c("d2phi_dnu_dm",         "d2phi_dnu_dm")
         )
         # Which pairs of shape indices correspond to the 6 unique pairs?
-        shape_pairs <- list(c(1,1), c(2,2), c(3,3), c(1,2), c(1,3), c(2,3))
+        shape_pairs <- list(c(1, 1), c(2, 2), c(3, 3), c(1, 2), c(1, 3), c(2, 3))
       } else {
         # G3: 4 shape params -> 10 unique pairs
         shape_keys_d1_Phi <- c("dPhi_dlog_tau", "dPhi_dgamma",
@@ -590,11 +603,12 @@ NULL
           c("d2Phi_dgamma_deta",     "d2Phi_dgamma_deta"),
           c("d2Phi_dalpha_deta",     "d2Phi_dalpha_deta")
         )
-        shape_keys_d2_phi <- lapply(shape_keys_d2_Phi, function(k)
-          sub("Phi", "phi", k))
+        shape_keys_d2_phi <- lapply(shape_keys_d2_Phi, function(k) {
+          sub("Phi", "phi", k)
+        })
         shape_pairs <- c(
-          list(c(1,1), c(2,2), c(3,3), c(4,4)),
-          list(c(1,2), c(1,3), c(1,4), c(2,3), c(2,4), c(3,4))
+          list(c(1, 1), c(2, 2), c(3, 3), c(4, 4)),
+          list(c(1, 2), c(1, 3), c(1, 4), c(2, 3), c(2, 4), c(3, 4))
         )
       }
 
@@ -633,7 +647,8 @@ NULL
         }
         c_val <- sum(wh1_e * mu_j[idx_event] * d2phi_sasb[idx_event])
 
-        i_idx <- idx_shape[s_a]; j_idx <- idx_shape[s_b]
+        i_idx <- idx_shape[s_a]
+        j_idx <- idx_shape[s_b]
         H_mat[i_idx, j_idx] <- H_mat[i_idx, j_idx] + a_val - c_val
         if (s_a != s_b) {
           H_mat[j_idx, i_idx] <- H_mat[j_idx, i_idx] + a_val - c_val

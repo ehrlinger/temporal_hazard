@@ -1283,7 +1283,7 @@
 
     theta_start_optim <- theta_start[free_idx]
   } else {
-    free_idx_eff <- seq_len(length(theta_start))
+    free_idx_eff <- seq_along(theta_start)
     theta_start_optim <- theta_start
   }
 

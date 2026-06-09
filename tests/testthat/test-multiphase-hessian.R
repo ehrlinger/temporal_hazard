@@ -10,7 +10,9 @@
 test_that(".hzr_phase_second_derivatives diagonals match numDeriv", {
   skip_if_not_installed("numDeriv")
   t <- c(0.2, 0.5, 1.0, 2.0, 4.0)
-  t_half <- 1.0; nu <- 1.5; m <- 1.0
+  t_half <- 1.0
+  nu <- 1.5
+  m <- 1.0
 
   d2 <- .hzr_phase_second_derivatives(t, t_half = t_half, nu = nu, m = m,
                                        type = "cdf")
@@ -41,7 +43,9 @@ test_that(".hzr_phase_second_derivatives diagonals match numDeriv", {
 test_that(".hzr_phase_second_derivatives phi second derivs match numDeriv", {
   skip_if_not_installed("numDeriv")
   t <- c(0.3, 0.8, 1.5, 3.0)
-  t_half <- 0.5; nu <- 2.0; m <- 1.0
+  t_half <- 0.5
+  nu <- 2.0
+  m <- 1.0
   d2 <- .hzr_phase_second_derivatives(t, t_half = t_half, nu = nu, m = m,
                                        type = "cdf")
   par0 <- c(log(t_half), nu, m)
@@ -61,7 +65,10 @@ test_that(".hzr_phase_second_derivatives phi second derivs match numDeriv", {
 test_that(".hzr_g3_phase_second_derivatives diagonals match numDeriv", {
   skip_if_not_installed("numDeriv")
   t <- c(0.5, 1.0, 3.0, 8.0)
-  tau <- 2.0; gamma <- 1.5; alpha <- 0.8; eta <- 0.6
+  tau <- 2.0
+  gamma <- 1.5
+  alpha <- 0.8
+  eta <- 0.6
 
   d2 <- .hzr_g3_phase_second_derivatives(t, tau = tau, gamma = gamma,
                                           alpha = alpha, eta = eta)
@@ -275,7 +282,8 @@ test_that("multiphase SEs are invariant to covariate rescaling (log-mu z-stat)",
                           t_half = 0.15, nu = 1.4, m = 1, fixed = "m"),
     constant = hzr_phase("constant")
   )
-  avc2 <- avc; avc2$age <- avc$age / 10  # rescaled covariate
+  avc2 <- avc
+  avc2$age <- avc$age / 10  # rescaled covariate
 
   f1 <- hazard(survival::Surv(int_dead, dead) ~ early(age),
                data = avc,  dist = "multiphase", phases = phases_base, fit = TRUE,
@@ -285,7 +293,8 @@ test_that("multiphase SEs are invariant to covariate rescaling (log-mu z-stat)",
                control = list(n_starts = 1, conserve = FALSE))
 
   # The beta z-statistic (estimate / SE) must be invariant under x -> x/10.
-  se1 <- sqrt(diag(f1$fit$vcov));  se2 <- sqrt(diag(f2$fit$vcov))
+  se1 <- sqrt(diag(f1$fit$vcov))
+  se2 <- sqrt(diag(f2$fit$vcov))
   beta_name <- grep("age", names(f1$fit$par), value = TRUE)[1]
   z1 <- f1$fit$par[beta_name] / se1[beta_name]
   # f2 beta for age is 10x larger (rescaled covariate), SE is 10x larger too
