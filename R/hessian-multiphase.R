@@ -679,8 +679,9 @@ NULL
     }
   }
 
-  # Guard: zero any non-finite entries (safety net; should not trigger at valid theta)
-  H_mat[!is.finite(H_mat)] <- 0
+  # Guard: any non-finite entry means the Hessian is unreliable; return NULL so
+  # the caller falls back to numDeriv rather than silently passing a corrupted matrix.
+  if (any(!is.finite(H_mat))) return(NULL)
 
   H_mat
 }

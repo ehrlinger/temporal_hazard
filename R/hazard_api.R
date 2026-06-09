@@ -272,7 +272,7 @@ hazard <- function(formula = NULL,
     # time/status from the LHS.  Covariate routing is handled per-phase via
     # hzr_phase(formula = ...) and resolved inside .hzr_optim_multiphase().
     formula_for_parse <- formula
-    if (!is.null(phases) && !is.null(formula[[3L]])) {
+    if (!is.null(phases) && length(formula) >= 3L) {
       # Check if RHS contains phase-scoped calls of the form `phase_name(...)`.
       # Use a parse-tree walk (not string regex) to avoid false positives when
       # a phase name coincides with a base-R function (e.g., "log", "exp").
