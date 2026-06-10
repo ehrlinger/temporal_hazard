@@ -1304,7 +1304,7 @@
   use_nelder_mead_warmup <- any_fixed && length(theta_start_optim) >= 2L &&
     length(theta_start_optim) <= 10L
 
-  # Analytic Hessian closure — covers event + right-censored rows.
+  # Analytic Hessian closure -- covers event + right-censored rows.
   # Returns NULL for left/interval-censored data to trigger numDeriv fallback.
   # Defined OUTSIDE the n_starts loop: it is identical across all starts and
   # captures only stable (pre-loop) variables.
@@ -1441,7 +1441,7 @@
         -logl_fn_pre_coe(th, time, status, time_lower, time_upper, x,
                          weights = weights, return_gradient = FALSE)
       }
-      # Analytic Hessian attempt — no numDeriv dependency
+      # Analytic Hessian attempt -- no numDeriv dependency
       H_unc <- tryCatch(
         .hzr_hessian_multiphase(
           base_theta, time = time, status = status,

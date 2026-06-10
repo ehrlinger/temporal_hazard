@@ -495,6 +495,7 @@ hazard <- function(formula = NULL,
     ))
 
     fit_state$theta <- optim_result$par
+    fit_state$par   <- optim_result$par
     fit_state$objective <- optim_result$value
     fit_state$converged <- (optim_result$convergence == 0)
     fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)

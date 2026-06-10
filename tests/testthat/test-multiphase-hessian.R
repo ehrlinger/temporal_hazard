@@ -95,6 +95,7 @@ test_that(".hzr_g3_phase_second_derivatives diagonals match numDeriv", {
 # ---------------------------------------------------------------------------
 
 test_that(".hzr_hessian_multiphase matches numDeriv (2-phase no covariates)", {
+  skip_on_cran()
   skip_if_not_installed("numDeriv")
   data(avc, package = "TemporalHazard")
   avc <- na.omit(avc)
@@ -133,6 +134,7 @@ test_that(".hzr_hessian_multiphase matches numDeriv (2-phase no covariates)", {
 })
 
 test_that(".hzr_hessian_multiphase matches numDeriv (2-phase with covariates)", {
+  skip_on_cran()
   skip_if_not_installed("numDeriv")
   data(avc, package = "TemporalHazard")
   avc <- na.omit(avc)
@@ -215,6 +217,7 @@ test_that(".hzr_hessian_multiphase returns NULL for left-censored rows", {
 # ---------------------------------------------------------------------------
 
 test_that("multiphase fit vcov uses analytic Hessian (matches numDeriv to 1e-3)", {
+  skip_on_cran()
   skip_if_not_installed("numDeriv")
   data(avc, package = "TemporalHazard")
   avc <- na.omit(avc)
@@ -251,6 +254,7 @@ test_that("multiphase fit vcov uses analytic Hessian (matches numDeriv to 1e-3)"
 })
 
 test_that("CoE fit vcov (full-info) uses analytic Hessian", {
+  skip_on_cran()
   skip_if_not_installed("numDeriv")
   data(avc, package = "TemporalHazard")
   avc <- na.omit(avc)

@@ -221,7 +221,7 @@
 #' will NOT produce a false positive when the formula contains \code{log(age)},
 #' because \code{log} would also appear in \code{phase_names} only if the user
 #' deliberately named a phase \code{"log"}.  Conversely, the function only
-#' fires when the call head is an exact match to a known phase name — standard
+#' fires when the call head is an exact match to a known phase name -- standard
 #' R functions that happen to share names with phases do not trigger the check
 #' unless those names are actually phase names.
 #'

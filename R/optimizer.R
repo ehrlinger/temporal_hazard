@@ -157,10 +157,10 @@ NULL
         if (requireNamespace("numDeriv", quietly = TRUE)) {
           numDeriv::hessian(objective, result$par)
         } else {
-          NA
+          NULL
         }
       },
-      error = function(e) NA
+      error = function(e) NULL
     )
   }
 

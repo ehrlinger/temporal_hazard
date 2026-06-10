@@ -45,7 +45,7 @@ NULL
   d00 <- eval_at(t_half, nu, m)
 
   # Perturbed values on each internal scale:
-  #   log_t_half: steps are multiplicative -> t_half * exp(±h)
+  #   log_t_half: steps are multiplicative -> t_half * exp(+/-h)
   #   nu, m:      additive steps
   t_p  <- t_half * exp(h)
   t_m  <- t_half * exp(-h)

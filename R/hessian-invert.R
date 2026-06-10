@@ -38,7 +38,9 @@ NULL
 
   # (3) Conditioning check
   rc <- tryCatch(rcond(H), error = function(e) NA_real_)
-  if (is.na(rc) || rc < tol) {
+  if (is.na(rc)) {
+    warning("Hessian conditioning could not be assessed; standard errors may be unreliable")
+  } else if (rc < tol) {
     warning(sprintf(
       "Hessian is ill-conditioned (rcond = %.3g); standard errors may be unreliable",
       rc
