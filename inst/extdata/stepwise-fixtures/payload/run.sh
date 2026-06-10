@@ -3,9 +3,10 @@
 #
 # Usage:  cd to this directory, then ./run.sh
 #
-# Set HAZAPPS and MACROS before calling if the auto-discovery below does
-# not find the CCF HAZARD install:
-#   HAZAPPS=/path/to/hazard/bin  MACROS=/path/to/hazard/macros  ./run.sh
+# Set HAZAPPS and HZ_MACROS before calling if the auto-discovery below does
+# not find the CCF HAZARD install (HZ_MACROS is used instead of MACROS to
+# avoid clobbering an ambient $MACROS pointing at the general SAS library):
+#   HAZAPPS=/path/to/hazard/bin  HZ_MACROS=/path/to/hazard/macros  ./run.sh
 
 set -euo pipefail
 
@@ -45,8 +46,10 @@ export HAZAPPS
 # Always verify -- the ambient $MACROS env var may point to the general
 # SAS macro library, not the HAZARD-specific macros.
 # ---------------------------------------------------------------------------
+# Honor a caller-supplied HZ_MACROS first; otherwise auto-discover.
 _hz_macros=""
 for d in \
+    "${HZ_MACROS:-}" \
     "$HAZAPPS" \
     "$HAZAPPS/macros" \
     "$(cd "$HAZAPPS/.." 2>/dev/null && pwd)/macros" \

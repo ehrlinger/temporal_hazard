@@ -80,7 +80,9 @@ for (i in step_idx) {
     action   = action,
     variable = variable,
     phase    = phase,
-    stat     = z_val^2,   # Wald chi-square = Z^2; parity test squares R's z
+    stat     = z_val^2,   # Wald chi-square = Z^2 (recorded for reference; the
+                          # current parity test compares final-model agreement,
+                          # not per-step statistics)
     df       = 1L,
     p_value  = p_val,
     stringsAsFactors = FALSE

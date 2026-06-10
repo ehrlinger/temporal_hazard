@@ -93,7 +93,10 @@ DATA _NULL_;
   PUT "dataset=avc";
   PUT "dist=weibull";
   PUT "criterion=wald";
-  PUT "direction=forward";
+  /* SELECTION with both SLE and SLS is forward-backward; the listing includes
+     drop steps.  Record direction=both so a rebuild matches the committed
+     fixture (the R parity runner maps this to direction = "both"). */
+  PUT "direction=both";
   PUT "slentry=0.30";
   PUT "slstay=0.20";
   PUT "proc_hazard=SAS HAZARD (PROC HAZARD via %HAZARD macro)";

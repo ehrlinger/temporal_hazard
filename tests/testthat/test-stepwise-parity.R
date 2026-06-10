@@ -35,6 +35,20 @@
   data(avc, envir = environment())
   avc <- na.omit(avc)
 
+  # Multiphase fits with n_starts > 1 perturb the initial values using the
+  # ambient RNG.  Seed locally and restore the stream on exit so the test is
+  # reproducible and does not leak RNG state into later tests.
+  if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    old_seed <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+    on.exit(assign(".Random.seed", old_seed, envir = globalenv()), add = TRUE)
+  } else {
+    on.exit(
+      suppressWarnings(rm(".Random.seed", envir = globalenv())),
+      add = TRUE
+    )
+  }
+  set.seed(20260610L)
+
   # Two-phase (early CDF + constant) model matching SAS CONDITION=14:
   #   Early phase    -- Weibull CDF, THALF/NU/M fixed at the unconditional fit values
   #   Constant phase -- flat exponential hazard rate
@@ -78,14 +92,25 @@ test_that("AVC forward-Wald stepwise: R selects similar variables to SAS", {
   }
 
   r_fit   <- suppressWarnings(.stepwise_parity_run(fix))
-  r_steps <- r_fit$steps[r_fit$steps$action %in% c("enter", "drop"), ]
 
-  # R must enter at least as many variables as SAS has non-intercept final covariates.
-  sas_coef <- fix$final$coef
+  # Final fitted model's coefficient names (e.g. "early.com_iv").  Covariates
+  # are the rows whose suffix (after "phase.") is one of the scope candidates;
+  # intercepts (log_mu) and shape parameters (log_t_half, nu, m, ...) are not.
+  r_summary    <- summary(r_fit)$coefficients
+  r_coef_names <- rownames(r_summary)
+  cands        <- fix$scope$candidates
+  r_covariates <- r_coef_names[sub("^[^.]+\\.", "", r_coef_names) %in% cands]
+
+  # SAS non-intercept final covariates.
+  sas_coef       <- fix$final$coef
   sas_covariates <- sas_coef[!sas_coef$variable %in% c("e0", "c0"), ]
-  expect_gte(sum(r_steps$action == "enter"),
+
+  # R's *final model* must retain at least as many covariates as SAS selected.
+  # (Count coefficients in the fitted model, not accepted entry steps, so a
+  # variable that entered and was later dropped does not inflate the count.)
+  expect_gte(length(r_covariates),
              nrow(sas_covariates),
-             label = "R stepwise should enter at least as many variables as SAS selected")
+             label = "R final model should retain at least as many covariates as SAS selected")
 
   # Final log-likelihood: R may find a different (even better) optimum via a
   # different variable path; we only require it stays within the generous
@@ -98,9 +123,6 @@ test_that("AVC forward-Wald stepwise: R selects similar variables to SAS", {
 
   # Final variable set: SAS non-intercept covariates should largely appear in R.
   # Map fixture coef rows (variable + phase columns) to R's "phase.variable" naming.
-  r_summary <- summary(r_fit)$coefficients
-  r_coef_names <- rownames(r_summary)
-
   sas_varphase <- paste0(sas_covariates$phase, ".", sas_covariates$variable)
   n_shared <- sum(sas_varphase %in% r_coef_names)
 
