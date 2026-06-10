@@ -19,12 +19,14 @@ streams --- each carrying its own covariate effects.
 The total cumulative hazard decomposes additively across \eqn{J} phases:
 
 \deqn{H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \,
-      \Phi_j(t;\, t_{1/2,j},\, \nu_j,\, m_j)}
+      \Phi_j(t)}
 
 where \eqn{\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j^\top
 \boldsymbol{\beta}_j)} is the phase-specific log-linear scale (intercept plus
 covariate effects) and \eqn{\Phi_j(t)} is the temporal shape contributed by
-phase \eqn{j}.  The instantaneous hazard and survival follow directly:
+phase \eqn{j}, with its own parameters depending on the phase \code{type} (see the
+phase vocabulary below).  The instantaneous hazard and survival follow
+directly:
 
 \deqn{h(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \,
       \varphi_j(t), \qquad
