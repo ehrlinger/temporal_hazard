@@ -3,14 +3,14 @@
 # and passes CI without any SAS capture.
 #
 # To enable: run the SAS template in
-# `inst/extdata/stepwise-fixtures/cabgkul-forward-wald.sas`, then
+# `inst/extdata/stepwise-fixtures/avc-forward-wald.sas`, then
 # convert its three output files via:
 #
 #   TemporalHazard:::.hzr_build_stepwise_fixture(
 #     trace_csv = "path/to/stepwise_trace.csv",
 #     final_csv = "path/to/stepwise_final.csv",
 #     meta_txt  = "path/to/stepwise_meta.txt",
-#     out_path  = "inst/fixtures/stepwise-cabgkul-forward-wald.rds"
+#     out_path  = "inst/fixtures/stepwise-avc-forward-wald.rds"
 #   )
 
 .stepwise_parity_tolerance <- list(
@@ -22,25 +22,26 @@
 
 
 .stepwise_parity_run <- function(fix) {
-  if (fix$meta$dataset != "cabgkul") {
-    testthat::skip(paste0("Parity runner only wired up for CABGKUL so far; saw ",
+  if (fix$meta$dataset != "avc") {
+    testthat::skip(paste0("Parity runner only wired up for AVC so far; saw ",
                            fix$meta$dataset))
   }
-  data(cabgkul, envir = environment())
+  data(avc, envir = environment())
+  avc <- na.omit(avc)
 
   # Base model: intercept-only, same distribution as SAS, fit = TRUE
-  base <- hazard(
-    Surv(int_dead, dead) ~ 1,
-    data  = cabgkul,
+  base <- suppressWarnings(hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data  = avc,
     theta = c(0.5, 1.0),
     dist  = fix$meta$dist,
     fit   = TRUE
-  )
+  ))
 
   hzr_stepwise(
     base,
     scope     = fix$scope$candidates,
-    data      = cabgkul,
+    data      = avc,
     direction = fix$meta$direction,
     criterion = fix$meta$criterion,
     slentry   = fix$meta$slentry,
@@ -52,14 +53,15 @@
 }
 
 
-test_that("CABGKUL forward-Wald stepwise matches SAS output", {
-  fix <- .hzr_load_stepwise_fixture("cabgkul-forward-wald")
+test_that("AVC forward-Wald stepwise matches SAS output", {
+  skip_on_cran()
+  fix <- .hzr_load_stepwise_fixture("avc-forward-wald")
   if (is.null(fix)) {
-    skip("Stepwise parity fixture cabgkul-forward-wald.rds not found")
+    skip("Stepwise parity fixture avc-forward-wald.rds not found")
   }
 
-  r_fit <- .stepwise_parity_run(fix)
-  sas   <- fix$steps
+  r_fit   <- .stepwise_parity_run(fix)
+  sas     <- fix$steps
   r_steps <- r_fit$steps[r_fit$steps$action %in% c("enter", "drop"), ]
 
   # 1. Same number of accepted steps
