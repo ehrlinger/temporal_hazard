@@ -39,10 +39,10 @@ with \eqn{\varphi_j = d\Phi_j/dt}.  Each phase is specified with
 
 \tabular{llll}{
 \strong{Phase type} \tab \strong{\eqn{\Phi_j(t)}} \tab \strong{Domain} \tab \strong{Use} \cr
-\code{"cdf"}      \tab \eqn{G(t)}            \tab \eqn{[0, 1]}      \tab Early risk that resolves over time \cr
-\code{"hazard"}   \tab \eqn{-\log(1 - G(t))} \tab \eqn{[0, \infty)} \tab Late or aging risk that accumulates \cr
-\code{"g3"}       \tab \eqn{G_3(t)}          \tab \eqn{[0, \infty)} \tab Unbounded late risk (original C/SAS late phase) \cr
-\code{"constant"} \tab \eqn{t}               \tab \eqn{[0, \infty)} \tab Flat background rate (no shape parameters) \cr
+\code{"cdf"} \tab \eqn{G(t)} \tab \eqn{[0, 1]} \tab Early risk that resolves over time \cr
+\code{"hazard"} \tab \eqn{-\log(1 - G(t))} \tab \eqn{[0, \infty)} \tab Late or aging risk that accumulates \cr
+\code{"g3"} \tab \eqn{G_3(t)} \tab \eqn{[0, \infty)} \tab Unbounded late risk (original C/SAS late phase) \cr
+\code{"constant"} \tab \eqn{t} \tab \eqn{[0, \infty)} \tab Flat background rate (no shape parameters) \cr
 }
 
 Here \eqn{G(t)} is the generalized temporal decomposition CDF computed by
