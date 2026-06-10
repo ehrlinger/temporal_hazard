@@ -11,7 +11,7 @@ calibration means the two track each other across the risk spectrum."></head><bo
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -74,9 +74,10 @@ calibration means the two track each other across the risk spectrum.</p>
 
 
 <dt id="arg-time">time<a class="anchor" aria-label="anchor" href="#arg-time"></a></dt>
-<dd><p>Numeric scalar: the time point at which to evaluate
-predicted survival / cumulative hazard.  For example, <code>time = 12</code>
-evaluates 12-month predictions.</p></dd>
+<dd><p>Numeric scalar: the horizon at which predicted survival is used
+to <strong>rank subjects into risk groups</strong> (e.g. <code>time = 12</code> ranks by 12-month
+predicted survival). It does not restrict the event/expected counts, which
+are accumulated over each subject's full follow-up.</p></dd>
 
 
 <dt id="arg-groups">groups<a class="anchor" aria-label="anchor" href="#arg-groups"></a></dt>
@@ -97,19 +98,19 @@ times.  If <code>NULL</code> (default), extracted from the fitted object.</p></d
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A data frame with one row per risk group and columns:</p><dl><dt>group</dt>
-<dd><p>Integer group label (1 = lowest risk).</p></dd>
+<dd><p>Integer group label (1 = lowest risk, ranked by predicted
+survival at <code>time</code>).</p></dd>
 
 <dt>n</dt>
 <dd><p>Number of observations in the group.</p></dd>
 
 <dt>events</dt>
-<dd><p>Observed event count by the requested horizon
-(event indicator = 1 and event time &lt;= <code>time</code>).</p></dd>
+<dd><p>Observed event count in the group (all events over
+follow-up).</p></dd>
 
 <dt>expected</dt>
-<dd><p>Expected event count by the requested horizon,
-computed as the sum of individual event probabilities
-(\(1 - S(time)\)).</p></dd>
+<dd><p>Expected event count: the sum of each subject's predicted
+cumulative hazard at its own follow-up time.</p></dd>
 
 <dt>observed_rate</dt>
 <dd><p>Observed event rate (events / n).</p></dd>
@@ -126,11 +127,12 @@ expected.</p></dd>
 this group (1 df).</p></dd>
 
 <dt>mean_survival</dt>
-<dd><p>Mean predicted survival probability in the
-group.</p></dd>
+<dd><p>Mean predicted survival probability at the horizon
+in the group.</p></dd>
 
 <dt>mean_cumhaz</dt>
-<dd><p>Mean predicted cumulative hazard in the group.</p></dd>
+<dd><p>Mean predicted cumulative hazard at follow-up in the
+group.</p></dd>
 
 
 </dl><p>An attribute <code>"overall"</code> is attached with the overall chi-square
@@ -138,11 +140,14 @@ statistic, degrees of freedom, and p-value.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>This implements the workflow of the SAS <code>deciles.hazard.sas</code> macro.
-Patients are ranked by predicted cumulative hazard at a specified time
-point, grouped into quantile bins, and each bin is tested with a
-chi-square goodness-of-fit statistic. Subjects censored before the
-requested horizon are excluded from the observed-vs-expected comparison.</p>
+    <p>This reproduces the SAS <code>deciles.hazard.sas</code> macro. <strong>All</strong> subjects are
+ranked by predicted survival at the horizon <code>time</code> and split into equal-sized
+risk groups. Within each group the <strong>expected</strong> event count is the sum of
+each subject's predicted cumulative hazard at its <em>own</em> follow-up time, and
+the <strong>observed</strong> count is its number of events; under conservation of events
+the group totals sum to the total observed events. The horizon therefore only
+stratifies subjects into risk groups – it does not restrict or exclude any
+subject, and the expected/observed totals are independent of it.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -163,34 +168,34 @@ requested horizon are excluded from the observed-vs-expected comparison.</p>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="fu">hzr_deciles</span><span class="op">(</span><span class="va">fit</span>, time <span class="op">=</span> <span class="fl">120</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">cal</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Decile-of-risk calibration at time = 120 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Included 86 observations (excluded 219 censored before horizon).</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10 groups, 66 observed events, 29.4 expected</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Decile-of-risk calibration (risk grouped at time = 120 )</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 305 subjects, all included.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10 groups, 68 observed events, 68.1 expected</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  group n events expected observed_rate expected_rate chi_sq  p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      1 8      3    0.441         0.375        0.0552 14.800 0.000118</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      2 9      3    1.450         0.333        0.1610  1.670 0.196000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      3 8      3    1.780         0.375        0.2220  0.841 0.359000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      4 9      8    2.640         0.889        0.2940 10.900 0.000984</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      5 9      9    2.930         1.000        0.3260 12.500 0.000399</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      6 8      8    2.690         1.000        0.3360 10.500 0.001190</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      7 9      9    3.120         1.000        0.3460 11.100 0.000857</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      8 8      7    3.690         0.875        0.4610  2.980 0.084200</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      9 9      7    5.210         0.778        0.5780  0.618 0.432000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     10 9      9    5.460         1.000        0.6070  2.300 0.130000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  group  n events expected observed_rate expected_rate  chi_sq p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      1 31      2    0.949        0.0645        0.0306 1.16000  0.2810</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      2 30      3    3.080        0.1000        0.1030 0.00187  0.9660</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      3 31      5    4.900        0.1610        0.1580 0.00201  0.9640</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      4 30      1    6.760        0.0333        0.2250 4.91000  0.0267</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      5 31      4    7.330        0.1290        0.2360 1.51000  0.2190</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      6 30      7    7.160        0.2330        0.2390 0.00353  0.9530</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      7 31     12    6.600        0.3870        0.2130 4.41000  0.0357</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      8 30     10    6.860        0.3330        0.2290 1.44000  0.2310</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      9 31     11   12.300        0.3550        0.3970 0.14100  0.7070</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     10 30     13   12.200        0.4330        0.4060 0.05720  0.8110</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  mean_survival mean_cumhaz</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          0.945      0.0579</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          0.839      0.1760</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          0.778      0.2510</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          0.706      0.3480</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          0.674      0.3950</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          0.664      0.4090</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          0.654      0.4250</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          0.539      0.6240</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          0.422      0.8640</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          0.393      0.9330</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          0.963      0.0306</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          0.881      0.1030</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          0.814      0.1580</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          0.757      0.2250</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          0.717      0.2360</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          0.681      0.2390</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          0.668      0.2130</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          0.655      0.2290</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          0.520      0.3970</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          0.396      0.4060</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Overall: chi-sq = 68.3 on 9 df, p = 3.34e-11 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Overall: chi-sq = 13.6 on 9 df, p = 0.136 </span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

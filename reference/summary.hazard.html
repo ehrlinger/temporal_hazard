@@ -9,7 +9,7 @@ fit diagnostics, and coefficient-level statistics when available."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -127,6 +127,11 @@ fit diagnostics, and coefficient-level statistics when available.</p>
 <span class="r-in"><span>  fit     <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">5</span>, maxit <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>hessian_fn returned a non-conformant result; using numerical Hessian</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>hessian_fn returned a non-conformant result; using numerical Hessian</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>hessian_fn returned a non-conformant result; using numerical Hessian</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>hessian_fn returned a non-conformant result; using numerical Hessian</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>hessian_fn returned a non-conformant result; using numerical Hessian</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_mp</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Multiphase hazard model (2 phases)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   observations: 200 </span>
@@ -142,18 +147,18 @@ fit diagnostics, and coefficient-level statistics when available.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Coefficients (internal scale):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: early (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate std_error z_stat p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -2.1153072        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half -0.6931472        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          2.0000000        NA     NA      NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m           0.0000000        NA     NA      NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                estimate std_error    z_stat      p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     -2.1153072 0.2910751 -7.267221 3.669585e-13</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half -0.6931472        NA        NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu          2.0000000        NA        NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m           0.0000000        NA        NA           NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Phase: late (cdf)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               estimate  std_error  z_stat      p_value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     0.5511641 0.04098849 13.4468 3.214692e-41</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half 1.6094379         NA      NA           NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   nu         1.0000000         NA      NA           NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   m          0.0000000         NA      NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               estimate  std_error   z_stat      p_value</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_mu     0.5511641 0.09532812 5.781758 7.392398e-09</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   log_t_half 1.6094379         NA       NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   nu         1.0000000         NA       NA           NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   m          0.0000000         NA       NA           NA</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

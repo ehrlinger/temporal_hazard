@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -123,11 +123,11 @@
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt;          estimate   std_error      z_stat      p_value</span></span>
-<span><span class="co">#&gt; mu    0.121860518 0.062260594  1.95726558 5.031625e-02</span></span>
+<span><span class="co">#&gt; mu    0.121860518 0.062260593  1.95726560 5.031625e-02</span></span>
 <span><span class="co">#&gt; nu    1.143730632 0.084302528 13.56697905 6.285984e-42</span></span>
 <span><span class="co">#&gt; beta1 0.001716551 0.008807986  0.19488579 8.454824e-01</span></span>
-<span><span class="co">#&gt; beta2 0.156208724 0.090597558  1.72420457 8.467092e-02</span></span>
-<span><span class="co">#&gt; beta3 0.017352702 0.362918437  0.04781433 9.618642e-01</span></span></code></pre></div>
+<span><span class="co">#&gt; beta2 0.156208724 0.090597558  1.72420458 8.467092e-02</span></span>
+<span><span class="co">#&gt; beta3 0.017352702 0.362918430  0.04781433 9.618642e-01</span></span></code></pre></div>
 </div>
 </section><section class="level2"><h2 id="prediction-workflow">Prediction workflow<a class="anchor" aria-label="anchor" href="#prediction-workflow"></a>
 </h2>
@@ -264,23 +264,23 @@ Figure 1: Parametric Weibull survival curve with Kaplan-Meier overlay
 <span><span class="co">#&gt; Coefficients (internal scale):</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Phase: early (cdf)</span></span>
-<span><span class="co">#&gt;               estimate std_error    z_stat p_value</span></span>
-<span><span class="co">#&gt;   log_mu     -3.779538 0.0835127 -45.25704       0</span></span>
-<span><span class="co">#&gt;   log_t_half -1.609438        NA        NA      NA</span></span>
-<span><span class="co">#&gt;   nu          1.000000        NA        NA      NA</span></span>
-<span><span class="co">#&gt;   m           1.000000        NA        NA      NA</span></span>
+<span><span class="co">#&gt;               estimate  std_error    z_stat p_value</span></span>
+<span><span class="co">#&gt;   log_mu     -3.779546 0.09381208 -40.28848       0</span></span>
+<span><span class="co">#&gt;   log_t_half -1.609438         NA        NA      NA</span></span>
+<span><span class="co">#&gt;   nu          1.000000         NA        NA      NA</span></span>
+<span><span class="co">#&gt;   m           1.000000         NA        NA      NA</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Phase: constant (constant)</span></span>
-<span><span class="co">#&gt;           estimate  std_error    z_stat p_value</span></span>
-<span><span class="co">#&gt;   log_mu -7.225804 0.08275159 -87.31921       0</span></span>
+<span><span class="co">#&gt;           estimate  std_error   z_stat p_value</span></span>
+<span><span class="co">#&gt;   log_mu -7.225794 0.09312623 -77.5914       0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Phase: late (g3)</span></span>
-<span><span class="co">#&gt;            estimate std_error z_stat p_value</span></span>
-<span><span class="co">#&gt;   log_mu  -16.65781        NA     NA      NA</span></span>
-<span><span class="co">#&gt;   log_tau   0.00000        NA     NA      NA</span></span>
-<span><span class="co">#&gt;   gamma     3.00000        NA     NA      NA</span></span>
-<span><span class="co">#&gt;   alpha     1.00000        NA     NA      NA</span></span>
-<span><span class="co">#&gt;   eta       1.00000        NA     NA      NA</span></span></code></pre></div>
+<span><span class="co">#&gt;            estimate std_error    z_stat p_value</span></span>
+<span><span class="co">#&gt;   log_mu  -16.65782 0.1157721 -143.8846       0</span></span>
+<span><span class="co">#&gt;   log_tau   0.00000        NA        NA      NA</span></span>
+<span><span class="co">#&gt;   gamma     3.00000        NA        NA      NA</span></span>
+<span><span class="co">#&gt;   alpha     1.00000        NA        NA      NA</span></span>
+<span><span class="co">#&gt;   eta       1.00000        NA        NA      NA</span></span></code></pre></div>
 </div>
 <p>The summary marks most rows <code>NA</code> in the <code>std_error</code>, <code>z_stat</code>, and <code>p_value</code> columns. Two mechanisms produce these, both deliberate:</p>
 <ul>

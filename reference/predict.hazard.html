@@ -9,7 +9,7 @@ types including linear predictor, hazard, survival probability, and cumulative h
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,6 +67,7 @@ types including linear predictor, hazard, survival probability, and cumulative h
 <span>  decompose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  se.fit <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  conf.type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"log-log"</span>, <span class="st">"logit"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -87,7 +88,11 @@ column, or time will be taken from the fitted object's data.</p></dd>
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
 <dd><p>Prediction type:</p><ul><li><p><code>"linear_predictor"</code>: Linear predictor eta = x*beta (not available for multiphase)</p></li>
-<li><p><code>"hazard"</code>: Hazard scale exp(eta) (not available for multiphase)</p></li>
+<li><p><code>"hazard"</code>: Instantaneous hazard. Single-distribution models return the
+hazard scale exp(eta); multiphase models return the additive hazard
+h(t|x) = sum_j mu_j(x) phi_j'(t) and so require time values (like
+<code>"survival"</code>/<code>"cumulative_hazard"</code>). <code>decompose</code> is not supported for
+<code>"hazard"</code>.</p></li>
 <li><p><code>"survival"</code>: Survival probability S(t|x) = exp(-H(t|x))</p></li>
 <li><p><code>"cumulative_hazard"</code>: Cumulative hazard H(t|x) at event times</p></li>
 </ul></dd>
@@ -106,12 +111,28 @@ frame with columns <code>fit</code>, <code>se.fit</code>, <code>lower</code>, <c
 CLs are computed on the log-hazard / log-cumhaz scale and on the
 log(-log(survival)) scale so lower/upper stay inside the valid range
 of each prediction type; <code>linear_predictor</code> uses symmetric natural-scale
-CLs.  Not compatible with <code>decompose = TRUE</code>.</p></dd>
+CLs.
+For multiphase models, <code>se.fit = TRUE</code> combines with <code>decompose = TRUE</code>
+when <code>type = "cumulative_hazard"</code>: the result is a long data frame with one
+row per prediction time and component (<code>component</code> in <code>"total"</code> plus each
+phase name) and columns <code>fit</code>, <code>se.fit</code>, <code>lower</code>, <code>upper</code>. Per-phase CLs
+use only that phase's parameters, so they do not sum to the total CL.
+The combination is not available for <code>type = "survival"</code> (per-phase
+survival is not additive).</p></dd>
 
 
 <dt id="arg-level">level<a class="anchor" aria-label="anchor" href="#arg-level"></a></dt>
 <dd><p>Numeric confidence level in <code>(0, 1)</code>; default <code>0.95</code>.
 Only used when <code>se.fit = TRUE</code>.</p></dd>
+
+
+<dt id="arg-conf-type">conf.type<a class="anchor" aria-label="anchor" href="#arg-conf-type"></a></dt>
+<dd><p>Transform for <code>type = "survival"</code> confidence limits when
+<code>se.fit = TRUE</code>: <code>"log-log"</code> (default) builds them on <code>log(-log S)</code> (the
+<code><a href="https://rdrr.io/pkg/survival/man/survfit.html" class="external-link">survival::survfit</a></code> standard); <code>"logit"</code> builds them on <code>logit(1 - S)</code>,
+reproducing SAS HAZARD's <code>HAZPRED</code> survival limits. Other types are
+unaffected (hazard/cumulative-hazard use a log scale that already matches
+HAZPRED). Only used when <code>se.fit = TRUE</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -120,7 +141,13 @@ Only used when <code>se.fit = TRUE</code>.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>Numeric vector of predictions.</p>
+    <p>When <code>se.fit = FALSE</code> (default), a numeric vector of predictions.
+When <code>se.fit = TRUE</code>, a data frame with columns <code>fit</code>, <code>se.fit</code>, <code>lower</code>,
+<code>upper</code> (delta-method point estimate, standard error, and confidence
+limits at <code>level</code>). For multiphase <code>type = "cumulative_hazard"</code> with
+<code>decompose = TRUE</code>, a long data frame (<code>time</code>, <code>component</code>, <code>fit</code>,
+<code>se.fit</code>, <code>lower</code>, <code>upper</code>); with <code>decompose = TRUE</code> and <code>se.fit = FALSE</code>,
+a wide data frame of per-phase contributions.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -131,16 +158,6 @@ it will be used; otherwise, the time vector from the fitted object is used.
 For models fit with <code>time_windows</code>, predictions for <code>type = "linear_predictor"</code>
 or <code>"hazard"</code> also require time values (via <code>newdata$time</code> or fitted-time fallback)
 so window-specific coefficients can be selected.</p>
-    </div>
-    <div class="section level2">
-    <h2 id="known-limitations">Known limitations<a class="anchor" aria-label="anchor" href="#known-limitations"></a></h2>
-
-
-<p><code>decompose = TRUE</code> and <code>se.fit = TRUE</code> cannot be used together.  The
-delta-method Jacobian has not yet been extended to per-phase contributions.
-To obtain confidence limits for a multiphase model, request point predictions
-first (<code>decompose = TRUE, se.fit = FALSE</code>), then separately request CLs on
-the total prediction (<code>decompose = FALSE, se.fit = TRUE</code>).</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -265,6 +282,11 @@ workflows including decomposed hazard plots and patient-specific curves.</p></di
 <span class="r-in"><span>  fit     <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">5</span>, maxit <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>hessian_fn returned a non-conformant result; using numerical Hessian</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>hessian_fn returned a non-conformant result; using numerical Hessian</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>hessian_fn returned a non-conformant result; using numerical Hessian</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>hessian_fn returned a non-conformant result; using numerical Hessian</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>hessian_fn returned a non-conformant result; using numerical Hessian</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">t_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.01</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">time</span><span class="op">)</span> <span class="op">*</span> <span class="fl">0.9</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">nd</span>     <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>time <span class="op">=</span> <span class="va">t_grid</span><span class="op">)</span></span></span>

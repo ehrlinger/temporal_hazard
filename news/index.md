@@ -1,6 +1,362 @@
 # Changelog
 
-## TemporalHazard 1.0.3.9000 (development version)
+## TemporalHazard 1.1.0
+
+### New features
+
+- `predict.hazard(type = "hazard")` now works for **multiphase** models,
+  returning the instantaneous additive hazard
+  `h(t|x) = sum_j mu_j(x) phi_j'(t)` (previously only
+  single-distribution models supported `"hazard"`, via `exp(eta)`). Like
+  `"survival"` / `"cumulative_hazard"` it is time-based (requires
+  `newdata$time`), supports covariate `newdata`, and `se.fit = TRUE`
+  (delta-method limits on the log scale via a numeric Jacobian of the
+  hazard evaluator). `decompose = TRUE` is not supported for `"hazard"`.
+  This gives the multiphase instantaneous hazard a public route (it was
+  previously reachable only through internal functions).
+
+- `predict.hazard(..., se.fit = TRUE, conf.type = "logit")` selects the
+  survival confidence-limit transform. The default `"log-log"` builds
+  limits on `log(-log S)` (the
+  [`survival::survfit`](https://rdrr.io/pkg/survival/man/survfit.html)
+  standard); `"logit"` builds them on `logit(1 - S)`, reproducing SAS
+  HAZARD’s `HAZPRED` survival limits. With the full-information vcov for
+  CoE fits, `conf.type = "logit"` matches the SAS `hp.death.AVC`
+  survival CLs to ~1e-5. Hazard / cumulative-hazard limits are
+  unaffected (their log scale already matches HAZPRED).
+
+- `predict.hazard(type = "cumulative_hazard", decompose = TRUE, se.fit = TRUE)`
+  now returns per-phase **and** total delta-method confidence limits for
+  multiphase models, as a long data frame (`time`, `component`, `fit`,
+  `se.fit`, `lower`, `upper`). Each phase’s CL uses only that phase’s
+  parameters, so per-phase limits do not sum to the total. Previously
+  this combination raised an error.
+
+### Changes
+
+- **[`hzr_deciles()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_deciles.md)
+  now matches the SAS `deciles.hazard` macro exactly.** Previously it
+  excluded subjects censored before the horizon and defined the expected
+  count as `sum(1 - S(horizon))`. It now follows the SAS method: **all**
+  subjects are ranked into equal-sized risk groups by predicted survival
+  at the horizon, and the expected count per group is the **sum of
+  predicted cumulative hazard at each subject’s own follow-up time** (so
+  group totals sum to the total observed events under conservation of
+  events). The `time` argument now only stratifies subjects into risk
+  groups; it no longer restricts or excludes any subject, and the
+  expected/observed totals are horizon-independent. Verified to
+  reproduce the `hm.death.AVC.deciles` SAS decile table
+  (CASES/EXPECTED/ACTUAL) to print precision. The output columns are
+  unchanged; their definitions are updated in
+  [`?hzr_deciles`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_deciles.md).
+
+### Bug fixes
+
+- **Conservation-of-Events fits now report the full-information
+  variance.** CoE removes one phase’s `log_mu` from the optimizer
+  *search* (its score equation is the CoE constraint), but the previous
+  code also dropped it from the *uncertainty* – the conserved phase got
+  an `NA` standard error, and anything depending on it (other SEs,
+  `se(H)`, prediction confidence limits) was understated wherever that
+  phase contributed. At the optimum the CoE solution is the
+  unconstrained MLE, so [`vcov()`](https://rdrr.io/r/stats/vcov.html) is
+  now recomputed from the unconstrained-objective Hessian over the full
+  free set (including the conserved `log_mu`), matching an all-`mu`-free
+  (`conserve = FALSE`) fit at the same point. On `hz.death.AVC` every
+  parameter SE now matches the SAS HAZARD reference (e.g. the conserved
+  early `log_mu`: 0.133 vs the previous ~0.059). The recomputation uses
+  `numDeriv` (Suggests) and an invertible Hessian; if either is
+  unavailable the fit emits a warning and the conserved `log_mu` retains
+  an `NA` standard error (as before).
+
+- **Conservation of Events ignored left-truncation (counting-process
+  entry times).** For multiphase fits on `Surv(start, stop, event)`
+  data, the CoE reparameterization conserved `Sum H(stop)` while the
+  likelihood scores the intercepts on the entry-time scale,
+  `Sum E = Sum [H(stop) - H(start)]`. The conserved phase therefore
+  absorbed the spurious `Sum H(start)`, biasing its intercept and
+  lowering the attained log-likelihood (the `hz.te123.OMC` fit-1 parity
+  offset, gap-list P1
+  [\#6](https://github.com/ehrlinger/temporal_hazard/issues/6)).
+  [`.hzr_conserve_events()`](https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_conserve_events.md)
+  and
+  [`.hzr_select_fixmu_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_select_fixmu_phase.md)
+  now subtract the per-phase entry-time cumulative hazard, matching the
+  likelihood and C HAZARD `setcoe` under `LCENSOR`/ `STARTTME`. Plain
+  right-censored fits (no `start` time) are unaffected.
+
+- **[`vcov()`](https://rdrr.io/r/stats/vcov.html) was unusable for
+  multiphase fits and returned an unnamed matrix.**
+  [`vcov.hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/vcov.hazard.md)
+  collapsed the entire matrix to a scalar `NA` whenever any cell was
+  `NA`. Multiphase fits legitimately have `NA` variance rows – for
+  parameters held fixed (e.g. early shapes) and for the
+  Conservation-of-Events-conserved phase `log_mu` – so the finite
+  free-parameter block was discarded for almost every multiphase model.
+  The method now returns the full matrix with `NA` rows preserved and
+  labels rows and columns with the coefficient names (phase-prefixed for
+  multiphase, e.g. `early.x` vs `constant.x`), so a covariate shared
+  across phases resolves to distinct, name-addressable slots. A scalar
+  `NA` is returned only when no covariance matrix is available.
+
+- **Weibull analytic gradient produced `NaN` for right-censored
+  `time = 0` rows.** `.hzr_gradient_weibull()` used an unguarded
+  `log(time)` in the shape (`nu`) score; a legal right-censored row at
+  `time = 0` made `0 * -Inf = NaN`, which poisoned the entire summed
+  shape-gradient component (then silently zeroed by the optimizer,
+  harming convergence). `log(time)` is now guarded with
+  `log(pmax(time, .Machine$double.xmin))`, matching the analytic
+  Hessian. The other families were audited: exponential (no `log(time)`
+  in the score), log-normal (rejects `time = 0`), and multiphase (the
+  decomposition clamps `time`) are unaffected.
+
+- **Weibull event hazard was inconsistent with its cumulative hazard.**
+  `.hzr_logl_weibull()` defined the event hazard as
+  `mu*nu*t^(nu-1)*exp(eta)` while the cumulative hazard was
+  `(mu*t)^nu*exp(eta)`; the former is missing a `mu^(nu-1)` factor (the
+  exact derivative is `nu*mu^nu*t^(nu-1)*exp(eta) = (nu/t)*H`, Form A as
+  in the C/SAS HAZARD reference). The natural-scale log-likelihood and
+  its analytic gradient (`d/dmu`, `d/dnu` event terms) are corrected to
+  match. Pure event/right-censored fits were already correct (they use
+  the self-consistent internal reparameterization); the visible effect
+  is on **mixed event + interval/left-censored Weibull fits**, which
+  delegate to this likelihood and previously optimized a slightly
+  mis-specified event term.
+
+- **Weibull gradient attribute ignored observation weights.**
+  `.hzr_logl_weibull(..., return_gradient = TRUE)` attached an
+  unweighted gradient even when `weights` were supplied (the analytic
+  gradient was off by the weight scale, e.g. halved under
+  `weights = 2`). `weights` is now forwarded to the score computation.
+  The model-fitting path was unaffected (it uses a separate internal
+  weighted gradient); this only changes callers reading the
+  `return_gradient = TRUE` attribute on weighted data.
+
+- **[`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)
+  was non-functional for weighted fits** (Phase 7c). The resample loop
+  rewired only `data` in the refit call, leaving the original `weights`
+  argument bound to a symbol in the *caller’s* frame. The internal
+  [`eval()`](https://rdrr.io/r/base/eval.html) could not resolve that
+  symbol, so **every** replicate of a weighted model errored out
+  (`n_success == 0`) regardless of `fraction`; even had it resolved, the
+  un-resampled weights would have been misaligned with the bootstrapped
+  rows. `weights` is now evaluated once and resampled in lockstep with
+  the data on each replicate (mirroring how `data` is handled).
+  Unweighted bootstraps are unaffected. A regression test covers both
+  the `fraction < 1` and full-size weighted paths in
+  `test-diagnostics.R`. Follow-up:
+  [`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)
+  now resamples the weights already stored on the fitted object
+  (`object$data$weights`) rather than re-evaluating the call’s `weights`
+  expression in
+  [`parent.frame()`](https://rdrr.io/r/base/sys.parent.html), which
+  fails when the original symbol is no longer in scope (e.g. the fit was
+  built inside a helper that has returned). Caller-frame evaluation
+  remains a fallback for objects fitted before weights were stored. The
+  same fragility applied to the call’s `data` argument:
+  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+  now stores the evaluated `data` argument (the data frame passed to
+  [`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md),
+  not a [`model.frame()`](https://rdrr.io/r/stats/model.frame.html)
+  result) on the fitted object (`object$data$frame`), and
+  [`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)
+  resamples that stored frame instead of re-evaluating `cl$data` in
+  [`parent.frame()`](https://rdrr.io/r/base/sys.parent.html), so
+  bootstrap succeeds even when the original `data` symbol is out of
+  scope. Caller-frame evaluation remains a fallback for objects fitted
+  before the frame was stored.
+
+- **4-phase CoE fixmu-phase selection** (Phase 7d).
+  [`.hzr_select_fixmu_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_select_fixmu_phase.md)
+  used [`which.max()`](https://rdrr.io/r/base/which.min.html) over raw
+  per-phase cumhaz at the starting theta. G3 late phases with typical
+  shape parameters have unnormalized cumhaz orders of magnitude larger
+  than other phases, causing CoE to pin the G3 `log_mu` away from its
+  true near-zero MLE. Fixed by excluding phases whose cumhaz
+  contribution exceeds 10× the median before selecting (falls back to
+  `which.max` when all phases are outliers). On the 4-phase CABGKUL fit
+  the CoE vs no-CoE LL gap closes from 6.9 to \< 0.1 units. Six new
+  tests cover the 4-phase code path in `test-conservation-of-events.R`.
+
+- **`time_lower` dual-use bug in Weibull and multiphase likelihoods.**
+  When `time_lower` was supplied for a mixed interval-censored +
+  right-censored dataset, the Weibull LL interpreted `time_lower` as the
+  counting-process *entry time* for right-censored rows, computing
+  H(stop) − H(start) = 0 and silently zeroing those rows’ likelihood
+  contribution. Fixed in `likelihood-weibull.R` (4 sites: LL, gradient,
+  L-BFGS-B internal LL/gradient) and `likelihood-multiphase.R`:
+  `start_vec` is now set from `time_lower` only for genuine epoch rows
+  (`status %in% c(0L, 1L)` and `time_lower < time`). Two regression
+  tests added to `test-interval-censoring-weibull.R`.
+
+- **[`hzr_decompos()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos.md)
+  Case 3 corrected and `nu = 0, m >= 0` now fails loud** (Phase 7d). Two
+  issues in the early-phase (G1) sign dispatch:
+
+  - **Case 3 (`m > 0, nu < 0`, “bounded cumulative”) carried a spurious
+    factor of `m`.** Its `rho` used a bare `(2^m - 1)^nu` instead of the
+    `((2^m - 1)/m)^nu` form used by Case 1, leaving an `m` factor on the
+    `bt^(-1/nu)` term. The CDF diverged from the C HAZARD G1 evaluator
+    (`g1flag = 5`) by up to ~0.2 and was discontinuous with its `m -> 0`
+    limit (Case 3L). Adding the `/m` divisor makes the `m` factors
+    cancel, reproducing the C evaluator exactly and restoring continuity
+    (verified against `src/common/hzd_ln_G1_and_SG1.c`). No shipped
+    phase uses Case 3, so fitted models are unaffected; the synthetic
+    3-phase golden fixture was regenerated because its free-shape
+    optimizer path crosses Case 3 territory.
+  - **`nu = 0` with `m >= 0`** fell through every dispatch branch,
+    leaving the CDF unassigned and raising the cryptic
+    `object 'G' not found`. The `nu -> 0` limit is defined only for
+    `m < 0`; for `m >= 0` it is degenerate. The function now raises a
+    clear, explanatory error. New `test-decompos-boundary.R` locks in
+    continuity of all limiting branches (Case 1 -\> 1L, 2 -\> 1L, 2 -\>
+    2L, 3 -\> 3L), Case 3 \<-\> C `g1flag=5` parity, `g = dG/dt`
+    internal consistency, CDF sanity, and stability at extreme `t_half`.
+
+### Improvements
+
+- **Hardened Hessian inversion for standard errors (Phase 7c).**
+  Post-fit variance-covariance estimation now symmetrizes the Hessian,
+  checks its reciprocal condition number, inverts via Cholesky with a
+  [`solve()`](https://rdrr.io/r/base/solve.html) fallback for
+  non-positive-definite Hessians, and guards non-positive variances
+  instead of silently emitting `NaN` standard errors. Ill-conditioned,
+  non-positive-definite, and non-finite Hessians now raise specific,
+  named warnings, and fits carry `rcond` / `pd` diagnostics that
+  [`summary()`](https://rdrr.io/r/base/summary.html) surfaces as a note
+  when a fit is flagged. This closes the “12+-parameter Hessian
+  stability” hardening item for the inversion layer; analytic Hessians
+  (more accurate standard errors) follow in subsequent releases.
+
+- **Analytic Hessian for exponential standard errors (Phase 7c, Layer
+  2).** The exponential distribution now computes its post-fit Hessian
+  in closed form (`X~' diag(wH) X~` over event + right-censored rows)
+  rather than numerically, giving more accurate standard errors. The
+  shared optimizer gained a `hessian_fn` hook that analytic Hessians for
+  the remaining families will reuse; left/interval-censored exponential
+  fits fall back to the numerical Hessian.
+
+- **Analytic Hessian for Weibull standard errors (Phase 7c, Layer 2).**
+  The Weibull distribution now computes its post-fit Hessian in closed
+  form on the internal `(alpha, psi, beta)` optimization scale (then
+  mapped to the natural scale by the existing delta method) rather than
+  numerically, giving more accurate standard errors. Covers event +
+  right-censored data (including counting-process start times);
+  left/interval-censored fits fall back to the numerical Hessian.
+
+- **Analytic Hessian for log-logistic standard errors (Phase 7c, Layer
+  2).** The log-logistic distribution now computes its post-fit Hessian
+  in closed form on the internal `(log alpha, log beta, beta_coef)`
+  scale rather than numerically, giving more accurate standard errors.
+  Covers event + right-censored data; left/interval-censored fits fall
+  back to the numerical Hessian.
+
+- **Analytic Hessian for log-normal standard errors (Phase 7c, Layer
+  2).** The log-normal distribution now computes its post-fit Hessian in
+  closed form on the internal `(mu, log_sigma, beta_coef)` scale rather
+  than numerically, giving more accurate standard errors. Covers event +
+  right-censored data; left/interval-censored fits fall back to the
+  numerical Hessian.
+
+- **Analytic Hessian for multiphase standard errors (Phase 7c, Layer 2
+  PR-6).** Post-fit standard errors for all multiphase fits now come
+  from a closed-form Hessian of the negative log-likelihood rather than
+  a numerical Richardson approximation. The Hessian is assembled from
+  three terms: (A) a phase-block-diagonal curvature of Σᵢ wᵢ H(tᵢ), (B)
+  a dense Fisher information outer product Σₑ (wᵢ/hᵢ²) ∇h ∇hᵀ capturing
+  cross-phase parameter interactions, and (C) a phase-block-diagonal
+  curvature of −Σₑ wᵢ log h(tᵢ). μ/β parameters use fully closed-form
+  expressions; shape parameters (t_half, ν, m, and G3 parameters) use
+  second-order central differences. The Conservation-of-Events
+  full-information vcov path also switches to the analytic Hessian.
+  Left/interval-censored fits fall back to the numerical Hessian.
+  Completes the 6-PR analytic-Hessian rollout across all five families.
+
+### Documentation
+
+- [`vignette("fitting-hazard-models")`](https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.md)
+  gains an **Interval and left censoring** section covering: status
+  coding reference (`-1`/`0`/`1`/`2`), a cardiac clinic-visit simulation
+  with right- and interval-censored observations, the direct
+  `time_lower`/`time_upper` API, and a comparison showing the
+  interval-censored fit recovering `nu` close to 1.0 (true value) while
+  the naive exact-at-upper fit incurs a shape bias of ~+0.45. Includes a
+  callout note on the correct use of `time_lower = 0` for right-censored
+  rows.
+- [`vignette("fitting-hazard-models")`](https://ehrlinger.github.io/temporal_hazard/articles/fitting-hazard-models.md)
+  gains a **Convergence troubleshooting** section covering: reading the
+  KM cumulative hazard for Weibull starting values (log-log plot), when
+  to fix shape parameters vs. estimate freely, diagnosing
+  overparameterization via near-zero phase scales and `NA` from
+  [`vcov()`](https://rdrr.io/r/stats/vcov.html), and `control` options
+  (`n_starts`, `maxit`).
+
+### Testing
+
+- **Patient-specific HAZPRED prediction parity** (Group A fixtures
+  `hp.death.AVC.hm1` / `hm2`). New `test-sas-parity.R` blocks predict
+  survival and instantaneous hazard – with logit survival CLs and log
+  hazard CLs at the SAS 1-SD level – from the saved multivariable
+  both-phase model (`hm.death.AVC` final fit, “HMDEATH”) for two
+  covariate profiles each (hm1: with/without an associated cardiac
+  anomaly; hm2: complete vs partial canal by date of repair), matching
+  SAS to ~5e-4 (survival) / ~8e-3 (hazard; the looser hazard tolerance
+  reflects the near-singular 9-coefficient fit and the steep early-phase
+  times). Adds a header-driven `.hzr_parse_sas_nomogram_mv()` (parses
+  the BY-group “digital nomogram” whose rows each carry their own
+  covariate vector) and a shared `.hzr_fit_avc_hmdeath()` helper.
+
+- **Stratified HAZPRED calibration parity** (Group A fixture
+  `hs.death.AVC.hm1`). New `test-sas-parity.R` blocks reproduce the
+  population-averaged, stratified-by-`COM_IV` outputs from the same
+  HMDEATH model: (1) the observed-vs-expected “predict number of deaths”
+  table – per stratum, EXPECTED = sum of predicted cumulative hazard at
+  each subject’s own follow-up, PEXPECT = sum of predicted death
+  probability, ACTUAL = observed deaths (totals conserve events, 14.76 +
+  55.24 = 70), to ~5e-3; and
+
+  2.  the per-stratum mean survival curve (MSURVIV) at the digital time
+      grid, to ~5e-4. Adds `.hzr_parse_sas_calibration()` and
+      `.hzr_parse_sas_strata_survival()`.
+
+- **`hm.death.AVC` stepwise documented as a non-parity gap** (Group A).
+  The phase-aware forward `SELECTION SLE=0.2 SLS=0.1` fit’s *final*
+  selected model is the saved “HMDEATH” fit already verified by the
+  `hm.death.AVC.deciles` / `hp.death.AVC.hm1` / `hm2` parity tests; its
+  *selection path* cannot be reproduced (SAS uses approximate variances
+  during selection while R’s full Hessian is near-singular here; SAS’s
+  `/I` `/S` flags are phase-level but R’s `force_in` is phase-blind; R
+  oscillates at p ~ slstay and lands in a worse basin – the same
+  divergence already documented for `hm.deadp.VALVES`).
+  `test-sas-parity.R` gains a regression-guard test that exercises the
+  multiphase phase-aware stepwise path end-to-end on real data without
+  asserting path parity; see `inst/dev/FIXTURE-GAP-LIST.md`.
+
+- **`bs.death.AVC` bootstrap documented as a non-parity gap** (Group A).
+  SAS `%HAZBOOT` runs a fresh stepwise selection on each bootstrap
+  resample and reports a variable-selection frequency; R’s
+  [`hzr_bootstrap()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_bootstrap.md)
+  resamples and refits a *fixed* model (no embedded-selection mode), and
+  reimplementing the SAS procedure would inherit the documented
+  `hm.death.AVC` stepwise divergence. `test-sas-parity.R` adds
+  `.hzr_parse_sas_bootstrap()` and asserts the SAS reference selection
+  frequencies in parseable form (so the parity test is half-written for
+  a future bootstrap-with-selection capability), plus a regression guard
+  that R’s fixed-model bootstrap runs on the cohort; see
+  `inst/dev/FIXTURE-GAP-LIST.md`.
+
+- **Phase-specific covariate recovery tests** (Phase 7d). New
+  `test-phase-specific-covariates.R` confirms that
+  `hzr_phase(formula = ~ ...)` is correct, not just runnable:
+  simulation-based recovery tests verify that a covariate entered into
+  one phase recovers its true coefficient, that the same covariate
+  carries independent (here opposite-sign) effects across two phases,
+  and that a covariate confined to one phase does not leak into another.
+  This is the honest substitute for a SAS parity fixture and guards
+  against the “accepts the formal but never applies it” regression that
+  has surfaced before with weights and counting-process times.
+
+------------------------------------------------------------------------
 
 ## TemporalHazard 1.0.3
 

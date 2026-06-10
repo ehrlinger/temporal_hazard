@@ -20,6 +20,7 @@
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/coef.hazard.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_as_design_matrix.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_conserve_events.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_free_vcov.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_g3_phase_derivatives.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_gradient_multiphase.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_log_mu_positions.html</loc></url>
@@ -42,6 +43,7 @@
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_predict_jacobian_weibull.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_predict_se_from_jacobian.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_predict_with_se.html</loc></url>
+<url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_predict_with_se_decomposed.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_select_fixmu_phase.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_split_theta.html</loc></url>
 <url><loc>https://ehrlinger.github.io/temporal_hazard/reference/dot-hzr_unpack_phase_theta.html</loc></url>

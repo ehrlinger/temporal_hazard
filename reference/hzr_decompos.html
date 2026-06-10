@@ -13,7 +13,7 @@ temporal phase shapes used in multiphase hazard models."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -123,7 +123,10 @@ collapse onto the three parameters here.  See
 
 
 <p>Six cases are defined by the signs of <code>nu</code> and <code>m</code>:</p>
-<table class="table table"><tr><td><strong>Case</strong></td><td><strong>Sign</strong></td><td><strong>Behavior</strong></td></tr><tr><td>1</td><td>m &gt; 0, nu &gt; 0</td><td>Standard sigmoidal</td></tr><tr><td>1L</td><td>m = 0, nu &gt; 0</td><td>Exponential-like (Weibull CDF)</td></tr><tr><td>2</td><td>m &lt; 0, nu &gt; 0</td><td>Heavy-tailed</td></tr><tr><td>2L</td><td>m &lt; 0, nu = 0</td><td>Exponential decay</td></tr><tr><td>3</td><td>m &gt; 0, nu &lt; 0</td><td>Bounded cumulative</td></tr><tr><td>3L</td><td>m = 0, nu &lt; 0</td><td>Bounded exponential</td></tr></table><p>The combination m &lt; 0 <strong>and</strong> nu &lt; 0 is undefined and raises an error.</p>
+<table class="table table"><tr><td><strong>Case</strong></td><td><strong>Sign</strong></td><td><strong>Behavior</strong></td></tr><tr><td>1</td><td>m &gt; 0, nu &gt; 0</td><td>Standard sigmoidal</td></tr><tr><td>1L</td><td>m = 0, nu &gt; 0</td><td>Exponential-like (Weibull CDF)</td></tr><tr><td>2</td><td>m &lt; 0, nu &gt; 0</td><td>Heavy-tailed</td></tr><tr><td>2L</td><td>m &lt; 0, nu = 0</td><td>Exponential decay</td></tr><tr><td>3</td><td>m &gt; 0, nu &lt; 0</td><td>Bounded cumulative</td></tr><tr><td>3L</td><td>m = 0, nu &lt; 0</td><td>Bounded exponential</td></tr></table><p>The combination m &lt; 0 <strong>and</strong> nu &lt; 0 is undefined and raises an error.
+<code>nu = 0</code> is supported only with m &lt; 0 (Case 2L, the exponential-decay
+limit); <code>nu = 0</code> with m &gt;= 0 has no usable limiting form and raises an
+error.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>

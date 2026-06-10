@@ -15,6 +15,7 @@ predict(
   decompose = FALSE,
   se.fit = FALSE,
   level = 0.95,
+  conf.type = c("log-log", "logit"),
   ...
 )
 ```
@@ -38,7 +39,11 @@ predict(
   - `"linear_predictor"`: Linear predictor eta = x\*beta (not available
     for multiphase)
 
-  - `"hazard"`: Hazard scale exp(eta) (not available for multiphase)
+  - `"hazard"`: Instantaneous hazard. Single-distribution models return
+    the hazard scale exp(eta); multiphase models return the additive
+    hazard h(t\|x) = sum_j mu_j(x) phi_j'(t) and so require time values
+    (like `"survival"`/`"cumulative_hazard"`). `decompose` is not
+    supported for `"hazard"`.
 
   - `"survival"`: Survival probability S(t\|x) = exp(-H(t\|x))
 
@@ -58,12 +63,30 @@ predict(
   CLs are computed on the log-hazard / log-cumhaz scale and on the
   log(-log(survival)) scale so lower/upper stay inside the valid range
   of each prediction type; `linear_predictor` uses symmetric
-  natural-scale CLs. Not compatible with `decompose = TRUE`.
+  natural-scale CLs. For multiphase models, `se.fit = TRUE` combines
+  with `decompose = TRUE` when `type = "cumulative_hazard"`: the result
+  is a long data frame with one row per prediction time and component
+  (`component` in `"total"` plus each phase name) and columns `fit`,
+  `se.fit`, `lower`, `upper`. Per-phase CLs use only that phase's
+  parameters, so they do not sum to the total CL. The combination is not
+  available for `type = "survival"` (per-phase survival is not
+  additive).
 
 - level:
 
   Numeric confidence level in `(0, 1)`; default `0.95`. Only used when
   `se.fit = TRUE`.
+
+- conf.type:
+
+  Transform for `type = "survival"` confidence limits when
+  `se.fit = TRUE`: `"log-log"` (default) builds them on `log(-log S)`
+  (the
+  [`survival::survfit`](https://rdrr.io/pkg/survival/man/survfit.html)
+  standard); `"logit"` builds them on `logit(1 - S)`, reproducing SAS
+  HAZARD's `HAZPRED` survival limits. Other types are unaffected
+  (hazard/cumulative-hazard use a log scale that already matches
+  HAZPRED). Only used when `se.fit = TRUE`.
 
 - ...:
 
@@ -71,7 +94,13 @@ predict(
 
 ## Value
 
-Numeric vector of predictions.
+When `se.fit = FALSE` (default), a numeric vector of predictions. When
+`se.fit = TRUE`, a data frame with columns `fit`, `se.fit`, `lower`,
+`upper` (delta-method point estimate, standard error, and confidence
+limits at `level`). For multiphase `type = "cumulative_hazard"` with
+`decompose = TRUE`, a long data frame (`time`, `component`, `fit`,
+`se.fit`, `lower`, `upper`); with `decompose = TRUE` and
+`se.fit = FALSE`, a wide data frame of per-phase contributions.
 
 ## Details
 
@@ -87,15 +116,6 @@ object is used. For models fit with `time_windows`, predictions for
 `type = "linear_predictor"` or `"hazard"` also require time values (via
 `newdata$time` or fitted-time fallback) so window-specific coefficients
 can be selected.
-
-## Known limitations
-
-`decompose = TRUE` and `se.fit = TRUE` cannot be used together. The
-delta-method Jacobian has not yet been extended to per-phase
-contributions. To obtain confidence limits for a multiphase model,
-request point predictions first (`decompose = TRUE, se.fit = FALSE`),
-then separately request CLs on the total prediction
-(`decompose = FALSE, se.fit = TRUE`).
 
 ## See also
 
@@ -225,6 +245,11 @@ fit_mp <- hazard(
   fit     = TRUE,
   control = list(n_starts = 5, maxit = 1000)
 )
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
 
 t_grid <- seq(0.01, max(dat$time) * 0.9, length.out = 100)
 nd     <- data.frame(time = t_grid)

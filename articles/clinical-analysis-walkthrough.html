@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,7 @@
       <h1>Complete Clinical Analysis Walkthrough</h1>
       <p class="subtitle">From Kaplan-Meier baseline to validated multivariable model</p>
       <p class="author">John Ehrlinger</p>
-      <p class="date">2026-06-02</p>
+      <p class="date">2026-06-10</p>
 
       <small class="dont-index">Source: <a href="https://github.com/ehrlinger/temporal_hazard/blob/main/vignettes/clinical-analysis-walkthrough.qmd" class="external-link"><code>vignettes/clinical-analysis-walkthrough.qmd</code></a></small>
       <div class="d-none name"><code></code></div>
@@ -261,6 +261,16 @@ Figure 2: Single Weibull vs. Kaplan-Meier
 <span>  fit     <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">5</span>, maxit <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in .hzr_optim_generic(logl_fn = logl_fn, gradient_fn = gradient_fn, :</span></span>
+<span><span class="co">#&gt; hessian_fn returned a non-conformant result; using numerical Hessian</span></span>
+<span><span class="co">#&gt; Warning in .hzr_optim_generic(logl_fn = logl_fn, gradient_fn = gradient_fn, :</span></span>
+<span><span class="co">#&gt; hessian_fn returned a non-conformant result; using numerical Hessian</span></span>
+<span><span class="co">#&gt; Warning in .hzr_optim_generic(logl_fn = logl_fn, gradient_fn = gradient_fn, :</span></span>
+<span><span class="co">#&gt; hessian_fn returned a non-conformant result; using numerical Hessian</span></span>
+<span><span class="co">#&gt; Warning in .hzr_optim_generic(logl_fn = logl_fn, gradient_fn = gradient_fn, :</span></span>
+<span><span class="co">#&gt; hessian_fn returned a non-conformant result; using numerical Hessian</span></span>
+<span><span class="co">#&gt; Warning in .hzr_optim_generic(logl_fn = logl_fn, gradient_fn = gradient_fn, :</span></span>
+<span><span class="co">#&gt; hessian_fn returned a non-conformant result; using numerical Hessian</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_mp</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Multiphase hazard model (2 phases)</span></span>
 <span><span class="co">#&gt;   observations: 305 </span></span>
@@ -276,15 +286,15 @@ Figure 2: Single Weibull vs. Kaplan-Meier
 <span><span class="co">#&gt; Coefficients (internal scale):</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Phase: early (cdf)</span></span>
-<span><span class="co">#&gt;                estimate  std_error    z_stat       p_value</span></span>
-<span><span class="co">#&gt;   log_mu     -1.4132735 0.04410012 -32.04693 2.422767e-225</span></span>
-<span><span class="co">#&gt;   log_t_half -0.6931472         NA        NA            NA</span></span>
-<span><span class="co">#&gt;   nu          1.0000000         NA        NA            NA</span></span>
-<span><span class="co">#&gt;   m           1.0000000         NA        NA            NA</span></span>
+<span><span class="co">#&gt;                estimate std_error    z_stat     p_value</span></span>
+<span><span class="co">#&gt;   log_mu     -1.4132735 0.1290435 -10.95192 6.50568e-28</span></span>
+<span><span class="co">#&gt;   log_t_half -0.6931472        NA        NA          NA</span></span>
+<span><span class="co">#&gt;   nu          1.0000000        NA        NA          NA</span></span>
+<span><span class="co">#&gt;   m           1.0000000        NA        NA          NA</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Phase: constant (constant)</span></span>
-<span><span class="co">#&gt;           estimate std_error z_stat p_value</span></span>
-<span><span class="co">#&gt;   log_mu -7.609476        NA     NA      NA</span></span></code></pre></div>
+<span><span class="co">#&gt;           estimate std_error    z_stat      p_value</span></span>
+<span><span class="co">#&gt;   log_mu -7.609476 0.4495827 -16.92564 2.911483e-64</span></span></code></pre></div>
 </div>
 <p>Note the use of <code>fixed = "shapes"</code> — we fix the temporal shape parameters and only estimate the scale (log_mu) for each phase. This matches the standard HAZARD workflow: shapes are set from clinical knowledge or preliminary exploration, then scales and covariates are estimated.</p>
 <div class="cell">
@@ -460,8 +470,15 @@ Figure 5: Decile calibration: age vs. logit(P(death))
 <span>  fit     <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">5</span>, maxit <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 0); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian not invertible; standard</span></span>
+<span><span class="co">#&gt; errors unavailable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 0); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian not invertible; standard</span></span>
+<span><span class="co">#&gt; errors unavailable</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_mv</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning in sqrt(d): NaNs produced</span></span>
 <span><span class="co">#&gt; Multiphase hazard model (2 phases)</span></span>
 <span><span class="co">#&gt;   observations: 305 </span></span>
 <span><span class="co">#&gt;   predictors:   4 </span></span>
@@ -470,29 +487,29 @@ Figure 5: Decile calibration: age vs. logit(P(death))
 <span><span class="co">#&gt;   phase 2:      constant - constant (flat rate)</span></span>
 <span><span class="co">#&gt;   engine:       native-r-m2 </span></span>
 <span><span class="co">#&gt;   converged:    TRUE </span></span>
-<span><span class="co">#&gt;   log-lik:      -190.808 </span></span>
+<span><span class="co">#&gt;   log-lik:      -190.774 </span></span>
 <span><span class="co">#&gt;   evaluations: fn=11, gr=1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients (internal scale):</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Phase: early (cdf)</span></span>
-<span><span class="co">#&gt;                  estimate  std_error    z_stat     p_value</span></span>
-<span><span class="co">#&gt;   log_mu     -3.605695584        NaN        NA          NA</span></span>
-<span><span class="co">#&gt;   log_t_half -0.693147181         NA        NA          NA</span></span>
-<span><span class="co">#&gt;   nu          1.000000000         NA        NA          NA</span></span>
-<span><span class="co">#&gt;   m           1.000000000         NA        NA          NA</span></span>
-<span><span class="co">#&gt;   age        -0.002934522 0.00146656 -2.000956 0.045397123</span></span>
-<span><span class="co">#&gt;   status      0.619850638        NaN        NA          NA</span></span>
-<span><span class="co">#&gt;   mal         0.467467697 0.17964265  2.602209 0.009262544</span></span>
-<span><span class="co">#&gt;   com_iv      1.162696955        NaN        NA          NA</span></span>
+<span><span class="co">#&gt;                  estimate   std_error    z_stat      p_value</span></span>
+<span><span class="co">#&gt;   log_mu     -3.823686785 0.573467818 -6.667657 2.599191e-11</span></span>
+<span><span class="co">#&gt;   log_t_half -0.693147181          NA        NA           NA</span></span>
+<span><span class="co">#&gt;   nu          1.000000000          NA        NA           NA</span></span>
+<span><span class="co">#&gt;   m           1.000000000          NA        NA           NA</span></span>
+<span><span class="co">#&gt;   age        -0.002673301 0.001857646 -1.439080 1.501278e-01</span></span>
+<span><span class="co">#&gt;   status      0.677420297 0.154417734  4.386933 1.149600e-05</span></span>
+<span><span class="co">#&gt;   mal         0.487732774 0.272457647  1.790123 7.343410e-02</span></span>
+<span><span class="co">#&gt;   com_iv      1.202177669 0.401339108  2.995416 2.740706e-03</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   Phase: constant (constant)</span></span>
-<span><span class="co">#&gt;               estimate   std_error     z_stat    p_value</span></span>
-<span><span class="co">#&gt;   log_mu -9.6560397496          NA         NA         NA</span></span>
-<span><span class="co">#&gt;   age    -0.0008940274 0.002475644 -0.3611292 0.71800288</span></span>
-<span><span class="co">#&gt;   status  1.0450950870 0.454449391  2.2996952 0.02146549</span></span>
-<span><span class="co">#&gt;   mal     0.6012599050 1.088336795  0.5524576 0.58063489</span></span>
-<span><span class="co">#&gt;   com_iv -1.0598349603 1.211734851 -0.8746426 0.38176838</span></span></code></pre></div>
+<span><span class="co">#&gt;              estimate   std_error     z_stat      p_value</span></span>
+<span><span class="co">#&gt;   log_mu -9.980895064 1.494172973 -6.6798793 2.391392e-11</span></span>
+<span><span class="co">#&gt;   age    -0.001049586 0.002471387 -0.4246951 6.710589e-01</span></span>
+<span><span class="co">#&gt;   status  1.177296246 0.447980298  2.6280090 8.588625e-03</span></span>
+<span><span class="co">#&gt;   mal     0.770194963 1.068198729  0.7210222 4.708959e-01</span></span>
+<span><span class="co">#&gt;   com_iv -1.316506261 1.249581795 -1.0535575 2.920856e-01</span></span></code></pre></div>
 </div>
 <p>The coefficient table shows phase-specific covariate effects. A positive coefficient means higher hazard (worse prognosis). Interpretation: covariates scale the phase-specific hazard multiplicatively via exp(x * beta).</p>
 </section><section class="level3" data-number="5.2"><h3 data-number="5.2" id="b--automated-stepwise-selection">
@@ -514,6 +531,12 @@ Figure 5: Decile calibration: age vs. logit(P(death))
 <span>  fit     <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">3</span>, maxit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in .hzr_optim_generic(logl_fn = logl_fn, gradient_fn = gradient_fn, :</span></span>
+<span><span class="co">#&gt; hessian_fn returned a non-conformant result; using numerical Hessian</span></span>
+<span><span class="co">#&gt; Warning in .hzr_optim_generic(logl_fn = logl_fn, gradient_fn = gradient_fn, :</span></span>
+<span><span class="co">#&gt; hessian_fn returned a non-conformant result; using numerical Hessian</span></span>
+<span><span class="co">#&gt; Warning in .hzr_optim_generic(logl_fn = logl_fn, gradient_fn = gradient_fn, :</span></span>
+<span><span class="co">#&gt; hessian_fn returned a non-conformant result; using numerical Hessian</span></span>
 <span></span>
 <span><span class="va">fit_step</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hzr_stepwise.html">hzr_stepwise</a></span><span class="op">(</span></span>
 <span>  <span class="va">base_mp</span>,</span>
@@ -527,17 +550,75 @@ Figure 5: Decile calibration: age vs. logit(P(death))
 <span>  trace     <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  control   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">2</span>, maxit <span class="op">=</span> <span class="fl">500</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 0); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian not invertible; standard</span></span>
+<span><span class="co">#&gt; errors unavailable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is not positive-definite at</span></span>
+<span><span class="co">#&gt; the optimum; standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Non-positive variance estimates; the</span></span>
+<span><span class="co">#&gt; optimum may not be a proper maximum</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 7.09e-11); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(H_unc): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 7.94e-12); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(H_unc): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 1.32e-12); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(H_unc): Hessian is not positive-definite at the</span></span>
+<span><span class="co">#&gt; optimum; standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(H_unc): Non-positive variance estimates; the optimum</span></span>
+<span><span class="co">#&gt; may not be a proper maximum</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is not positive-definite at</span></span>
+<span><span class="co">#&gt; the optimum; standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Non-positive variance estimates; the</span></span>
+<span><span class="co">#&gt; optimum may not be a proper maximum</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 5.73e-138); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian not invertible; standard</span></span>
+<span><span class="co">#&gt; errors unavailable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(H_unc): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 1.8e-19); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(H_unc): Hessian not invertible; standard errors</span></span>
+<span><span class="co">#&gt; unavailable</span></span>
+<span><span class="co">#&gt; Warning: Could not compute the full-information variance for the</span></span>
+<span><span class="co">#&gt; Conservation-of-Events-conserved phase 'log_mu' (numDeriv unavailable or the</span></span>
+<span><span class="co">#&gt; Hessian was not invertible). Its standard error stays NA and downstream</span></span>
+<span><span class="co">#&gt; standard errors / confidence limits for that phase may be understated.</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 1.48e-09); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 3.07e-10); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(H_unc): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 3.85e-11); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 2.27e-16); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is not positive-definite at</span></span>
+<span><span class="co">#&gt; the optimum; standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Non-positive variance estimates; the</span></span>
+<span><span class="co">#&gt; optimum may not be a proper maximum</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 4.98e-09); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(H_unc): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 3.18e-10); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is not positive-definite at</span></span>
+<span><span class="co">#&gt; the optimum; standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Non-positive variance estimates; the</span></span>
+<span><span class="co">#&gt; optimum may not be a proper maximum</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 6.27e-12); standard errors may be unreliable</span></span>
+<span><span class="co">#&gt; Warning in .hzr_safe_solve(H_unc): Hessian is ill-conditioned (rcond =</span></span>
+<span><span class="co">#&gt; 1.03e-13); standard errors may be unreliable</span></span>
 <span><span class="va">fit_step</span></span>
 <span><span class="co">#&gt; Stepwise selection (direction = both, criterion = wald, slentry = 0.30, slstay = 0.20)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Step 1: ENTER  status  into  early   (p = 0.000)</span></span>
-<span><span class="co">#&gt; Step 2: ENTER  mal  into  early   (p = 0.000)</span></span>
-<span><span class="co">#&gt; Step 3: ENTER  com_iv  into  early   (p = 0.000)</span></span>
-<span><span class="co">#&gt; Step 4: ENTER  age  into  early   (p = 0.034)</span></span>
-<span><span class="co">#&gt; Step 5: ENTER  status  into  constant   (p = 0.064)</span></span>
+<span><span class="co">#&gt; Step 2: ENTER  com_iv  into  early   (p = 0.000)</span></span>
+<span><span class="co">#&gt; Step 3: ENTER  status  into  constant   (p = 0.065)</span></span>
+<span><span class="co">#&gt; Step 4: ENTER  mal  into  early   (p = 0.109)</span></span>
+<span><span class="co">#&gt; Step 5: ENTER  age  into  early   (p = 0.117)</span></span>
 <span><span class="co">#&gt; (no further action after 5 steps)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Final model: 5 covariates, logLik = -192.10, AIC = 396.21</span></span></code></pre></div>
+<span><span class="co">#&gt; Final model: 5 covariates, logLik = -192.10, AIC = 398.21</span></span></code></pre></div>
 </div>
 <p>The <code>$steps</code> table records every accepted action with its Wald statistic and p-value:</p>
 <div class="cell">
@@ -545,11 +626,11 @@ Figure 5: Decile calibration: age vs. logit(P(death))
 <code class="sourceCode R"><span><span class="va">fit_step</span><span class="op">$</span><span class="va">steps</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"step_num"</span>, <span class="st">"action"</span>, <span class="st">"variable"</span>, <span class="st">"phase"</span>,</span>
 <span>                   <span class="st">"p_value"</span>, <span class="st">"aic"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   step_num action variable    phase      p_value      aic</span></span>
-<span><span class="co">#&gt; 1        1  enter   status    early 0.000000e+00 422.9675</span></span>
-<span><span class="co">#&gt; 2        2  enter      mal    early 1.352419e-33 416.6295</span></span>
-<span><span class="co">#&gt; 3        3  enter   com_iv    early 1.190955e-30 399.0333</span></span>
-<span><span class="co">#&gt; 4        4  enter      age    early 3.363966e-02 397.3463</span></span>
-<span><span class="co">#&gt; 5        5  enter   status constant 6.358883e-02 396.2062</span></span></code></pre></div>
+<span><span class="co">#&gt; 1        1  enter   status    early 1.968383e-09 424.9675</span></span>
+<span><span class="co">#&gt; 2        2  enter   com_iv    early 1.260359e-05 401.5605</span></span>
+<span><span class="co">#&gt; 3        3  enter   status constant 6.502167e-02 400.3834</span></span>
+<span><span class="co">#&gt; 4        4  enter      mal    early 1.094113e-01 399.8823</span></span>
+<span><span class="co">#&gt; 5        5  enter      age    early 1.174920e-01 398.2062</span></span></code></pre></div>
 </div>
 <p>The final model is the fit at the top of the object, reachable through the usual hazard accessors:</p>
 <div class="cell">
@@ -560,7 +641,7 @@ Figure 5: Decile calibration: age vs. logit(P(death))
 <span>  aic_manual <span class="op">=</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">fit_mv</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span> <span class="op">-</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">logLik_manual</span>,</span>
 <span>  aic_step   <span class="op">=</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">fit_step</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="va">theta</span><span class="op">)</span> <span class="op">-</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">logLik_step</span><span class="op">)</span></span>
 <span><span class="co">#&gt;     manual   stepwise aic_manual   aic_step </span></span>
-<span><span class="co">#&gt;  -190.8075  -192.1031   407.6150   404.2062</span></span></code></pre></div>
+<span><span class="co">#&gt;  -190.7738  -192.1031   407.5476   404.2062</span></span></code></pre></div>
 </div>
 <p>When the screening and stepwise agree on the same covariate set the log-likelihoods match exactly; when stepwise selects a leaner model AIC drops. For an AIC-driven run use <code>criterion = "aic"</code>; for a forward-only sweep <code>direction = "forward"</code>. See <code><a href="../reference/hzr_stepwise.html">?hzr_stepwise</a></code> for the full argument surface including <code>force_in</code>, <code>force_out</code>, and the <code>max_move</code> oscillation guard.</p>
 </section></section><section class="level2" data-number="6"><h2 data-number="6" id="step-5-prediction">
@@ -684,34 +765,34 @@ Figure 7: Survival by risk profile: low-risk (blue) vs. high-risk (red)
 <div class="sourceCode cell-code" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hzr_deciles.html">hzr_deciles</a></span><span class="op">(</span><span class="va">fit_mv</span>, time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">avc</span><span class="op">$</span><span class="va">int_dead</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">cal</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Decile-of-risk calibration at time = 170.5826 </span></span>
-<span><span class="co">#&gt; Included 68 observations (excluded 237 censored before horizon).</span></span>
-<span><span class="co">#&gt; 10 groups, 68 observed events, 29.9 expected</span></span>
+<span><span class="co">#&gt; Decile-of-risk calibration (risk grouped at time = 170.5826 )</span></span>
+<span><span class="co">#&gt; 305 subjects, all included.</span></span>
+<span><span class="co">#&gt; 10 groups, 68 observed events, 68 expected</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;  group n events expected observed_rate expected_rate chi_sq  p_value</span></span>
-<span><span class="co">#&gt;      1 6      6    0.849             1         0.142 31.200 2.29e-08</span></span>
-<span><span class="co">#&gt;      2 7      7    1.800             1         0.258 15.000 1.09e-04</span></span>
-<span><span class="co">#&gt;      3 7      7    2.040             1         0.292 12.100 5.18e-04</span></span>
-<span><span class="co">#&gt;      4 7      7    2.390             1         0.342  8.870 2.89e-03</span></span>
-<span><span class="co">#&gt;      5 7      7    2.710             1         0.388  6.770 9.25e-03</span></span>
-<span><span class="co">#&gt;      6 6      6    2.470             1         0.412  5.050 2.46e-02</span></span>
-<span><span class="co">#&gt;      7 7      7    3.250             1         0.464  4.330 3.74e-02</span></span>
-<span><span class="co">#&gt;      8 7      7    3.830             1         0.547  2.630 1.05e-01</span></span>
-<span><span class="co">#&gt;      9 7      7    4.770             1         0.682  1.040 3.08e-01</span></span>
-<span><span class="co">#&gt;     10 7      7    5.780             1         0.826  0.255 6.13e-01</span></span>
+<span><span class="co">#&gt;  group  n events expected observed_rate expected_rate chi_sq p_value</span></span>
+<span><span class="co">#&gt;      1 31      0     1.03        0.0000        0.0333  1.030 0.31000</span></span>
+<span><span class="co">#&gt;      2 30      0     1.41        0.0000        0.0471  1.410 0.23500</span></span>
+<span><span class="co">#&gt;      3 31      1     2.46        0.0323        0.0795  0.870 0.35100</span></span>
+<span><span class="co">#&gt;      4 30      4     2.89        0.1330        0.0963  0.426 0.51400</span></span>
+<span><span class="co">#&gt;      5 31      2     4.82        0.0645        0.1550  1.650 0.19900</span></span>
+<span><span class="co">#&gt;      6 30      8     6.40        0.2670        0.2130  0.401 0.52700</span></span>
+<span><span class="co">#&gt;      7 31     14     6.25        0.4520        0.2020  9.620 0.00193</span></span>
+<span><span class="co">#&gt;      8 30     15     8.59        0.5000        0.2860  4.790 0.02860</span></span>
+<span><span class="co">#&gt;      9 31     11    13.40        0.3550        0.4320  0.424 0.51500</span></span>
+<span><span class="co">#&gt;     10 30     13    20.80        0.4330        0.6920  2.910 0.08830</span></span>
 <span><span class="co">#&gt;  mean_survival mean_cumhaz</span></span>
-<span><span class="co">#&gt;          0.858       0.153</span></span>
-<span><span class="co">#&gt;          0.742       0.298</span></span>
-<span><span class="co">#&gt;          0.708       0.345</span></span>
-<span><span class="co">#&gt;          0.658       0.418</span></span>
-<span><span class="co">#&gt;          0.612       0.491</span></span>
-<span><span class="co">#&gt;          0.588       0.530</span></span>
-<span><span class="co">#&gt;          0.536       0.624</span></span>
-<span><span class="co">#&gt;          0.453       0.800</span></span>
-<span><span class="co">#&gt;          0.318       1.150</span></span>
-<span><span class="co">#&gt;          0.174       1.820</span></span>
+<span><span class="co">#&gt;          0.952      0.0333</span></span>
+<span><span class="co">#&gt;          0.936      0.0471</span></span>
+<span><span class="co">#&gt;          0.892      0.0795</span></span>
+<span><span class="co">#&gt;          0.866      0.0963</span></span>
+<span><span class="co">#&gt;          0.802      0.1550</span></span>
+<span><span class="co">#&gt;          0.747      0.2130</span></span>
+<span><span class="co">#&gt;          0.675      0.2020</span></span>
+<span><span class="co">#&gt;          0.584      0.2860</span></span>
+<span><span class="co">#&gt;          0.473      0.4320</span></span>
+<span><span class="co">#&gt;          0.245      0.6920</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Overall: chi-sq = 87.2 on 9 df, p = 5.9e-15</span></span></code></pre></div>
+<span><span class="co">#&gt; Overall: chi-sq = 23.5 on 9 df, p = 0.00511</span></span></code></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb19"><pre class="downlit sourceCode r">
@@ -751,9 +832,9 @@ Figure 8: Decile calibration: observed (bars) vs. expected (points) event rate
 <span><span class="co">#&gt; Distribution: multiphase  | n = 305 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Total observed events: 68 </span></span>
-<span><span class="co">#&gt; Total expected events: 43.062 </span></span>
-<span><span class="co">#&gt; Final residual (E - O): -24.938 </span></span>
-<span><span class="co">#&gt; Conservation ratio (E/O): 0.633 </span></span>
+<span><span class="co">#&gt; Total expected events: 41.146 </span></span>
+<span><span class="co">#&gt; Final residual (E - O): -26.854 </span></span>
+<span><span class="co">#&gt; Conservation ratio (E/O): 0.605 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Use plot columns: time, km_surv, par_surv, cum_observed, cum_expected, residual</span></span></code></pre></div>
 </div>

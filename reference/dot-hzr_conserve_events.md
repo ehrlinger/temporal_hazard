@@ -16,7 +16,8 @@ log_mu so that total predicted events = total observed events.
   covariate_counts,
   x_list,
   total_events,
-  weights = NULL
+  weights = NULL,
+  time_lower = NULL
 )
 ```
 
@@ -64,6 +65,15 @@ log_mu so that total predicted events = total observed events.
   Optional numeric vector of row weights (length n). Defaults to unit
   weights. Applied when summing per-phase cumhaz so Turner's adjustment
   is computed on the same scale as `total_events`.
+
+- time_lower:
+
+  Optional numeric vector of counting-process entry (start) times. When
+  supplied, conservation is enforced on the entry-time scale –
+  `Sum E = Sum [H(stop) - H(start)]` – by subtracting the entry-time
+  cumulative hazard, matching the multiphase likelihood (and C HAZARD
+  `setcoe` under `LCENSOR`/`STARTTME`). `NULL` (the default) means no
+  truncation, i.e. `H(start) = 0`.
 
 ## Value
 

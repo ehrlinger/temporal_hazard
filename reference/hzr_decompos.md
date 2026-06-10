@@ -71,6 +71,9 @@ Six cases are defined by the signs of `nu` and `m`:
 | 3L       | m = 0, nu \< 0  | Bounded exponential            |
 
 The combination m \< 0 **and** nu \< 0 is undefined and raises an error.
+`nu = 0` is supported only with m \< 0 (Case 2L, the exponential-decay
+limit); `nu = 0` with m \>= 0 has no usable limiting form and raises an
+error.
 
 ## References
 

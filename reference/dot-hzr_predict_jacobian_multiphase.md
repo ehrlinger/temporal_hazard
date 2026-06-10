@@ -12,7 +12,8 @@ and `linear_predictor` are rejected upstream for multiphase models.
   phases,
   covariate_counts,
   x_list,
-  p
+  p,
+  per_phase = FALSE
 )
 ```
 
@@ -42,6 +43,12 @@ and `linear_predictor` are rejected upstream for multiphase models.
 
   Length of theta.
 
+- per_phase:
+
+  Logical; if `TRUE`, return a named list of per-phase `n x p` Jacobians
+  (each with only that phase's columns nonzero) instead of their sum.
+
 ## Value
 
-Numeric n x p Jacobian of H(t\|x).
+Numeric `n x p` Jacobian of `H(t|x)` (default), or a named list of
+per-phase `n x p` Jacobians when `per_phase = TRUE`.

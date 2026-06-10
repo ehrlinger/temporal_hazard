@@ -79,6 +79,11 @@ fit_mp <- hazard(
   fit     = TRUE,
   control = list(n_starts = 5, maxit = 1000)
 )
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
 summary(fit_mp)
 #> Multiphase hazard model (2 phases)
 #>   observations: 200 
@@ -94,17 +99,17 @@ summary(fit_mp)
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                estimate std_error z_stat p_value
-#>   log_mu     -2.1153072        NA     NA      NA
-#>   log_t_half -0.6931472        NA     NA      NA
-#>   nu          2.0000000        NA     NA      NA
-#>   m           0.0000000        NA     NA      NA
+#>                estimate std_error    z_stat      p_value
+#>   log_mu     -2.1153072 0.2910751 -7.267221 3.669585e-13
+#>   log_t_half -0.6931472        NA        NA           NA
+#>   nu          2.0000000        NA        NA           NA
+#>   m           0.0000000        NA        NA           NA
 #> 
 #>   Phase: late (cdf)
-#>               estimate  std_error  z_stat      p_value
-#>   log_mu     0.5511641 0.04098849 13.4468 3.214692e-41
-#>   log_t_half 1.6094379         NA      NA           NA
-#>   nu         1.0000000         NA      NA           NA
-#>   m          0.0000000         NA      NA           NA
+#>               estimate  std_error   z_stat      p_value
+#>   log_mu     0.5511641 0.09532812 5.781758 7.392398e-09
+#>   log_t_half 1.6094379         NA       NA           NA
+#>   nu         1.0000000         NA       NA           NA
+#>   m          0.0000000         NA       NA           NA
 # }
 ```

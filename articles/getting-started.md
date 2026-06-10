@@ -76,11 +76,11 @@ summary(fit)
 #> 
 #> Coefficients:
 #>          estimate   std_error      z_stat      p_value
-#> mu    0.121860518 0.062260594  1.95726558 5.031625e-02
+#> mu    0.121860518 0.062260593  1.95726560 5.031625e-02
 #> nu    1.143730632 0.084302528 13.56697905 6.285984e-42
 #> beta1 0.001716551 0.008807986  0.19488579 8.454824e-01
-#> beta2 0.156208724 0.090597558  1.72420457 8.467092e-02
-#> beta3 0.017352702 0.362918437  0.04781433 9.618642e-01
+#> beta2 0.156208724 0.090597558  1.72420458 8.467092e-02
+#> beta3 0.017352702 0.362918430  0.04781433 9.618642e-01
 ```
 
 ## Prediction workflow
@@ -282,23 +282,23 @@ summary(fit_mp)
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>               estimate std_error    z_stat p_value
-#>   log_mu     -3.779538 0.0835127 -45.25704       0
-#>   log_t_half -1.609438        NA        NA      NA
-#>   nu          1.000000        NA        NA      NA
-#>   m           1.000000        NA        NA      NA
+#>               estimate  std_error    z_stat p_value
+#>   log_mu     -3.779546 0.09381208 -40.28848       0
+#>   log_t_half -1.609438         NA        NA      NA
+#>   nu          1.000000         NA        NA      NA
+#>   m           1.000000         NA        NA      NA
 #> 
 #>   Phase: constant (constant)
-#>           estimate  std_error    z_stat p_value
-#>   log_mu -7.225804 0.08275159 -87.31921       0
+#>           estimate  std_error   z_stat p_value
+#>   log_mu -7.225794 0.09312623 -77.5914       0
 #> 
 #>   Phase: late (g3)
-#>            estimate std_error z_stat p_value
-#>   log_mu  -16.65781        NA     NA      NA
-#>   log_tau   0.00000        NA     NA      NA
-#>   gamma     3.00000        NA     NA      NA
-#>   alpha     1.00000        NA     NA      NA
-#>   eta       1.00000        NA     NA      NA
+#>            estimate std_error    z_stat p_value
+#>   log_mu  -16.65782 0.1157721 -143.8846       0
+#>   log_tau   0.00000        NA        NA      NA
+#>   gamma     3.00000        NA        NA      NA
+#>   alpha     1.00000        NA        NA      NA
+#>   eta       1.00000        NA        NA      NA
 ```
 
 The summary marks most rows `NA` in the `std_error`, `z_stat`, and

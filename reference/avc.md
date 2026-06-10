@@ -99,6 +99,16 @@ fit <- hazard(
   ),
   fit = TRUE, control = list(n_starts = 5, maxit = 1000)
 )
+#> Warning: Hessian is not positive-definite at the optimum; standard errors may be unreliable
+#> Warning: Non-positive variance estimates; the optimum may not be a proper maximum
+#> Warning: Hessian is not positive-definite at the optimum; standard errors may be unreliable
+#> Warning: Non-positive variance estimates; the optimum may not be a proper maximum
+#> Warning: Hessian is not positive-definite at the optimum; standard errors may be unreliable
+#> Warning: Non-positive variance estimates; the optimum may not be a proper maximum
+#> Warning: Hessian is not positive-definite at the optimum; standard errors may be unreliable
+#> Warning: Non-positive variance estimates; the optimum may not be a proper maximum
+#> Warning: Hessian is not positive-definite at the optimum; standard errors may be unreliable
+#> Warning: Non-positive variance estimates; the optimum may not be a proper maximum
 summary(fit)
 #> Multiphase hazard model (2 phases)
 #>   observations: 305 
@@ -114,14 +124,14 @@ summary(fit)
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                estimate  std_error     z_stat      p_value
-#>   log_mu     -1.4575139 0.07271743 -20.043529 2.298771e-89
-#>   log_t_half -1.7947622 0.36480632  -4.919767 8.664715e-07
-#>   nu          1.4541539 0.55210214   2.633849 8.442293e-03
-#>   m           0.9266039 0.71017327   1.304758 1.919754e-01
+#>                estimate std_error     z_stat      p_value
+#>   log_mu     -1.4575139 0.1412477 -10.318850 5.791249e-25
+#>   log_t_half -1.7947622 0.3641513  -4.928617 8.281363e-07
+#>   nu          1.4541539 0.5504106   2.641944 8.243171e-03
+#>   m           0.9266039 0.7085506   1.307746 1.909596e-01
 #> 
 #>   Phase: constant (constant)
-#>           estimate std_error z_stat p_value
-#>   log_mu -7.523126        NA     NA      NA
+#>           estimate std_error    z_stat      p_value
+#>   log_mu -7.523126 0.4714346 -15.95794 2.508668e-57
 # }
 ```

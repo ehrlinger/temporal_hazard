@@ -122,6 +122,12 @@ Control parameters:
 
 - `maxit`: Maximum iterations (default 1000)
 
+- `n_starts`: Number of optimization starts for multiphase fits (default
+  5). Each start after the first adds random noise to the initial
+  values, drawn from the ambient RNG stream; call
+  [`set.seed()`](https://rdrr.io/r/base/Random.html) before fitting for
+  reproducible results.
+
 - `reltol`: Relative parameter change tolerance (default 1e-5)
 
 - `abstol`: Absolute gradient norm tolerance (default 1e-6)
@@ -236,11 +242,11 @@ summary(fit2)
 #> 
 #> Coefficients:
 #>          estimate   std_error      z_stat      p_value
-#> mu    0.121860518 0.062260594  1.95726558 5.031625e-02
+#> mu    0.121860518 0.062260593  1.95726560 5.031625e-02
 #> nu    1.143730632 0.084302528 13.56697905 6.285984e-42
 #> beta1 0.001716551 0.008807986  0.19488579 8.454824e-01
-#> beta2 0.156208724 0.090597558  1.72420457 8.467092e-02
-#> beta3 0.017352702 0.362918437  0.04781433 9.618642e-01
+#> beta2 0.156208724 0.090597558  1.72420458 8.467092e-02
+#> beta3 0.017352702 0.362918430  0.04781433 9.618642e-01
 
 # \donttest{
 # -- Parametric survival with Kaplan-Meier overlay -----------------
@@ -291,6 +297,11 @@ fit_mp <- hazard(
   fit     = TRUE,
   control = list(n_starts = 5, maxit = 1000)
 )
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
+#> Warning: hessian_fn returned a non-conformant result; using numerical Hessian
 summary(fit_mp)
 #> Multiphase hazard model (2 phases)
 #>   observations: 180 
@@ -306,18 +317,18 @@ summary(fit_mp)
 #> Coefficients (internal scale):
 #> 
 #>   Phase: early (cdf)
-#>                estimate std_error z_stat p_value
-#>   log_mu     -1.8209827        NA     NA      NA
-#>   log_t_half -0.6931472        NA     NA      NA
-#>   nu          2.0000000        NA     NA      NA
-#>   m           0.0000000        NA     NA      NA
+#>                estimate std_error    z_stat      p_value
+#>   log_mu     -1.8209827 0.2701943 -6.739531 1.588985e-11
+#>   log_t_half -0.6931472        NA        NA           NA
+#>   nu          2.0000000        NA        NA           NA
+#>   m           0.0000000        NA        NA           NA
 #> 
 #>   Phase: late (cdf)
-#>               estimate  std_error   z_stat      p_value
-#>   log_mu     0.6119202 0.05531211 11.06304 1.895578e-28
-#>   log_t_half 1.6094379         NA       NA           NA
-#>   nu         1.0000000         NA       NA           NA
-#>   m          0.0000000         NA       NA           NA
+#>               estimate std_error   z_stat      p_value
+#>   log_mu     0.6119202 0.1098498 5.570517 2.539839e-08
+#>   log_t_half 1.6094379        NA       NA           NA
+#>   nu         1.0000000        NA       NA           NA
+#>   m          0.0000000        NA       NA           NA
 
 # -- Per-phase decomposed cumulative hazard ------------------------
 if (requireNamespace("ggplot2", quietly = TRUE)) {

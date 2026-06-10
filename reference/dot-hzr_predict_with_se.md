@@ -14,7 +14,8 @@ Dispatched from predict.hazard() when `se.fit = TRUE`.
   cov_counts = NULL,
   phases = NULL,
   level = 0.95,
-  diff_fn
+  diff_fn,
+  conf_type = c("log-log", "logit")
 )
 ```
 
@@ -60,6 +61,12 @@ Dispatched from predict.hazard() when `se.fit = TRUE`.
   delta-method target (H, exp(eta), or eta depending on `type`). Used
   for the point estimate AND for the numeric jacobian fallback in exp /
   loglogistic / lognormal.
+
+- conf_type:
+
+  Survival CL transform: `"log-log"` (default, on `log(-log S)`) or
+  `"logit"` (on `logit(1 - S)`, HAZPRED-compatible). Only consulted when
+  `type == "survival"`.
 
 ## Value
 

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -75,8 +75,18 @@
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A numeric matrix containing the estimated variance-covariance matrix
-of the fitted coefficients, or <code>NA</code> if the model has not been fitted
-or the covariance matrix is unavailable.</p>
+of the fitted coefficients, with rows and columns named by the coefficient
+labels (phase-prefixed for multiphase models, e.g. <code>early.x</code>). Rows
+and columns for parameters held fixed (e.g. fixed shape parameters) are
+<code>NA</code> because they carry no variance; the finite free-parameter block
+is still usable. For Conservation-of-Events fits the conserved phase
+<code>log_mu</code> <em>normally</em> carries a variance: it is removed from the
+optimizer search but the vcov is the full-information matrix at the optimum
+(the CoE solution is the unconstrained MLE). That recomputation requires
+<span class="pkg">numDeriv</span> and an invertible Hessian; if either is unavailable the fit
+emits a warning and the conserved <code>log_mu</code> stays <code>NA</code> (the rest
+of the matrix is unaffected). Returns a scalar <code>NA</code> only when the
+model has not been fitted or no covariance matrix is available.</p>
     </div>
 
     <div class="section level2">
@@ -84,9 +94,9 @@ or the covariance matrix is unavailable.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="hazard.html">hazard</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="fl">30</span>, <span class="fl">0.5</span><span class="op">)</span>, status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fl">30</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>              theta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">1.0</span><span class="op">)</span>, dist <span class="op">=</span> <span class="st">"weibull"</span>, fit <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>              [,1]         [,2]</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1,]  0.011378546 -0.003804749</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [2,] -0.003804749  0.015656453</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>              mu           nu</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> mu  0.011378546 -0.003804749</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> nu -0.003804749  0.015656453</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

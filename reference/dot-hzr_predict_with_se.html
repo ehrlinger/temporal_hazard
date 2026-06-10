@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,7 +65,8 @@
 <span>  cov_counts <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  phases <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  level <span class="op">=</span> <span class="fl">0.95</span>,</span>
-<span>  <span class="va">diff_fn</span></span>
+<span>  <span class="va">diff_fn</span>,</span>
+<span>  conf_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"log-log"</span>, <span class="st">"logit"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -113,6 +114,12 @@ multiphase; use <code>x_list</code> instead.</p></dd>
 returning the delta-method target (H, exp(eta), or eta depending on
 <code>type</code>).  Used for the point estimate AND for the numeric jacobian
 fallback in exp / loglogistic / lognormal.</p></dd>
+
+
+<dt id="arg-conf-type">conf_type<a class="anchor" aria-label="anchor" href="#arg-conf-type"></a></dt>
+<dd><p>Survival CL transform: <code>"log-log"</code> (default, on
+<code>log(-log S)</code>) or <code>"logit"</code> (on <code>logit(1 - S)</code>, HAZPRED-compatible).
+Only consulted when <code>type == "survival"</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

@@ -11,7 +11,7 @@ This is the R equivalent of the SAS markov.sas macro."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">TemporalHazard</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.3.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -126,6 +126,15 @@ This is the R equivalent of the SAS <code>markov.sas</code> macro.</p>
     <p>Unlike the naive 1 - KM estimator (which overestimates incidence when
 competing risks exist), this provides the correct marginal cumulative
 incidence for each event type.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="note">Note<a class="anchor" aria-label="anchor" href="#note"></a></h2>
+    <p>This estimator is <strong>unweighted</strong>: every observation contributes a
+unit count to the at-risk and event tallies. There is no <code>weights</code>
+argument, so case or inverse-probability weights are not yet supported
+for competing-risks incidence (unlike <code><a href="hazard.html">hazard()</a></code>, which accepts
+<code>weights</code>). Pre-expand weighted rows to individual records if an
+approximate weighted estimate is needed.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
