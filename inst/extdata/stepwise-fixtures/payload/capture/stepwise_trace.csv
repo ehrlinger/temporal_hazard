@@ -1,0 +1,9 @@
+"step_num","action","variable","phase","stat","df","p_value"
+1,"enter","com_iv","early",34.3396,1,1e-04
+2,"enter","inc_surg","constant",10.3684,1,0.0013
+3,"enter","mal","early",5.067001,1,0.0244
+4,"enter","orifice","early",5.508409,1,0.0189
+5,"enter","age","early",3.265249,1,0.0708
+6,"enter","com_iv","constant",3.125824,1,0.077
+7,"drop","com_iv","constant",0.011025,1,0.9167
+8,"enter","age","constant",2.244004,1,0.1341
