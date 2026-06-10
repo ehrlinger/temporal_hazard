@@ -10,7 +10,8 @@
   phases,
   covariate_counts,
   x_list,
-  p
+  p,
+  per_phase = FALSE
 )
 }
 \arguments{
@@ -25,9 +26,14 @@
 \item{x_list}{Named list of per-phase design matrices.}
 
 \item{p}{Length of theta.}
+
+\item{per_phase}{Logical; if \code{TRUE}, return a named list of per-phase
+\verb{n x p} Jacobians (each with only that phase's columns nonzero) instead
+of their sum.}
 }
 \value{
-Numeric n x p Jacobian of H(t|x).
+Numeric \verb{n x p} Jacobian of \code{H(t|x)} (default), or a named list of
+per-phase \verb{n x p} Jacobians when \code{per_phase = TRUE}.
 }
 \description{
 Only \code{cumulative_hazard} and \code{survival} are delegated here -- \code{hazard}

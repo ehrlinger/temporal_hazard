@@ -141,3 +141,77 @@ test_that("Right-censored legacy path unchanged when bounds are absent", {
 
   expect_equal(ll_old, ll_new, tolerance = 1e-12)
 })
+
+test_that("Mixed IC+RC: right-censored contribution not silently zeroed when time_lower supplied", {
+  # Regression test for the time_lower dual-use bug:
+  # When time_lower is provided for a mix of interval-censored (status=2)
+  # and right-censored (status=0) rows, right-censored rows must contribute
+  # -H(stop) to the log-likelihood, NOT H(stop)-H(stop)=0.
+  theta      <- c(mu = 0.4, nu = 1.2)
+  mu <- theta[1]
+  nu <- theta[2]
+
+  # 3 interval-censored observations in (1, 2)
+  # 2 right-censored observations at t = 5
+  time       <- c(1, 1, 1, 5, 5)
+  status     <- c(2L, 2L, 2L, 0L, 0L)
+  time_lower <- c(1, 1, 1, 0, 0)   # correct: 0 for RC rows
+  time_upper <- c(2, 2, 2, 5, 5)
+
+  # Manual LL
+  H_lo <- (mu * 1)^nu
+  H_hi <- (mu * 2)^nu
+  H_rc <- (mu * 5)^nu
+  ll_ic_manual <- 3 * (-H_lo + hzr_log1mexp(H_hi - H_lo))
+  ll_rc_manual <- 2 * (-H_rc)
+  ll_manual <- unname(ll_ic_manual + ll_rc_manual)
+
+  ll_pkg <- .hzr_logl_weibull(theta, time, status,
+                               time_lower = time_lower,
+                               time_upper = time_upper)
+
+  expect_equal(ll_pkg, ll_manual, tolerance = 1e-10)
+
+  # Also verify the *wrong* setup (time_lower = time for RC) now gives same
+  # result after the fix — previously it zeroed the RC contribution
+  time_lower_wrong <- c(1, 1, 1, 5, 5)  # time_lower == time for RC rows
+  ll_wrong_setup <- .hzr_logl_weibull(theta, time, status,
+                                       time_lower = time_lower_wrong,
+                                       time_upper = time_upper)
+  # With the fix, time_lower == time means NOT a genuine epoch, so RC
+  # contribution is still -H(5), same result as the correct setup
+  expect_equal(ll_wrong_setup, ll_manual, tolerance = 1e-10)
+})
+
+test_that("Mixed IC+RC: fitting recovers correct parameters with time_lower=0 for RC", {
+  set.seed(42)
+  n <- 600
+  true_time <- rexp(n, rate = 0.05)
+  # Interval censoring in 6-month windows; right-censor at 48 months
+  status     <- integer(n)
+  time       <- numeric(n)
+  time_lower <- numeric(n)
+  time_upper <- numeric(n)
+  for (i in seq_len(n)) {
+    brk <- ceiling(true_time[i] / 6)
+    if (brk > 8L) {
+      status[i]     <- 0L
+      time[i]       <- 48
+      time_lower[i] <- 0   # correct: 0 for RC rows
+      time_upper[i] <- 48
+    } else {
+      status[i]     <- 2L
+      time[i]       <- (brk - 1L) * 6
+      time_lower[i] <- (brk - 1L) * 6
+      time_upper[i] <- brk * 6
+    }
+  }
+  fit <- hazard(time = time, status = status,
+                time_lower = time_lower, time_upper = time_upper,
+                dist = "weibull", theta = c(mu = 0.05, nu = 1.0), fit = TRUE)
+  expect_true(fit$fit$converged)
+  # MLE should be within 20% of truth (nu=1 for exponential, mu=0.05)
+  coefs <- coef(fit)[1:2]
+  expect_lt(abs(coefs["nu"] - 1.0), 0.2)
+  expect_lt(abs(coefs["mu"] - 0.05) / 0.05, 0.2)
+})

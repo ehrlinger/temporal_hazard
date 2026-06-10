@@ -276,7 +276,16 @@
 #' Select the phase whose log_mu will be solved by conservation
 #'
 #' Chooses the phase contributing the largest share of total cumulative
-#' hazard, matching the C HAZARD SETCOE strategy.
+#' hazard at the current theta, matching the C HAZARD SETCOE strategy.
+#'
+#' When one phase dominates by an extreme margin (>10x the median contribution)
+#' it is typically due to poorly-scaled shape parameters at the starting theta
+#' rather than a genuine signal that the phase should absorb all events.
+#' Selecting such a phase as the fixmu phase traps the optimizer: CoE keeps
+#' rescaling that phase's log_mu upward while the optimizer tries to drive it
+#' to near-zero.  We therefore exclude extreme outliers and select among the
+#' remaining phases.  If all phases are outliers (or only one phase exists)
+#' the largest is used as a fallback.
 #'
 #' @param theta Full parameter vector (internal scale).
 #' @param time Numeric vector of follow-up times.
@@ -287,18 +296,51 @@
 #' @param weights Optional numeric vector of row weights (length n). Defaults to
 #'   unit weights. Applied when summing per-phase cumhaz so that selection
 #'   happens on the same scale as the (weighted) observed event count.
+#' @param time_lower Optional numeric vector of counting-process entry (start)
+#'   times. When supplied, phases are ranked by entry-time cumulative hazard
+#'   `H(stop) - H(start)`, the scale on which events are conserved. `NULL` (the
+#'   default) means no truncation, i.e. `H(start) = 0`.
 #' @return Character: name of the phase to fix.
 #' @keywords internal
 .hzr_select_fixmu_phase <- function(theta, time, status,
                                      phases, covariate_counts, x_list,
-                                     weights = NULL) {
+                                     weights = NULL, time_lower = NULL) {
   decomp <- .hzr_multiphase_cumhaz(time, theta, phases,
                                      covariate_counts, x_list,
                                      per_phase = TRUE)
+  # Left truncation (counting-process entry times): rank phases by the cumulative
+  # hazard accrued over follow-up, H(stop) - H(start), the same scale on which
+  # events are conserved. See `.hzr_conserve_events`.
+  if (!is.null(time_lower)) {
+    decomp_start <- .hzr_multiphase_cumhaz(time_lower, theta, phases,
+                                            covariate_counts, x_list,
+                                            per_phase = TRUE)
+    for (nm in names(phases)) {
+      decomp[[nm]] <- decomp[[nm]] - decomp_start[[nm]]
+    }
+  }
   if (is.null(weights)) weights <- rep(1, length(time))
   phase_sums <- vapply(names(phases), function(nm) {
     sum(weights * decomp[[nm]])
   }, numeric(1))
+
+  # Exclude extreme outliers: a phase whose contribution exceeds 10x the
+  # median is likely dominated by large shape-parameter values at the starting
+  # theta rather than reflecting the true relative importance of the phase.
+  # Fixing such a phase traps the optimizer when the true MLE has that phase
+  # near zero.  Among the remaining (non-outlier) phases, pick the largest.
+  if (length(phase_sums) > 1L) {
+    finite_sums <- phase_sums[is.finite(phase_sums)]
+    if (length(finite_sums) >= 1L) {
+      med <- stats::median(finite_sums, na.rm = TRUE)
+      if (is.finite(med) && med > 0) {
+        non_outlier <- phase_sums[is.finite(phase_sums) & phase_sums <= 10 * med]
+        if (length(non_outlier) >= 1L) {
+          return(names(which.max(non_outlier)))
+        }
+      }
+    }
+  }
 
   names(which.max(phase_sums))
 }
@@ -325,16 +367,35 @@
 #' @param weights Optional numeric vector of row weights (length n). Defaults to
 #'   unit weights. Applied when summing per-phase cumhaz so Turner's adjustment
 #'   is computed on the same scale as `total_events`.
+#' @param time_lower Optional numeric vector of counting-process entry (start)
+#'   times. When supplied, conservation is enforced on the entry-time scale --
+#'   `Sum E = Sum [H(stop) - H(start)]` -- by subtracting the entry-time
+#'   cumulative hazard, matching the multiphase likelihood (and C HAZARD
+#'   `setcoe` under `LCENSOR`/`STARTTME`). `NULL` (the default) means no
+#'   truncation, i.e. `H(start) = 0`.
 #' @return Updated theta vector with fixmu phase's log_mu adjusted.
 #' @keywords internal
 .hzr_conserve_events <- function(theta, fixmu_phase, fixmu_pos,
                                   time, status,
                                   phases, covariate_counts, x_list,
-                                  total_events, weights = NULL) {
+                                  total_events, weights = NULL,
+                                  time_lower = NULL) {
   # Compute per-phase cumulative hazard contributions
   decomp <- .hzr_multiphase_cumhaz(time, theta, phases,
                                      covariate_counts, x_list,
                                      per_phase = TRUE)
+
+  # Left truncation: subtract the per-phase entry-time cumulative hazard so the
+  # conserved quantity is H(stop) - H(start), the same constraint the score
+  # equation for mu satisfies. Without this, CoE conserves Sum H(stop) and the
+  # fixmu phase absorbs the spurious Sum H(start), biasing its intercept.
+  if (!is.null(time_lower)) {
+    decomp_start <- .hzr_multiphase_cumhaz(time_lower, theta, phases,
+                                            covariate_counts, x_list,
+                                            per_phase = TRUE)
+    decomp$total <- decomp$total - decomp_start$total
+    decomp[[fixmu_phase]] <- decomp[[fixmu_phase]] - decomp_start[[fixmu_phase]]
+  }
 
   if (is.null(weights)) weights <- rep(1, length(time))
 
@@ -555,9 +616,19 @@
   # Whether to actually compute start-time quantities for the gradient.
   # Without any counting-process rows (time_lower = NULL or all zeros with
   # status in {0, 1}) these additions are identically zero and we can skip.
+  # Only genuine epoch rows (status 0/1 with time_lower < time) get a
+  # non-zero start.  Interval-censored rows (status 2) are handled through
+  # their own lower/upper cumhaz terms and must not contribute to H(start).
   need_start <- !is.null(time_lower) &&
-                any(time_lower > 0 & status %in% c(0L, 1L))
-  start_vec <- if (need_start) time_lower else NULL
+                any(time_lower > 0 & time_lower < time & status %in% c(0L, 1L))
+  start_vec <- if (need_start) {
+    sv <- rep(0, n)
+    epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+    sv[epoch_idx] <- time_lower[epoch_idx]
+    sv
+  } else {
+    NULL
+  }
 
   for (j in seq_along(phases)) {
     nm <- names(phases)[j]
@@ -1104,7 +1175,16 @@
         time, theta_start, phases, covariate_counts, x_list,
         per_phase = TRUE
       )
-      sumcz_init <- sum(weights * decomp_init$total)
+      # Entry-time scale under left truncation: conserve H(stop) - H(start).
+      init_total <- decomp_init$total
+      if (!is.null(time_lower)) {
+        decomp_init_start <- .hzr_multiphase_cumhaz(
+          time_lower, theta_start, phases, covariate_counts, x_list,
+          per_phase = TRUE
+        )
+        init_total <- init_total - decomp_init_start$total
+      }
+      sumcz_init <- sum(weights * init_total)
       if (sumcz_init > 0 && is.finite(sumcz_init)) {
         init_factor <- log(total_events / sumcz_init)
         if (is.finite(init_factor)) {
@@ -1118,7 +1198,7 @@
       # Select fixmu phase (largest weighted cumhaz contributor after scaling)
       fixmu_phase <- .hzr_select_fixmu_phase(
         theta_start, time, status, phases, covariate_counts, x_list,
-        weights = weights
+        weights = weights, time_lower = time_lower
       )
       fixmu_pos <- log_mu_positions[[fixmu_phase]]
 
@@ -1126,7 +1206,7 @@
       theta_start <- .hzr_conserve_events(
         theta_start, fixmu_phase, fixmu_pos,
         time, status, phases, covariate_counts, x_list, total_events,
-        weights = weights
+        weights = weights, time_lower = time_lower
       )
 
       # Wrap logl and gradient: apply CoE before each evaluation
@@ -1136,7 +1216,7 @@
         theta <- .hzr_conserve_events(
           theta, fixmu_phase, fixmu_pos,
           time, status, phases, covariate_counts, x_list, total_events,
-          weights = weights
+          weights = weights, time_lower = time_lower
         )
         logl_fn_pre_coe(theta, time, status, time_lower,
                         time_upper, x, weights = weights, ...)
@@ -1148,7 +1228,7 @@
         theta <- .hzr_conserve_events(
           theta, fixmu_phase, fixmu_pos,
           time, status, phases, covariate_counts, x_list, total_events,
-          weights = weights
+          weights = weights, time_lower = time_lower
         )
         gradient_fn_pre_coe(theta, time, status, time_lower,
                             time_upper, x, weights = weights, ...)
@@ -1176,6 +1256,7 @@
   # reduced (free-only) parameter vector.
   if (any_fixed) {
     free_idx <- which(free_mask)
+    free_idx_eff <- free_idx
 
     # Expand reduced theta to full theta
     expand_theta <- function(theta_free) {
@@ -1202,6 +1283,7 @@
 
     theta_start_optim <- theta_start[free_idx]
   } else {
+    free_idx_eff <- seq_along(theta_start)
     theta_start_optim <- theta_start
   }
 
@@ -1222,11 +1304,37 @@
   use_nelder_mead_warmup <- any_fixed && length(theta_start_optim) >= 2L &&
     length(theta_start_optim) <= 10L
 
+  # Analytic Hessian closure -- covers event + right-censored rows.
+  # Returns NULL for left/interval-censored data to trigger numDeriv fallback.
+  # Defined OUTSIDE the n_starts loop: it is identical across all starts and
+  # captures only stable (pre-loop) variables.
+  hessian_fn_mp <- function(theta_free) {
+    # theta_free is on the REDUCED (free-parameter) scale; expand to full.
+    theta_full <- if (any_fixed) {
+      th <- theta_fixed
+      th[free_idx_eff] <- theta_free
+      th
+    } else {
+      theta_free
+    }
+    H_full <- .hzr_hessian_multiphase(
+      theta_full, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x, weights = weights,
+      phases = phases, covariate_counts = covariate_counts, x_list = x_list
+    )
+    if (is.null(H_full)) return(NULL)
+    # Restrict to the free-parameter block that the optimizer sees
+    if (any_fixed) H_full[free_idx_eff, free_idx_eff] else H_full
+  }
+
   for (start_i in seq_len(n_starts)) {
     if (start_i == 1L) {
       theta_try <- theta_start_optim
     } else {
-      # Deterministic perturbation seeded from start index for reproducibility
+      # Random perturbation of the starting values, drawn from the ambient RNG
+      # stream (not internally seeded). Call set.seed() before fitting for
+      # reproducible multi-start results.
       theta_try <- theta_start_optim +
         stats::rnorm(length(theta_start_optim), sd = 0.5)
     }
@@ -1267,7 +1375,8 @@
         theta_start = theta_try,
         weights     = weights,
         control     = control,
-        use_bounds  = FALSE
+        use_bounds  = FALSE,
+        hessian_fn  = hessian_fn_mp
       ),
       error = function(e) NULL
     )
@@ -1288,12 +1397,15 @@
     theta_full[free_idx] <- best_result$par
     best_result$par <- theta_full
 
-    # Final CoE adjustment: solve fixmu log_mu at the optimum
+    # Final CoE adjustment: solve fixmu log_mu at the optimum. Must pass
+    # time_lower so the conserved log_mu in the returned coefficients is solved
+    # on the same entry-time scale the objective was optimized on; otherwise a
+    # left-truncated fit returns a conserved mu inconsistent with its objective.
     if (use_conserve && !is.null(fixmu_pos)) {
       best_result$par <- .hzr_conserve_events(
         best_result$par, fixmu_phase, fixmu_pos,
         time, status, phases, covariate_counts, x_list, total_events,
-        weights = weights
+        weights = weights, time_lower = time_lower
       )
     }
 
@@ -1306,6 +1418,78 @@
     }
 
     best_result$fixed_mask <- !free_mask
+
+    # --- Full-information vcov for Conservation-of-Events fits ---------------
+    # CoE removes the conserved phase's log_mu from the *search* (its score
+    # equation IS the CoE constraint), so the optimizer's Hessian leaves that
+    # parameter with no variance. But at the optimum the CoE solution is the
+    # unconstrained MLE, so the reported *uncertainty* should be the full-
+    # information vcov -- exactly what an all-mu-free (conserve = FALSE) fit
+    # gives at the same point. Recompute the vcov from the unconstrained-
+    # objective Hessian over the free set with the conserved log_mu restored,
+    # so the conserved phase (and anything depending on it, e.g. se(H) and
+    # survival CLs) gets a proper standard error.
+    if (use_conserve && !is.null(fixmu_pos)) {
+      recomputed <- FALSE
+      free_unc <- free_mask
+      free_unc[fixmu_pos] <- TRUE
+      idx_unc <- which(free_unc)
+      base_theta <- best_result$par
+      neg_ll_unc <- function(th_free) {
+        th <- base_theta
+        th[idx_unc] <- th_free
+        -logl_fn_pre_coe(th, time, status, time_lower, time_upper, x,
+                         weights = weights, return_gradient = FALSE)
+      }
+      # Analytic Hessian attempt -- no numDeriv dependency
+      H_unc <- tryCatch(
+        .hzr_hessian_multiphase(
+          base_theta, time = time, status = status,
+          time_lower = time_lower, time_upper = time_upper,
+          x = x, weights = weights,
+          phases = phases, covariate_counts = covariate_counts,
+          x_list = x_list
+        ),
+        error = function(e) NULL
+      )
+      if (is.matrix(H_unc)) {
+        # Restrict to the unconstrained free set
+        H_unc <- H_unc[idx_unc, idx_unc]
+      }
+      # numDeriv fallback only when analytic declines (left/interval rows)
+      if (is.null(H_unc) && requireNamespace("numDeriv", quietly = TRUE)) {
+        H_unc <- tryCatch(
+          numDeriv::hessian(neg_ll_unc, base_theta[idx_unc]),
+          error = function(e) NULL
+        )
+      }
+      if (is.matrix(H_unc)) {
+        inv_unc <- .hzr_safe_solve(H_unc)
+        if (is.matrix(inv_unc$vcov)) {
+          p_full <- length(base_theta)
+          vcov_full <- matrix(NA_real_, p_full, p_full)
+          vcov_full[idx_unc, idx_unc] <- inv_unc$vcov
+          best_result$vcov  <- vcov_full
+          best_result$rcond <- inv_unc$rcond
+          best_result$pd    <- inv_unc$pd
+          # The conserved log_mu now carries a variance; it is fixed only for
+          # the search, not for inference.
+          best_result$fixed_mask <- !free_unc
+          recomputed <- TRUE
+        }
+      }
+      if (!recomputed) {
+        # Fall back to the reduced (search-only) vcov, in which the conserved
+        # log_mu has no variance. Warn loudly so the understated uncertainty is
+        # visible rather than silent.
+        warning(
+          "Could not compute the full-information variance for the ",
+          "Conservation-of-Events-conserved phase 'log_mu' (numDeriv ",
+          "unavailable or the Hessian was not invertible). Its standard error ",
+          "stays NA and downstream standard errors / confidence limits for ",
+          "that phase may be understated.", call. = FALSE)
+      }
+    }
   }
 
   # Restore parameter names

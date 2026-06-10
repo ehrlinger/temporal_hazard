@@ -74,6 +74,10 @@ NULL
 #' @details
 #' Control parameters:
 #' - `maxit`: Maximum iterations (default 1000)
+#' - `n_starts`: Number of optimization starts for multiphase fits (default 5).
+#'   Each start after the first adds random noise to the initial values, drawn
+#'   from the ambient RNG stream; call `set.seed()` before fitting for
+#'   reproducible results.
 #' - `reltol`: Relative parameter change tolerance (default 1e-5)
 #' - `abstol`: Absolute gradient norm tolerance (default 1e-6)
 #' - `method`: Optimization method: "bfgs" or "nm" (default "bfgs")
@@ -260,7 +264,24 @@ hazard <- function(formula = NULL,
     if (is.null(data)) {
       stop("'data' is required when 'formula' is provided.", call. = FALSE)
     }
-    parsed <- .hzr_parse_formula(formula = formula, data = data)
+
+    # For multiphase models, the formula RHS may contain phase-scoped terms of
+    # the form `phase_name(var1 + var2)`.  These are not valid R expressions
+    # so model.matrix() would fail.  Strip them here: replace the RHS with `1`
+    # (no global predictors) so that .hzr_parse_formula only extracts
+    # time/status from the LHS.  Covariate routing is handled per-phase via
+    # hzr_phase(formula = ...) and resolved inside .hzr_optim_multiphase().
+    formula_for_parse <- formula
+    if (!is.null(phases) && length(formula) >= 3L) {
+      # Check if RHS contains phase-scoped calls of the form `phase_name(...)`.
+      # Use a parse-tree walk (not string regex) to avoid false positives when
+      # a phase name coincides with a base-R function (e.g., "log", "exp").
+      if (.hzr_formula_has_phase_scope(formula[[3L]], names(phases))) {
+        formula_for_parse <- stats::reformulate("1", response = formula[[2L]])
+      }
+    }
+
+    parsed <- .hzr_parse_formula(formula = formula_for_parse, data = data)
     time <- parsed$time
     status <- parsed$status
     time_lower <- parsed$time_lower
@@ -406,8 +427,11 @@ hazard <- function(formula = NULL,
       expr,
       warning = function(w) {
         msg <- conditionMessage(w)
-        if (grepl("NaNs produced", msg, fixed = TRUE) ||
-            grepl("Hessian not invertible; standard errors unavailable", msg, fixed = TRUE)) {
+        # Muffle only benign numerical noise from optim().  The hardened-inversion
+        # diagnostics (ill-conditioned / not positive-definite / not invertible /
+        # non-finite) are deliberately allowed to surface so a fit that cannot
+        # produce reliable standard errors is never silent.
+        if (grepl("NaNs produced", msg, fixed = TRUE)) {
           invokeRestart("muffleWarning")
         }
       }
@@ -438,10 +462,13 @@ hazard <- function(formula = NULL,
     ))
 
     fit_state$theta <- optim_result$par
+    fit_state$par   <- optim_result$par   # alias for downstream use
     fit_state$objective <- optim_result$value
     fit_state$converged <- (optim_result$convergence == 0)
     fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
     fit_state$vcov <- optim_result$vcov
+    fit_state$rcond <- optim_result$rcond
+    fit_state$pd <- optim_result$pd
     fit_state$counts <- optim_result$counts
     fit_state$message <- optim_result$message
     # Store optimizer metadata for predict/summary
@@ -468,10 +495,13 @@ hazard <- function(formula = NULL,
     ))
 
     fit_state$theta <- optim_result$par
+    fit_state$par   <- optim_result$par
     fit_state$objective <- optim_result$value
     fit_state$converged <- (optim_result$convergence == 0)
     fit_state$se <- .hzr_safe_se_from_vcov(optim_result$vcov)
     fit_state$vcov <- optim_result$vcov
+    fit_state$rcond <- optim_result$rcond
+    fit_state$pd <- optim_result$pd
     fit_state$counts <- optim_result$counts
     fit_state$message <- optim_result$message
   }
@@ -493,7 +523,14 @@ hazard <- function(formula = NULL,
       time_upper = time_upper,
       status = as.numeric(status),
       x = x,
-      weights = weights
+      weights = weights,
+      # The evaluated `data` argument as passed to hazard() (formula path; NULL
+      # when called with raw vectors). This is the user's data frame, not a
+      # model.frame() result. Stored so refit-based tooling such as
+      # hzr_bootstrap() can re-run the original call without a caller-frame
+      # lookup of the `data` symbol, which fails when that symbol has gone out
+      # of scope.
+      frame = data
     ),
     fit = fit_state,
     legacy_args = list(...),
@@ -515,7 +552,11 @@ hazard <- function(formula = NULL,
 #'   column, or time will be taken from the fitted object's data.
 #' @param type Prediction type:
 #'   - `"linear_predictor"`: Linear predictor eta = x*beta (not available for multiphase)
-#'   - `"hazard"`: Hazard scale exp(eta) (not available for multiphase)
+#'   - `"hazard"`: Instantaneous hazard. Single-distribution models return the
+#'     hazard scale exp(eta); multiphase models return the additive hazard
+#'     h(t|x) = sum_j mu_j(x) phi_j'(t) and so require time values (like
+#'     `"survival"`/`"cumulative_hazard"`). `decompose` is not supported for
+#'     `"hazard"`.
 #'   - `"survival"`: Survival probability S(t|x) = exp(-H(t|x))
 #'   - `"cumulative_hazard"`: Cumulative hazard H(t|x) at event times
 #' @param decompose Logical; if `TRUE` and the model is multiphase, return a
@@ -527,17 +568,23 @@ hazard <- function(formula = NULL,
 #'   CLs are computed on the log-hazard / log-cumhaz scale and on the
 #'   log(-log(survival)) scale so lower/upper stay inside the valid range
 #'   of each prediction type; `linear_predictor` uses symmetric natural-scale
-#'   CLs.  Not compatible with `decompose = TRUE`.
+#'   CLs.
+#'   For multiphase models, `se.fit = TRUE` combines with `decompose = TRUE`
+#'   when `type = "cumulative_hazard"`: the result is a long data frame with one
+#'   row per prediction time and component (`component` in `"total"` plus each
+#'   phase name) and columns `fit`, `se.fit`, `lower`, `upper`. Per-phase CLs
+#'   use only that phase's parameters, so they do not sum to the total CL.
+#'   The combination is not available for `type = "survival"` (per-phase
+#'   survival is not additive).
 #' @param level Numeric confidence level in `(0, 1)`; default `0.95`.
 #'   Only used when `se.fit = TRUE`.
+#' @param conf.type Transform for `type = "survival"` confidence limits when
+#'   `se.fit = TRUE`: `"log-log"` (default) builds them on `log(-log S)` (the
+#'   `survival::survfit` standard); `"logit"` builds them on `logit(1 - S)`,
+#'   reproducing SAS HAZARD's `HAZPRED` survival limits. Other types are
+#'   unaffected (hazard/cumulative-hazard use a log scale that already matches
+#'   HAZPRED). Only used when `se.fit = TRUE`.
 #' @param ... Unused; included for S3 compatibility.
-#'
-#' @section Known limitations:
-#' `decompose = TRUE` and `se.fit = TRUE` cannot be used together.  The
-#' delta-method Jacobian has not yet been extended to per-phase contributions.
-#' To obtain confidence limits for a multiphase model, request point predictions
-#' first (`decompose = TRUE, se.fit = FALSE`), then separately request CLs on
-#' the total prediction (`decompose = FALSE, se.fit = TRUE`).
 #'
 #' @details
 #' For Weibull models with survival or cumulative_hazard predictions:
@@ -550,7 +597,13 @@ hazard <- function(formula = NULL,
 #' or `"hazard"` also require time values (via `newdata$time` or fitted-time fallback)
 #' so window-specific coefficients can be selected.
 #'
-#' @return Numeric vector of predictions.
+#' @return When `se.fit = FALSE` (default), a numeric vector of predictions.
+#'   When `se.fit = TRUE`, a data frame with columns `fit`, `se.fit`, `lower`,
+#'   `upper` (delta-method point estimate, standard error, and confidence
+#'   limits at `level`). For multiphase `type = "cumulative_hazard"` with
+#'   `decompose = TRUE`, a long data frame (`time`, `component`, `fit`,
+#'   `se.fit`, `lower`, `upper`); with `decompose = TRUE` and `se.fit = FALSE`,
+#'   a wide data frame of per-phase contributions.
 #' @examples
 #' # -- Basic predictions ------------------------------------------------
 #' set.seed(1)
@@ -674,8 +727,12 @@ predict.hazard <- function(object, newdata = NULL,
                            type = c("hazard", "linear_predictor",
                                     "survival", "cumulative_hazard"),
                            decompose = FALSE,
-                           se.fit = FALSE, level = 0.95, ...) {
+                           se.fit = FALSE, level = 0.95,
+                           conf.type = c("log-log", "logit"), ...) {
   type <- match.arg(type)
+  # `conf.type` is validated lazily inside the se.fit survival path (it only
+  # affects survival CLs); validating here would error on an otherwise-ignored
+  # value (e.g. se.fit = FALSE, or a non-survival type).
   theta <- object$fit$theta
   time_windows <- object$spec$time_windows
 
@@ -691,11 +748,11 @@ predict.hazard <- function(object, newdata = NULL,
           is.na(level) || level <= 0 || level >= 1) {
       stop("'level' must be a single number in (0, 1).", call. = FALSE)
     }
-    if (decompose) {
-      stop("'se.fit = TRUE' with 'decompose = TRUE' is not supported. ",
-           "Request point predictions first (decompose = TRUE, ",
-           "se.fit = FALSE), then compute CLs separately on the total.",
-           call. = FALSE)
+    if (decompose && object$spec$dist == "multiphase" &&
+          type != "cumulative_hazard") {
+      stop("'se.fit = TRUE' with 'decompose = TRUE' is only supported for ",
+           "type = \"cumulative_hazard\" (per-phase survival is not additive). ",
+           "Got type = \"", type, "\".", call. = FALSE)
     }
   }
 
@@ -706,10 +763,16 @@ predict.hazard <- function(object, newdata = NULL,
   # Shape parameters are stripped from theta; only covariate beta's are used.
   # hazard returns exp(eta), which is the relative-hazard multiplier (not the
   # baseline conditional hazard, which would require time + distribution).
-  if (type %in% c("hazard", "linear_predictor")) {
+  # Multiphase `hazard` is the instantaneous additive hazard h(t) = sum_j
+  # mu_j(x) * phi_j'(t); it is time-based, so it is handled in the time-based
+  # branch below alongside survival / cumulative_hazard. Only the eta-based
+  # types (single-dist hazard = exp(eta); linear_predictor) are handled here.
+  if (type %in% c("hazard", "linear_predictor") &&
+      !(type == "hazard" && object$spec$dist == "multiphase")) {
     if (object$spec$dist == "multiphase") {
-      stop("Prediction type '", type, "' is not supported for multiphase models. ",
-           "Use 'survival' or 'cumulative_hazard' instead.", call. = FALSE)
+      stop("Prediction type 'linear_predictor' is not supported for multiphase ",
+           "models. Use 'survival', 'cumulative_hazard', or 'hazard' instead.",
+           call. = FALSE)
     }
     n_pred <- NULL
     pred_time <- NULL
@@ -805,7 +868,9 @@ predict.hazard <- function(object, newdata = NULL,
   # This is because the log-normal is an AFT model where H(t) = -log Phi(-z)
   # is numerically better computed directly from the normal CDF rather than
   # via exp(-H).
-  if (type %in% c("survival", "cumulative_hazard")) {
+  # `hazard` is included here only for multiphase (single-dist hazard returned
+  # above via exp(eta)); it is the instantaneous additive hazard h(t).
+  if (type %in% c("survival", "cumulative_hazard", "hazard")) {
     supported <- c("weibull", "exponential", "loglogistic", "lognormal", "multiphase")
     if (!object$spec$dist %in% supported) {
       stop("Prediction type '", type, "' is only supported for ",
@@ -851,15 +916,39 @@ predict.hazard <- function(object, newdata = NULL,
         }
       }
 
+      # Instantaneous additive hazard is not phase-decomposable through this
+      # path (the internal hazard evaluator returns the total only).
+      if (type == "hazard" && decompose) {
+        stop("decompose = TRUE is not supported for type = 'hazard'.",
+             call. = FALSE)
+      }
+
       if (se.fit) {
-        diff_fn <- function(th) {
-          .hzr_multiphase_cumhaz(pred_time, th, phases, cov_counts, x_list)
+        if (decompose) {
+          return(.hzr_predict_with_se_decomposed( # nolint: object_usage_linter.
+            object = object, time = pred_time, x_list = x_list,
+            cov_counts = cov_counts, phases = phases, level = level
+          ))
+        }
+        diff_fn <- if (type == "hazard") {
+          function(th) {
+            .hzr_multiphase_hazard(pred_time, th, phases, cov_counts, x_list)
+          }
+        } else {
+          function(th) {
+            .hzr_multiphase_cumhaz(pred_time, th, phases, cov_counts, x_list)
+          }
         }
         return(.hzr_predict_with_se(
           object = object, type = type, time = pred_time,
           x_list = x_list, cov_counts = cov_counts, phases = phases,
-          level = level, diff_fn = diff_fn
+          level = level, diff_fn = diff_fn, conf_type = conf.type
         ))
+      }
+
+      if (type == "hazard") {
+        return(.hzr_multiphase_hazard(pred_time, theta, phases, cov_counts,
+                                      x_list))
       }
 
       result <- .hzr_multiphase_cumhaz(
@@ -976,7 +1065,7 @@ predict.hazard <- function(object, newdata = NULL,
     if (se.fit) {
       return(.hzr_predict_with_se(
         object = object, type = type, time = time, x = x,
-        level = level, diff_fn = cumhaz_of
+        level = level, diff_fn = cumhaz_of, conf_type = conf.type
       ))
     }
 
@@ -1117,6 +1206,8 @@ summary.hazard <- function(object, ...) {
     message = object$fit$message,
     coefficients = coef_table,
     has_vcov = !is.null(vcov_mat) && is.matrix(vcov_mat),
+    rcond = object$fit$rcond,
+    pd = object$fit$pd,
     phases = object$spec$phases
   )
 
@@ -1128,7 +1219,10 @@ summary.hazard <- function(object, ...) {
 #'
 #' Formatted console display of [summary.hazard()] output: distribution,
 #' phase list (for multiphase), coefficient table with standard errors,
-#' and log-likelihood.  S3 dispatch only -- users call `print(summary(fit))`
+#' and log-likelihood.  When the post-fit Hessian is ill-conditioned or not
+#' positive-definite, a note warns that the standard errors may be unreliable;
+#' when the Hessian could not be inverted at all, a note reports that standard
+#' errors are unavailable.  S3 dispatch only -- users call `print(summary(fit))`
 #' rather than invoking this directly.
 #'
 #' @param x A `summary.hazard` object returned by [summary.hazard()].
@@ -1166,6 +1260,19 @@ print.summary.hazard <- function(x, ...) {
   }
   if (!is.null(x$log_lik) && !is.na(x$log_lik)) {
     cat("  log-lik:     ", format(x$log_lik, digits = 6), "\n")
+  }
+  if (!is.null(x$rcond) && !is.na(x$rcond) && x$rcond < .hzr_rcond_tol) {
+    cat("  Note: Hessian ill-conditioned (rcond = ",
+        format(x$rcond, digits = 3),
+        "); standard errors may be unreliable.\n", sep = "")
+  }
+  if (!is.null(x$pd) && !is.na(x$pd) && !isTRUE(x$pd)) {
+    cat("  Note: Hessian not positive-definite at the optimum; ",
+        "standard errors may be unreliable.\n", sep = "")
+  }
+  if (!is.null(x$converged) && !is.na(x$converged) && isFALSE(x$has_vcov)) {
+    cat("  Note: standard errors unavailable; the Hessian could not be ",
+        "inverted.\n", sep = "")
   }
   if (!is.null(x$counts)) {
     fn_count <- x$counts[["function"]] %||% x$counts[["fn"]] %||% NA_integer_
@@ -1235,14 +1342,44 @@ coef.hazard <- function(object, ...) {
 #'               theta = c(0.3, 1.0), dist = "weibull", fit = TRUE)
 #' vcov(fit)
 #' @return A numeric matrix containing the estimated variance-covariance matrix
-#'   of the fitted coefficients, or \code{NA} if the model has not been fitted
-#'   or the covariance matrix is unavailable.
+#'   of the fitted coefficients, with rows and columns named by the coefficient
+#'   labels (phase-prefixed for multiphase models, e.g. \code{early.x}). Rows
+#'   and columns for parameters held fixed (e.g. fixed shape parameters) are
+#'   \code{NA} because they carry no variance; the finite free-parameter block
+#'   is still usable. For Conservation-of-Events fits the conserved phase
+#'   \code{log_mu} \emph{normally} carries a variance: it is removed from the
+#'   optimizer search but the vcov is the full-information matrix at the optimum
+#'   (the CoE solution is the unconstrained MLE). That recomputation requires
+#'   \pkg{numDeriv} and an invertible Hessian; if either is unavailable the fit
+#'   emits a warning and the conserved \code{log_mu} stays \code{NA} (the rest
+#'   of the matrix is unaffected). Returns a scalar \code{NA} only when the
+#'   model has not been fitted or no covariance matrix is available.
 #' @export
 vcov.hazard <- function(object, ...) {
-  if (is.null(object$fit$vcov) || anyNA(object$fit$vcov)) {
+  v <- object$fit$vcov
+  if (is.null(v) || !is.matrix(v)) {
     return(NA)
   }
-  object$fit$vcov
+  # Label rows/cols with the coefficient names so callers can align the matrix
+  # by name. This matters for multiphase models where the same covariate can
+  # enter more than one phase (e.g. early.x vs constant.x): without names the
+  # two coefficients are indistinguishable. NA variance rows are retained
+  # rather than collapsing the whole matrix to a scalar NA -- a multiphase fit
+  # legitimately has NA rows for parameters held fixed (e.g. early shapes),
+  # which carry no Hessian-based variance. (The CoE-conserved log_mu is
+  # normally NOT NA -- it gets the full-information variance -- but stays NA if
+  # that recomputation was unavailable; the fit warns in that case.)
+  # The finite free-parameter block is still usable.
+  theta <- object$fit$theta
+  nm <- names(theta)
+  if (is.null(nm) || !all(nzchar(nm))) {
+    p <- if (is.null(object$data$x)) 0L else ncol(object$data$x)
+    nm <- .hzr_parameter_names(theta = theta, dist = object$spec$dist, p = p)
+  }
+  if (!is.null(nm) && length(nm) == nrow(v)) {
+    dimnames(v) <- list(nm, nm)
+  }
+  v
 }
 
 .hzr_parameter_names <- function(theta, dist, p) {

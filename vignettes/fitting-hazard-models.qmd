@@ -326,6 +326,333 @@ the same package — there's no risk of subtle differences in censoring
 handling or estimator choice between endpoints.
 
 
+## Interval and left censoring
+
+Right censoring is by far the most common censoring type in clinical
+survival data — a patient is still alive at last follow-up, so all we
+know is that their event time exceeds the observed window. Two other
+types arise frequently enough to warrant explicit handling.
+
+**Interval censoring** occurs when the event is known to have happened
+*between* two observation times, but not at a specific time.  The
+canonical example is clinic-visit data: a patient is confirmed alive at
+month 12 and found dead at month 24, so the event occurred somewhere in
+$(12, 24)$.  A naive analysis treats the event as right-censored at 12
+or exactly observed at 24; both introduce bias.
+
+**Left censoring** is the mirror: the event occurred *before* the first
+observation time (time_upper), so it was already established at the
+moment of first contact — $T \leq t_{\text{upper}}$.
+
+### Status codes
+
+The package encodes censoring type in the `status` vector:
+
+| Status | Type | Interpretation |
+|-------:|------|----------------|
+| `1` | Exact event | Observed at `time` |
+| `0` | Right-censored | Event did not occur by `time` |
+| `2` | Interval-censored | Event occurred in `(time_lower, time_upper)` |
+| `-1` | Left-censored | Event occurred before `time` (upper bound) |
+
+For interval-censored rows, supply both `time_lower` and `time_upper`
+directly to `hazard()`.  The formula interface handles `Surv(time, status)`
+for right-censored data and `Surv(start, stop, event)` for counting-process
+(repeating-event) data; interval censoring is passed via the direct arguments.
+
+### Mixed censoring example
+
+We simulate 400 cardiac surgery patients observed at semi-annual clinic
+visits (every 6 months, 4--8 scheduled visits per patient).  If the
+event falls between two consecutive visits the observation is
+interval-censored; if it falls after the last visit the patient is
+right-censored.
+
+```{r}
+#| label: interval-simulate
+set.seed(101)
+n         <- 400
+visit_gap <- 6   # months between visits
+
+# True event times: Weibull mu = 0.025, nu = 1.0 (median ~28 months)
+true_time <- rexp(n, rate = 0.025)  # nu=1 → exponential
+
+n_visits  <- sample(4:8, n, replace = TRUE)
+
+status     <- integer(n)
+time       <- numeric(n)
+time_lower <- numeric(n)
+time_upper <- numeric(n)
+
+for (i in seq_len(n)) {
+  visits <- seq(visit_gap, n_visits[i] * visit_gap, by = visit_gap)
+  t_ev   <- true_time[i]
+  brk    <- findInterval(t_ev, c(0, visits))  # which interval contains t_ev
+
+  if (brk > length(visits)) {
+    # Event after last visit: right-censored.
+    # time_lower = 0: with H(time_lower) = H(0) = 0, the right-censored
+    # contribution reduces to -(H(time) - H(0)) = -H(time), which is correct.
+    status[i]     <- 0L
+    time[i]       <- max(visits)
+    time_lower[i] <- 0
+    time_upper[i] <- max(visits)
+  } else {
+    # Event within the visit window: interval-censored in (lower, upper)
+    lower_bound   <- if (brk == 1L) 0 else visits[brk - 1L]
+    upper_bound   <- visits[brk]
+    status[i]     <- 2L
+    time[i]       <- lower_bound
+    time_lower[i] <- lower_bound
+    time_upper[i] <- upper_bound
+  }
+}
+
+table(status)
+```
+
+::: {.callout-note}
+**`time_lower` as a counting-process entry time.**  In the Weibull and
+multiphase likelihoods, `time_lower` doubles as the *entry* (left-truncation)
+time for right-censored and exact-event rows (`status %in% c(0, 1)`): when
+`0 < time_lower < time`, the row contributes H(stop) − H(start), the
+counting-process form used for epoch-decomposed repeated events.  For an
+ordinary right-censored or event row with no entry time, leave `time_lower`
+at `0` or omit it.  Setting `time_lower = time` is treated as *no entry* —
+`time_lower` acts as an entry time only when strictly less than `time`, so
+it no longer zeroes the row's contribution.  The exponential, log-logistic,
+and log-normal likelihoods do not use `time_lower` as an entry time and are
+unaffected.
+:::
+
+Fit a Weibull model using both censoring types:
+
+```{r}
+#| label: interval-fit
+fit_ic <- hazard(
+  time       = time,
+  status     = status,
+  time_lower = time_lower,
+  time_upper = time_upper,
+  dist  = "weibull",
+  theta = c(mu = 0.025, nu = 1.0),
+  fit   = TRUE
+)
+
+fit_ic
+```
+
+### Interval-censored vs naive right-censored
+
+A naive analyst who doesn't have visit-bracket data would record the death
+at the *discovery* visit (`time_upper`) rather than as an interval.
+This overstates the event time — the patient appears to have survived
+longer than they did — biasing the estimated hazard shape.
+
+```{r}
+#| label: interval-vs-naive
+# Naive: treat each interval-censored row as an exact event at time_upper
+# (the visit when the death was first recorded)
+fit_naive <- hazard(
+  time   = ifelse(status == 2L, time_upper, time),
+  status = ifelse(status == 2L, 1L,         status),
+  dist  = "weibull",
+  theta = c(mu = 0.025, nu = 1.0),
+  fit   = TRUE
+)
+
+# Compare MLEs; true parameters are mu = 0.025, nu = 1.0
+rbind(
+  interval_censored = round(coef(fit_ic)[1:2],   4),
+  naive_exact_upper = round(coef(fit_naive)[1:2], 4),
+  truth             = c(mu = 0.025, nu = 1.0)
+)
+```
+
+The interval-censored fit recovers both parameters accurately.  The naive
+fit estimates $\mu$ comparably but introduces a substantial positive bias
+in $\nu$ — it sees events consistently appearing at visit times (every 6
+months) and infers a sharper, more periodic hazard shape that doesn't
+match the underlying exponential structure.
+
+
+## Convergence troubleshooting
+
+Multiphase models have more parameters than single-distribution fits, and the
+likelihood surface can be flat or multimodal when the data doesn't strongly
+identify all of them. Most convergence problems trace back to one of three
+causes: poor starting values, too many free parameters for the data at hand,
+or a model that asks for a phase the data doesn't contain. This section shows
+how to diagnose each and what to do about it.
+
+### Reading the KM cumulative hazard for starting values
+
+For a Weibull model, the relationship between the starting values and the
+data is direct: because $H(t) = (\mu t)^\nu$, taking logs gives
+$\log H(t) = \nu \log t + \nu \log \mu$. Plot $\log H(t)$ (the Nelson-Aalen
+cumulative hazard on the log scale) against $\log t$ and fit a straight line;
+the slope is $\hat\nu$ and the intercept is $\hat\nu \log \hat\mu$.
+
+```{r}
+#| label: starting-values
+nel <- hzr_nelson(cabgkul$int_dead, cabgkul$dead)
+
+# Drop the zero-time boundary point before log-transforming
+nel_clean <- nel[nel$time > 0 & nel$cumhaz > 0, ]
+log_t <- log(nel_clean$time)
+log_H <- log(nel_clean$cumhaz)
+
+lm_fit  <- lm(log_H ~ log_t)
+nu_hat  <- unname(coef(lm_fit)[2])
+mu_hat  <- exp(unname(coef(lm_fit)[1]) / nu_hat)
+c(mu = round(mu_hat, 4), nu = round(nu_hat, 4))
+```
+
+Those values are the Weibull starting point the data itself suggests. They
+won't be the MLEs --- the log-log line uses every event time equally, whereas
+the MLE weights by the likelihood --- but they land the optimizer in a sensible
+neighbourhood and prevent false-convergence to a degenerate solution.
+
+For multiphase models the reading is qualitative. Plot the KM cumulative hazard
+on the natural scale and look for kinks: a steep-then-flattening shape in the
+first few months signals an early phase whose `t_half` should sit in that early
+window; a steady linear rise afterwards signals a constant phase; a late
+upward curve beyond the flat region signals a late phase. Set `t_half` to
+roughly the time at which the early kink levels off, and set the constant
+phase scale mu to approximate the slope of the linear mid-section.
+
+```{r}
+#| label: fig-cumhaz-shape
+#| fig-cap: "Nelson-Aalen cumulative hazard for CABGKUL — three-phase shape visible as two kinks"
+#| fig-width: 7
+#| fig-height: 4
+ggplot(data.frame(time = nel$time, cumhaz = nel$cumhaz),
+       aes(time, cumhaz)) +
+  geom_step(colour = "#D55E00", linewidth = 0.7) +
+  labs(x = "Months after CABG", y = "Cumulative hazard") +
+  theme_minimal()
+```
+
+The early steep rise, the mid-range roughly-linear section, and the late
+upward acceleration map directly onto the three phases in the CABGKUL model.
+
+### When to fix shape parameters
+
+`fixed = "shapes"` locks the temporal shape parameters (e.g., `t_half`,
+`nu`, `m` for a CDF phase; `tau`, `gamma`, `alpha`, `eta` for a g3 phase)
+and lets the optimizer estimate only the scale (`log_mu`) for each phase.
+This cuts the parameter count substantially and is almost always what you
+want in two situations:
+
+- **You have a reference fit.** If a SAS HAZARD run already produced shape
+  estimates, replicate those shapes exactly and re-estimate only the scale.
+  This is the standard parity workflow.
+- **Your sample is small relative to the number of phases.** A rough guide
+  is 50 or more events per free shape parameter. Below that threshold the
+  shapes are weakly identified and the optimizer wanders.
+
+Estimate shapes freely (`fixed = "none"`, the default) only when you are
+exploring a new dataset for the first time and have no prior on the temporal
+structure — and even then, start with `fixed = "shapes"` and release the
+shapes one at a time if the fixed-shapes fit shows systematic misfit.
+
+### Signs of overparameterization
+
+When a model has more phases than the data supports, the symptoms are
+recognizable:
+
+| Symptom | What it means |
+|---------|--------------|
+| `fit$fit$converged == FALSE` | Optimizer hit `maxit` without satisfying the gradient tolerance |
+| `vcov()` returns `NA` | Hessian is singular — parameters are not jointly identified |
+| A phase scale (`log_mu`) at a boundary value | That phase is contributing essentially zero hazard; it isn't needed |
+| Enormous standard errors on one or more parameters | Flat likelihood in that direction — weak identification |
+| Two phases with nearly identical shapes | One can be collapsed into the other |
+
+The AVC dataset has a clear two-phase structure (early CDF plus constant).
+Adding a third late-rising phase asks the data for a pattern it doesn't
+contain over this follow-up window:
+
+```{r}
+#| label: overparameterized
+set.seed(42)
+fit_3ph <- hazard(
+  Surv(int_dead, dead) ~ 1,
+  data   = avc,
+  dist   = "multiphase",
+  phases = list(
+    early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                          fixed = "shapes"),
+    constant = hzr_phase("constant"),
+    late     = hzr_phase("g3", tau = 5, gamma = 3, alpha = 1, eta = 1,
+                          fixed = "shapes")
+  ),
+  fit = TRUE, control = list(n_starts = 5, maxit = 1000)
+)
+
+# Scale magnitudes: exp(log_mu) ≈ 0 for any phase the data doesn't support
+log_mu_idx <- grep("log_mu", names(coef(fit_3ph)))
+round(exp(coef(fit_3ph)[log_mu_idx]), 6)
+```
+
+The constant and late phase scales are both near zero — the optimizer
+found no evidence in the AVC data for either of those temporal shapes over
+this follow-up window. The early phase is absorbing all the identifiable
+structure. Any phase whose fitted scale is $\mu \lesssim 10^{-4}$ is not
+contributing meaningful hazard and is a candidate for removal. The
+right diagnostic question is not "did the AIC improve?" but "does this
+phase represent real clinical biology?" — late deterioration after AVC
+repair requires long follow-up to observe; this dataset doesn't have it.
+
+When shapes are also free (`fixed = "none"`), a redundant phase can make
+the Hessian rank-deficient and `vcov()` will return `NA` (the Hessian
+inversion failed). Fix by adding `fixed = "shapes"` to each phase to
+reduce the free-parameter count, then release shapes one at a time if the
+fixed-shapes fit shows systematic misfit.
+
+### Optimizer options
+
+Three `control` arguments address most remaining convergence problems:
+
+**`n_starts`** (default 5 for multiphase; single-distribution models run
+one optimizer call and ignore this parameter) runs the optimizer from
+`n_starts` randomly jittered copies of the initial `theta`, then keeps the
+best solution. The default of 5 is sufficient for two-phase models; increase
+to 8–10 for three or more phases where the likelihood surface has more local
+minima.
+
+```{r}
+#| label: nstarts
+set.seed(42)
+fit_robust <- hazard(
+  Surv(int_dead, dead) ~ 1,
+  data   = avc,
+  dist   = "multiphase",
+  phases = list(
+    early    = hzr_phase("cdf", t_half = 0.5, nu = 1, m = 1,
+                          fixed = "shapes"),
+    constant = hzr_phase("constant")
+  ),
+  fit     = TRUE,
+  control = list(n_starts = 10, maxit = 1000)
+)
+fit_robust$fit$converged
+```
+
+**Optimizer strategy (automatic).** The package always uses BFGS as the
+primary optimizer. For fixed-shape multiphase models with 2–10 free
+parameters, a Nelder-Mead pass runs first on each start to find a good
+basin, then BFGS polishes the solution. This warm-up is transparent —
+it happens automatically when the conditions are met and there is no
+user-facing control to switch it on or off.
+
+**`maxit`** (default 1000) sets the BFGS iteration cap. Hitting `maxit`
+without converging usually means either the starting values are far from
+the optimum (fix with better starts or `n_starts`) or the model is
+overparameterized (fix by fixing shapes or dropping a phase). Raising
+`maxit` beyond 2000 rarely helps if the optimizer is genuinely stuck.
+
+
 ## Phase types reference
 
 You've now seen each phase type in use: a `"cdf"` early phase for AVC

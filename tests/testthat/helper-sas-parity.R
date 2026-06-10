@@ -408,6 +408,339 @@
   list(fits = parsed)
 }
 
+# Parse the %DECILES goodness-of-fit table printed by the SAS deciles.hazard
+# macro. The block is introduced by a spaced-out title "D E C I L E ..." and
+# has one row per group: the leading token is the _DECILE_ index ("." for the
+# overall row, then 0..groups-1), followed by numeric columns whose first four
+# are CASES, EXPECTED (sum of cumulative hazard), CUM_HAZ (mean), ACTUAL
+# (observed events). Returns a data frame with columns decile/cases/expected/
+# actual (NA decile = overall row), or NULL if no decile block is present.
+.hzr_parse_sas_deciles <- function(path) {
+  lines <- .hzr_read_lst(path)
+  start <- grep("D E C I L E   A N A L Y S I S", lines)
+  if (!length(start)) return(NULL)
+  body <- lines[start[1]:length(lines)]
+
+  rows <- list()
+  started <- FALSE
+  num_only <- "^[0-9eE+.[:space:]-]+$"
+  for (ln in body) {
+    if (!nzchar(trimws(ln))) next
+    m <- regmatches(ln, regexec("^[[:space:]]*([.]|[0-9]+)[[:space:]]+(.+)$", ln))[[1]]
+    is_row <- length(m) >= 3 && grepl(num_only, m[3])
+    if (is_row) {
+      nums <- suppressWarnings(as.numeric(strsplit(trimws(m[3]),
+                                                   "[[:space:]]+")[[1]]))
+      nums <- nums[!is.na(nums)]
+      if (length(nums) >= 4) {
+        rows[[length(rows) + 1L]] <- data.frame(
+          decile   = if (m[2] == ".") NA_integer_ else as.integer(m[2]),
+          cases    = nums[1],
+          expected = nums[2],
+          actual   = nums[4]
+        )
+        started <- TRUE
+        next
+      }
+    }
+    # A non-blank, non-data line after the table has started ends the block.
+    if (started) break
+  }
+  if (!length(rows)) return(NULL)
+  do.call(rbind, rows)
+}
+
+# Parse a SAS %KAPLAN / %NELSONT life-table block. These are printed by the
+# kaplan.sas / nelsont.sas actuarial macros as a wide table with a header line
+#   Obs INT_DEAD NUMBER CENSORED DEAD CUM_SURV SE_EXACT CL_LOWER ... PROPLIFE
+# (KAPLAN) or a slightly different column set (NELSONT adds NUMRISK, drops
+# SE_EXACT). Header-driven so it tolerates either layout. `which` selects the
+# block: "kaplan" (first block with an SE_EXACT column), "nelson" (block with a
+# NUMRISK column), or a `_CATG=<x>` stratum marker like "catg0"/"catg1".
+# Returns a data frame named by the header columns (leading Obs dropped, "."
+# -> NA), or NULL if the block is absent.
+.hzr_parse_sas_lifetable <- function(path, which = c("kaplan", "nelson",
+                                                     "catg0", "catg1")) {
+  which <- match.arg(which)
+  lines <- .hzr_read_lst(path)
+  headers <- grep("^\\s*Obs\\s+INT_DEAD\\s+NUMBER", lines)
+  if (!length(headers)) return(NULL)
+
+  pick <- NULL
+  if (which == "nelson") {
+    pick <- headers[grepl("NUMRISK", lines[headers])][1]
+  } else if (which == "kaplan") {
+    # First KAPLAN-style header (has SE_EXACT, no NUMRISK).
+    cand <- headers[grepl("SE_EXACT", lines[headers]) &
+                      !grepl("NUMRISK", lines[headers])]
+    pick <- cand[1]
+  } else {
+    # Stratum: the header following the matching _CATG=<n> rule line.
+    n <- sub("catg", "", which)
+    catg <- grep(paste0("_CATG=", n, "\\b"), lines)
+    if (length(catg)) {
+      after <- headers[headers > catg[1]]
+      pick <- after[1]
+    }
+  }
+  if (is.null(pick) || is.na(pick)) return(NULL)
+
+  cols <- strsplit(trimws(lines[pick]), "\\s+")[[1]]
+  rows <- list()
+  for (ln in lines[(pick + 1L):length(lines)]) {
+    if (grepl("^\\s*-{5,}", ln)) break          # summary rule ends the block
+    if (!nzchar(trimws(ln))) next
+    toks <- strsplit(trimws(ln), "\\s+")[[1]]
+    # Data rows lead with the integer Obs counter.
+    if (!grepl("^[0-9]+$", toks[1])) {
+      if (length(rows)) break else next
+    }
+    if (length(toks) < length(cols)) next
+    vals <- toks[seq_along(cols)]
+    vals[vals == "."] <- NA
+    rows[[length(rows) + 1L]] <- as.numeric(vals)
+  }
+  if (!length(rows)) return(NULL)
+  df <- as.data.frame(do.call(rbind, rows))
+  names(df) <- cols
+  df[["Obs"]] <- NULL
+  df
+}
+
+# Parse the HAZPRED "digital nomogram" prediction table printed by jobs like
+# hp.death.AVC.sas: a PROC PRINT with header
+#   Obs YEARS MONTHS _SURVIV _CLLSURV _CLUSURV _HAZARD _CLLHAZ _CLUHAZ
+# Returns a data frame (Obs dropped) with the leading underscores stripped from
+# the column names: YEARS, MONTHS, SURVIV, CLLSURV, CLUSURV, HAZARD, CLLHAZ,
+# CLUHAZ. NULL if the table is absent.
+.hzr_parse_sas_nomogram <- function(path) {
+  lines <- .hzr_read_lst(path)
+  h <- grep("YEARS[[:space:]]+MONTHS[[:space:]]+_SURVIV", lines)
+  if (!length(h)) return(NULL)
+  cols <- c("YEARS", "MONTHS", "SURVIV", "CLLSURV", "CLUSURV",
+            "HAZARD", "CLLHAZ", "CLUHAZ")
+  rows <- list()
+  for (ln in lines[(h[1] + 1L):length(lines)]) {
+    if (!nzchar(trimws(ln))) next
+    toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+    if (!grepl("^[0-9]+$", toks[1])) {
+      if (length(rows)) break else next
+    }
+    if (length(toks) < 9L) next
+    rows[[length(rows) + 1L]] <- as.numeric(toks[2:9])
+  }
+  if (!length(rows)) return(NULL)
+  df <- as.data.frame(do.call(rbind, rows))
+  names(df) <- cols
+  df
+}
+
+# Parse the SAS %HAZBOOT bootstrap output printed by bs.death.AVC.sas: one
+# per-phase coefficient table (Early/Constant/Late) where each row is one
+# bootstrap resample's *selected* model -- a "." marks a covariate that was
+# NOT selected in that resample.  Header looks like
+#   Obs  E0  AGE STATUS COM_IV OPMOS OP_AGE RESAMPL ORIFICE MAL INC_SURG
+# (intercept E0/C0/L0 identifies the phase: early/constant/late).
+#
+# Returns a named list with one data frame per present phase (covariate
+# coefficients, NA where unselected; plus the RESAMPL id), and a
+# `selection_freq` attribute: per-phase named integer vector counting, over
+# the resamples, how often each covariate was selected.  NULL if no bootstrap
+# table is present.  A phase whose covariates are all unselected (e.g. the
+# placeholder Late table of a 2-phase fit) is dropped.
+.hzr_parse_sas_bootstrap <- function(path) {
+  lines <- .hzr_read_lst(path)
+  phase_for <- c(E0 = "early", C0 = "constant", L0 = "late")
+
+  parse_phase <- function(intercept) {
+    h <- grep(paste0("Obs[[:space:]]+", intercept, "\\b.*RESAMPL"), lines)
+    if (!length(h)) return(NULL)
+    cols <- strsplit(trimws(lines[h[1]]), "[[:space:]]+")[[1]]
+    rows <- list()
+    for (ln in lines[(h[1] + 1L):length(lines)]) {
+      if (!nzchar(trimws(ln))) next        # tolerate blank/pagination rows
+      toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+      if (!grepl("^[0-9]+$", toks[1])) {
+        if (length(rows)) break else next
+      }
+      if (length(toks) < length(cols)) next
+      vals <- toks[seq_along(cols)]
+      vals[vals == "."] <- NA
+      rows[[length(rows) + 1L]] <- suppressWarnings(as.numeric(vals))
+    }
+    if (!length(rows)) return(NULL)
+    df <- as.data.frame(do.call(rbind, rows))
+    names(df) <- cols
+    df[["Obs"]] <- NULL
+    df
+  }
+
+  out <- list()
+  freq <- list()
+  for (ic in names(phase_for)) {
+    df <- parse_phase(ic)
+    if (is.null(df)) next
+    covs <- setdiff(names(df), c(ic, "RESAMPL"))
+    f <- vapply(df[covs], function(x) sum(!is.na(x)), integer(1))
+    if (sum(f) == 0L) next                     # drop empty placeholder phase
+    out[[phase_for[[ic]]]] <- df
+    freq[[phase_for[[ic]]]] <- f
+  }
+  if (!length(out)) return(NULL)
+  attr(out, "selection_freq") <- freq
+  out
+}
+
+# Parse the multivariable HAZPRED "digital nomogram" printed by the
+# patient-specific prediction jobs (hp.death.AVC.hm1 / hm2).  Unlike the null
+# model nomogram above, these PROC PRINT tables carry the full covariate
+# profile on every row and are printed BY a grouping variable (MAL or COM_IV),
+# so each row is a self-contained (time + covariates -> predictions) record:
+#   Obs MONTHS YEARS OPYEAR OPMOS AGE COM_IV MAL INC_SURG ORIFICE STATUS
+#       _SURVIV _CLLSURV _CLUSURV _HAZARD _CLLHAZ _CLUHAZ
+# Header-driven (reads column names from the printed header), so it tolerates
+# layout differences between fixtures.  Parsing is scoped to the data block
+# immediately following each matching header line: within a block, data rows
+# lead with the integer Obs counter; the block ends at the first non-data line
+# after data have started (so unrelated `Obs ...` tables elsewhere in the
+# listing are never ingested).  Page breaks / BY-groups repeat the header, and
+# all their blocks are concatenated.  Returns a data frame with the leading "_"
+# stripped from the prediction columns and Obs dropped; NULL if absent.
+.hzr_parse_sas_nomogram_mv <- function(path) {
+  lines <- .hzr_read_lst(path)
+  h <- grep("MONTHS[[:space:]].*_SURVIV", lines)
+  if (!length(h)) return(NULL)
+  cols <- strsplit(trimws(lines[h[1]]), "[[:space:]]+")[[1]]
+  ncol <- length(cols)
+  rows <- list()
+  for (hi in h) {
+    if (hi >= length(lines)) next
+    started <- FALSE
+    for (ln in lines[(hi + 1L):length(lines)]) {
+      if (!nzchar(trimws(ln))) next                 # tolerate blank spacer rows
+      toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+      if (!grepl("^[0-9]+$", toks[1])) {            # data rows lead with Obs
+        if (started) break else next                # block ends after data
+      }
+      if (length(toks) < ncol) next
+      vals <- toks[seq_len(ncol)]
+      vals[vals == "."] <- NA
+      rows[[length(rows) + 1L]] <- suppressWarnings(as.numeric(vals))
+      started <- TRUE
+    }
+  }
+  if (!length(rows)) return(NULL)
+  df <- as.data.frame(do.call(rbind, rows))
+  names(df) <- sub("^_", "", cols)
+  df[["Obs"]] <- NULL
+  df
+}
+
+# Fit the saved multivariable both-phase "HMDEATH" model used by the AVC
+# patient-specific prediction fixtures (hm.death.AVC final model; consumed by
+# hp.death.AVC.hm1 / hm2).  Early phase carries 6 covariates, Constant phase 3
+# (STATUS appears in both).  Deterministic warm start from the .sas PARMS /
+# coefficient statements (documented starting values, not the converged
+# answer).  Returns the fitted hazard object.
+.hzr_fit_avc_hmdeath <- function() {
+  # Load via an explicit env + `$` so object_usage_linter sees a binding
+  # (a bare `avc` from data() reads as an undefined global under lint_package).
+  e <- new.env()
+  utils::data("avc", package = "TemporalHazard", envir = e)
+  d <- e$avc
+  # SAS PROC STANDARD ... REPLACE fills missing INC_SURG with the column mean.
+  d$inc_surg[is.na(d$inc_surg)] <- mean(d$inc_surg, na.rm = TRUE)
+  start_thalf <- 0.1905077
+  start_nu    <- 1.437416
+  theta0 <- c(
+    log(0.3504743), log(start_thalf), start_nu, 1,
+    -0.03205774, 1.336675, 0.6872028, -0.01963377, 0.0002086689, 0.5169533,
+    log(4.391673e-07), 1.375285, 3.11765, 1.054988
+  )
+  hazard(
+    survival::Surv(int_dead, dead) ~ 1,
+    data   = d,
+    dist   = "multiphase",
+    phases = list(
+      early    = hzr_phase("cdf", t_half = start_thalf, nu = start_nu, m = 1,
+                           fixed = "m",
+                           formula = ~ age + com_iv + mal + opmos + op_age + status),
+      constant = hzr_phase("constant", formula = ~ inc_surg + orifice + status)
+    ),
+    theta   = theta0,
+    fit     = TRUE,
+    control = list(n_starts = 1, maxit = 2000, conserve = TRUE)
+  )
+}
+
+# Parse the stratified "Predict number of deaths" observed-vs-expected table
+# printed by hs.death.AVC.hm1.sas: one row per stratum (PROC SUMMARY BY COM_IV)
+# with the printed header
+#   Obs STATUS INC_SURG OPMOS AGE MAL COM_IV ORIFICE DEAD INT_DEAD PROB
+#       CUM_HAZ DEAD PEXPECT EXPECTED ACTUAL
+# (note the duplicated DEAD column, so we read by position).  Returns a data
+# frame with one row per stratum: com_iv, pexpect (Sum 1 - S), expected
+# (Sum cumulative hazard), actual (observed deaths).  NULL if absent.
+.hzr_parse_sas_calibration <- function(path) {
+  lines <- .hzr_read_lst(path)
+  h <- grep("COM_IV.*PEXPECT.*EXPECTED.*ACTUAL", lines)
+  if (!length(h)) return(NULL)
+  rows <- list()
+  for (ln in lines[(h[1] + 1L):length(lines)]) {
+    if (!nzchar(trimws(ln))) next                  # SAS double-spaces the rows
+    toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+    if (!grepl("^[0-9]+$", toks[1])) {
+      if (length(rows)) break else next
+    }
+    if (length(toks) < 16L) next
+    v <- suppressWarnings(as.numeric(toks[1:16]))
+    rows[[length(rows) + 1L]] <- data.frame(
+      com_iv   = v[7],
+      pexpect  = v[14],
+      expected = v[15],
+      actual   = v[16]
+    )
+  }
+  if (!length(rows)) return(NULL)
+  do.call(rbind, rows)
+}
+
+# Parse the per-stratum mean-survival "digital" table printed by
+# hs.death.AVC.hm1.sas: blocks delimited by "Interventricular communication=<g>"
+# rule lines, each with header  Obs YEARS NSURVIV MSURVIV MCLLSURV MCLUSURV
+# (NSURVIV = stratum size; MSURVIV/MCLLSURV/MCLUSURV = mean of per-subject
+# survival and its CL across the stratum).  Returns a long data frame with a
+# leading `com_iv` column; NULL if absent.
+.hzr_parse_sas_strata_survival <- function(path) {
+  lines <- .hzr_read_lst(path)
+  rules <- grep("Interventricular communication=([0-9])", lines)
+  if (!length(rules)) return(NULL)
+  out <- list()
+  for (r in rules) {
+    g <- as.integer(sub(".*communication=([0-9]).*", "\\1", lines[r]))
+    hdr <- grep("Obs[[:space:]]+YEARS[[:space:]]+NSURVIV", lines)
+    hdr <- hdr[hdr > r][1]
+    if (is.na(hdr)) next
+    started <- FALSE
+    for (ln in lines[(hdr + 1L):length(lines)]) {
+      if (!nzchar(trimws(ln))) next                # tolerate blank spacer rows
+      toks <- strsplit(trimws(ln), "[[:space:]]+")[[1]]
+      if (!grepl("^[0-9]+$", toks[1])) {
+        if (started) break else next
+      }
+      if (length(toks) < 6L) next
+      started <- TRUE
+      v <- suppressWarnings(as.numeric(toks[2:6]))
+      out[[length(out) + 1L]] <- data.frame(
+        com_iv = g, YEARS = v[1], NSURVIV = v[2],
+        MSURVIV = v[3], MCLLSURV = v[4], MCLUSURV = v[5]
+      )
+    }
+  }
+  if (!length(out)) return(NULL)
+  do.call(rbind, out)
+}
+
 # Default discovery: ~/Documents/GitHub/hazard/examples/ if it exists,
 # else NULL.  Skip tests when fixtures are unavailable.
 .hzr_sas_fixture_dir <- function() {

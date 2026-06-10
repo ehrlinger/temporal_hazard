@@ -35,6 +35,15 @@ NULL
 #'   Defaults to \code{rep(1e-6, length(theta_start))} when NULL, but callers
 #'   should supply distribution-specific bounds (e.g. \code{c(1e-6, 1e-6,
 #'   rep(-Inf, p_cov))} for Weibull so that covariate betas are unconstrained).
+#' @param hessian_fn Optional function(theta) returning the Hessian of the
+#'   negative log-likelihood at \code{theta} (same scale as
+#'   \code{numDeriv::hessian(objective)}).  When it returns a conformant square
+#'   matrix (dimension equal to the number of parameters), that matrix is used
+#'   for standard errors.  The numerical Hessian is used instead when
+#'   \code{hessian_fn} is \code{NULL} (the default), when the function returns
+#'   \code{NULL} (e.g. a censoring branch it does not cover analytically), or
+#'   when it errors.  A non-NULL, non-conformant return raises a warning and
+#'   also falls back to the numerical Hessian.
 #'
 #' @return List with par, value (log-likelihood), convergence, counts, message,
 #'   hessian, vcov.
@@ -51,7 +60,8 @@ NULL
     weights = NULL,
     control = list(),
     use_bounds = FALSE,
-    lower_bounds = NULL) {
+    lower_bounds = NULL,
+    hessian_fn = NULL) {
 
   control <- utils::modifyList(
     list(maxit = 1000, reltol = 1e-5, abstol = 1e-6),
@@ -126,28 +136,39 @@ NULL
     )
   }
 
-  # Post-fit Hessian for standard errors
-  hess_result <- tryCatch(
-    {
-      if (requireNamespace("numDeriv", quietly = TRUE)) {
-        numDeriv::hessian(objective, result$par)
-      } else {
-        NA
-      }
-    },
-    error = function(e) NA
-  )
-
-  vcov <- if (!anyNA(hess_result)) {
-    tryCatch(
-      solve(hess_result),
-      error = function(e) {
-        warning("Hessian not invertible; standard errors unavailable")
-        NA
-      }
+  # Post-fit Hessian for standard errors.  Prefer the caller's analytic Hessian
+  # (on the objective / negative-log-likelihood scale) when supplied; otherwise,
+  # or when it declines by returning NULL, fall back to a numerical Hessian.
+  hess_result <- NULL
+  if (!is.null(hessian_fn)) {
+    hess_result <- tryCatch(hessian_fn(result$par), error = function(e) NULL)
+    # A non-NULL hook result must be a square matrix matching the parameter
+    # dimension; a misbehaving hook should not silently produce a wrong vcov.
+    p_dim <- length(result$par)
+    if (!is.null(hess_result) &&
+        !(is.matrix(hess_result) && all(dim(hess_result) == p_dim))) {
+      warning("hessian_fn returned a non-conformant result; using numerical Hessian")
+      hess_result <- NULL
+    }
+  }
+  if (is.null(hess_result)) {
+    hess_result <- tryCatch(
+      {
+        if (requireNamespace("numDeriv", quietly = TRUE)) {
+          numDeriv::hessian(objective, result$par)
+        } else {
+          NULL
+        }
+      },
+      error = function(e) NULL
     )
+  }
+
+  # Hardened inversion + conditioning diagnostics (Layer 1).
+  inv <- if (is.matrix(hess_result)) {
+    .hzr_safe_solve(hess_result)
   } else {
-    NA
+    list(vcov = NA, rcond = NA_real_, pd = NA)
   }
 
   list(
@@ -157,6 +178,8 @@ NULL
     counts = result$counts,
     message = result$message,
     hessian = hess_result,
-    vcov = vcov
+    vcov = inv$vcov,
+    rcond = inv$rcond,
+    pd = inv$pd
   )
 }

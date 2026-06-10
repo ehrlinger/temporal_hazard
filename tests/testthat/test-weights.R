@@ -613,3 +613,126 @@ test_that("zero weight drops the row's contribution across mixed censoring (log-
   )
   expect_equal(ll_w, ll_drop, tolerance = 1e-12)
 })
+
+# ---------------------------------------------------------------------------
+# Multiphase WITH covariates: weighted == duplicated (roadmap 7c)
+# ---------------------------------------------------------------------------
+
+# Shared fixture: multiphase data with a covariate in BOTH phases, integer
+# weights, and the row-duplication index. covariate enters early + constant.
+make_mp_cov <- function(seed = 41, n = 40) {
+  set.seed(seed)
+  t      <- runif(n, 0.05, 3)
+  status <- rbinom(n, 1, 0.4)
+  x      <- rnorm(n)
+  w      <- sample(1:3, n, replace = TRUE)
+  idx    <- rep(seq_len(n), times = w)
+  list(t = t, status = status, x = x, w = w, idx = idx, n = n)
+}
+
+# Phases + theta shared by the direct-LL and gradient tests.
+# Layout: [log_mu_e, log_thalf, nu, m, beta_e, log_mu_c, beta_c]
+mp_cov_phases <- function() {
+  list(
+    early    = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1, fixed = "shapes"),
+    constant = hzr_phase("constant")
+  )
+}
+mp_cov_theta   <- c(-4, log(0.3), 1, 1, 0.5, -3, -0.3)
+mp_cov_counts  <- c(early = 1L, constant = 1L)
+
+test_that("integer weights match duplication in multiphase LL WITH covariates", {
+  skip_on_cran()
+  d <- make_mp_cov()
+  x_list   <- list(early    = matrix(d$x, ncol = 1),
+                   constant = matrix(d$x, ncol = 1))
+  x_list_d <- list(early    = matrix(d$x[d$idx], ncol = 1),
+                   constant = matrix(d$x[d$idx], ncol = 1))
+
+  ll_w <- TemporalHazard:::.hzr_logl_multiphase(
+    theta = mp_cov_theta, time = d$t, status = d$status,
+    phases = mp_cov_phases(), covariate_counts = mp_cov_counts,
+    x_list = x_list, weights = d$w
+  )
+  ll_dup <- TemporalHazard:::.hzr_logl_multiphase(
+    theta = mp_cov_theta, time = d$t[d$idx], status = d$status[d$idx],
+    phases = mp_cov_phases(), covariate_counts = mp_cov_counts,
+    x_list = x_list_d, weights = rep(1, length(d$idx))
+  )
+  expect_equal(ll_w, ll_dup, tolerance = 1e-10)
+})
+
+test_that("weighted multiphase analytic gradient matches numerical WITH covariates", {
+  skip_if_not_installed("numDeriv")
+  d <- make_mp_cov(seed = 42)
+  x_list <- list(early    = matrix(d$x, ncol = 1),
+                 constant = matrix(d$x, ncol = 1))
+
+  num_g <- numDeriv::grad(
+    function(th) {
+      TemporalHazard:::.hzr_logl_multiphase(
+        theta = th, time = d$t, status = d$status,
+        phases = mp_cov_phases(), covariate_counts = mp_cov_counts,
+        x_list = x_list, weights = d$w
+      )
+    },
+    mp_cov_theta
+  )
+  ana_g <- TemporalHazard:::.hzr_gradient_multiphase(
+    theta = mp_cov_theta, time = d$t, status = d$status, weights = d$w,
+    phases = mp_cov_phases(), covariate_counts = mp_cov_counts, x_list = x_list
+  )
+  expect_equal(as.numeric(ana_g), num_g, tolerance = 1e-4)
+})
+
+test_that("weighted multiphase fit matches duplicated-row fit, covariates, CoE off", {
+  skip_on_cran()
+  d  <- make_mp_cov(seed = 43)
+  df <- data.frame(time = d$t, status = d$status, x = d$x)
+  df_exp <- expand_rows(df, d$w)
+
+  mk_fit <- function(data, weights) {
+    hazard(
+      survival::Surv(time, status) ~ 1,
+      data = data, dist = "multiphase",
+      phases = list(
+        early    = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1,
+                             fixed = "shapes", formula = ~ x),
+        constant = hzr_phase("constant", formula = ~ x)
+      ),
+      weights = weights, fit = TRUE,
+      control = list(conserve = FALSE, n_starts = 1L, maxit = 500L)
+    )
+  }
+
+  fit_w   <- mk_fit(df,     d$w)
+  fit_dup <- mk_fit(df_exp, NULL)
+
+  expect_equal(coef(fit_w), coef(fit_dup), tolerance = 1e-3)
+  expect_equal(fit_w$fit$objective, fit_dup$fit$objective, tolerance = 1e-4)
+})
+
+test_that(".hzr_logl_weibull gradient attribute respects weights", {
+  # Regression: return_gradient = TRUE previously called .hzr_gradient_weibull
+  # without forwarding `weights`, so the attached gradient was unit-weighted
+  # even for weighted data.
+  skip_if_not_installed("numDeriv")
+  set.seed(314)
+  n <- 120
+  x <- cbind(z = rnorm(n))
+  time <- rexp(n, 0.5) + 0.01
+  status <- rbinom(n, 1, 0.75)
+  w <- runif(n, 0.5, 2.5)
+  theta <- c(mu = 0.8, nu = 1.4, z = 0.3)
+
+  ll <- .hzr_logl_weibull(theta, time, status, x = x, weights = w,
+                          return_gradient = TRUE)
+  g_attr <- attr(ll, "gradient")
+
+  obj <- function(th) {
+    .hzr_logl_weibull(th, time, status, x = x, weights = w)
+  }
+  g_num <- numDeriv::grad(obj, theta)
+
+  expect_equal(g_attr, g_num, tolerance = 1e-5)
+})

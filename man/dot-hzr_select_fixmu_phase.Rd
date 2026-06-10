@@ -11,7 +11,8 @@
   phases,
   covariate_counts,
   x_list,
-  weights = NULL
+  weights = NULL,
+  time_lower = NULL
 )
 }
 \arguments{
@@ -30,12 +31,27 @@
 \item{weights}{Optional numeric vector of row weights (length n). Defaults to
 unit weights. Applied when summing per-phase cumhaz so that selection
 happens on the same scale as the (weighted) observed event count.}
+
+\item{time_lower}{Optional numeric vector of counting-process entry (start)
+times. When supplied, phases are ranked by entry-time cumulative hazard
+\code{H(stop) - H(start)}, the scale on which events are conserved. \code{NULL} (the
+default) means no truncation, i.e. \code{H(start) = 0}.}
 }
 \value{
 Character: name of the phase to fix.
 }
 \description{
 Chooses the phase contributing the largest share of total cumulative
-hazard, matching the C HAZARD SETCOE strategy.
+hazard at the current theta, matching the C HAZARD SETCOE strategy.
+}
+\details{
+When one phase dominates by an extreme margin (>10x the median contribution)
+it is typically due to poorly-scaled shape parameters at the starting theta
+rather than a genuine signal that the phase should absorb all events.
+Selecting such a phase as the fixmu phase traps the optimizer: CoE keeps
+rescaling that phase's log_mu upward while the optimizer tries to drive it
+to near-zero.  We therefore exclude extreme outliers and select among the
+remaining phases.  If all phases are outliers (or only one phase exists)
+the largest is used as a fallback.
 }
 \keyword{internal}

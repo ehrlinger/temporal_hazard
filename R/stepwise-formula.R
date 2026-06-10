@@ -207,3 +207,46 @@
   }
   per_phase[[phase]]
 }
+
+# ---------------------------------------------------------------------------
+# Phase-scope detection helper
+# ---------------------------------------------------------------------------
+#' Detect phase-scoped calls in a formula RHS parse tree
+#'
+#' Walks the call tree of \code{rhs} (the RHS of a formula, i.e.
+#' \code{formula[[3L]]}) and returns \code{TRUE} if any call node has a
+#' function symbol that exactly matches one of \code{phase_names}.
+#'
+#' This is stricter than a string-regex approach: a phase named \code{"log"}
+#' will NOT produce a false positive when the formula contains \code{log(age)},
+#' because \code{log} would also appear in \code{phase_names} only if the user
+#' deliberately named a phase \code{"log"}.  Conversely, the function only
+#' fires when the call head is an exact match to a known phase name -- standard
+#' R functions that happen to share names with phases do not trigger the check
+#' unless those names are actually phase names.
+#'
+#' @param rhs  A language object (the RHS of a formula, typically
+#'   \code{formula[[3L]]}).
+#' @param phase_names  Character vector of phase names to look for.
+#' @return \code{TRUE} if any call in the tree has its function head in
+#'   \code{phase_names}; \code{FALSE} otherwise.
+#' @noRd
+.hzr_formula_has_phase_scope <- function(rhs, phase_names) {
+  if (is.null(rhs) || length(phase_names) == 0L) return(FALSE)
+  # Walk recursively: check current node, then recurse into sub-expressions.
+  .walk <- function(node) {
+    if (is.call(node)) {
+      # The head of the call (node[[1L]]) is the function symbol or expression.
+      head <- node[[1L]]
+      if (is.symbol(head) && as.character(head) %in% phase_names) {
+        return(TRUE)
+      }
+      # Recurse into all arguments (node[[2L]], node[[3L]], ...) and the head.
+      for (i in seq_along(node)) {
+        if (.walk(node[[i]])) return(TRUE)
+      }
+    }
+    FALSE
+  }
+  .walk(rhs)
+}

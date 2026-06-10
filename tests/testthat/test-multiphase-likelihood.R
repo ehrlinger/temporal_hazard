@@ -383,7 +383,7 @@ test_that("3-covariate phase does not emit mu_j * phi_j recycling warning", {
     "avc dataset not available"
   )
 
-  expect_no_warning(
+  w <- testthat::capture_warnings(
     fit <- hazard(
       survival::Surv(int_dead, dead) ~ 1, data = avc,
       dist = "multiphase",
@@ -397,4 +397,7 @@ test_that("3-covariate phase does not emit mu_j * phi_j recycling warning", {
       control = list(n_starts = 1L, maxit = 10L)
     )
   )
+  # The bug under test produced a vector-recycling warning; assert it is absent.
+  # (An incidental non-PD-Hessian warning at maxit = 10 is unrelated and allowed.)
+  expect_false(any(grepl("not a multiple|longer object length", w)))
 })

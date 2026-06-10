@@ -312,7 +312,10 @@ NULL
   grad[1] <- sum(w_status) - sum(wm)
 
   # dL/d(log beta) = sum(w * delta) + beta * [sum(w * delta * log t) - sum(wm * log t)]
-  log_t <- log(time)
+  # Guard log(time): a legal right-censored time = 0 row has w_status = 0 and
+  # wm = 0, but an unguarded log(0) = -Inf turns those into 0 * -Inf = NaN, which
+  # would poison the entire summed log_beta gradient component.
+  log_t <- log(pmax(time, .Machine$double.xmin))
   grad[2] <- sum(w_status) +
              beta * (sum(w_status * log_t) - sum(wm * log_t))
 
@@ -325,17 +328,87 @@ NULL
   grad
 }
 
+#' Analytic Hessian of the log-logistic negative log-likelihood
+#'
+#' Returns the Hessian of the objective (negative log-likelihood) on the internal
+#' \code{theta = (log alpha, log beta, beta_coef)} scale, matching
+#' \code{numDeriv::hessian(objective)} so it can be used directly by
+#' \code{.hzr_optim_generic()}.  Coverage mirrors the analytic gradient: event +
+#' right-censored rows only; returns \code{NULL} for any left/interval-censored
+#' row (\code{status \%in\% c(-1, 2)}) to request the numerical-Hessian fallback.
+#'
+#' With \code{term = alpha t^beta e^eta}, \code{p = term/(1+term)},
+#' \code{u = (1, beta*log t, x)} and \code{D = w (1 + delta) p (1 - p)}, the
+#' objective Hessian is \code{U' diag(D) U} plus a scalar
+#' \code{beta * sum(w * log t * ((1+delta) p - delta))} added at the (log beta,
+#' log beta) entry.
+#'
+#' @noRd
+.hzr_hessian_loglogistic <- function(
+    theta, time, status,
+    time_lower = NULL, time_upper = NULL, x = NULL, weights = NULL) {
+
+  n <- length(time)
+  if (is.null(weights)) weights <- rep(1, n)
+
+  # Coverage contract: closed form is event + right censored only.
+  if (any(status %in% c(-1, 2))) {
+    return(NULL)
+  }
+
+  log_alpha <- theta[1]
+  log_beta <- theta[2]
+  beta <- exp(log_beta)
+  p <- length(theta)
+  p_cov <- p - 2L
+  # Fail loud on inconsistent theta/x: a silent has_cov = FALSE would zero the
+  # covariate rows/cols and yield a conformant-but-wrong vcov.
+  if (!is.null(x)) x <- as.matrix(x)
+  n_x <- if (is.null(x)) 0L else NCOL(x)
+  if (n_x != p_cov) {
+    stop(".hzr_hessian_loglogistic(): ncol(x) (", n_x, ") must equal the number ",
+         "of covariate parameters in theta (", p_cov, ").", call. = FALSE)
+  }
+  has_cov <- p_cov > 0L
+  beta_coef <- if (has_cov) theta[3:p] else numeric(0)
+  eta <- if (has_cov) as.numeric(x %*% beta_coef) else rep(0, n)
+
+  log_t <- log(pmax(time, .Machine$double.xmin))
+  term <- exp(log_alpha + beta * log_t + eta)
+  pr <- term / (1 + term)
+  delta <- as.numeric(status == 1)
+
+  # Per-row design u = (1, beta*log t, x); diagonal weight D = w(1+delta)p(1-p).
+  d_wt <- weights * (1 + delta) * pr * (1 - pr)
+  u <- cbind(1, beta * log_t)
+  if (has_cov) u <- cbind(u, x)
+
+  hess <- crossprod(u, d_wt * u)
+  hess[2L, 2L] <- hess[2L, 2L] +
+    beta * sum(weights * log_t * ((1 + delta) * pr - delta))
+  dimnames(hess) <- list(names(theta), names(theta))
+  hess
+}
+
 #' @noRd
 .hzr_optim_loglogistic <- function(
     time, status, time_lower = NULL, time_upper = NULL,
     x = NULL, theta_start, weights = NULL, control = list()) {
+  hessian_fn <- function(par) {
+    .hzr_hessian_loglogistic(
+      theta = par, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x, weights = weights
+    )
+  }
   .hzr_optim_generic(
     logl_fn = .hzr_logl_loglogistic,
     gradient_fn = .hzr_gradient_loglogistic,
     time = time, status = status,
     time_lower = time_lower, time_upper = time_upper,
     x = x, theta_start = theta_start, weights = weights,
-    control = control, use_bounds = FALSE
+    control = control, use_bounds = FALSE,
+    hessian_fn = hessian_fn
   )
 }
 

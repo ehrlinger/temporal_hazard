@@ -9,6 +9,11 @@ parametric hazard model of Blackstone, Naftel, and Turner (1986).
 For detailed feature-level parity analysis against the original C/SAS HAZARD
 system, see `SAS-PARITY-GAP-ANALYSIS.md` in this directory.
 
+For how the R and SAS/C codebases are used together to assure correctness
+**efficiently** — the tiered model (R-only invariants → cross-engine
+differential gate → frozen golden anchors), the reference-authority principle,
+and when to stop hand-porting fixtures — see `CORRECTNESS-STRATEGY.md`.
+
 ---
 
 ## Phase 1: Migration from C/SAS — COMPLETE
@@ -370,11 +375,16 @@ is acceptable.
 
 ---
 
-## Phase 6: Documentation Gaps — PLANNED
+## Phase 6: Documentation Gaps — COMPLETE (v1.1.0 dev cycle)
 
 The SAS HAZARD documentation walks users through a disciplined analytical
-sequence. The R vignettes cover the same pieces but have gaps relative to
+sequence. The R vignettes cover the same pieces but had gaps relative to
 what a SAS HAZARD veteran would expect.
+
+> **Status:** 6a (clinical walkthrough) and 6b (Cox comparison) shipped in
+> the `clinical-analysis-walkthrough` vignette; 6c (convergence
+> troubleshooting, PR #33) and 6d (interval/left censoring, PR #35) landed in
+> the v1.1.0 dev cycle. All four documentation gaps are closed.
 
 ### 6a. Complete Clinical Analysis Walkthrough
 
@@ -436,44 +446,24 @@ covers the theory but there are no hands-on examples.
 
 ---
 
-## Phase 7: Production Model Parity & Edge Cases — PLANNED
+## Phase 7: Edge-Case & Coverage Hardening — IN PROGRESS
 
-Post-CRAN hardening against real production models from the original C/SAS
-HAZARD system. Goal: high confidence in both codebases for the model types
-that appear in clinical production, not just the curated examples shipped
-with the C source.
+Code-driven correctness work the package team owns end-to-end: closing test
+coverage on implemented-but-unverified paths, adding public example datasets,
+and hardening numerical edge cases. This is distinct from the **Production
+Validation Stream** (below), which validates against external production
+models on an ongoing, externally-gated basis.
 
-> **Cross-codebase note:** These items are logged in both this document and
-> `docs/PRODUCTION-TEST-PLAN.md` in the `hazard` C/SAS repo. A single `.lst`
-> reference output validates both codebases simultaneously. CCF-local fixtures
-> live at `tests/production/` (gitignored) in the hazard repo.
+> **Progress (v1.1.0 dev cycle):** four hardening fixes landed — 4-phase CoE
+> fixmu selection (PR #37), `time_lower` dual-use (PR #36), `hzr_decompos()`
+> Case 3 + `nu=0/m>=0` boundary (PR #40), and phase-specific covariate
+> recovery (PR #39). Of the three coverage-gap paths exercised here for the
+> first time — 4-phase CoE, the `hzr_decompos()` sign-dispatch boundaries,
+> and phase-specific covariates — two harbored real bugs; phase-specific
+> covariates was correct and is now locked in. (`time_lower` was a separate
+> fix surfaced during the interval-censoring vignette work.)
 
-### 7a. Rajeswaran / Blackstone Production Model Parity
-
-**Contact:** Rajeswaran (Rajes) at CCF — has the "hard" production hazard
-models run against the C HAZARD binary in clinical analyses.
-
-**Goal:** Collect 3–5 production `.lst` outputs from Blackstone's
-Rajeswaran-authored models; port each to `hazard()` calls; add
-`skip_on_cran()` parity tests with tolerances matching the existing suite.
-
-Candidate model types not yet exercised:
-- 4-phase models (early + early2 + constant + late)
-- Phase-specific covariate models with multiple covariate phases
-- Models with shaping modifiers (`/S`, `/I`, `/E`) — currently deferred from
-  primary parity (see PRE-CRAN-PARITY-INVENTORY.md gap §1)
-- High-dimensional covariate fits (12+ free parameters)
-
-**Action:** Schedule meeting with Rajes; request SAS driver scripts + `.lst`
-reference outputs for 3–5 candidate models from production library.
-
-**Sequencing dependency:** Collect Rajes examples *before* installing
-`hazard` v4.4.6 at CCF. Once the CCF production install is live, run the
-new driver scripts against the installed binary to generate fresh `.lst`
-captures; add those as `skip_on_cran()` parity fixtures. The CCF install
-is blocked on this collection step.
-
-### 7b. Weighted Events — Additional Parity Coverage
+### 7a. Weighted Events — Additional Parity Coverage
 
 The OMC dataset (`hz.tm123.OMC`) exercises case weights via the PRIMISOL
 morbidity endpoint, and `4c`/`4e` verified integer-weight duplication parity.
@@ -485,12 +475,15 @@ Additional coverage needed to close confidence gaps:
   need a covariate fit with weights to confirm the weighted score/gradient is
   correct under the full CoE + covariate path
 - **Weighted competing risks** (`hzr_competing_risks()` with case weights):
-  not currently tested with non-unit weights
+  not yet *implemented* — the function takes only `(time, event)` and counts
+  raw row tallies. Building it means a weighted Aalen-Johansen recursion
+  (weighted at-risk sets and event counts) plus a weighted-Greenwood variance.
+  Feature, not a coverage gap — scope before committing
 - **Source:** Look for a CCF production model that uses fractional IPS weights
   or aggregated-cell weights (e.g. from a registry with pre-computed weights
   rather than individual patient records)
 
-### 7c. New Example Datasets
+### 7b. New Example Datasets
 
 **Hsich / UNOS (post-heart-transplant mortality)**
 - 3-phase early + constant + late structure
@@ -523,23 +516,70 @@ Additional coverage needed to close confidence gaps:
 - Actionable: identify published paper with LL + MLE table, or request
   SAS driver from Blackstone/CCF production library
 
-### 7d. Code Areas Requiring Deeper Examination
+### 7c. Code Areas Requiring Deeper Examination
 
 The following components are implemented but have limited parity coverage
 or known numerical gaps. Priority order for investigation:
 
 | Area | Risk | Status |
 |---|---|---|
-| **4-phase CoE algebra** | `.hzr_select_fixmu_phase()` selects one constrained phase from N; behavior with N=4 untested | No test |
-| **`hzr_decompos()` near-boundary cases** | Sign dispatch has 6 cases; edge values (nu≈0, m≈0, t_half→0, t_half→∞) may fall between branches | Partial — Case 2L verified |
-| **Phase-specific covariates** | `hzr_phase(formula = ~)` ships but no SAS parity fixture exercises it | No parity test |
-| **`hzr_stepwise()` on multiphase** | Phase-specific variable entry path — no parity test against SAS SELECTION | No parity test |
-| **`hzr_bootstrap()` with weights** | Non-unit weights path through bootstrap resampling untested | No test |
-| **`predict(..., decompose=TRUE, se.fit=TRUE)`** | Currently blocked with clean error — delta-method Jacobian needs per-phase extension | Blocked |
-| **Interval censoring under multiphase** | Code path exists; no real-data or SAS parity fixture | No parity test |
-| **Hessian stability at 12+ parameters** | Numerical Hessian inversion can become ill-conditioned; `hm.death.AVC.deciles` (13 params) passes but borderline | Passing, fragile |
-| **`hzr_competing_risks()` with weights** | Greenwood variance with case weights not tested | No test |
-| **Weighted multiphase + covariates** | All weighted parity tests are intercept-only; covariate + weight combination untested | No test |
+| **4-phase CoE algebra** | `.hzr_select_fixmu_phase()` selects one constrained phase from N; fixmu-selection trapped CoE on a G3 4th phase | ✅ Fixed + tested (PR #37) |
+| **`hzr_decompos()` near-boundary cases** | Sign dispatch has 6 cases; `nu=0, m>=0` fell through all branches | ✅ Fixed + tested (PR #40); Case 3↔3L discontinuity tracked as follow-up |
+| **Phase-specific covariates** | `hzr_phase(formula = ~)` ships but was unverified | ✅ Recovery-tested (PR #39); correct, locked in |
+| **`time_lower` dual-use** | RC rows with `time_lower=time` silently zeroed their LL contribution | ✅ Fixed + tested (PR #36) |
+| **`hzr_stepwise()` on multiphase** | Phase-specific variable entry path — no parity test against SAS SELECTION | ✅ Documented as known non-parity gap (PR #77); stepwise selection on multiphase is not exercised by any Group A fixture |
+| **`hzr_bootstrap()` with weights** | Non-unit weights path through bootstrap resampling untested | ✅ Fixed + tested (PRs #50/#51): bootstrap now resamples `object$data$weights` and `object$data$frame` instead of `eval()` in caller frame; out-of-scope regression tests added |
+| **`predict(..., decompose=TRUE, se.fit=TRUE)`** | Currently blocked with clean error — delta-method Jacobian needs per-phase extension | ✅ Unblocked (PR #52): per-phase delta-method CLs for multiphase cumulative hazard; long frame `time/component/fit/se.fit/lower/upper` |
+| **Interval censoring under multiphase** | Code path exists; no real-data or SAS parity fixture | No parity test — deferred to v1.1.x |
+| **Hessian stability at 12+ parameters** | Numerical Hessian inversion could become ill-conditioned at high parameter counts; `hm.death.AVC.deciles` (13 params) was passing but borderline | ✅ Inversion layer hardened (PR #54) + analytic Hessians for all 5 families (PRs #57–#64, #80): symmetrize → rcond → Cholesky fallback → non-positive-variance guard; fits carry `rcond`/`pd` diagnostics; analytic Hessians for exp/Weibull/log-logistic/log-normal/multiphase now the default SE source |
+| **`hzr_competing_risks()` with weights** | Not a hardening item: `hzr_competing_risks(time, event)` has no `weights` argument — the Aalen-Johansen/Greenwood recursion counts raw row tallies. Weighting is an unbuilt **feature** (weighted at-risk + event counts + weighted-Greenwood variance), not a latent bug. Scoped as feature 8a. | Feature → 8a |
+| **Weighted multiphase + covariates** | Covariate-in-phase + weight combination exercised via integer-duplication parity | ✅ Tested (LL + gradient + fit, CoE on/off) |
+
+---
+
+## Production Validation Stream — ONGOING
+
+Not a sequential milestone but a continuous validation track: confirm the
+package is correctly implemented for the hardest real-world production models
+(Rajeswaran / Blackstone's clinical analyses), run against the original C
+HAZARD binary. This is a correctness-assurance effort,
+distinct from the feature/coverage work in Phase 7 — it is **externally
+gated** (Rajeswaran's production library, the CCF `hazard` v4.4.6 install)
+and runs **in parallel** to dev, growing as production models are collected
+rather than "completing."
+
+> **Cross-codebase note:** logged in both this document and
+> `hazard/docs/PRODUCTION-TEST-PLAN.md`. A single `.lst` reference output
+> validates both codebases simultaneously. CCF-local fixtures live at
+> `tests/production/` (gitignored) in the hazard repo.
+
+### PV1. Rajeswaran / Blackstone Production Model Parity
+
+**Contact:** Rajeswaran (Rajes) at CCF — has the "hard" production hazard
+models run against the C HAZARD binary in clinical analyses.
+
+**Goal:** Collect 3–5 production `.lst` outputs from Blackstone's
+Rajeswaran-authored models; port each to `hazard()` calls; add
+`skip_on_cran()` parity tests with tolerances matching the existing suite.
+
+Candidate model types not yet exercised:
+- 4-phase models (early + early2 + constant + late) — *the package's 4-phase
+  CoE path is now fixed + tested (PR #37); production parity is the next
+  confidence level*
+- Phase-specific covariate models with multiple covariate phases — *recovery
+  coverage landed (PR #39); production `.lst` parity remains*
+- Models with shaping modifiers (`/S`, `/I`, `/E`) — currently deferred from
+  primary parity (see PRE-CRAN-PARITY-INVENTORY.md gap §1)
+- High-dimensional covariate fits (12+ free parameters)
+
+**Action:** Schedule meeting with Rajes; request SAS driver scripts + `.lst`
+reference outputs for 3–5 candidate models from production library.
+
+**Sequencing dependency:** Collect Rajes examples *before* installing
+`hazard` v4.4.6 at CCF. Once the CCF production install is live, run the
+new driver scripts against the installed binary to generate fresh `.lst`
+captures; add those as `skip_on_cran()` parity fixtures. The CCF install
+is blocked on this collection step.
 
 ---
 
@@ -560,6 +600,31 @@ Items that would improve the package beyond SAS parity.
   (distinct from the epoch-decomposition approach to repeating events)
 - **Parallel bootstrap** — leverage `future`/`furrr` for bootstrap CI
   computation
+
+### 8a. Weighted competing-risks incidence — FEATURE (scoped from 7c)
+
+`hzr_competing_risks()` is currently **unweighted** (raw row tallies; the
+Rd `@note` documents the limitation). The SAS `markov.sas` macro it mirrors
+is also unweighted, so this is a parity-plus extension, not a parity gap.
+Building it:
+
+- Add a validated `weights =` argument mirroring [hazard()]'s (non-negative,
+  finite, `length == length(time)`).
+- **Weighted Aalen-Johansen recursion** — at-risk set and per-type event
+  counts become weighted sums (`sum(w[...])`) instead of `sum(...)` row
+  counts; the transition-probability and incidence updates carry through
+  unchanged in form.
+- **Weighted-Greenwood variance** — the part needing statistical care.
+  Naïve weight substitution into the unweighted Greenwood term gives wrong
+  SEs; needs the effective-sample-size / weighted-variance formula (cf.
+  `survival::survfit` `weights` handling) and a reference to validate against.
+- **Validation target** — no SAS reference (markov.sas is unweighted);
+  anchor instead to `survival::survfit(Surv(time, event) ~ 1, weights=)`
+  CIF + SE, or a hand-computed small fixture. Integer weights must reproduce
+  the row-duplicated unweighted fit (same invariant used for `hazard()`
+  weights in 4c).
+- **Process:** `/brainstorm` the weighted-variance approach before coding;
+  this is a correctness-sensitive estimator, not a mechanical wire-up.
 
 ---
 

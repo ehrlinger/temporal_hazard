@@ -11,6 +11,7 @@
   decompose = FALSE,
   se.fit = FALSE,
   level = 0.95,
+  conf.type = c("log-log", "logit"),
   ...
 )
 }
@@ -24,7 +25,11 @@ column, or time will be taken from the fitted object's data.}
 \item{type}{Prediction type:
 \itemize{
 \item \code{"linear_predictor"}: Linear predictor eta = x*beta (not available for multiphase)
-\item \code{"hazard"}: Hazard scale exp(eta) (not available for multiphase)
+\item \code{"hazard"}: Instantaneous hazard. Single-distribution models return the
+hazard scale exp(eta); multiphase models return the additive hazard
+h(t|x) = sum_j mu_j(x) phi_j'(t) and so require time values (like
+\code{"survival"}/\code{"cumulative_hazard"}). \code{decompose} is not supported for
+\code{"hazard"}.
 \item \code{"survival"}: Survival probability S(t|x) = exp(-H(t|x))
 \item \code{"cumulative_hazard"}: Cumulative hazard H(t|x) at event times
 }}
@@ -39,15 +44,35 @@ frame with columns \code{fit}, \code{se.fit}, \code{lower}, \code{upper}.  Defau
 CLs are computed on the log-hazard / log-cumhaz scale and on the
 log(-log(survival)) scale so lower/upper stay inside the valid range
 of each prediction type; \code{linear_predictor} uses symmetric natural-scale
-CLs.  Not compatible with \code{decompose = TRUE}.}
+CLs.
+For multiphase models, \code{se.fit = TRUE} combines with \code{decompose = TRUE}
+when \code{type = "cumulative_hazard"}: the result is a long data frame with one
+row per prediction time and component (\code{component} in \code{"total"} plus each
+phase name) and columns \code{fit}, \code{se.fit}, \code{lower}, \code{upper}. Per-phase CLs
+use only that phase's parameters, so they do not sum to the total CL.
+The combination is not available for \code{type = "survival"} (per-phase
+survival is not additive).}
 
 \item{level}{Numeric confidence level in \verb{(0, 1)}; default \code{0.95}.
 Only used when \code{se.fit = TRUE}.}
 
+\item{conf.type}{Transform for \code{type = "survival"} confidence limits when
+\code{se.fit = TRUE}: \code{"log-log"} (default) builds them on \verb{log(-log S)} (the
+\code{survival::survfit} standard); \code{"logit"} builds them on \code{logit(1 - S)},
+reproducing SAS HAZARD's \code{HAZPRED} survival limits. Other types are
+unaffected (hazard/cumulative-hazard use a log scale that already matches
+HAZPRED). Only used when \code{se.fit = TRUE}.}
+
 \item{...}{Unused; included for S3 compatibility.}
 }
 \value{
-Numeric vector of predictions.
+When \code{se.fit = FALSE} (default), a numeric vector of predictions.
+When \code{se.fit = TRUE}, a data frame with columns \code{fit}, \code{se.fit}, \code{lower},
+\code{upper} (delta-method point estimate, standard error, and confidence
+limits at \code{level}). For multiphase \code{type = "cumulative_hazard"} with
+\code{decompose = TRUE}, a long data frame (\code{time}, \code{component}, \code{fit},
+\code{se.fit}, \code{lower}, \code{upper}); with \code{decompose = TRUE} and \code{se.fit = FALSE},
+a wide data frame of per-phase contributions.
 }
 \description{
 Produces prediction outputs from a \code{hazard} object. Supports multiple prediction
@@ -66,15 +91,6 @@ For models fit with \code{time_windows}, predictions for \code{type = "linear_pr
 or \code{"hazard"} also require time values (via \code{newdata$time} or fitted-time fallback)
 so window-specific coefficients can be selected.
 }
-\section{Known limitations}{
-
-\code{decompose = TRUE} and \code{se.fit = TRUE} cannot be used together.  The
-delta-method Jacobian has not yet been extended to per-phase contributions.
-To obtain confidence limits for a multiphase model, request point predictions
-first (\verb{decompose = TRUE, se.fit = FALSE}), then separately request CLs on
-the total prediction (\verb{decompose = FALSE, se.fit = TRUE}).
-}
-
 \examples{
 # -- Basic predictions ------------------------------------------------
 set.seed(1)

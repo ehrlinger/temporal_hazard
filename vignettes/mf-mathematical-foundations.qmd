@@ -461,9 +461,18 @@ scale, wrapped by `.hzr_optim_generic()`.  Key features:
   `control$n_starts`).  The run with the highest log-likelihood is kept.
 - **Feasibility guard**: any parameter vector where $m < 0$ **and**
   $\nu < 0$ for the same phase returns $-\infty$ immediately.
-- **Post-fit Hessian**: the numerical Hessian at the solution is inverted
-  to produce the variance-covariance matrix.  Standard errors are
-  $\sqrt{\text{diag}(\hat{V})}$.
+- **Post-fit Hessian**: the numerical Hessian of the negative
+  log-likelihood at the solution is inverted to produce the
+  variance-covariance matrix $\hat{V}$, with standard errors
+  $\sqrt{\text{diag}(\hat{V})}$.  The inversion is hardened against the
+  ill-conditioning that arises at high parameter counts: the Hessian is
+  symmetrized, its reciprocal condition number is checked, and it is
+  inverted via a Cholesky factorization, with a general `solve()` fallback
+  when the Hessian is not positive-definite.  Non-positive variance
+  estimates are flagged rather than silently returned as `NaN` standard
+  errors.  Each fit carries `rcond` (reciprocal condition number) and `pd`
+  (positive-definiteness) diagnostics; `summary()` prints a note, and a
+  warning is raised, when a fit is ill-conditioned or not positive-definite.
 
 
 # Covariates and Phase-Specific Formulas {#sec-covariates}

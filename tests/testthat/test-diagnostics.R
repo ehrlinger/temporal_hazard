@@ -40,16 +40,15 @@ test_that("hzr_deciles returns correct structure", {
   expect_equal(ov$groups, 10)
 })
 
-test_that("hzr_deciles group counts sum to evaluable n", {
+test_that("hzr_deciles includes all subjects and counts all events (SAS method)", {
   fit <- .fit_avc_weibull()
   avc <- .avc_data()
   cal <- hzr_deciles(fit, time = 120)
-  included <- with(avc, dead == 1 | int_dead >= 120)
-  events_120 <- with(avc, dead == 1 & int_dead <= 120 & included)
 
-  expect_equal(sum(cal$n), sum(included))
-  expect_equal(sum(cal$events), sum(events_120))
-  expect_equal(attr(cal, "overall")$n_excluded, sum(!included))
+  # SAS %DECILES uses every subject; the horizon only stratifies risk.
+  expect_equal(sum(cal$n), nrow(avc))
+  expect_equal(sum(cal$events), sum(avc$dead == 1))
+  expect_equal(attr(cal, "overall")$n_excluded, 0L)
 })
 
 test_that("hzr_deciles works with non-default groups", {
@@ -57,41 +56,34 @@ test_that("hzr_deciles works with non-default groups", {
   avc <- .avc_data()
   cal5 <- hzr_deciles(fit, time = 60, groups = 5)
   expect_equal(nrow(cal5), 5)
-  expect_equal(sum(cal5$n), sum(avc$dead == 1 | avc$int_dead >= 60))
+  expect_equal(sum(cal5$n), nrow(avc))
 })
 
-test_that("hzr_deciles events and expected totals increase with horizon", {
+test_that("hzr_deciles totals are horizon-invariant; only the grouping changes", {
   fit <- .fit_avc_weibull()
   avc <- .avc_data()
-  status_all <- avc$dead
-  time_all <- ifelse(avc$dead == 1, avc$int_dead, 1e9)
 
-  cal60 <- hzr_deciles(fit, time = 60, status = status_all,
-                       event_time = time_all)
-  cal120 <- hzr_deciles(fit, time = 120, status = status_all,
-                        event_time = time_all)
+  cal60  <- hzr_deciles(fit, time = 60)
+  cal120 <- hzr_deciles(fit, time = 120)
 
-  events_60 <- with(avc, sum(dead == 1 & int_dead <= 60))
-  events_120 <- with(avc, sum(dead == 1 & int_dead <= 120))
-
-  expect_equal(sum(cal60$events), events_60)
-  expect_equal(sum(cal120$events), events_120)
+  # Expected = sum of cumulative hazard at each subject's own follow-up time,
+  # and events = all observed deaths: both totals are independent of the
+  # grouping horizon. Only the assignment of subjects to risk groups changes.
   expect_equal(sum(cal60$n), nrow(avc))
   expect_equal(sum(cal120$n), nrow(avc))
-  expect_true(sum(cal120$events) >= sum(cal60$events))
-  expect_true(sum(cal120$expected) >= sum(cal60$expected))
+  expect_equal(sum(cal60$events), sum(avc$dead == 1))
+  expect_equal(sum(cal120$events), sum(avc$dead == 1))
+  expect_equal(sum(cal60$expected), sum(cal120$expected), tolerance = 1e-8)
 })
 
-test_that("hzr_deciles risk ordering is monotone", {
+test_that("hzr_deciles risk ordering is monotone in horizon survival", {
   fit <- .fit_avc_weibull()
   cal <- hzr_deciles(fit, time = 120)
 
-  # Mean cumhaz should increase across groups (group 1 = lowest risk)
-  expect_true(all(diff(cal$mean_cumhaz) >= -1e-10),
-              label = "mean cumulative hazard should increase across groups")
-  # Mean survival should decrease across groups
+  # Groups are ranked by predicted survival at the horizon, group 1 = lowest
+  # risk (highest survival), so mean horizon survival decreases across groups.
   expect_true(all(diff(cal$mean_survival) <= 1e-10),
-              label = "mean survival should decrease across groups")
+              label = "mean horizon survival should decrease across groups")
 })
 
 test_that("hzr_deciles chi-square values are non-negative", {
@@ -117,13 +109,13 @@ test_that("hzr_deciles works with intercept-only model", {
     fit   = TRUE
   )
   cal <- hzr_deciles(fit, time = 12)
-  included <- with(cabgkul, dead == 1 | int_dead >= 12)
 
   expect_s3_class(cal, "hzr_deciles")
   expect_equal(nrow(cal), 10)
-  expect_equal(sum(cal$n), sum(included))
-  # All expected rates should be equal (same prediction for everyone)
-  expect_true(max(cal$expected_rate) - min(cal$expected_rate) < 1e-10)
+  expect_equal(sum(cal$n), nrow(cabgkul))
+  # Everyone shares the same horizon survival, so risk grouping is arbitrary
+  # but mean horizon survival is identical across groups.
+  expect_true(max(cal$mean_survival) - min(cal$mean_survival) < 1e-8)
 })
 
 test_that("hzr_deciles works with multiphase model", {
@@ -143,11 +135,10 @@ test_that("hzr_deciles works with multiphase model", {
     control = list(n_starts = 3, maxit = 500)
   )
   cal <- hzr_deciles(fit_mp, time = 60)
-  included <- with(cabgkul, dead == 1 | int_dead >= 60)
 
   expect_s3_class(cal, "hzr_deciles")
   expect_equal(nrow(cal), 10)
-  expect_equal(sum(cal$n), sum(included))
+  expect_equal(sum(cal$n), nrow(cabgkul))
 })
 
 test_that("hzr_deciles rejects invalid inputs", {
@@ -157,7 +148,7 @@ test_that("hzr_deciles rejects invalid inputs", {
   expect_error(hzr_deciles(fit, time = -1), "positive")
   expect_error(hzr_deciles(fit, time = 120, groups = 1), "at least 2")
   expect_error(hzr_deciles(fit, time = 120, groups = nrow(avc) + 1),
-               "included observations")
+               "number of observations")
   expect_error(hzr_deciles("not_a_model", time = 12), "hazard object")
 })
 
@@ -683,6 +674,105 @@ test_that("hzr_bootstrap preserves named betas while filling blanks", {
   expect_true("b_custom" %in% params)
   expect_true("x2" %in% params)
   expect_false("x1" %in% params)
+})
+
+test_that("hzr_bootstrap resamples weights alongside the data", {
+  # Regression test for the weighted-bootstrap bug: the resample loop used to
+  # rewire only `data`, leaving the original full-length `weights` vector bound
+  # to the refit call. Two observable consequences this guards against:
+  #   1. fraction < 1 -> weights length (n_obs) no longer matches the smaller
+  #      resampled data, so every replicate errored out: n_success == 0.
+  #   2. fraction == 1 -> length matched, so no error, but weights were applied
+  #      to the wrong (resampled) rows: silently incorrect estimates.
+  set.seed(202)
+  n <- 100
+  df <- data.frame(
+    t = stats::rexp(n, 0.1),
+    d = stats::rbinom(n, 1, 0.6),
+    x1 = stats::rnorm(n)
+  )
+  w <- stats::runif(n, 0.5, 2.0)
+
+  fit <- hazard(
+    survival::Surv(t, d) ~ x1,
+    data    = df,
+    weights = w,
+    dist    = "weibull",
+    theta   = c(mu = 0.05, nu = 0.8, 0),
+    fit     = TRUE
+  )
+
+  # (1) Subsampled weighted bootstrap must produce successful replicates.
+  bs_frac <- hzr_bootstrap(fit, n_boot = 10, fraction = 0.5, seed = 123)
+  expect_gt(bs_frac$n_success, 0)
+  expect_equal(bs_frac$n_failed, 0)
+
+  # (2) Full-size weighted bootstrap must also succeed and be well-formed.
+  bs_full <- hzr_bootstrap(fit, n_boot = 10, seed = 123)
+  expect_gt(bs_full$n_success, 0)
+  expect_true(all(is.finite(bs_full$summary$mean)))
+})
+
+test_that("hzr_bootstrap uses stored weights when the original symbol is out of scope", {
+  # Robustness regression: the resample setup previously re-evaluated the call's
+  # `weights` expression in parent.frame(). If the original weights symbol is no
+  # longer in scope at bootstrap time -- e.g. the fit was built inside a helper
+  # that has since returned -- that eval() raised "object not found". The fit now
+  # carries its evaluated weights on object$data$weights, so bootstrap no longer
+  # depends on a caller-frame lookup.
+  set.seed(77)
+  n <- 80
+  # `df` stays in the test frame so the call's `data` symbol still resolves;
+  # only the `weights` symbol is confined to the local() scope and gone by the
+  # time we bootstrap, isolating the weights lookup.
+  df <- data.frame(
+    t  = stats::rexp(n, 0.1),
+    d  = stats::rbinom(n, 1, 0.6),
+    x1 = stats::rnorm(n)
+  )
+  fit <- local({
+    local_w <- stats::runif(n, 0.5, 2.0)
+    hazard(
+      survival::Surv(t, d) ~ x1,
+      data = df, weights = local_w, dist = "weibull",
+      theta = c(mu = 0.05, nu = 0.8, 0), fit = TRUE
+    )
+  })
+  # `local_w` is now out of scope; bootstrap must still resample weights via the
+  # stored copy and produce successful replicates.
+  bs <- hzr_bootstrap(fit, n_boot = 10, fraction = 0.5, seed = 5)
+  expect_gt(bs$n_success, 0)
+  expect_equal(bs$n_failed, 0)
+})
+
+test_that("hzr_bootstrap uses stored data frame when the original symbol is out of scope", {
+  # Robustness regression (sibling of the weights case): the resample setup
+  # re-evaluated the call's `data` expression via eval(cl$data, parent.frame()).
+  # If the original data symbol is no longer in scope at bootstrap time -- e.g.
+  # the entire fit was built inside a helper that has since returned -- that
+  # eval() failed and n_obs was malformed, so bootstrap errored before the loop.
+  # The fit now carries its evaluated model frame on object$data$frame, so the
+  # resample no longer depends on a caller-frame lookup of the data symbol.
+  set.seed(91)
+  n <- 80
+  # Build EVERYTHING inside local(): both the `data` (`bdf`) and `weights`
+  # (`bw`) symbols are gone by the time we bootstrap.
+  fit <- local({
+    bdf <- data.frame(
+      t  = stats::rexp(n, 0.1),
+      d  = stats::rbinom(n, 1, 0.6),
+      x1 = stats::rnorm(n)
+    )
+    bw <- stats::runif(n, 0.5, 2.0)
+    hazard(
+      survival::Surv(t, d) ~ x1,
+      data = bdf, weights = bw, dist = "weibull",
+      theta = c(mu = 0.05, nu = 0.8, 0), fit = TRUE
+    )
+  })
+  bs <- hzr_bootstrap(fit, n_boot = 10, fraction = 0.5, seed = 7)
+  expect_gt(bs$n_success, 0)
+  expect_equal(bs$n_failed, 0)
 })
 
 

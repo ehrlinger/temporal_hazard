@@ -261,17 +261,83 @@ NULL
   grad
 }
 
+#' Analytic Hessian of the exponential negative log-likelihood
+#'
+#' Returns the Hessian of the **objective** (negative log-likelihood) on the
+#' internal parameter scale, matching \code{numDeriv::hessian(objective)} so it
+#' can be used directly by \code{.hzr_optim_generic()}.  Coverage mirrors the
+#' analytic gradient: closed form for event + right-censored rows only.  When any
+#' row is left- or interval-censored (\code{status \%in\% c(-1, 2)}) it returns
+#' \code{NULL} to request the numerical-Hessian fallback.
+#'
+#' Derivation: with \eqn{H_i = \lambda t_i e^{\eta_i}} and design matrix
+#' \eqn{\tilde X = [1 | X]}, the log-likelihood Hessian is
+#' \eqn{-\tilde X^\top \mathrm{diag}(w H) \tilde X}; the objective Hessian is its
+#' negation, \eqn{+\tilde X^\top \mathrm{diag}(w H) \tilde X}.
+#'
+#' @noRd
+.hzr_hessian_exponential <- function(
+    theta, time, status,
+    time_lower = NULL, time_upper = NULL, x = NULL, weights = NULL) {
+
+  n <- length(time)
+  if (is.null(weights)) weights <- rep(1, n)
+
+  # Mirror the analytic gradient's coverage: closed form is event + right
+  # censored only.  Decline (NULL -> numDeriv fallback) on left/interval rows.
+  if (any(status %in% c(-1, 2))) {
+    return(NULL)
+  }
+
+  log_lambda <- theta[1]
+  lambda <- exp(log_lambda)
+  # Fail loud on inconsistent theta/x: a mismatch would otherwise yield a wrong
+  # or non-conformant Hessian used for vcov without a clear error.
+  p_cov <- length(theta) - 1L
+  if (!is.null(x)) x <- as.matrix(x)
+  n_x <- if (is.null(x)) 0L else NCOL(x)
+  if (n_x != p_cov) {
+    stop(".hzr_hessian_exponential(): ncol(x) (", n_x, ") must equal the number ",
+         "of covariate parameters in theta (", p_cov, ").", call. = FALSE)
+  }
+  if (p_cov > 0L) {
+    beta <- theta[2:length(theta)]
+    eta <- as.numeric(x %*% beta)
+  } else {
+    eta <- rep(0, n)
+  }
+
+  # Weighted cumulative hazard per row.
+  wH <- weights * lambda * time * exp(eta)
+
+  # Design matrix augmented with the log(lambda) "intercept" column.
+  x_tilde <- if (is.null(x)) matrix(1, nrow = n, ncol = 1L) else cbind(1, x)
+
+  # Objective (negative log-likelihood) Hessian: + X~' diag(wH) X~.
+  hess <- crossprod(x_tilde, wH * x_tilde)
+  dimnames(hess) <- list(names(theta), names(theta))
+  hess
+}
+
 #' @noRd
 .hzr_optim_exponential <- function(
     time, status, time_lower = NULL, time_upper = NULL,
     x = NULL, theta_start, weights = NULL, control = list()) {
+  hessian_fn <- function(par) {
+    .hzr_hessian_exponential(
+      theta = par, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x, weights = weights
+    )
+  }
   .hzr_optim_generic(
     logl_fn = .hzr_logl_exponential,
     gradient_fn = .hzr_gradient_exponential,
     time = time, status = status,
     time_lower = time_lower, time_upper = time_upper,
     x = x, theta_start = theta_start, weights = weights,
-    control = control, use_bounds = FALSE
+    control = control, use_bounds = FALSE,
+    hessian_fn = hessian_fn
   )
 }
 

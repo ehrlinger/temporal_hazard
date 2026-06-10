@@ -8,8 +8,8 @@ NULL
 # -----
 # Proportional-hazards (PH) parameterization:
 #
-#   h(t | x)  = mu nu t^(nu-1) exp(eta)         hazard
 #   H(t | x)  = (mu t)^nu exp(eta)              cumulative hazard
+#   h(t | x)  = nu mu^nu t^(nu-1) exp(eta)      hazard = dH/dt = (nu/t) H
 #   S(t | x)  = exp(-H(t | x))              survival
 #
 # where mu > 0 (scale), nu > 0 (shape), eta = x beta (linear predictor).
@@ -61,9 +61,11 @@ NULL
 #' matrix is attached as \code{"hessian"}.
 #'
 #' @details
-#' The Weibull hazard model is parameterized as:
+#' The Weibull hazard model is parameterized via its cumulative hazard
+#' \eqn{H(t | x) = (\mu t)^{\nu} \exp(\eta)}, so the hazard is its exact
+#' derivative:
 #'
-#' \deqn{h(t | x) = \mu \nu t^{\nu-1} \exp(\eta)}
+#' \deqn{h(t | x) = \nu \mu^{\nu} t^{\nu-1} \exp(\eta) = (\nu / t)\, H(t | x)}
 #'
 #' where:
 #' - \eqn{\mu > 0} is scale (MU)
@@ -140,7 +142,10 @@ NULL
   }
 
   # Event-time hazard/cumulative-hazard (exact events only).
-  haz_event <- mu * nu * (time ^ (nu - 1)) * exp(eta)
+  # Hazard is the exact derivative of the cumulative hazard H = (mu t)^nu e^eta:
+  #   h = dH/dt = nu * mu^nu * t^(nu-1) * e^eta = (nu / t) * H
+  # (Form A, matching the C/SAS HAZARD reference where HF = MU * dG/dt.)
+  haz_event <- nu * mu ^ nu * (time ^ (nu - 1)) * exp(eta)
   cumhaz_event <- (mu * time) ^ nu * exp(eta)
 
   # Lower/upper cumulative hazards for censoring contributions.
@@ -148,9 +153,17 @@ NULL
   cumhaz_upper <- (mu * upper) ^ nu * exp(eta)
 
   # Counting-process entry-time cumulative hazard (H(start)) for
-  # event/right-censored rows.  When `time_lower` is NULL the entry time is
-  # implicitly 0 and H(start) = 0, recovering the plain-Surv likelihood.
-  start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+  # event/right-censored rows.  Only rows where time_lower < time and
+  # status is 0 or 1 (genuine epoch entries) get a non-zero start.
+  # Interval-censored rows (status == 2) always use start = 0 because
+  # their contribution goes through cumhaz_lower/cumhaz_upper, not H(start).
+  # This prevents time_lower being mistakenly interpreted as an epoch start
+  # when it was supplied as the interval lower bound for status-2 rows.
+  start_vec <- rep(0, n)
+  if (!is.null(time_lower)) {
+    epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+    start_vec[epoch_idx] <- time_lower[epoch_idx]
+  }
   cumhaz_start <- (mu * start_vec) ^ nu * exp(eta)
 
   idx_event <- status == 1
@@ -202,6 +215,7 @@ NULL
     grad <- .hzr_gradient_weibull(
       theta = theta, time = time, status = status,
       time_lower = time_lower, time_upper = time_upper, x = x,
+      weights = weights,
       eta = eta, cumhaz = cumhaz_event, haz = haz_event,
       mu = mu, nu = nu, n_shape = n_shape
     )
@@ -226,10 +240,12 @@ NULL
 #' The log-likelihood is:
 #'   L = sum(delta_i * log h(t_i)) - sum(H(t_i))
 #'
-#' where h is hazard and H is cumulative hazard. Derivatives are:
+#' where h(t) = nu * mu^nu * t^(nu-1) * exp(eta) and H(t) = (mu*t)^nu * exp(eta)
+#' (so log h = log(nu) + nu*log(mu) + (nu-1)*log(t) + eta). Derivatives are:
 #'
-#' dL/dmu  = sum(delta_i / mu) - (nu / mu) * sum(H(t_i))
-#' dL/dnu  = sum(delta_i / nu) + sum(delta_i * log(t_i)) - sum(log(mu * t_i) * H(t_i))
+#' dL/dmu  = (nu / mu) * sum(delta_i) - (nu / mu) * sum(H(t_i))
+#' dL/dnu  = sum(delta_i / nu) + sum(delta_i) * log(mu) + sum(delta_i * log(t_i))
+#'           - sum(log(mu * t_i) * H(t_i))
 #' dL/dbeta_j = sum(delta_i * x_ij) - sum(H(t_i) * x_ij)  = t(X) %*% (delta - H)
 #'
 #' @noRd
@@ -276,13 +292,17 @@ NULL
       eta <- rep(0, n)
     }
 
-    haz <- mu * nu * (time ^ (nu - 1)) * exp(eta)
+    haz <- nu * mu ^ nu * (time ^ (nu - 1)) * exp(eta)
     cumhaz <- (mu * time) ^ nu * exp(eta)
   }
 
-  # Counting-process entry-time cumulative hazard; H(start) = 0 when no
-  # `time_lower` supplied (plain right-censored data).
-  start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+  # Counting-process entry-time cumulative hazard; H(start) = 0 except
+  # for genuine epoch rows (status 0/1 with time_lower < time).
+  start_vec <- rep(0, n)
+  if (!is.null(time_lower)) {
+    epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+    start_vec[epoch_idx] <- time_lower[epoch_idx]
+  }
   cumhaz_start <- (mu * start_vec) ^ nu * exp(eta)
 
   # Weighted building blocks: each per-row contribution below is the
@@ -293,19 +313,29 @@ NULL
   w_cumhaz_net <- weights * (cumhaz - cumhaz_start)
 
   # ===== Gradient w.r.t. mu (scale parameter) =====
-  # dH(t)/dmu = (nu / mu) * H(t), so dL/dmu picks up a matching
-  # contribution at start: -(nu/mu) * (H(stop) - H(start)).
-  grad[1] <- sum(w_status) / mu - (nu / mu) * sum(w_cumhaz_net)
+  # log h = log(nu) + nu*log(mu) + (nu-1)*log(t) + eta, so the event term
+  # contributes d log h/dmu = nu/mu.  dH(t)/dmu = (nu / mu) * H(t), so the
+  # cumulative term subtracts -(nu/mu) * (H(stop) - H(start)).
+  grad[1] <- (nu / mu) * (sum(w_status) - sum(w_cumhaz_net))
 
   # ===== Gradient w.r.t. nu (shape parameter) =====
   # dH(t)/dnu = log(mu*t) * H(t).  When start = 0, H(start) = 0 and the
   # log(mu*start) term is undefined; `ifelse` picks the well-defined 0
   # limit there.
+  # log h = log(nu) + nu*log(mu) + (nu-1)*log(t) + eta, so the event term
+  # contributes d log h/dnu = 1/nu + log(mu) + log(t); the log(mu) piece is
+  # constant across rows.
+  # Guard log(time): a legal right-censored time = 0 row has w_status = 0 and
+  # cumhaz = 0, but an unguarded log(0) = -Inf turns those into 0 * -Inf = NaN,
+  # poisoning the entire summed nu (shape) gradient component (start is already
+  # guarded by the ifelse below).
+  log_t <- log(pmax(time, .Machine$double.xmin))
   log_mu_start <- ifelse(start_vec > 0, log(mu * start_vec), 0)
   d_nu_start <- weights * log_mu_start * cumhaz_start
   grad[2] <- sum(w_status) / nu +
-             sum(w_status * log(time)) -
-             (sum(log(mu * time) * weights * cumhaz) - sum(d_nu_start))
+             sum(w_status) * log(mu) +
+             sum(w_status * log_t) -
+             (sum((log(mu) + log_t) * weights * cumhaz) - sum(d_nu_start))
 
   # ===== Gradient w.r.t. beta (covariate coefficients) =====
   if (n_shape < p && !is.null(x)) {
@@ -315,6 +345,90 @@ NULL
   }
 
   grad
+}
+
+#' Analytic Hessian of the Weibull negative log-likelihood (internal scale)
+#'
+#' Returns the Hessian of the objective (negative log-likelihood) on the internal
+#' \code{phi = (alpha, psi, beta)} parameterization that \code{.hzr_optim_weibull}
+#' optimizes, where \code{g = exp(psi)} and \code{H(t) = exp(alpha + eta) t^g}.
+#' This matches \code{numDeriv::hessian(objective)} so it can be used directly by
+#' \code{.hzr_optim_generic()}; the downstream delta-method transform to the
+#' natural \code{(mu, nu, beta)} scale is applied by the caller.  Coverage mirrors
+#' the analytic gradient: event + right-censored rows only; returns \code{NULL}
+#' for any left/interval-censored row (\code{status \%in\% c(-1, 2)}) to request
+#' the numerical-Hessian fallback.
+#'
+#' @noRd
+.hzr_hessian_weibull_internal <- function(
+    theta, time, status,
+    time_lower = NULL, time_upper = NULL, x = NULL, weights = NULL) {
+
+  n <- length(time)
+  if (is.null(weights)) weights <- rep(1, n)
+
+  # Coverage contract: closed form is event + right censored only.
+  if (any(status %in% c(-1, 2))) {
+    return(NULL)
+  }
+
+  alpha <- theta[1]
+  psi <- theta[2]
+  g <- exp(psi)
+  p <- length(theta)
+  p_cov <- p - 2L
+  # Fail loud on inconsistent theta/x: a silent has_cov = FALSE would zero the
+  # covariate rows/cols and yield a conformant-but-wrong vcov.
+  if (!is.null(x)) x <- as.matrix(x)
+  n_x <- if (is.null(x)) 0L else NCOL(x)
+  if (n_x != p_cov) {
+    stop(".hzr_hessian_weibull_internal(): ncol(x) (", n_x, ") must equal the ",
+         "number of covariate parameters in theta (", p_cov, ").", call. = FALSE)
+  }
+  has_cov <- p_cov > 0L
+  beta <- if (has_cov) theta[3:p] else numeric(0)
+  eta <- if (has_cov) as.numeric(x %*% beta) else rep(0, n)
+
+  # Cumulative hazards and counting-process entry-time (epochs only).
+  base <- exp(alpha + eta)
+  cumhaz <- base * (time ^ g)
+  start_vec <- rep(0, n)
+  if (!is.null(time_lower)) {
+    epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+    start_vec[epoch_idx] <- time_lower[epoch_idx]
+  }
+  cumhaz_start <- base * (start_vec ^ g)
+
+  log_t <- log(pmax(time, .Machine$double.xmin))
+  log_ts <- ifelse(start_vec > 0, log(start_vec), 0)
+
+  w <- weights
+  delta <- as.numeric(status == 1)
+  net <- cumhaz - cumhaz_start                       # A_i
+
+  # Weighted aggregate building blocks.
+  wA   <- w * net
+  wD   <- w * (cumhaz * log_t - cumhaz_start * log_ts)
+  # psi,psi scalar.
+  hpp <- -g * (sum(w * delta * log_t) - sum(w * cumhaz * log_t) +
+                 sum(w * cumhaz_start * log_ts)) +
+          g^2 * (sum(w * cumhaz * log_t^2) - sum(w * cumhaz_start * log_ts^2))
+
+  # Design augmented with the alpha intercept column.
+  x_tilde <- if (has_cov) cbind(1, x) else matrix(1, nrow = n, ncol = 1L)
+
+  hq <- crossprod(x_tilde, wA * x_tilde)             # (alpha,beta) block
+  v  <- g * as.numeric(crossprod(x_tilde, wD))        # psi cross (alpha,beta)
+
+  # Assemble p x p with order (alpha = 1, psi = 2, beta = 3..p).
+  idx_q <- if (has_cov) c(1L, 3:p) else 1L
+  hess <- matrix(0, p, p)
+  hess[idx_q, idx_q] <- hq
+  hess[2L, idx_q] <- v
+  hess[idx_q, 2L] <- v
+  hess[2L, 2L] <- hpp
+  dimnames(hess) <- list(names(theta), names(theta))
+  hess
 }
 
 #' @noRd
@@ -383,8 +497,12 @@ NULL
     log_t <- log(pmax(time, .Machine$double.xmin))
     H     <- exp(alpha + eta) * (time ^ g)
 
-    # Counting-process entry-time H(start); zero when no `time_lower` given.
-    start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+    # Counting-process entry-time H(start); zero except for genuine epochs.
+    start_vec <- rep(0, n)
+    if (!is.null(time_lower)) {
+      epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+      start_vec[epoch_idx] <- time_lower[epoch_idx]
+    }
     H_start   <- exp(alpha + eta) * (start_vec ^ g)
 
     idx_event <- status == 1
@@ -446,10 +564,13 @@ NULL
     log_t <- log(pmax(time, .Machine$double.xmin))
     H     <- exp(alpha + eta) * (time ^ g)
 
-    # H(start) for counting-process rows; zero when time_lower is NULL or
-    # start == 0.  `log_t_start` is only used where start > 0 (guarded below)
-    # since log(0) = -Inf would otherwise propagate NaNs through the score.
-    start_vec <- if (is.null(time_lower)) rep(0, n) else time_lower
+    # H(start) for genuine epoch rows; zero otherwise.
+    # `log_t_start` is only used where start > 0 (guarded below).
+    start_vec <- rep(0, n)
+    if (!is.null(time_lower)) {
+      epoch_idx <- status %in% c(0L, 1L) & time_lower < time
+      start_vec[epoch_idx] <- time_lower[epoch_idx]
+    }
     H_start   <- exp(alpha + eta) * (start_vec ^ g)
     log_t_start <- ifelse(start_vec > 0, log(pmax(start_vec, .Machine$double.xmin)), 0)
 
@@ -479,6 +600,15 @@ NULL
     grad
   }
 
+  # -- Analytic Hessian closure (internal scale) --------------------------------
+  hessian_fn <- function(par) {
+    .hzr_hessian_weibull_internal(
+      theta = par, time = time, status = status,
+      time_lower = time_lower, time_upper = time_upper,
+      x = x, weights = weights
+    )
+  }
+
   # -- Optimise (all unconstrained) ------------------------------------------
   result <- .hzr_optim_generic(
     logl_fn     = logl_internal,
@@ -489,7 +619,8 @@ NULL
     theta_start = phi_start,
     weights     = weights,
     control     = control,
-    use_bounds  = FALSE
+    use_bounds  = FALSE,
+    hessian_fn  = hessian_fn
   )
 
   # -- Back-transform to natural scale (mu, nu, beta) ----------------------------

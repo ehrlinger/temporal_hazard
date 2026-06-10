@@ -138,18 +138,28 @@ NULL
 #' @param covariate_counts Named integer vector.
 #' @param x_list Named list of per-phase design matrices.
 #' @param p Length of theta.
-#' @return Numeric n x p Jacobian of H(t|x).
+#' @param per_phase Logical; if `TRUE`, return a named list of per-phase
+#'   `n x p` Jacobians (each with only that phase's columns nonzero) instead
+#'   of their sum.
+#' @return Numeric `n x p` Jacobian of `H(t|x)` (default), or a named list of
+#'   per-phase `n x p` Jacobians when `per_phase = TRUE`.
 #' @keywords internal
 .hzr_predict_jacobian_multiphase <- function(theta, time, phases,
-                                              covariate_counts, x_list, p) {
+                                              covariate_counts, x_list, p,
+                                              per_phase = FALSE) {
   n <- length(time)
   theta_split <- .hzr_split_theta(theta, phases, covariate_counts)
-  J <- matrix(0, nrow = n, ncol = p)
+  # One n x p matrix per phase; each phase fills only its own columns.
+  J_list <- stats::setNames(
+    lapply(seq_along(phases), function(i) matrix(0, nrow = n, ncol = p)),
+    names(phases)
+  )
 
   pos <- 1L
   for (nm in names(phases)) {
     ph <- phases[[nm]]
     pars <- .hzr_unpack_phase_theta(theta_split[[nm]], ph)
+    Jp <- J_list[[nm]]
 
     # mu_j(x_i)
     if (length(pars$beta) > 0L && !is.null(x_list[[nm]])) {
@@ -162,8 +172,7 @@ NULL
     # Phi_j and shape derivatives
     if (ph$type == "constant") {
       Phi_j <- time
-      # log_mu only
-      J[, pos] <- mu_j * Phi_j
+      Jp[, pos] <- mu_j * Phi_j
       pos <- pos + 1L
     } else if (ph$type == "g3") {
       tau_j <- exp(pars$log_tau)
@@ -172,11 +181,11 @@ NULL
                                         alpha = pars$alpha,
                                         eta = pars$eta)
       Phi_j <- pd$Phi
-      J[, pos] <- mu_j * Phi_j  # log_mu
-      J[, pos + 1L] <- mu_j * pd$dPhi_dlog_tau
-      J[, pos + 2L] <- mu_j * pd$dPhi_dgamma
-      J[, pos + 3L] <- mu_j * pd$dPhi_dalpha
-      J[, pos + 4L] <- mu_j * pd$dPhi_deta
+      Jp[, pos] <- mu_j * Phi_j
+      Jp[, pos + 1L] <- mu_j * pd$dPhi_dlog_tau
+      Jp[, pos + 2L] <- mu_j * pd$dPhi_dgamma
+      Jp[, pos + 3L] <- mu_j * pd$dPhi_dalpha
+      Jp[, pos + 4L] <- mu_j * pd$dPhi_deta
       pos <- pos + 5L
     } else {
       t_half_j <- exp(pars$log_t_half)
@@ -184,10 +193,10 @@ NULL
                                     nu = pars$nu, m = pars$m,
                                     type = ph$type)
       Phi_j <- pd$Phi
-      J[, pos] <- mu_j * Phi_j  # log_mu
-      J[, pos + 1L] <- mu_j * pd$dPhi_dlog_thalf
-      J[, pos + 2L] <- mu_j * pd$dPhi_dnu
-      J[, pos + 3L] <- mu_j * pd$dPhi_dm
+      Jp[, pos] <- mu_j * Phi_j
+      Jp[, pos + 1L] <- mu_j * pd$dPhi_dlog_thalf
+      Jp[, pos + 2L] <- mu_j * pd$dPhi_dnu
+      Jp[, pos + 3L] <- mu_j * pd$dPhi_dm
       pos <- pos + 4L
     }
 
@@ -196,15 +205,20 @@ NULL
     if (n_beta > 0L && !is.null(x_list[[nm]])) {
       x_phase <- x_list[[nm]]
       for (k in seq_len(n_beta)) {
-        J[, pos] <- x_phase[, k] * mu_j * Phi_j
+        Jp[, pos] <- x_phase[, k] * mu_j * Phi_j
         pos <- pos + 1L
       }
     } else if (n_beta > 0L) {
       pos <- pos + n_beta
     }
+
+    J_list[[nm]] <- Jp
   }
 
-  J
+  if (per_phase) {
+    return(J_list)
+  }
+  Reduce(`+`, J_list)
 }
 
 # ---------------------------------------------------------------------------
@@ -294,11 +308,70 @@ NULL
     se_logH <- ifelse(pos, se_nat / H, NA_real_)
     lower[pos] <- exp(-H[pos] * exp(z * se_logH[pos]))
     upper[pos] <- exp(-H[pos] * exp(-z * se_logH[pos]))
+  } else if (scale == "logit_survival") {
+    # SAS HAZPRED's survival CL: build on the logit of cumulative incidence,
+    # Z = logit(1 - S) = log(e^H - 1), with se(Z) = se(H) / (1 - S), then
+    # back-transform S = 1 / (e^Z + 1).  `fit` is S = exp(-H); `se_nat` is
+    # se(H).  (Reproduces hzp_calc_srv_CL.c.)
+    H <- -log(pmin(pmax(fit, .Machine$double.xmin), 1))
+    Fc <- 1 - fit
+    pos <- is.finite(H) & H > 0 & Fc > 0
+    Z <- ifelse(pos, log(expm1(H)), NA_real_)
+    seZ <- ifelse(pos, se_nat / Fc, NA_real_)
+    # S = 1 / (e^Z + 1) = plogis(-Z); use plogis for a numerically stable
+    # logistic back-transform (avoids exp() overflow at large |Z +/- z*seZ|).
+    lower[pos] <- stats::plogis(-(Z[pos] + z * seZ[pos]))
+    upper[pos] <- stats::plogis(-(Z[pos] - z * seZ[pos]))
   } else {
     stop("Unknown CL scale: '", scale, "'.", call. = FALSE)
   }
 
   data.frame(fit = fit, se.fit = se_nat, lower = lower, upper = upper)
+}
+
+# ---------------------------------------------------------------------------
+# Free-parameter vcov helper (shared by aggregate and decomposed se.fit paths)
+# ---------------------------------------------------------------------------
+
+#' Free-parameter vcov submatrix for the delta-method sandwich
+#'
+#' Fixed parameters (e.g. `fixed = "shapes"`) leave NA rows/cols in the expanded
+#' vcov. Treat them as known-with-zero-variance: restrict the sandwich to the
+#' free submatrix. (The CoE-conserved `log_mu` normally participates -- CoE fits
+#' use the full-information vcov -- but it leaves an NA row, like a fixed
+#' parameter, when that recomputation was unavailable.) Returns `NULL` (with a
+#' warning) when CLs cannot be computed. Shared by the aggregate and decomposed
+#' se.fit paths.
+#'
+#' @param vcov_mat The fitted vcov (or NULL / wrong shape).
+#' @param p Length of the parameter vector.
+#' @return `list(vcov_use, free_idx)`, or `NULL` if unusable.
+#' @keywords internal
+.hzr_free_vcov <- function(vcov_mat, p) {
+  vcov_ok <- !is.null(vcov_mat) && is.matrix(vcov_mat) &&
+               nrow(vcov_mat) == p && ncol(vcov_mat) == p
+  if (!vcov_ok) {
+    warning("Variance-covariance matrix is unavailable; ",
+            "standard errors and CLs will be NA.", call. = FALSE)
+    return(NULL)
+  }
+  free_idx <- which(is.finite(diag(vcov_mat)))
+  if (length(free_idx) < p) {
+    free_submat <- vcov_mat[free_idx, free_idx, drop = FALSE]
+    if (anyNA(free_submat)) {
+      warning("Variance-covariance matrix has NA entries outside the ",
+              "fixed-parameter rows/cols; standard errors and CLs will be NA.",
+              call. = FALSE)
+      return(NULL)
+    }
+    return(list(vcov_use = free_submat, free_idx = free_idx))
+  }
+  if (anyNA(vcov_mat)) {
+    warning("Variance-covariance matrix has NA entries; ",
+            "standard errors and CLs will be NA.", call. = FALSE)
+    return(NULL)
+  }
+  list(vcov_use = vcov_mat, free_idx = free_idx)
 }
 
 # ---------------------------------------------------------------------------
@@ -341,72 +414,50 @@ NULL
 #'   returning the delta-method target (H, exp(eta), or eta depending on
 #'   `type`).  Used for the point estimate AND for the numeric jacobian
 #'   fallback in exp / loglogistic / lognormal.
+#' @param conf_type Survival CL transform: `"log-log"` (default, on
+#'   `log(-log S)`) or `"logit"` (on `logit(1 - S)`, HAZPRED-compatible).
+#'   Only consulted when `type == "survival"`.
 #' @return data.frame with columns `fit`, `se.fit`, `lower`, `upper`.
 #' @keywords internal
 .hzr_predict_with_se <- function(object, type, time = NULL,
                                    x = NULL, x_list = NULL,
                                    cov_counts = NULL, phases = NULL,
-                                   level = 0.95, diff_fn) {
+                                   level = 0.95, diff_fn,
+                                   conf_type = c("log-log", "logit")) {
+  # Only survival CLs use conf_type; validate only then so an ignored value
+  # (hazard / cumulative_hazard / linear_predictor) is not an error.
+  if (type == "survival") conf_type <- match.arg(conf_type)
 
   theta <- object$fit$theta
   p <- length(theta)
   dist <- object$spec$dist
   target <- diff_fn(theta)
 
-  vcov_mat <- object$fit$vcov
-  vcov_ok <- !is.null(vcov_mat) && is.matrix(vcov_mat) &&
-               nrow(vcov_mat) == p && ncol(vcov_mat) == p
-  if (!vcov_ok) {
-    warning("Variance-covariance matrix is unavailable; ",
-            "standard errors and CLs will be NA.", call. = FALSE)
+  fv <- .hzr_free_vcov(object$fit$vcov, p)
+  if (is.null(fv)) {
     n <- length(target)
     fit <- if (type == "survival") exp(-target) else target
     na_vec <- rep(NA_real_, n)
     return(data.frame(fit = fit, se.fit = na_vec,
                       lower = na_vec, upper = na_vec))
   }
-
-  # Fixed parameters (from `fixed = "shapes"` or CoE) leave NA rows/cols in
-  # the expanded vcov.  Treat them as known-with-zero-variance: restrict the
-  # delta-method sandwich to the free submatrix of vcov and the
-  # corresponding columns of J.
-  diag_vcov <- diag(vcov_mat)
-  free_idx <- which(is.finite(diag_vcov))
-  if (length(free_idx) < p) {
-    # At least one parameter is fixed -- check that the off-diagonals among
-    # free params are finite; if they aren't, something is wrong and we
-    # fall back to NA CLs.
-    free_submat <- vcov_mat[free_idx, free_idx, drop = FALSE]
-    if (anyNA(free_submat)) {
-      warning("Variance-covariance matrix has NA entries outside the ",
-              "fixed-parameter rows/cols; standard errors and CLs will be NA.",
-              call. = FALSE)
-      n <- length(target)
-      fit <- if (type == "survival") exp(-target) else target
-      na_vec <- rep(NA_real_, n)
-      return(data.frame(fit = fit, se.fit = na_vec,
-                        lower = na_vec, upper = na_vec))
-    }
-    vcov_use <- free_submat
-  } else if (anyNA(vcov_mat)) {
-    warning("Variance-covariance matrix has NA entries; ",
-            "standard errors and CLs will be NA.", call. = FALSE)
-    n <- length(target)
-    fit <- if (type == "survival") exp(-target) else target
-    na_vec <- rep(NA_real_, n)
-    return(data.frame(fit = fit, se.fit = na_vec,
-                      lower = na_vec, upper = na_vec))
-  } else {
-    vcov_use <- vcov_mat
-  }
+  vcov_use <- fv$vcov_use
+  free_idx <- fv$free_idx
 
   # --- Build Jacobian of the delta-method target ---------------------------
   if (dist == "weibull") {
     J <- .hzr_predict_jacobian_weibull(type, theta, time, x, p)
   } else if (dist == "multiphase") {
-    # hazard / linear_predictor are rejected upstream for multiphase.
-    J <- .hzr_predict_jacobian_multiphase(theta, time, phases,
-                                            cov_counts, x_list, p)
+    # The analytic multiphase Jacobian is for the cumulative hazard; the
+    # instantaneous hazard has no analytic Jacobian here, so fall back to a
+    # numeric Jacobian of its evaluator. (linear_predictor is rejected
+    # upstream for multiphase.)
+    if (type == "hazard") {
+      J <- .hzr_predict_jacobian_numeric(diff_fn, theta)
+    } else {
+      J <- .hzr_predict_jacobian_multiphase(theta, time, phases,
+                                              cov_counts, x_list, p)
+    }
   } else {
     J <- .hzr_predict_jacobian_numeric(diff_fn, theta)
   }
@@ -420,7 +471,8 @@ NULL
   # --- Scale transform -----------------------------------------------------
   if (type == "survival") {
     fit <- exp(-target)
-    .hzr_predict_cl_from_se(fit, se_target, level, "loglog_survival")
+    surv_scale <- if (conf_type == "logit") "logit_survival" else "loglog_survival"
+    .hzr_predict_cl_from_se(fit, se_target, level, surv_scale)
   } else if (type == "cumulative_hazard" || type == "hazard") {
     .hzr_predict_cl_from_se(target, se_target, level, "log")
   } else if (type == "linear_predictor") {
@@ -428,4 +480,73 @@ NULL
   } else {
     stop("Unknown prediction type '", type, "' for se.fit.", call. = FALSE)
   }
+}
+
+#' Per-phase + total cumulative-hazard predictions with delta-method CLs
+#'
+#' Long-format companion to [.hzr_predict_with_se()] for multiphase models under
+#' `decompose = TRUE`. Computes log-scale CLs for the total cumulative hazard
+#' and for each phase's additive contribution `H_j(t) = mu_j(x) Phi_j(t)`.
+#' Per-phase CLs use only that phase's parameter block, so they do NOT sum to
+#' the total CL (cross-phase covariance contributes only to the total).
+#'
+#' @param object Fitted multiphase `hazard` object.
+#' @param time Numeric prediction times (length n).
+#' @param x_list Named list of per-phase design matrices.
+#' @param cov_counts Named integer covariate counts.
+#' @param phases Named list of `hzr_phase` objects.
+#' @param level Confidence level.
+#' @return Long `data.frame(time, component, fit, se.fit, lower, upper)`;
+#'   `component` is an ordered factor with levels `c("total", names(phases))`.
+#' @keywords internal
+.hzr_predict_with_se_decomposed <- function(object, time, x_list,
+                                             cov_counts, phases,
+                                             level = 0.95) {
+  theta <- object$fit$theta
+  p <- length(theta)
+  components <- c("total", names(phases))
+
+  # Point estimates: total + per-phase cumulative hazard.
+  ph <- .hzr_multiphase_cumhaz(time, theta, phases, cov_counts, x_list,
+                               per_phase = TRUE)
+  fit_by_comp <- c(list(total = ph$total),
+                   stats::setNames(lapply(names(phases), function(nm) ph[[nm]]),
+                                   names(phases)))
+
+  make_long <- function(cl_list) {
+    rows <- lapply(components, function(cmp) {
+      data.frame(time = time, component = cmp,
+                 fit = cl_list[[cmp]]$fit, se.fit = cl_list[[cmp]]$se.fit,
+                 lower = cl_list[[cmp]]$lower, upper = cl_list[[cmp]]$upper,
+                 stringsAsFactors = FALSE)
+    })
+    res <- do.call(rbind, rows)
+    res$component <- factor(res$component, levels = components, ordered = TRUE)
+    rownames(res) <- NULL
+    res
+  }
+
+  fv <- .hzr_free_vcov(object$fit$vcov, p)
+  if (is.null(fv)) {
+    na_cl <- lapply(components, function(cmp) {
+      n <- length(time)
+      data.frame(fit = fit_by_comp[[cmp]], se.fit = rep(NA_real_, n),
+                 lower = rep(NA_real_, n), upper = rep(NA_real_, n))
+    })
+    names(na_cl) <- components
+    return(make_long(na_cl))
+  }
+
+  # Per-phase Jacobians; the total is their sum.
+  J_list <- .hzr_predict_jacobian_multiphase(theta, time, phases, cov_counts,
+                                             x_list, p, per_phase = TRUE)
+  J_by_comp <- c(list(total = Reduce(`+`, J_list)), J_list)
+
+  cl_list <- lapply(components, function(cmp) {
+    J <- J_by_comp[[cmp]][, fv$free_idx, drop = FALSE]
+    se <- .hzr_predict_se_from_jacobian(J, fv$vcov_use)
+    .hzr_predict_cl_from_se(fit_by_comp[[cmp]], se, level, "log")
+  })
+  names(cl_list) <- components
+  make_long(cl_list)
 }
