@@ -20,6 +20,9 @@
 #'   are returned.
 #'
 #' @return A data frame with one row per mapping rule.
+#' @seealso [hazard()] for the target arguments, [hzr_phase()] for phase
+#'   construction, and [hzr_decompos()]/[hzr_decompos_g3()] for the
+#'   parameter-level early/late translations.
 #' @examples
 #' hzr_argument_mapping()
 #' hzr_argument_mapping(include_planned = FALSE)

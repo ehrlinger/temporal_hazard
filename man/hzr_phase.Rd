@@ -84,6 +84,22 @@ Creates an \code{hzr_phase} object describing one term in a multiphase additive
 cumulative hazard model.  Pass a list of these to the \code{phases} argument of
 \code{\link[=hazard]{hazard()}} when \code{dist = "multiphase"}.
 }
+\section{Role in the multiphase model}{
+
+
+Each phase is one term \eqn{j} in the additive cumulative hazard
+
+\deqn{H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \,
+      \Phi_j(t)}
+
+where \eqn{\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j^\top
+\boldsymbol{\beta}_j)} is the phase-specific log-linear scale and
+\eqn{\Phi_j(t)} is the temporal shape selected by \code{type} (below).  The
+\code{t_half}/\code{nu}/\code{m} (or g3 \code{tau}/\code{gamma}/\code{alpha}/\code{eta}) arguments set the
+starting values for that shape; \code{formula} attaches the covariates
+\eqn{\mathbf{x}_j} that enter \eqn{\mu_j}.
+}
+
 \section{Phase types}{
 
 
@@ -91,13 +107,21 @@ cumulative hazard model.  Pass a list of these to the \code{phases} argument of
 \item{\code{"cdf"}}{Early risk that resolves over time.
 \eqn{\Phi(t) = G(t)}, bounded \eqn{[0, 1]}.
 SAS equivalent: Early / G1 phase.}
-\item{\code{"hazard"}}{Late or aging risk that accumulates.
+\item{\code{"hazard"}}{Aging risk built from the G1 family.
 \eqn{\Phi(t) = -\log(1 - G(t))}, monotone increasing.
-SAS equivalent: Late / G3 phase.}
+An alternative late-risk form; for the original SAS/C late phase use
+\code{"g3"}.}
+\item{\code{"g3"}}{Unbounded late risk (the original C/SAS late phase).
+\eqn{\Phi(t) = G_3(t)} from \code{\link[=hzr_decompos_g3]{hzr_decompos_g3()}}, parameterized by
+\code{tau}, \code{gamma}, \code{alpha}, \code{eta}.  SAS equivalent: Late / G3 phase.}
 \item{\code{"constant"}}{Flat background hazard rate.
 \eqn{\Phi(t) = t}. No shape parameters are estimated.
 SAS equivalent: Constant / G2 phase.}
 }
+
+The shape derivative \eqn{\varphi_j = d\Phi_j/dt} (used to form the
+instantaneous hazard) is \eqn{g(t)} for \code{"cdf"}, \eqn{h(t)} for \code{"hazard"},
+\eqn{g_3(t)} for \code{"g3"}, and \eqn{1} for \code{"constant"}.
 }
 
 \examples{

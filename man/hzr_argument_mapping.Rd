@@ -21,3 +21,8 @@ inputs map to \code{hazard(...)} arguments in this package.
 hzr_argument_mapping()
 hzr_argument_mapping(include_planned = FALSE)
 }
+\seealso{
+\code{\link[=hazard]{hazard()}} for the target arguments, \code{\link[=hzr_phase]{hzr_phase()}} for phase
+construction, and \code{\link[=hzr_decompos]{hzr_decompos()}}/\code{\link[=hzr_decompos_g3]{hzr_decompos_g3()}} for the
+parameter-level early/late translations.
+}

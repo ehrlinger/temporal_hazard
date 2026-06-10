@@ -29,3 +29,6 @@ sw <- hzr_stepwise(base, scope = ~ age + nyha,
 cat(stepwise_trace(sw), sep = "\n")
 }
 }
+\seealso{
+\code{\link[=hzr_stepwise]{hzr_stepwise()}}, which produces the object this accessor reads.
+}

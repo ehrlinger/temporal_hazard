@@ -39,19 +39,41 @@
 #' cumulative hazard model.  Pass a list of these to the `phases` argument of
 #' [hazard()] when `dist = "multiphase"`.
 #'
+#' @section Role in the multiphase model:
+#'
+#' Each phase is one term \eqn{j} in the additive cumulative hazard
+#'
+#' \deqn{H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \,
+#'       \Phi_j(t)}
+#'
+#' where \eqn{\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j^\top
+#' \boldsymbol{\beta}_j)} is the phase-specific log-linear scale and
+#' \eqn{\Phi_j(t)} is the temporal shape selected by `type` (below).  The
+#' `t_half`/`nu`/`m` (or g3 `tau`/`gamma`/`alpha`/`eta`) arguments set the
+#' starting values for that shape; `formula` attaches the covariates
+#' \eqn{\mathbf{x}_j} that enter \eqn{\mu_j}.
+#'
 #' @section Phase types:
 #'
 #' \describe{
 #'   \item{`"cdf"`}{Early risk that resolves over time.
 #'     \eqn{\Phi(t) = G(t)}, bounded \eqn{[0, 1]}.
 #'     SAS equivalent: Early / G1 phase.}
-#'   \item{`"hazard"`}{Late or aging risk that accumulates.
+#'   \item{`"hazard"`}{Aging risk built from the G1 family.
 #'     \eqn{\Phi(t) = -\log(1 - G(t))}, monotone increasing.
-#'     SAS equivalent: Late / G3 phase.}
+#'     An alternative late-risk form; for the original SAS/C late phase use
+#'     `"g3"`.}
+#'   \item{`"g3"`}{Unbounded late risk (the original C/SAS late phase).
+#'     \eqn{\Phi(t) = G_3(t)} from [hzr_decompos_g3()], parameterized by
+#'     `tau`, `gamma`, `alpha`, `eta`.  SAS equivalent: Late / G3 phase.}
 #'   \item{`"constant"`}{Flat background hazard rate.
 #'     \eqn{\Phi(t) = t}. No shape parameters are estimated.
 #'     SAS equivalent: Constant / G2 phase.}
 #' }
+#'
+#' The shape derivative \eqn{\varphi_j = d\Phi_j/dt} (used to form the
+#' instantaneous hazard) is \eqn{g(t)} for `"cdf"`, \eqn{h(t)} for `"hazard"`,
+#' \eqn{g_3(t)} for `"g3"`, and \eqn{1} for `"constant"`.
 #'
 #' @param type Character; phase type: `"cdf"`, `"hazard"`, `"g3"`, or
 #'   `"constant"`.

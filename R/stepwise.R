@@ -99,6 +99,8 @@
 #' print(sw)
 #' }
 #'
+#' @seealso [hazard()] for the base model and [hzr_phase()] for multiphase
+#'   scopes; [stepwise_trace()] to retrieve the captured selection log.
 #' @export
 hzr_stepwise <- function(fit,
                          scope     = NULL,
@@ -398,6 +400,7 @@ as.data.frame.hzr_stepwise <- function(x, ...) {
 #'
 #' @param fit An `hzr_stepwise` object.
 #' @return Character vector, one element per console line.
+#' @seealso [hzr_stepwise()], which produces the object this accessor reads.
 #' @examples
 #' data(avc)
 #' avc <- na.omit(avc)
