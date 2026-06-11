@@ -776,9 +776,9 @@ test_that(".hzr_logl_weibull gradient attribute respects weights", {
 }
 
 test_that("fractional weights: additive split leaves the LL unchanged (Weibull)", {
-  set.seed(71)
   df <- make_toy()
   n  <- nrow(df)
+  set.seed(71)                      # seed the weight/split draws (make_toy() seeds its own data)
   w  <- runif(n, 0.3, 2.7)          # fractional
   f  <- runif(n, 0.1, 0.9)          # fractional split point per row
   theta <- c(mu = 0.8, nu = 1.2, beta = 0.25)
@@ -795,9 +795,9 @@ test_that("fractional weights: additive split leaves the LL unchanged (Weibull)"
 })
 
 test_that("fractional weights: additive split leaves the LL unchanged (exponential)", {
-  set.seed(72)
   df <- make_toy()
   n  <- nrow(df)
+  set.seed(72)                      # seed the weight/split draws (make_toy() seeds its own data)
   w  <- runif(n, 0.3, 2.7)
   f  <- runif(n, 0.1, 0.9)
   theta <- c(log_lambda = log(0.6), beta = 0.25)
@@ -814,8 +814,8 @@ test_that("fractional weights: additive split leaves the LL unchanged (exponenti
 })
 
 test_that("fractional weights: additive split leaves the LL unchanged (multiphase + covariates)", {
-  set.seed(73)
   d <- make_mp_cov(seed = 73)
+  set.seed(73)                      # seed the weight/split draws (make_mp_cov() seeds its own data)
   w <- runif(d$n, 0.3, 2.7)
   f <- runif(d$n, 0.1, 0.9)
   xm <- matrix(d$x, ncol = 1)
@@ -836,9 +836,9 @@ test_that("fractional weights: additive split leaves the LL unchanged (multiphas
 })
 
 test_that("fractional weights: LL and gradient scale linearly in the weights (Weibull)", {
-  skip_if_not_installed("numDeriv")
-  set.seed(74)
+  # No numDeriv needed: this checks the analytic LL/gradient scale exactly in w.
   df <- make_toy()
+  set.seed(74)                      # seed the weight draws (make_toy() seeds its own data)
   w  <- runif(nrow(df), 0.3, 2.7)
   cc <- 2.5                         # fractional scale factor
   theta <- c(mu = 0.8, nu = 1.2, beta = 0.25)
@@ -859,8 +859,8 @@ test_that("fractional weights: LL and gradient scale linearly in the weights (We
 
 test_that("fractional weights: the MLE is invariant to a positive scalar reweight (Weibull)", {
   skip_on_cran()
-  set.seed(75)
   df <- make_toy()
+  set.seed(75)                      # seed the weight draws (make_toy() seeds its own data)
   w  <- runif(nrow(df), 0.3, 2.7)
   cc <- 2.0
   # Single-distribution fits run the optimizer only when start values are
@@ -880,8 +880,8 @@ test_that("fractional weights: the MLE is invariant to a positive scalar reweigh
 
 test_that("fractional weights: additive-split fit matches the original fit (multiphase + covariates)", {
   skip_on_cran()
-  set.seed(76)
   d  <- make_mp_cov(seed = 76)
+  set.seed(76)                      # seed the weight/split draws (make_mp_cov() seeds its own data)
   w  <- runif(d$n, 0.3, 2.7)
   f  <- runif(d$n, 0.1, 0.9)
   df <- data.frame(time = d$t, status = d$status, x = d$x)
