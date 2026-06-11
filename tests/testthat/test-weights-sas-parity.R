@@ -31,6 +31,17 @@
   d <- utils::read.csv(csv, stringsAsFactors = FALSE)
   d <- d[stats::complete.cases(d[, c("int_dead", "dead", "age", "ipw")]), ]
 
+  # Multiphase fits with n_starts > 1 perturb the initial values from the
+  # ambient RNG.  Seed locally and restore the stream on exit so the test is
+  # reproducible and does not leak RNG state into later tests (mirrors
+  # test-stepwise-parity.R).
+  if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    old_seed <- get(".Random.seed", envir = globalenv(), inherits = FALSE)
+    on.exit(assign(".Random.seed", old_seed, envir = globalenv()), add = TRUE)
+  } else {
+    on.exit(suppressWarnings(rm(".Random.seed", envir = globalenv())),
+            add = TRUE)
+  }
   set.seed(20260611L)
   suppressWarnings(hazard(
     survival::Surv(int_dead, dead) ~ 1, data = d, dist = "multiphase",

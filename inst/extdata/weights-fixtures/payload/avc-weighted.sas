@@ -46,7 +46,9 @@ OPTIONS SET=TMPDIR "&_hz_tmp";
 /* -- Paths ---------------------------------------------------------------- */
 %LET csv_path = ./avc-weighted.csv;
 %LET out_dir  = ./capture;
-%LET run_date = 2026-06-11;
+/* Stamp the capture date from the run so the metadata is correct on whatever
+   day the fixture is captured (yields YYYY-MM-DD). */
+%LET run_date = %sysfunc(today(), yymmdd10.);
 
 /* -- Import avc-weighted.csv ---------------------------------------------- */
 PROC IMPORT DATAFILE = "&csv_path"
