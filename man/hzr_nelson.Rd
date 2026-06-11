@@ -58,6 +58,14 @@ nel <- hzr_nelson(cabgkul$int_dead, cabgkul$dead)
 head(nel)
 
 }
+\references{
+Nelson W (1972). Theory and applications of hazard plotting for censored
+failure data. \emph{Technometrics} 14(4):945--966.
+\doi{10.1080/00401706.1972.10488991}
+
+Aalen O (1978). Nonparametric inference for a family of counting processes.
+\emph{Ann Statist} 6(4):701--726. \doi{10.1214/aos/1176344247}
+}
 \seealso{
 \code{\link[=hzr_kaplan]{hzr_kaplan()}} for survival estimation.
 }

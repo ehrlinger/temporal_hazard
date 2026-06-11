@@ -64,6 +64,14 @@ cr <- hzr_competing_risks(time_cr, event_cr)
 head(cr)
 
 }
+\references{
+Aalen O, Johansen S (1978). An empirical transition matrix for
+non-homogeneous Markov chains based on censored observations.
+\emph{Scand J Statist} 5(3):141--150.
+
+Kalbfleisch JD, Prentice RL (1980). \emph{The Statistical Analysis of Failure
+Time Data.} Wiley, New York.
+}
 \seealso{
 \code{\link[=hzr_kaplan]{hzr_kaplan()}} for single-event survival estimation.
 }

@@ -42,6 +42,26 @@ NULL
 #' implementation: supply starting values in `theta` and the function will
 #' optimize to produce fitted estimates.
 #'
+#' @section The fitted model:
+#'
+#' For `dist = "multiphase"` the cumulative hazard, instantaneous hazard, and
+#' survival are
+#'
+#' \deqn{H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \, \Phi_j(t),
+#'       \qquad
+#'       h(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \, \varphi_j(t),
+#'       \qquad
+#'       S(t \mid \mathbf{x}) = \exp\!\bigl(-H(t \mid \mathbf{x})\bigr)}
+#'
+#' where \eqn{\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j^\top
+#' \boldsymbol{\beta}_j)} and the temporal shapes \eqn{\Phi_j}, \eqn{\varphi_j}
+#' are set by each phase's `type` (see [hzr_phase()]).  Single-phase
+#' distributions (`"weibull"`, `"exponential"`, `"lognormal"`,
+#' `"loglogistic"`) are the special case \eqn{J = 1}.  Parameters are estimated
+#' on an unconstrained internal scale (e.g. \eqn{\log\mu}, \eqn{\log t_{1/2}})
+#' and transformed back for reporting; see
+#' `vignette("mf-mathematical-foundations")`.
+#'
 #' @param time Numeric follow-up time vector.
 #' @param status Numeric or logical event indicator vector.
 #' @param time_lower Optional numeric lower bound vector for censoring intervals.

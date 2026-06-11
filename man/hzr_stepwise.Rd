@@ -143,3 +143,7 @@ print(sw)
 }
 
 }
+\seealso{
+\code{\link[=hazard]{hazard()}} for the base model and \code{\link[=hzr_phase]{hzr_phase()}} for multiphase
+scopes; \code{\link[=stepwise_trace]{stepwise_trace()}} to retrieve the captured selection log.
+}

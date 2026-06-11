@@ -1,5 +1,20 @@
 # TemporalHazard 1.2.0.9000 (development version)
 
+## Documentation
+
+* Added a package-level overview help page (`?TemporalHazard`) giving the
+  additive multiphase model, the phase-type vocabulary, the SAS/C HAZARD
+  bridge, and a map of the main entry points.
+* Expanded the mathematical content of the core help files in the style of
+  `randomForestSRC`: explicit display equations for the generalized temporal
+  decomposition `G(t)` (`?hzr_decompos`), the additive cumulative-hazard model
+  on `?hzr_phase` and `?hazard`, and defining formulas plus the
+  Mächler (2012) reference for the numerical primitives (`?hzr_log1pexp`,
+  `?hzr_log1mexp`, `?hzr_clamp_prob`).
+* Added methodological references to the nonparametric diagnostics
+  (Kaplan-Meier/Greenwood, Nelson-Aalen, Aalen-Johansen) and filled in missing
+  cross-references across the exported help pages.
+
 # TemporalHazard 1.1.0
 
 ## New features

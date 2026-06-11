@@ -9,14 +9,21 @@ hzr_clamp_prob(p, eps = 1e-12)
 \arguments{
 \item{p}{Numeric vector of probabilities.}
 
-\item{eps}{Small positive tolerance.}
+\item{eps}{Small positive tolerance in \eqn{(0, 0.5)}; default \code{1e-12}.}
 }
 \value{
 Numeric vector bounded to \verb{[eps, 1 - eps]}.
 }
 \description{
-Clamp probabilities away from 0 and 1
+Bounds a probability vector to \eqn{[\epsilon,\, 1 - \epsilon]} so that
+downstream \eqn{\log p} or \eqn{\log(1 - p)} evaluations stay finite.  Used
+throughout the likelihood and prediction code to guard survival and CDF
+values against exact 0 or 1.
 }
 \examples{
 hzr_clamp_prob(c(0, 0.5, 1))
+}
+\seealso{
+\code{\link[=hzr_log1pexp]{hzr_log1pexp()}} and \code{\link[=hzr_log1mexp]{hzr_log1mexp()}} for the companion
+stable-logarithm primitives.
 }

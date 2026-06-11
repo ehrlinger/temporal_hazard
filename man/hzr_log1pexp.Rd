@@ -10,11 +10,25 @@ hzr_log1pexp(x)
 \item{x}{Numeric vector.}
 }
 \value{
-Numeric vector with element-wise \code{log(1 + exp(x))}.
+Numeric vector with element-wise \eqn{\log(1 + e^{x})}.
 }
 \description{
-Numerically stable log(1 + exp(x))
+Computes the "softplus" function
+\deqn{\mathrm{log1pexp}(x) = \log\!\bigl(1 + e^{x}\bigr)}
+without overflow.  A naive \code{log(1 + exp(x))} overflows to \code{Inf} for
+\eqn{x \gtrsim 710} even though the true value is \eqn{\approx x}.  The
+identity \eqn{\log(1 + e^{x}) = x + \log(1 + e^{-x})} for \eqn{x > 0} keeps
+every intermediate finite.
 }
 \examples{
 hzr_log1pexp(c(-50, 0, 50))
+}
+\references{
+\enc{Mächler}{Machler} M (2012). \emph{Accurately Computing \eqn{\log(1 - e^{-|a|})}.} R package
+Rmpfr vignette.
+\url{https://CRAN.R-project.org/package=Rmpfr/vignettes/log1mexp-note.pdf}
+}
+\seealso{
+\code{\link[=hzr_log1mexp]{hzr_log1mexp()}} for the complementary \eqn{\log(1 - e^{-x})},
+\code{\link[=hzr_clamp_prob]{hzr_clamp_prob()}} for boundary-safe probabilities.
 }

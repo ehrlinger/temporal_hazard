@@ -115,6 +115,28 @@ interactions so each window has its own coefficient vector.
 engines remain unchanged.
 }
 }
+\section{The fitted model}{
+
+
+For \code{dist = "multiphase"} the cumulative hazard, instantaneous hazard, and
+survival are
+
+\deqn{H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \, \Phi_j(t),
+      \qquad
+      h(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \, \varphi_j(t),
+      \qquad
+      S(t \mid \mathbf{x}) = \exp\!\bigl(-H(t \mid \mathbf{x})\bigr)}
+
+where \eqn{\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j^\top
+\boldsymbol{\beta}_j)} and the temporal shapes \eqn{\Phi_j}, \eqn{\varphi_j}
+are set by each phase's \code{type} (see \code{\link[=hzr_phase]{hzr_phase()}}).  Single-phase
+distributions (\code{"weibull"}, \code{"exponential"}, \code{"lognormal"},
+\code{"loglogistic"}) are the special case \eqn{J = 1}.  Parameters are estimated
+on an unconstrained internal scale (e.g. \eqn{\log\mu}, \eqn{\log t_{1/2}})
+and transformed back for reporting; see
+\code{vignette("mf-mathematical-foundations")}.
+}
+
 \examples{
 # -- Univariable Weibull ----------------------------------------------
 set.seed(1)
