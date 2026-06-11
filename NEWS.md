@@ -1,5 +1,17 @@
 # TemporalHazard 1.2.0.9000 (development version)
 
+## Testing
+
+* Added interval-censoring coverage under the multiphase model (roadmap 7c).
+  The multiphase likelihood's interval-/left-censored branch had a working code
+  path but no isolated test. New R-only self-consistency invariants in
+  `test-interval-censoring-multiphase.R` verify the interval contribution equals
+  `log(S(lower) - S(upper))`, the left-censored term equals
+  `log(1 - exp(-H(u)))`, right-censoring stays `-(H(stop) - H(start))`
+  (including left truncation), invalid bounds (`lower > upper`) yield `-Inf`,
+  integer weights match row duplication on interval rows, and an
+  interval-censored multiphase fit converges.
+
 ## Documentation
 
 * Added a package-level overview help page (`?TemporalHazard`) giving the
