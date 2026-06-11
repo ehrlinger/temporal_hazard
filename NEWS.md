@@ -1,62 +1,3 @@
-# TemporalHazard 1.2.0.9000 (development version)
-
-## Testing
-
-* Added fractional (non-integer) weight coverage to close the roadmap 7a gap.
-  Prior weight tests verified weighting only via integer row duplication, which
-  cannot express fractional (e.g. inverse-probability) weights. The new tests
-  assert the two properties that define a correct per-row weighted
-  log-likelihood: an **additive split** (a row of weight `a + b` equals two
-  identical copies of weights `a` and `b`) and **linear scaling**
-  (`L(theta; c*w) = c * L(theta; w)`, gradient likewise, MLE invariant), across
-  the Weibull, exponential, and multiphase-with-covariates paths.
-* Made the single-distribution weighted-fit tests exercise a real fit. They
-  previously omitted `theta` start values, so `hazard(fit = TRUE)` took its
-  unfitted branch and the assertions compared `NULL`/`NA` vacuously; they now
-  supply starts and genuinely compare the weighted MLE to the duplicated-row
-  MLE.
-* Added interval-censoring coverage under the multiphase model (roadmap 7c).
-  The multiphase likelihood's interval-/left-censored branch had a working code
-  path but no isolated test. New R-only self-consistency invariants in
-  `test-interval-censoring-multiphase.R` verify the interval contribution equals
-  `log(S(lower) - S(upper))`, the left-censored term equals
-  `log(1 - exp(-H(u)))`, right-censoring stays `-(H(stop) - H(start))`
-  (including left truncation), invalid bounds (`lower > upper`) yield `-Inf`,
-  integer weights match row duplication on interval rows, and an
-  interval-censored multiphase fit converges.
-* Added a SAS fractional-weight parity capture scaffold under
-  `inst/extdata/weights-fixtures/` (roadmap 7a / FIXTURE-GAP-LIST B5): a
-  `PROC HAZARD ... WEIGHT IPW` template, a deterministic non-integer weight
-  dataset, a `.lst` parser, and `test-weights-sas-parity.R`. The parity test
-  re-fits the SAS specification in R and compares covariate estimates and
-  log-likelihood; it skips when the capture fixture is absent (as it is by
-  default), so CI and installation are unaffected until a SAS run is dropped
-  in. R-side fractional-weight correctness is already proven by the invariants
-  above; this is the drop-in external SAS confirmation.
-
-## Documentation
-
-* Added a package-level overview help page (`?TemporalHazard`) giving the
-  additive multiphase model, the phase-type vocabulary, the SAS/C HAZARD
-  bridge, and a map of the main entry points.
-* Expanded the mathematical content of the core help files in the style of
-  `randomForestSRC`: explicit display equations for the generalized temporal
-  decomposition `G(t)` (`?hzr_decompos`), the additive cumulative-hazard model
-  on `?hzr_phase` and `?hazard`, and defining formulas plus the
-  Mächler (2012) reference for the numerical primitives (`?hzr_log1pexp`,
-  `?hzr_log1mexp`, `?hzr_clamp_prob`).
-* Added methodological references to the nonparametric diagnostics
-  (Kaplan-Meier/Greenwood, Nelson-Aalen, Aalen-Johansen) and filled in missing
-  cross-references across the exported help pages.
-* Explained the remaining enumerated options in the style of the `hzr_phase()`
-  phase-type help. `?hazard` gains a **Baseline distributions** section
-  describing each `dist` value (`"weibull"`, `"exponential"`, `"loglogistic"`,
-  `"lognormal"`, `"multiphase"`) by its hazard shape and when to use it;
-  `?hzr_stepwise` gains a **Selection direction and criterion** section
-  explaining each `direction` (`"forward"`/`"backward"`/`"both"`) and
-  `criterion` (`"wald"`/`"aic"`), including how Wald selection differs from
-  C/SAS HAZARD's score-statistic path.
-
 # TemporalHazard 1.1.0
 
 ## New features
@@ -303,6 +244,26 @@
   values (log-log plot), when to fix shape parameters vs. estimate freely,
   diagnosing overparameterization via near-zero phase scales and `NA` from
   `vcov()`, and `control` options (`n_starts`, `maxit`).
+* Added a package-level overview help page (`?TemporalHazard`) giving the
+  additive multiphase model, the phase-type vocabulary, the SAS/C HAZARD
+  bridge, and a map of the main entry points.
+* Expanded the mathematical content of the core help files in the style of
+  `randomForestSRC`: explicit display equations for the generalized temporal
+  decomposition `G(t)` (`?hzr_decompos`), the additive cumulative-hazard model
+  on `?hzr_phase` and `?hazard`, and defining formulas plus the
+  Mächler (2012) reference for the numerical primitives (`?hzr_log1pexp`,
+  `?hzr_log1mexp`, `?hzr_clamp_prob`).
+* Added methodological references to the nonparametric diagnostics
+  (Kaplan-Meier/Greenwood, Nelson-Aalen, Aalen-Johansen) and filled in missing
+  cross-references across the exported help pages.
+* Explained the remaining enumerated options in the style of the `hzr_phase()`
+  phase-type help. `?hazard` gains a **Baseline distributions** section
+  describing each `dist` value (`"weibull"`, `"exponential"`, `"loglogistic"`,
+  `"lognormal"`, `"multiphase"`) by its hazard shape and when to use it;
+  `?hzr_stepwise` gains a **Selection direction and criterion** section
+  explaining each `direction` (`"forward"`/`"backward"`/`"both"`) and
+  `criterion` (`"wald"`/`"aic"`), including how Wald selection differs from
+  C/SAS HAZARD's score-statistic path.
 
 ## Testing
 
@@ -362,6 +323,37 @@
   is the honest substitute for a SAS parity fixture and guards against the
   "accepts the formal but never applies it" regression that has surfaced
   before with weights and counting-process times.
+* Added fractional (non-integer) weight coverage to close the roadmap 7a gap.
+  Prior weight tests verified weighting only via integer row duplication, which
+  cannot express fractional (e.g. inverse-probability) weights. The new tests
+  assert the two properties that define a correct per-row weighted
+  log-likelihood: an **additive split** (a row of weight `a + b` equals two
+  identical copies of weights `a` and `b`) and **linear scaling**
+  (`L(theta; c*w) = c * L(theta; w)`, gradient likewise, MLE invariant), across
+  the Weibull, exponential, and multiphase-with-covariates paths.
+* Made the single-distribution weighted-fit tests exercise a real fit. They
+  previously omitted `theta` start values, so `hazard(fit = TRUE)` took its
+  unfitted branch and the assertions compared `NULL`/`NA` vacuously; they now
+  supply starts and genuinely compare the weighted MLE to the duplicated-row
+  MLE.
+* Added interval-censoring coverage under the multiphase model (roadmap 7c).
+  The multiphase likelihood's interval-/left-censored branch had a working code
+  path but no isolated test. New R-only self-consistency invariants in
+  `test-interval-censoring-multiphase.R` verify the interval contribution equals
+  `log(S(lower) - S(upper))`, the left-censored term equals
+  `log(1 - exp(-H(u)))`, right-censoring stays `-(H(stop) - H(start))`
+  (including left truncation), invalid bounds (`lower > upper`) yield `-Inf`,
+  integer weights match row duplication on interval rows, and an
+  interval-censored multiphase fit converges.
+* Added a SAS fractional-weight parity capture scaffold under
+  `inst/extdata/weights-fixtures/` (roadmap 7a / FIXTURE-GAP-LIST B5): a
+  `PROC HAZARD ... WEIGHT IPW` template, a deterministic non-integer weight
+  dataset, a `.lst` parser, and `test-weights-sas-parity.R`. The parity test
+  re-fits the SAS specification in R and compares covariate estimates and
+  log-likelihood; it skips when the capture fixture is absent (as it is by
+  default), so CI and installation are unaffected until a SAS run is dropped
+  in. R-side fractional-weight correctness is already proven by the invariants
+  above; this is the drop-in external SAS confirmation.
 
 ---
 
