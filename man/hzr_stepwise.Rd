@@ -155,18 +155,26 @@ often a single variable may oscillate before it is frozen.}
 }
 
 \describe{
-\item{\code{criterion = "wald"} (default)}{Score each move by the Wald
-\eqn{\chi^2} of the affected coefficient(s) from a refit, and accept on
-SAS-style significance thresholds: a candidate enters if its p-value is
-below \code{slentry}, and a term is dropped if its p-value rises above
-\code{slstay}.  Note this differs algorithmically from C/SAS HAZARD, which
-selects on a \emph{score} (Q) statistic evaluated without refitting; the two
-can take different step paths even when they converge to a similar final
-model.}
-\item{\code{criterion = "aic"}}{Score each move by the change in AIC from the
-refit and accept any move with \eqn{\Delta\mathrm{AIC} < 0} (a strictly
-better penalised fit), ignoring \code{slentry} / \code{slstay}.  Use this for a
-non-significance-based, information-criterion search.}
+\item{\code{criterion = "wald"} (default)}{Accept moves on SAS-style
+significance thresholds, using the Wald \eqn{\chi^2} of the affected
+coefficient(s): a candidate enters if its p-value is below \code{slentry}, and
+a term is dropped if its p-value rises above \code{slstay}.  Entry candidates
+are scored from a refit that adds the candidate (so its new coefficient
+can be tested); drop candidates are scored from the \emph{current} model's
+Wald p-values without a per-candidate refit, and a single refit is run
+only after a drop is chosen.  Note this differs algorithmically from
+C/SAS HAZARD, which selects on a \emph{score} (Q) statistic evaluated without
+refitting; the two can take different step paths even when they converge
+to a similar final model.}
+\item{\code{criterion = "aic"}}{Accept any move with
+\eqn{\Delta\mathrm{AIC} < 0} (a strictly better penalised fit), ignoring
+\code{slentry} / \code{slstay}.  Entry candidates use the actual
+\eqn{\Delta\mathrm{AIC}} from the candidate refit; drop candidates use a
+Wald-to-likelihood-ratio approximation,
+\eqn{\Delta\mathrm{AIC} \approx W - 2\,\mathrm{df}}, computed from the
+current model without a per-candidate refit (the chosen drop is refit
+afterwards).  Use this for a non-significance-based,
+information-criterion search.}
 }
 }
 

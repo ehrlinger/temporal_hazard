@@ -163,10 +163,11 @@ a single monotone trend describes the hazard.}
 follow-up time (the constant background risk also appears as the
 \code{"constant"} phase in a multiphase model).}
 \item{\code{"loglogistic"} --- unimodal (rise-then-fall) hazard}{A log-logistic
-accelerated-failure-time form whose hazard rises to a single peak and then
-declines when the shape exceeds 1 (and is monotone decreasing otherwise),
-with heavier tails than the log-normal.  Use it when risk climbs to an
-early peak and then eases off.}
+proportional-odds form (covariates act multiplicatively on the odds of
+failure, \eqn{\exp(\eta)}, not as an AFT time shift) whose hazard rises to
+a single peak and then declines when the shape exceeds 1 (and is monotone
+decreasing otherwise), with heavier tails than the log-normal.  Use it
+when risk climbs to an early peak and then eases off.}
 \item{\code{"lognormal"} --- early-peaking, resolving hazard}{An
 accelerated-failure-time form in which \eqn{\log} time is Gaussian; the
 hazard rises to an early peak and then decays toward zero.  Use it for
