@@ -30,6 +30,14 @@
 * Added methodological references to the nonparametric diagnostics
   (Kaplan-Meier/Greenwood, Nelson-Aalen, Aalen-Johansen) and filled in missing
   cross-references across the exported help pages.
+* Explained the remaining enumerated options in the style of the `hzr_phase()`
+  phase-type help. `?hazard` gains a **Baseline distributions** section
+  describing each `dist` value (`"weibull"`, `"exponential"`, `"loglogistic"`,
+  `"lognormal"`, `"multiphase"`) by its hazard shape and when to use it;
+  `?hzr_stepwise` gains a **Selection direction and criterion** section
+  explaining each `direction` (`"forward"`/`"backward"`/`"both"`) and
+  `criterion` (`"wald"`/`"aic"`), including how Wald selection differs from
+  C/SAS HAZARD's score-statistic path.
 
 # TemporalHazard 1.1.0
 
