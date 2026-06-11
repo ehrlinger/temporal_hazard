@@ -24,7 +24,7 @@ make_multiphase_data <- function(n = 200, seed = 42) {
 test_that("hazard() accepts dist='multiphase' with phases", {
   dat <- make_multiphase_data(n = 50)
 
-  fit <- hazard(
+  fit <- suppressWarnings(hazard(
     survival::Surv(time, status) ~ age,
     data   = dat,
     dist   = "multiphase",
@@ -33,7 +33,7 @@ test_that("hazard() accepts dist='multiphase' with phases", {
       bg    = hzr_phase("constant")
     ),
     fit = TRUE
-  )
+  ))
 
   expect_s3_class(fit, "hazard")
   expect_equal(fit$spec$dist, "multiphase")
@@ -179,7 +179,7 @@ test_that("predict decompose=TRUE returns data frame", {
 
   dat <- make_multiphase_data(n = 100)
 
-  fit <- hazard(
+  fit <- suppressWarnings(hazard(
     survival::Surv(time, status) ~ 1,
     data   = dat,
     dist   = "multiphase",
@@ -189,7 +189,7 @@ test_that("predict decompose=TRUE returns data frame", {
     ),
     fit = TRUE,
     control = list(n_starts = 2, maxit = 500)
-  )
+  ))
 
   nd <- data.frame(time = c(0.5, 1.0, 2.0))
   decomp <- predict(fit, newdata = nd, type = "cumulative_hazard",
@@ -209,14 +209,14 @@ test_that("predict linear_predictor errors for multiphase", {
   skip_on_cran()
 
   dat <- make_multiphase_data(n = 50)
-  fit <- hazard(
+  fit <- suppressWarnings(hazard(
     survival::Surv(time, status) ~ 1,
     data   = dat,
     dist   = "multiphase",
     phases = list(bg = hzr_phase("constant")),
     fit = TRUE,
     control = list(n_starts = 1, maxit = 300)
-  )
+  ))
 
   expect_error(predict(fit, type = "linear_predictor"), "not supported.*multiphase")
 })
@@ -228,7 +228,7 @@ test_that("predict linear_predictor errors for multiphase", {
 
 test_that("print.hazard shows phase info for multiphase", {
   dat <- make_multiphase_data(n = 50)
-  fit <- hazard(
+  fit <- suppressWarnings(hazard(
     time = dat$time, status = dat$status,
     dist = "multiphase",
     phases = list(
@@ -237,7 +237,7 @@ test_that("print.hazard shows phase info for multiphase", {
     ),
     fit = TRUE,
     control = list(n_starts = 1, maxit = 300)
-  )
+  ))
 
   out <- capture.output(print(fit))
   expect_true(any(grepl("multiphase", out)))
@@ -248,7 +248,7 @@ test_that("summary.hazard shows per-phase coefficients", {
   skip_on_cran()
 
   dat <- make_multiphase_data(n = 100)
-  fit <- hazard(
+  fit <- suppressWarnings(hazard(
     survival::Surv(time, status) ~ 1,
     data   = dat,
     dist   = "multiphase",
@@ -258,7 +258,7 @@ test_that("summary.hazard shows per-phase coefficients", {
     ),
     fit = TRUE,
     control = list(n_starts = 2, maxit = 500)
-  )
+  ))
 
   s <- summary(fit)
   expect_s3_class(s, "summary.hazard")
@@ -285,13 +285,13 @@ test_that("summary.hazard shows per-phase coefficients", {
 
 test_that("coef returns named theta for multiphase", {
   dat <- make_multiphase_data(n = 50)
-  fit <- hazard(
+  fit <- suppressWarnings(hazard(
     time = dat$time, status = dat$status,
     dist = "multiphase",
     phases = list(bg = hzr_phase("constant")),
     fit = TRUE,
     control = list(n_starts = 1, maxit = 300)
-  )
+  ))
 
   cf <- coef(fit)
   expect_true(!is.null(cf))
@@ -309,7 +309,7 @@ test_that("three-phase (cdf + constant + cdf) constructs and fits", {
 
   dat <- make_multiphase_data(n = 200)
 
-  fit <- hazard(
+  fit <- suppressWarnings(hazard(
     survival::Surv(time, status) ~ 1,
     data   = dat,
     dist   = "multiphase",
@@ -320,7 +320,7 @@ test_that("three-phase (cdf + constant + cdf) constructs and fits", {
     ),
     fit = TRUE,
     control = list(n_starts = 2, maxit = 500)
-  )
+  ))
 
   expect_s3_class(fit, "hazard")
   expect_true(is.finite(fit$fit$objective))

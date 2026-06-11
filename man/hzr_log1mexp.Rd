@@ -10,11 +10,27 @@ hzr_log1mexp(x)
 \item{x}{Numeric vector with positive values.}
 }
 \value{
-Numeric vector with element-wise \code{log(1 - exp(-x))}.
+Numeric vector with element-wise \eqn{\log(1 - e^{-x})}.
 }
 \description{
-Numerically stable log(1 - exp(-x)) for x > 0
+Computes
+\deqn{\mathrm{log1mexp}(x) = \log\!\bigl(1 - e^{-x}\bigr), \qquad x > 0}
+accurately across the full range.  Following \enc{Mächler}{Machler} (2012), the evaluation
+switches at \eqn{x = \log 2}: for small \eqn{x} it uses
+\eqn{\log(-\mathrm{expm1}(-x))} (avoiding cancellation as \eqn{x \to 0}), and
+for larger \eqn{x} it uses \eqn{\mathrm{log1p}(-e^{-x})} (avoiding loss of
+precision as \eqn{x \to \infty}).  Non-positive or non-finite inputs return
+\code{NA}.
 }
 \examples{
 hzr_log1mexp(c(0.01, 0.5, 5))
+}
+\references{
+\enc{Mächler}{Machler} M (2012). \emph{Accurately Computing \eqn{\log(1 - e^{-|a|})}.} R package
+Rmpfr vignette.
+\url{https://CRAN.R-project.org/package=Rmpfr/vignettes/log1mexp-note.pdf}
+}
+\seealso{
+\code{\link[=hzr_log1pexp]{hzr_log1pexp()}} for the softplus \eqn{\log(1 + e^{x})},
+\code{\link[=hzr_clamp_prob]{hzr_clamp_prob()}} for boundary-safe probabilities.
 }

@@ -404,9 +404,9 @@ test_that("Gradient is near zero at converged fit", {
   )
 
   fit <- tryCatch(
-    hazard(time = time, status = status, dist = "multiphase",
+    suppressWarnings(hazard(time = time, status = status, dist = "multiphase",
            phases = phases, fit = TRUE,
-           control = list(n_starts = 3, maxit = 500)),
+           control = list(n_starts = 3, maxit = 500))),
     error = function(e) NULL
   )
   skip_if(is.null(fit), "Fit did not converge")

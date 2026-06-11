@@ -622,6 +622,13 @@ print.hzr_gof <- function(x, digits = 3, ...) {
 #' }
 #' }
 #'
+#' @references
+#' Kaplan EL, Meier P (1958). Nonparametric estimation from incomplete
+#' observations. *J Am Stat Assoc* 53(282):457--481.
+#' \doi{10.1080/01621459.1958.10501452}
+#'
+#' Greenwood M (1926). The natural duration of cancer. *Reports on Public
+#' Health and Medical Subjects* 33:1--26.
 #' @seealso [hzr_gof()] for parametric vs. nonparametric comparison.
 #' @export
 hzr_kaplan <- function(time, status, conf_level = 0.95,
@@ -1040,6 +1047,13 @@ print.hzr_calibrate <- function(x, digits = 3, ...) {
 #' nel <- hzr_nelson(cabgkul$int_dead, cabgkul$dead)
 #' head(nel)
 #'
+#' @references
+#' Nelson W (1972). Theory and applications of hazard plotting for censored
+#' failure data. *Technometrics* 14(4):945--966.
+#' \doi{10.1080/00401706.1972.10488991}
+#'
+#' Aalen O (1978). Nonparametric inference for a family of counting processes.
+#' *Ann Statist* 6(4):701--726. \doi{10.1214/aos/1176344247}
 #' @seealso [hzr_kaplan()] for survival estimation.
 #' @export
 hzr_nelson <- function(time, event, weight = NULL, conf_level = 0.95) {
@@ -1460,6 +1474,13 @@ print.hzr_bootstrap <- function(x, digits = 4, ...) {
 #' cr <- hzr_competing_risks(time_cr, event_cr)
 #' head(cr)
 #'
+#' @references
+#' Aalen O, Johansen S (1978). An empirical transition matrix for
+#' non-homogeneous Markov chains based on censored observations.
+#' *Scand J Statist* 5(3):141--150.
+#'
+#' Kalbfleisch JD, Prentice RL (1980). *The Statistical Analysis of Failure
+#' Time Data.* Wiley, New York.
 #' @seealso [hzr_kaplan()] for single-event survival estimation.
 #' @export
 hzr_competing_risks <- function(time, event) {

@@ -48,8 +48,12 @@ coefficient.}
 
 \item{theta}{Optional numeric coefficient vector (starting values for optimization).}
 
-\item{dist}{Character baseline distribution label (default "weibull").
-Use \code{"multiphase"} for N-phase additive hazard models (requires \code{phases}).}
+\item{dist}{Character baseline distribution label (default \code{"weibull"}).
+One of \code{"weibull"}, \code{"exponential"}, \code{"loglogistic"}, \code{"lognormal"}, or
+\code{"multiphase"}.  The single-distribution families differ in the \emph{shape} the
+hazard traces over time; \code{"multiphase"} builds an additive N-phase hazard
+and requires \code{phases}.  See the \strong{Baseline distributions} section for what
+each means and when to use it.}
 
 \item{phases}{Optional named list of \code{\link[=hzr_phase]{hzr_phase()}} objects specifying the
 phases for a multiphase model (\code{dist = "multiphase"}).  See Examples.}
@@ -115,6 +119,67 @@ interactions so each window has its own coefficient vector.
 engines remain unchanged.
 }
 }
+\section{The fitted model}{
+
+
+For \code{dist = "multiphase"} the cumulative hazard, instantaneous hazard, and
+survival are
+
+\deqn{H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \, \Phi_j(t),
+      \qquad
+      h(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \, \varphi_j(t),
+      \qquad
+      S(t \mid \mathbf{x}) = \exp\!\bigl(-H(t \mid \mathbf{x})\bigr)}
+
+where \eqn{\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j^\top
+\boldsymbol{\beta}_j)} and the temporal shapes \eqn{\Phi_j}, \eqn{\varphi_j}
+are set by each phase's \code{type} (see \code{\link[=hzr_phase]{hzr_phase()}}).  Single-phase
+distributions (\code{"weibull"}, \code{"exponential"}, \code{"lognormal"},
+\code{"loglogistic"}) are the special case \eqn{J = 1}.  Parameters are estimated
+on an unconstrained internal scale (e.g. \eqn{\log\mu}, \eqn{\log t_{1/2}})
+and transformed back for reporting; see
+\code{vignette("mf-mathematical-foundations")}.
+}
+
+\section{Baseline distributions}{
+
+
+The \code{dist} argument selects the parametric form of the baseline hazard.  The
+four single-distribution families (\eqn{J = 1}) differ in the \emph{shape} the
+hazard traces over follow-up; choose by what the risk is expected to do over
+time.  \code{"multiphase"} is the general additive model that lets several such
+shapes coexist.
+
+\describe{
+\item{\code{"weibull"} --- monotone rising or falling hazard (default)}{The
+workhorse parametric model: \eqn{H(t \mid \mathbf{x}) = (\mu t)^\nu
+    \exp(\eta)}, with hazard \eqn{h \propto t^{\nu - 1}}.  The single shape
+\eqn{\nu} makes risk increase over time (\eqn{\nu > 1}), decrease
+(\eqn{\nu < 1}), or stay flat (\eqn{\nu = 1}).  Use it as the default when
+a single monotone trend describes the hazard.}
+\item{\code{"exponential"} --- constant hazard}{The memoryless special case
+\eqn{\nu = 1}: a time-invariant baseline rate, \eqn{H(t \mid \mathbf{x}) =
+    \mu t \exp(\eta)}.  Use it when the event rate does not change with
+follow-up time (the constant background risk also appears as the
+\code{"constant"} phase in a multiphase model).}
+\item{\code{"loglogistic"} --- unimodal (rise-then-fall) hazard}{A log-logistic
+proportional-odds form (covariates act multiplicatively on the odds of
+failure, \eqn{\exp(\eta)}, not as an AFT time shift) whose hazard rises to
+a single peak and then declines when the shape exceeds 1 (and is monotone
+decreasing otherwise), with heavier tails than the log-normal.  Use it
+when risk climbs to an early peak and then eases off.}
+\item{\code{"lognormal"} --- early-peaking, resolving hazard}{An
+accelerated-failure-time form in which \eqn{\log} time is Gaussian; the
+hazard rises to an early peak and then decays toward zero.  Use it for
+risk that is concentrated early and resolves over time.}
+\item{\code{"multiphase"} --- additive N-phase hazard}{Sums several phase shapes
+into one model, \eqn{H = \sum_j \mu_j(\mathbf{x}) \Phi_j(t)}, so the
+overall hazard can fall, level off, and rise again within one fit.
+Requires \code{phases}; see \code{\link[=hzr_phase]{hzr_phase()}} for the available phase shapes.  This
+is the form that reproduces the classic C/SAS HAZARD models.}
+}
+}
+
 \examples{
 # -- Univariable Weibull ----------------------------------------------
 set.seed(1)

@@ -1,0 +1,586 @@
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026   1
+
+                          T H R E E   P H A S E   P A R A M E T R I C   H A Z A R D   P R O C E D U R E
+
+    Initial Summary:
+    ================
+
+      There are   305 observations available for analysis with:
+                             68 events
+                            237 Right Censored Observations
+                            305 Total Subjects
+
+                                                         Variable        Min            Max
+                                    -----------------------------------------------------------
+                                    Time:                INT_DEAD    0.001368954       170.5826
+                                    Event:               DEAD                  0              1
+                                    -----------------------------------------------------------
+
+   *------*
+   | Note |
+   *------*
+
+      in  237 observation(s) RCENSOR has been changed from 0 to 1
+
+
+
+
+    Concomitant Information:
+    ========================
+
+
+                              Phase     Variable           Mean          Min           Max
+                              -----------------------------------------------------------------
+                              Early:    AGE               121.3971      1.051356      790.9813
+                                        MAL              0.2262295             0             1
+                                        INC_SURG          2.393443             0             5
+                                        ORIFICE         0.04590164             0             1
+                                        COM_IV            0.495082             0             1
+                                        -------------------------------------------------------
+                              Constant: AGE               121.3971      1.051356      790.9813
+                                        MAL              0.2262295             0             1
+                                        INC_SURG          2.393443             0             5
+                                        ORIFICE         0.04590164             0             1
+                                        COM_IV            0.495082             0             1
+                              -----------------------------------------------------------------
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026   2
+
+
+
+    Model Specifications:
+    =====================
+
+                                       Initial Parameter Values
+                                       ------------------------                                                    Starting
+          Phase        Parameter       Specified        Used       |  Theta                          Estimated?    Value
+          -------------------------------------------------------------------------------------------------------------------
+          Early:       DELTA                    0             0    |  E1                             No
+                       THALF            0.1512095     0.1512095    |  E2                             No
+                        (RHO                          0.1512095)   |
+                       NU                1.438652      1.438652    |  E3                             No
+                       M                        1             1    |  E4                             No
+                       MUE              0.2361727     0.2319292 *  |  E0 = Ln(muE)                   Yes             -1.46132
+                       ------------------------------------------------------------------------------------------------------
+          Constant:    MUC           0.0005436977  0.0005339287 *  |  C0 = Ln(muC)                   Yes             -7.53525
+          -------------------------------------------------------------------------------------------------------------------
+    * The value used is different from the value specified.
+
+    Based on the values used, the following flags and equations have been set:
+          *-------------------------------------------------*
+          |  Early:                                         |
+          |        Delta = 0                Yes             |
+          |        M*Nu = |1|               No              |
+          |        M>0, Nu>0, Generic equations 6 - 8       |
+          |  Constant:                                      |
+          |        Equations 24 - 25                        |
+          *-------------------------------------------------*
+
+
+    Computational Methods:
+    ======================
+
+      Optimization: Newton method using analytic derivatives
+                    initiated using an initial hessian matrix
+
+      Conservation of events: Invoked initially
+
+
+    Results:
+    ========
+
+                                                    Forward Stepwise Selection
+
+    * During variable selection steps, variances are approximate because shaping parameter covariances are ignored.
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026   3
+
+*----------------------------------------------------------------------------------*
+|Step 0.  Intercepts, included variables, and non-fixed shaping parameters entered.|
+*----------------------------------------------------------------------------------*
+
+
+
+        Optimization terminated after    2 iterations and     4 function evaluations
+        Normal exit: Convergence attained
+        Log base 10 of condition code =     1.044505
+        Number of events conserved =           68
+
+        Log likelihood =     -211.545
+
+                                                  Summary of Variables in the Model
+                                                  ---------------------------------
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     E0             -1.46485       0.130613        -11.215         <.0001
+                               --------------------------------------------------------------------------------
+                    Constant:  C0             -7.50391      0.4405503        -17.033         <.0001
+                    -------------------------------------------------------------------------------------------
+
+
+                                   Summary of Variables not in the Model (Based on Q Statistics)
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     AGE         -0.00278767   0.0007623385         -3.657         0.0003     1
+                               MAL            1.384702      0.3282851          4.218         <.0001     1
+                               INC_SURG      0.2448957      0.1066721          2.296         0.0217     1
+                               ORIFICE        2.120442      0.6923954          3.062         0.0022     1
+                               COM_IV         1.532345      0.2614909          5.860         <.0001     1
+                               --------------------------------------------------------------------------------
+                    Constant:  AGE        -0.000994829    0.002416974         -0.412         0.6806     1
+                               MAL           0.4761906       1.263464          0.377         0.7063     1
+                               INC_SURG        1.02666      0.4738808          2.166         0.0303     1
+                               ORIFICE               0              .              .              .  **
+                               COM_IV        -0.779905       1.147864         -0.679         0.4969     1
+                    -------------------------------------------------------------------------------------------
+    **   Variable ill conditioned indicating possible singularity.
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026   4
+
+
+
+*----------------------------------------------------------*
+|Step   1. COM_IV   added to EARLY PHASE                   |
+|                   with Z =       5.860 and P = <.0001    |
+*----------------------------------------------------------*
+
+
+
+        Optimization terminated after    4 iterations and     6 function evaluations
+        Normal exit: Convergence attained
+        Log base 10 of condition code =     1.413124
+        Number of events conserved =      67.9996
+
+        Log likelihood =     -193.335
+
+        -2(Difference in log likelihood) =     36.42056
+                                 P(diff) = <.0001
+
+                                                  Summary of Variables in the Model
+                                                  ---------------------------------
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     E0             -2.67238      0.3351705         -7.973         <.0001
+                               COM_IV         1.814849      0.3634284          4.994         <.0001     1
+                               --------------------------------------------------------------------------------
+                    Constant:  C0             -7.39393      0.4090881        -18.074         <.0001
+                    -------------------------------------------------------------------------------------------
+
+
+                                   Summary of Variables not in the Model (Based on Q Statistics)
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     AGE         -0.00242703    0.001359439         -1.785         0.0742     1
+                               MAL           0.6543083      0.2937257          2.228         0.0259     1
+                               INC_SURG      0.1555498      0.1133183          1.373         0.1699     1
+                               ORIFICE        1.603393      0.6571067          2.440         0.0147     1
+                               --------------------------------------------------------------------------------
+                    Constant:  AGE         -0.00106239    0.002335463         -0.455         0.6492     1
+                               MAL           0.1636235       1.143709          0.143         0.8862     1
+                               INC_SURG       1.483034       0.460564          3.220         0.0013     1
+                               ORIFICE               0              .              .              .  **
+                               COM_IV         -1.14284      0.9695757         -1.179         0.2385     1
+                    -------------------------------------------------------------------------------------------
+    **   Variable ill conditioned indicating possible singularity.
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026   5
+
+
+
+*----------------------------------------------------------*
+|Step   2. INC_SURG added to CONSTANT PHASE                |
+|                   with Z =       3.220 and P =     0.0013|
+*----------------------------------------------------------*
+
+
+
+        Optimization terminated after    6 iterations and     9 function evaluations
+        Normal exit: Convergence attained
+        Log base 10 of condition code =     2.194412
+        Number of events conserved =           68
+
+        Log likelihood =     -190.159
+
+        -2(Difference in log likelihood) =     6.351452
+                                 P(diff) =     0.0117
+
+                                                  Summary of Variables in the Model
+                                                  ---------------------------------
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     E0             -2.80532       0.357467         -7.848         <.0001
+                               COM_IV         1.947637      0.3842972          5.068         <.0001     1
+                               --------------------------------------------------------------------------------
+                    Constant:  C0             -9.57021       1.186005         -8.069         <.0001
+                               INC_SURG      0.8435543      0.3395063          2.485         0.0130     1
+                    -------------------------------------------------------------------------------------------
+
+
+                                   Summary of Variables not in the Model (Based on Q Statistics)
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     AGE         -0.00266156    0.001454048         -1.830         0.0672     1
+                               MAL           0.6664974      0.2961321          2.251         0.0244     1
+                               INC_SURG      0.1103234      0.1134718          0.972         0.3309     1
+                               ORIFICE        1.463781      0.6536699          2.239         0.0251     1
+                               --------------------------------------------------------------------------------
+                    Constant:  AGE         0.001768877    0.003250787          0.544         0.5863     1
+                               MAL           0.1087854       1.126918          0.097         0.9231     1
+                               ORIFICE               0              .              .              .  **
+                               COM_IV         -1.46346      0.8094176         -1.808         0.0706     1
+                    -------------------------------------------------------------------------------------------
+    **   Variable ill conditioned indicating possible singularity.
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026   6
+
+
+
+*----------------------------------------------------------*
+|Step   3. MAL      added to EARLY PHASE                   |
+|                   with Z =       2.251 and P =     0.0244|
+*----------------------------------------------------------*
+
+
+
+        Optimization terminated after    3 iterations and     5 function evaluations
+        Normal exit: Convergence attained
+        Log base 10 of condition code =     2.265892
+        Number of events conserved =     67.99985
+
+        Log likelihood =     -187.791
+
+        -2(Difference in log likelihood) =     4.735061
+                                 P(diff) =     0.0296
+
+                                                  Summary of Variables in the Model
+                                                  ---------------------------------
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     E0             -2.87585      0.3594908         -8.000         <.0001
+                               MAL           0.6075974      0.2743126          2.215         0.0268     1
+                               COM_IV         1.777232      0.3935636          4.516         <.0001     1
+                               --------------------------------------------------------------------------------
+                    Constant:  C0             -9.58887       1.218685         -7.868         <.0001
+                               INC_SURG      0.8507799      0.3465851          2.455         0.0141     1
+                    -------------------------------------------------------------------------------------------
+
+
+                                   Summary of Variables not in the Model (Based on Q Statistics)
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     AGE         -0.00291567    0.001471829         -1.981         0.0476     1
+                               INC_SURG      0.1041942      0.1169825          0.891         0.3731     1
+                               ORIFICE         1.56752      0.6678809          2.347         0.0189     1
+                               --------------------------------------------------------------------------------
+                    Constant:  AGE         0.001899159    0.003318366          0.572         0.5671     1
+                               MAL          -0.0819211       1.092648         -0.075         0.9402     1
+                               ORIFICE               0              .              .              .  **
+                               COM_IV         -1.45643      0.8136693         -1.790         0.0735     1
+                    -------------------------------------------------------------------------------------------
+    **   Variable ill conditioned indicating possible singularity.
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026   7
+
+
+
+*----------------------------------------------------------*
+|Step   4. ORIFICE  added to EARLY PHASE                   |
+|                   with Z =       2.347 and P =     0.0189|
+*----------------------------------------------------------*
+
+
+
+        Optimization terminated after    5 iterations and     7 function evaluations
+        Normal exit: Convergence attained
+        Log base 10 of condition code =     2.268976
+        Number of events conserved =           68
+
+        Log likelihood =     -185.853
+
+        -2(Difference in log likelihood) =     3.877149
+                                 P(diff) =     0.0489
+
+                                                  Summary of Variables in the Model
+                                                  ---------------------------------
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     E0             -2.89516      0.3554871         -8.144         <.0001
+                               MAL           0.6269053      0.2747836          2.281         0.0225     1
+                               ORIFICE       0.9645593      0.4304636          2.241         0.0250     1
+                               COM_IV         1.713003      0.3913674          4.377         <.0001     1
+                               --------------------------------------------------------------------------------
+                    Constant:  C0             -9.55835        1.22722         -7.789         <.0001
+                               INC_SURG      0.8341418      0.3518787          2.371         0.0178     1
+                    -------------------------------------------------------------------------------------------
+
+
+                                   Summary of Variables not in the Model (Based on Q Statistics)
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     AGE         -0.00272125    0.001505903         -1.807         0.0708     1
+                               INC_SURG      0.1145323      0.1161614          0.986         0.3241     1
+                               --------------------------------------------------------------------------------
+                    Constant:  AGE         0.002083579    0.003393768          0.614         0.5393     1
+                               MAL          -0.0404899       1.111108         -0.036         0.9709     1
+                               ORIFICE               0              .              .              .  **
+                               COM_IV         -1.45843      0.8395434         -1.737         0.0824     1
+                    -------------------------------------------------------------------------------------------
+    **   Variable ill conditioned indicating possible singularity.
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026   8
+
+
+
+*----------------------------------------------------------*
+|Step   5. AGE      added to EARLY PHASE                   |
+|                   with Z =      -1.807 and P =     0.0708|
+*----------------------------------------------------------*
+
+
+
+        Optimization terminated after    4 iterations and     6 function evaluations
+        Normal exit: Convergence attained
+        Log base 10 of condition code =     5.583477
+        Number of events conserved =     67.99994
+
+        Log likelihood =     -183.424
+
+        -2(Difference in log likelihood) =     4.857474
+                                 P(diff) =     0.0275
+
+                                                  Summary of Variables in the Model
+                                                  ---------------------------------
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     E0             -2.27472      0.4353086         -5.226         <.0001
+                               AGE         -0.00501869    0.002639276         -1.902         0.0572     1
+                               MAL           0.6749729      0.2737883          2.465         0.0137     1
+                               ORIFICE       0.8032314      0.4332748          1.854         0.0638     1
+                               COM_IV         1.288664      0.4225575          3.050         0.0023     1
+                               --------------------------------------------------------------------------------
+                    Constant:  C0             -9.67957       1.274994         -7.592         <.0001
+                               INC_SURG      0.8819362      0.3600307          2.450         0.0143     1
+                    -------------------------------------------------------------------------------------------
+
+
+                                   Summary of Variables not in the Model (Based on Q Statistics)
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     INC_SURG     0.09900016      0.1167973          0.848         0.3966     1
+                               --------------------------------------------------------------------------------
+                    Constant:  AGE         0.004057308    0.002708083          1.498         0.1341     1
+                               MAL           -0.093047       1.135592         -0.082         0.9347     1
+                               ORIFICE               0              .              .              .  **
+                               COM_IV         -1.42821      0.8077734         -1.768         0.0770     1
+                    -------------------------------------------------------------------------------------------
+    **   Variable ill conditioned indicating possible singularity.
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026   9
+
+
+
+*----------------------------------------------------------*
+|Step   6. COM_IV   added to CONSTANT PHASE                |
+|                   with Z =      -1.768 and P =     0.0770|
+*----------------------------------------------------------*
+
+
+
+        Optimization terminated after   10 iterations and    12 function evaluations
+        Normal exit: Convergence attained
+        Log base 10 of condition code =     9.029675
+        Number of events conserved =     67.99985
+
+        Log likelihood =      -180.84
+
+        -2(Difference in log likelihood) =     5.167386
+                                 P(diff) =     0.0230
+
+                                                  Summary of Variables in the Model
+                                                  ---------------------------------
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     E0             -2.31375      0.4349707         -5.319         <.0001
+                               AGE         -0.00492261    0.002493441         -1.974         0.0484     1
+                               MAL           0.6651145      0.2700865          2.463         0.0138     1
+                               ORIFICE       0.7677086      0.4351082          1.764         0.0777     1
+                               COM_IV         1.352837      0.4250864          3.182         0.0015     1
+                               --------------------------------------------------------------------------------
+                    Constant:  C0             -9.65575       1.177093         -8.203         <.0001
+                               INC_SURG      0.9768407      0.3256248          3.000         0.0027     1
+                               COM_IV         -10.2981       98.51707         -0.105         0.9167     1
+                    -------------------------------------------------------------------------------------------
+
+
+                                   Summary of Variables not in the Model (Based on Q Statistics)
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     INC_SURG     0.09378379      0.1145135          0.819         0.4128     1
+                               --------------------------------------------------------------------------------
+                    Constant:  AGE         0.001704504    0.002311851          0.737         0.4609     1
+                               MAL            2.374964       2.086087          1.138         0.2549     1
+                               ORIFICE               0              .              .              .  **
+                    -------------------------------------------------------------------------------------------
+    **   Variable ill conditioned indicating possible singularity.
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026  10
+
+
+
+*----------------------------------------------------------*
+|Step   7. COM_IV   deleted from CONSTANT PHASE            |
+|                   with Z =      -0.105 and P =     0.9167|
+*----------------------------------------------------------*
+
+
+
+        Optimization terminated after    3 iterations and     5 function evaluations
+        Normal exit: Convergence attained
+        Log base 10 of condition code =     5.581844
+        Number of events conserved =     67.99998
+
+        Log likelihood =     -183.424
+
+        -2(Difference in log likelihood) =     5.167386
+                                 P(diff) =     0.0230
+
+                                                  Summary of Variables in the Model
+                                                  ---------------------------------
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     E0             -2.27472       0.435309         -5.226         <.0001
+                               AGE         -0.00501874    0.002639285         -1.902         0.0572     1
+                               MAL           0.6749731      0.2737885          2.465         0.0137     1
+                               ORIFICE       0.8032308      0.4332748          1.854         0.0638     1
+                               COM_IV         1.288663       0.422558          3.050         0.0023     1
+                               --------------------------------------------------------------------------------
+                    Constant:  C0             -9.67957       1.274994         -7.592         <.0001
+                               INC_SURG      0.8819383      0.3600304          2.450         0.0143     1
+                    -------------------------------------------------------------------------------------------
+
+
+                                   Summary of Variables not in the Model (Based on Q Statistics)
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     INC_SURG      0.0990018      0.1167973          0.848         0.3966     1
+                               --------------------------------------------------------------------------------
+                    Constant:  AGE         0.004057266    0.002708068          1.498         0.1341     1
+                               MAL          -0.0930482       1.135592         -0.082         0.9347     1
+                               ORIFICE               0              .              .              .  **
+                               COM_IV         -1.42821       0.807772         -1.768         0.0770     0
+                    -------------------------------------------------------------------------------------------
+    **   Variable ill conditioned indicating possible singularity.
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026  11
+
+
+
+*----------------------------------------------------------*
+|Step   8. AGE      added to CONSTANT PHASE                |
+|                   with Z =       1.498 and P =     0.1341|
+*----------------------------------------------------------*
+
+
+
+        Optimization terminated after    4 iterations and     7 function evaluations
+        Normal exit: Convergence attained
+        Log base 10 of condition code =     6.330495
+        Number of events conserved =           68
+
+        Log likelihood =     -182.659
+
+        -2(Difference in log likelihood) =     1.529626
+                                 P(diff) =     0.2162
+
+                                                  Summary of Variables in the Model
+                                                  ---------------------------------
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     E0             -2.20788      0.4338312         -5.089         <.0001
+                               AGE         -0.00544498    0.002572203         -2.117         0.0343     1
+                               MAL           0.6786704      0.2728413          2.487         0.0129     1
+                               ORIFICE       0.7977925      0.4298336          1.856         0.0634     1
+                               COM_IV         1.240093      0.4225134          2.935         0.0033     1
+                               --------------------------------------------------------------------------------
+                    Constant:  C0             -10.6589       1.726197         -6.175         <.0001
+                               AGE         0.002452857     0.00180865          1.356         0.1750     1
+                               INC_SURG       1.037528      0.4230122          2.453         0.0142     1
+                    -------------------------------------------------------------------------------------------
+
+
+                                   Summary of Variables not in the Model (Based on Q Statistics)
+
+                                                                                                      Moves
+                    Phase      Variable    Estimate       Std error             Z         Prob>|Z|    Remaining
+                    -------------------------------------------------------------------------------------------
+                    Early:     INC_SURG      0.0959547      0.1170359          0.820         0.4123     1
+                               --------------------------------------------------------------------------------
+                    Constant:  MAL           0.1086371       1.492276          0.073         0.9420     1
+                               ORIFICE               0              .              .              .  **
+                               COM_IV         -1.59751      0.9834124         -1.624         0.1043     0
+                    -------------------------------------------------------------------------------------------
+    **   Variable ill conditioned indicating possible singularity.
+
+
+    No other variables met the          0.3 significance level for entry into the model.
+                                                           The SAS System                         17:04 Wednesday, June 10, 2026  12
+
+
+
+    Final Results:
+    ==============
+
+
+                                                  Parameter Estimate Summary
+
+                         Phase      Parameter    Estimate       Std error             Z          Prob>|Z|
+                         -------------------------------------------------------------------------------------
+                         Early:     E0              -2.20788      0.4338312         -5.089          <.0001
+                                    AGE          -0.00544498    0.002572203         -2.117          0.0343
+                                    MAL            0.6786704      0.2728413          2.487          0.0129
+                                    ORIFICE        0.7977925      0.4298336          1.856          0.0634
+                                    COM_IV          1.240093      0.4225134          2.935          0.0033
+                                    --------------------------------------------------------------------------
+                         Constant:  C0              -10.6589       1.726197         -6.175          <.0001
+                                    AGE          0.002452857     0.00180865          1.356          0.1750
+                                    INC_SURG        1.037528      0.4230122          2.453          0.0142
+                         -------------------------------------------------------------------------------------
+
+
+                                                  Estimates for Model Parameters
+
+                                          Phase       Parameter     Fixed?     Estimate
+                                          ------------------------------------------------
+                                          Early:      DELTA         Yes                  0
+                                                      THALF         Yes          0.1512095
+                                                       (RHO                      0.1512095)
+                                                      NU            Yes           1.438652
+                                                      M             Yes                  1
+                                                      MUE                        0.1099338
+                                                      ------------------------------------
+                                          Constant:   MUC                      2.34905E-05
+                                          ------------------------------------------------

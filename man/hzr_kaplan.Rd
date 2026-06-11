@@ -81,6 +81,14 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
 }
 
 }
+\references{
+Kaplan EL, Meier P (1958). Nonparametric estimation from incomplete
+observations. \emph{J Am Stat Assoc} 53(282):457--481.
+\doi{10.1080/01621459.1958.10501452}
+
+Greenwood M (1926). The natural duration of cancer. \emph{Reports on Public
+Health and Medical Subjects} 33:1--26.
+}
 \seealso{
 \code{\link[=hzr_gof]{hzr_gof()}} for parametric vs. nonparametric comparison.
 }

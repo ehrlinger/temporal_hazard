@@ -62,6 +62,27 @@
 #' limit); `nu = 0` with m >= 0 has no usable limiting form and raises an
 #' error.
 #'
+#' @section Mathematical form:
+#'
+#' The construction fixes a rate \eqn{\rho} so that \eqn{G(t_{1/2}) = 0.5}
+#' exactly.  For the base case (\eqn{m > 0,\ \nu > 0}):
+#'
+#' \deqn{\rho = \nu \, t_{1/2} \left(\frac{2^m - 1}{m}\right)^{\!\nu},
+#'       \qquad b(t) = \frac{\nu t}{\rho}}
+#'
+#' The CDF and density are then
+#'
+#' \deqn{G(t) = \bigl(1 + m \, b(t)^{-1/\nu}\bigr)^{-1/m}, \qquad
+#'       g(t) = \bigl(1 + m \, b(t)^{-1/\nu}\bigr)^{-1/m - 1}
+#'              \, b(t)^{-1/\nu - 1} / \rho}
+#'
+#' and the hazard is \eqn{h(t) = g(t) / (1 - G(t))}.  The remaining five cases
+#' in the table above arise as limits (\eqn{m \to 0}, \eqn{\nu \to 0}) or sign
+#' reflections of this base form; the implementation dispatches to the
+#' appropriate branch after inspecting the signs of `nu` and `m`.  See
+#' `vignette("mf-mathematical-foundations")` for the full derivation of every
+#' case.
+#'
 #' @param time Numeric vector of times (must be > 0).
 #' @param t_half Half-life: time at which \eqn{G(t_{1/2}) = 0.5}.
 #'   Must be > 0.

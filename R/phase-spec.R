@@ -39,22 +39,70 @@
 #' cumulative hazard model.  Pass a list of these to the `phases` argument of
 #' [hazard()] when `dist = "multiphase"`.
 #'
+#' @section Role in the multiphase model:
+#'
+#' Each phase is one term \eqn{j} in the additive cumulative hazard
+#'
+#' \deqn{H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \,
+#'       \Phi_j(t)}
+#'
+#' where \eqn{\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j^\top
+#' \boldsymbol{\beta}_j)} is the phase-specific log-linear scale and
+#' \eqn{\Phi_j(t)} is the temporal shape selected by `type` (below).  The
+#' `t_half`/`nu`/`m` (or g3 `tau`/`gamma`/`alpha`/`eta`) arguments set the
+#' starting values for that shape; `formula` attaches the covariates
+#' \eqn{\mathbf{x}_j} that enter \eqn{\mu_j}.
+#'
 #' @section Phase types:
 #'
+#' The `type` argument chooses the temporal shape \eqn{\Phi_j(t)} for the phase.
+#' Each captures a qualitatively different pattern of risk over time; a typical
+#' clinical model combines an *early*, a *constant*, and a *late* phase so that
+#' the total hazard can fall, level off, and rise again.
+#'
 #' \describe{
-#'   \item{`"cdf"`}{Early risk that resolves over time.
-#'     \eqn{\Phi(t) = G(t)}, bounded \eqn{[0, 1]}.
-#'     SAS equivalent: Early / G1 phase.}
-#'   \item{`"hazard"`}{Late or aging risk that accumulates.
-#'     \eqn{\Phi(t) = -\log(1 - G(t))}, monotone increasing.
-#'     SAS equivalent: Late / G3 phase.}
-#'   \item{`"constant"`}{Flat background hazard rate.
-#'     \eqn{\Phi(t) = t}. No shape parameters are estimated.
-#'     SAS equivalent: Constant / G2 phase.}
+#'   \item{`"cdf"` --- early, resolving risk}{Named for the **c**umulative
+#'     **d**istribution **f**unction: the phase contributes \eqn{\Phi(t) = G(t)},
+#'     the bounded CDF of the temporal decomposition (\eqn{0} at \eqn{t = 0},
+#'     rising to a ceiling of \eqn{1}).  Because it saturates, the *hazard* it
+#'     adds, \eqn{\mu\,g(t)}, peaks early and then decays toward zero --- the
+#'     signature of a one-time insult that patients either succumb to or survive
+#'     past, e.g. peri-operative mortality.  Shape set by `t_half`, `nu`, `m`.
+#'     SAS/C equivalent: the Early (G1) phase.}
+#'   \item{`"hazard"` --- accumulating aging risk (G1 family)}{Named because the
+#'     phase contributes a **cumulative hazard** built from the same G1 family:
+#'     \eqn{\Phi(t) = -\log(1 - G(t))}, which is unbounded and monotone
+#'     increasing.  Its hazard \eqn{\mu\,h(t)} rises without leveling off, so it
+#'     models risk that grows as subjects age.  This is an alternative late-risk
+#'     form derived from G1; for the original SAS/C late phase prefer `"g3"`.
+#'     Shape set by `t_half`, `nu`, `m`.}
+#'   \item{`"g3"` --- late, rising risk (original C/SAS late phase)}{Named for
+#'     the **G3** (third) decomposition family used by the original HAZARD
+#'     program for the late phase.  It contributes \eqn{\Phi(t) = G_3(t)} from
+#'     [hzr_decompos_g3()], an unbounded intensity with its own four-parameter
+#'     shape (`tau`, `gamma`, `alpha`, `eta`) that is more flexible than the
+#'     G1-derived `"hazard"` form for capturing accelerating late mortality
+#'     (e.g. structural valve deterioration years after surgery).  Use this when
+#'     reproducing classic three-phase HAZARD models.  SAS/C equivalent: the
+#'     Late (G3) phase.}
+#'   \item{`"constant"` --- flat background rate}{A time-invariant hazard:
+#'     \eqn{\Phi(t) = t}, so the added hazard \eqn{\mu} is constant (the
+#'     exponential model).  It represents the steady, ongoing risk present at all
+#'     follow-up times, independent of how long ago the time origin was.  Takes
+#'     no shape parameters --- only its scale \eqn{\mu} (and any covariates) is
+#'     estimated.  SAS/C equivalent: the Constant (G2) phase.}
 #' }
 #'
-#' @param type Character; phase type: `"cdf"`, `"hazard"`, `"g3"`, or
-#'   `"constant"`.
+#' The shape derivative \eqn{\varphi_j = d\Phi_j/dt} (which forms the
+#' instantaneous hazard contribution \eqn{\mu_j\,\varphi_j(t)}) is \eqn{g(t)} for
+#' `"cdf"`, \eqn{h(t)} for `"hazard"`, \eqn{g_3(t)} for `"g3"`, and \eqn{1} for
+#' `"constant"`.
+#'
+#' @param type Character; the phase's temporal shape --- one of `"cdf"`
+#'   (early resolving risk), `"hazard"` (accumulating G1 aging risk), `"g3"`
+#'   (late rising risk, the original C/SAS late phase), or `"constant"` (flat
+#'   background rate).  See the **Phase types** section for what each means and
+#'   when to use it.
 #' @param t_half Positive scalar; initial half-life (time at which
 #'   \eqn{G(t_{1/2}) = 0.5}).  Used for `"cdf"` and `"hazard"` phases.
 #'   SAS early: `THALF`/`RHO`.

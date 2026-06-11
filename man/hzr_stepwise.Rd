@@ -45,11 +45,15 @@ fits, pass a named list of one-sided formulas keyed by phase.}
 \item{data}{Data frame the base fit was built on.  Required for
 refits.}
 
-\item{direction}{One of \code{"both"} (default), \code{"forward"},
-\code{"backward"}.}
+\item{direction}{Search strategy --- one of \code{"both"} (default),
+\code{"forward"}, or \code{"backward"}.  Controls whether variables may only
+enter, only leave, or both.  See the \strong{Selection direction and
+criterion} section.}
 
-\item{criterion}{One of \code{"wald"} (default) or \code{"aic"}.  SAS-style
-p-value thresholds apply to Wald; AIC uses \code{DeltaAIC < 0} uniformly.}
+\item{criterion}{Entry / retention rule --- one of \code{"wald"} (default)
+or \code{"aic"}.  \code{"wald"} applies SAS-style p-value thresholds
+(\code{slentry} / \code{slstay}); \code{"aic"} adds or drops whenever it lowers the
+AIC.  See the \strong{Selection direction and criterion} section.}
 
 \item{slentry}{Entry p-value threshold for the Wald criterion.
 Default \code{0.30} matches SAS \code{SLENTRY}.}
@@ -130,6 +134,50 @@ computable, regardless of the active criterion.}
 diagnostics of the model \emph{after} this step.}
 }
 }
+\section{Selection direction and criterion}{
+
+
+Two arguments shape the search.  \code{direction} decides which moves are
+allowed at each step; \code{criterion} decides how a candidate move is scored
+and whether it is accepted.
+
+\describe{
+\item{\code{direction = "forward"}}{Start from the base model and only
+\emph{add} variables --- the best eligible candidate enters each step
+until none clears the entry rule.  Variables never leave once in.}
+\item{\code{direction = "backward"}}{Start from the full candidate model and
+only \emph{drop} variables --- the weakest term leaves each step until all
+survivors clear the retention rule.}
+\item{\code{direction = "both"} (default)}{Two-way stepwise: after each
+entry, already-selected variables are re-tested and may be dropped.
+This is the SAS \code{SELECTION = STEPWISE} strategy.  \code{max_move} caps how
+often a single variable may oscillate before it is frozen.}
+}
+
+\describe{
+\item{\code{criterion = "wald"} (default)}{Accept moves on SAS-style
+significance thresholds, using the Wald \eqn{\chi^2} of the affected
+coefficient(s): a candidate enters if its p-value is below \code{slentry}, and
+a term is dropped if its p-value rises above \code{slstay}.  Entry candidates
+are scored from a refit that adds the candidate (so its new coefficient
+can be tested); drop candidates are scored from the \emph{current} model's
+Wald p-values without a per-candidate refit, and a single refit is run
+only after a drop is chosen.  Note this differs algorithmically from
+C/SAS HAZARD, which selects on a \emph{score} (Q) statistic evaluated without
+refitting; the two can take different step paths even when they converge
+to a similar final model.}
+\item{\code{criterion = "aic"}}{Accept any move with
+\eqn{\Delta\mathrm{AIC} < 0} (a strictly better penalised fit), ignoring
+\code{slentry} / \code{slstay}.  Entry candidates use the actual
+\eqn{\Delta\mathrm{AIC}} from the candidate refit; drop candidates use a
+Wald-to-likelihood-ratio approximation,
+\eqn{\Delta\mathrm{AIC} \approx W - 2\,\mathrm{df}}, computed from the
+current model without a per-candidate refit (the chosen drop is refit
+afterwards).  Use this for a non-significance-based,
+information-criterion search.}
+}
+}
+
 \examples{
 data(avc)
 avc <- na.omit(avc)
@@ -142,4 +190,8 @@ sw <- hzr_stepwise(base, scope = ~ age + nyha,
 print(sw)
 }
 
+}
+\seealso{
+\code{\link[=hazard]{hazard()}} for the base model and \code{\link[=hzr_phase]{hzr_phase()}} for multiphase
+scopes; \code{\link[=stepwise_trace]{stepwise_trace()}} to retrieve the captured selection log.
 }

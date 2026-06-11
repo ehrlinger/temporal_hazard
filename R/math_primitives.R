@@ -13,8 +13,21 @@
 
 #' Numerically stable log(1 + exp(x))
 #'
+#' Computes the "softplus" function
+#' \deqn{\mathrm{log1pexp}(x) = \log\!\bigl(1 + e^{x}\bigr)}
+#' without overflow.  A naive `log(1 + exp(x))` overflows to `Inf` for
+#' \eqn{x \gtrsim 710} even though the true value is \eqn{\approx x}.  The
+#' identity \eqn{\log(1 + e^{x}) = x + \log(1 + e^{-x})} for \eqn{x > 0} keeps
+#' every intermediate finite.
+#'
 #' @param x Numeric vector.
-#' @return Numeric vector with element-wise `log(1 + exp(x))`.
+#' @return Numeric vector with element-wise \eqn{\log(1 + e^{x})}.
+#' @references
+#' \enc{Mächler}{Machler} M (2012). *Accurately Computing \eqn{\log(1 - e^{-|a|})}.* R package
+#' Rmpfr vignette.
+#' \url{https://CRAN.R-project.org/package=Rmpfr/vignettes/log1mexp-note.pdf}
+#' @seealso [hzr_log1mexp()] for the complementary \eqn{\log(1 - e^{-x})},
+#'   [hzr_clamp_prob()] for boundary-safe probabilities.
 #' @examples
 #' hzr_log1pexp(c(-50, 0, 50))
 #' @export
@@ -24,8 +37,23 @@ hzr_log1pexp <- function(x) {
 
 #' Numerically stable log(1 - exp(-x)) for x > 0
 #'
+#' Computes
+#' \deqn{\mathrm{log1mexp}(x) = \log\!\bigl(1 - e^{-x}\bigr), \qquad x > 0}
+#' accurately across the full range.  Following \enc{Mächler}{Machler} (2012), the evaluation
+#' switches at \eqn{x = \log 2}: for small \eqn{x} it uses
+#' \eqn{\log(-\mathrm{expm1}(-x))} (avoiding cancellation as \eqn{x \to 0}), and
+#' for larger \eqn{x} it uses \eqn{\mathrm{log1p}(-e^{-x})} (avoiding loss of
+#' precision as \eqn{x \to \infty}).  Non-positive or non-finite inputs return
+#' `NA`.
+#'
 #' @param x Numeric vector with positive values.
-#' @return Numeric vector with element-wise `log(1 - exp(-x))`.
+#' @return Numeric vector with element-wise \eqn{\log(1 - e^{-x})}.
+#' @references
+#' \enc{Mächler}{Machler} M (2012). *Accurately Computing \eqn{\log(1 - e^{-|a|})}.* R package
+#' Rmpfr vignette.
+#' \url{https://CRAN.R-project.org/package=Rmpfr/vignettes/log1mexp-note.pdf}
+#' @seealso [hzr_log1pexp()] for the softplus \eqn{\log(1 + e^{x})},
+#'   [hzr_clamp_prob()] for boundary-safe probabilities.
 #' @examples
 #' hzr_log1mexp(c(0.01, 0.5, 5))
 #' @export
@@ -44,9 +72,16 @@ hzr_log1mexp <- function(x) {
 
 #' Clamp probabilities away from 0 and 1
 #'
+#' Bounds a probability vector to \eqn{[\epsilon,\, 1 - \epsilon]} so that
+#' downstream \eqn{\log p} or \eqn{\log(1 - p)} evaluations stay finite.  Used
+#' throughout the likelihood and prediction code to guard survival and CDF
+#' values against exact 0 or 1.
+#'
 #' @param p Numeric vector of probabilities.
-#' @param eps Small positive tolerance.
+#' @param eps Small positive tolerance in \eqn{(0, 0.5)}; default `1e-12`.
 #' @return Numeric vector bounded to `[eps, 1 - eps]`.
+#' @seealso [hzr_log1pexp()] and [hzr_log1mexp()] for the companion
+#'   stable-logarithm primitives.
 #' @examples
 #' hzr_clamp_prob(c(0, 0.5, 1))
 #' @export
