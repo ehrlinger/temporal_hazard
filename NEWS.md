@@ -15,6 +15,15 @@
   unfitted branch and the assertions compared `NULL`/`NA` vacuously; they now
   supply starts and genuinely compare the weighted MLE to the duplicated-row
   MLE.
+* Added interval-censoring coverage under the multiphase model (roadmap 7c).
+  The multiphase likelihood's interval-/left-censored branch had a working code
+  path but no isolated test. New R-only self-consistency invariants in
+  `test-interval-censoring-multiphase.R` verify the interval contribution equals
+  `log(S(lower) - S(upper))`, the left-censored term equals
+  `log(1 - exp(-H(u)))`, right-censoring stays `-(H(stop) - H(start))`
+  (including left truncation), invalid bounds (`lower > upper`) yield `-Inf`,
+  integer weights match row duplication on interval rows, and an
+  interval-censored multiphase fit converges.
 * Added a SAS fractional-weight parity capture scaffold under
   `inst/extdata/weights-fixtures/` (roadmap 7a / FIXTURE-GAP-LIST B5): a
   `PROC HAZARD ... WEIGHT IPW` template, a deterministic non-integer weight
@@ -39,6 +48,14 @@
 * Added methodological references to the nonparametric diagnostics
   (Kaplan-Meier/Greenwood, Nelson-Aalen, Aalen-Johansen) and filled in missing
   cross-references across the exported help pages.
+* Explained the remaining enumerated options in the style of the `hzr_phase()`
+  phase-type help. `?hazard` gains a **Baseline distributions** section
+  describing each `dist` value (`"weibull"`, `"exponential"`, `"loglogistic"`,
+  `"lognormal"`, `"multiphase"`) by its hazard shape and when to use it;
+  `?hzr_stepwise` gains a **Selection direction and criterion** section
+  explaining each `direction` (`"forward"`/`"backward"`/`"both"`) and
+  `criterion` (`"wald"`/`"aic"`), including how Wald selection differs from
+  C/SAS HAZARD's score-statistic path.
 
 # TemporalHazard 1.1.0
 
