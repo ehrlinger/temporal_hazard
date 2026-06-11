@@ -26,5 +26,4 @@
 ^CRAN-SUBMISSION$
 ^CONTRIBUTORS\.md$
 ^RELEASE\.md$
-^build$
 ^inst/extdata/weights-fixtures/payload/capture/\.gitkeep$
