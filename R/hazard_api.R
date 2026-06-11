@@ -62,6 +62,42 @@ NULL
 #' and transformed back for reporting; see
 #' `vignette("mf-mathematical-foundations")`.
 #'
+#' @section Baseline distributions:
+#'
+#' The `dist` argument selects the parametric form of the baseline hazard.  The
+#' four single-distribution families (\eqn{J = 1}) differ in the *shape* the
+#' hazard traces over follow-up; choose by what the risk is expected to do over
+#' time.  `"multiphase"` is the general additive model that lets several such
+#' shapes coexist.
+#'
+#' \describe{
+#'   \item{`"weibull"` --- monotone rising or falling hazard (default)}{The
+#'     workhorse parametric model: \eqn{H(t \mid \mathbf{x}) = (\mu t)^\nu
+#'     \exp(\eta)}, with hazard \eqn{h \propto t^{\nu - 1}}.  The single shape
+#'     \eqn{\nu} makes risk increase over time (\eqn{\nu > 1}), decrease
+#'     (\eqn{\nu < 1}), or stay flat (\eqn{\nu = 1}).  Use it as the default when
+#'     a single monotone trend describes the hazard.}
+#'   \item{`"exponential"` --- constant hazard}{The memoryless special case
+#'     \eqn{\nu = 1}: a time-invariant baseline rate, \eqn{H(t \mid \mathbf{x}) =
+#'     \mu t \exp(\eta)}.  Use it when the event rate does not change with
+#'     follow-up time (the constant background risk also appears as the
+#'     `"constant"` phase in a multiphase model).}
+#'   \item{`"loglogistic"` --- unimodal (rise-then-fall) hazard}{A log-logistic
+#'     accelerated-failure-time form whose hazard rises to a single peak and then
+#'     declines when the shape exceeds 1 (and is monotone decreasing otherwise),
+#'     with heavier tails than the log-normal.  Use it when risk climbs to an
+#'     early peak and then eases off.}
+#'   \item{`"lognormal"` --- early-peaking, resolving hazard}{An
+#'     accelerated-failure-time form in which \eqn{\log} time is Gaussian; the
+#'     hazard rises to an early peak and then decays toward zero.  Use it for
+#'     risk that is concentrated early and resolves over time.}
+#'   \item{`"multiphase"` --- additive N-phase hazard}{Sums several phase shapes
+#'     into one model, \eqn{H = \sum_j \mu_j(\mathbf{x}) \Phi_j(t)}, so the
+#'     overall hazard can fall, level off, and rise again within one fit.
+#'     Requires `phases`; see [hzr_phase()] for the available phase shapes.  This
+#'     is the form that reproduces the classic C/SAS HAZARD models.}
+#' }
+#'
 #' @param time Numeric follow-up time vector.
 #' @param status Numeric or logical event indicator vector.
 #' @param time_lower Optional numeric lower bound vector for censoring intervals.
@@ -78,8 +114,12 @@ NULL
 #'   `x` is expanded into one column per time window so each window gets its own
 #'   coefficient.
 #' @param theta Optional numeric coefficient vector (starting values for optimization).
-#' @param dist Character baseline distribution label (default "weibull").
-#'   Use `"multiphase"` for N-phase additive hazard models (requires `phases`).
+#' @param dist Character baseline distribution label (default `"weibull"`).
+#'   One of `"weibull"`, `"exponential"`, `"loglogistic"`, `"lognormal"`, or
+#'   `"multiphase"`.  The single-distribution families differ in the *shape* the
+#'   hazard traces over time; `"multiphase"` builds an additive N-phase hazard
+#'   and requires `phases`.  See the **Baseline distributions** section for what
+#'   each means and when to use it.
 #' @param phases Optional named list of [hzr_phase()] objects specifying the
 #'   phases for a multiphase model (`dist = "multiphase"`).  See Examples.
 #' @param fit Logical; if TRUE, fit the model via maximum likelihood (default FALSE).
