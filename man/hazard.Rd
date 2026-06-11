@@ -133,9 +133,14 @@ survival are
 
 where \eqn{\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j^\top
 \boldsymbol{\beta}_j)} and the temporal shapes \eqn{\Phi_j}, \eqn{\varphi_j}
-are set by each phase's \code{type} (see \code{\link[=hzr_phase]{hzr_phase()}}).  Single-phase
-distributions (\code{"weibull"}, \code{"exponential"}, \code{"lognormal"},
-\code{"loglogistic"}) are the special case \eqn{J = 1}.  Parameters are estimated
+are set by each phase's \code{type} (see \code{\link[=hzr_phase]{hzr_phase()}}).  The
+proportional-hazards single-phase families (\code{"weibull"}, \code{"exponential"})
+are the special case \eqn{J = 1}, with covariates acting multiplicatively on
+one temporal shape.  The \code{"loglogistic"} (proportional-odds) and
+\code{"lognormal"} (accelerated-failure-time) families place covariates
+differently --- on the odds of failure and the log-time location,
+respectively --- so they are separate parameterizations, not special cases
+of this additive form.  Parameters are estimated
 on an unconstrained internal scale (e.g. \eqn{\log\mu}, \eqn{\log t_{1/2}})
 and transformed back for reporting; see
 \code{vignette("mf-mathematical-foundations")}.
@@ -145,7 +150,7 @@ and transformed back for reporting; see
 
 
 The \code{dist} argument selects the parametric form of the baseline hazard.  The
-four single-distribution families (\eqn{J = 1}) differ in the \emph{shape} the
+four single-distribution families differ in the \emph{shape} the
 hazard traces over follow-up; choose by what the risk is expected to do over
 time.  \code{"multiphase"} is the general additive model that lets several such
 shapes coexist.

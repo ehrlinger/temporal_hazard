@@ -55,9 +55,14 @@ NULL
 #'
 #' where \eqn{\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j^\top
 #' \boldsymbol{\beta}_j)} and the temporal shapes \eqn{\Phi_j}, \eqn{\varphi_j}
-#' are set by each phase's `type` (see [hzr_phase()]).  Single-phase
-#' distributions (`"weibull"`, `"exponential"`, `"lognormal"`,
-#' `"loglogistic"`) are the special case \eqn{J = 1}.  Parameters are estimated
+#' are set by each phase's `type` (see [hzr_phase()]).  The
+#' proportional-hazards single-phase families (`"weibull"`, `"exponential"`)
+#' are the special case \eqn{J = 1}, with covariates acting multiplicatively on
+#' one temporal shape.  The `"loglogistic"` (proportional-odds) and
+#' `"lognormal"` (accelerated-failure-time) families place covariates
+#' differently --- on the odds of failure and the log-time location,
+#' respectively --- so they are separate parameterizations, not special cases
+#' of this additive form.  Parameters are estimated
 #' on an unconstrained internal scale (e.g. \eqn{\log\mu}, \eqn{\log t_{1/2}})
 #' and transformed back for reporting; see
 #' `vignette("mf-mathematical-foundations")`.
@@ -65,7 +70,7 @@ NULL
 #' @section Baseline distributions:
 #'
 #' The `dist` argument selects the parametric form of the baseline hazard.  The
-#' four single-distribution families (\eqn{J = 1}) differ in the *shape* the
+#' four single-distribution families differ in the *shape* the
 #' hazard traces over follow-up; choose by what the risk is expected to do over
 #' time.  `"multiphase"` is the general additive model that lets several such
 #' shapes coexist.

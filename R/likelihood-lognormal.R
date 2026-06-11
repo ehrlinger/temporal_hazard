@@ -18,11 +18,13 @@ NULL
 #
 # where mu in R (location), sigma > 0 (scale), eta_i = mu + x_i beta (AFT predictor).
 #
-# AFT vs PH DISTINCTION
-# ---------------------
-# Unlike Weibull / exponential / log-logistic (PH models), covariates in the
-# AFT parameterisation *shift the log-time distribution*.  The linear predictor
-# adds to mu (location), not to log-hazard.  Consequently:
+# AFT vs non-AFT DISTINCTION
+# --------------------------
+# Unlike the non-AFT families -- Weibull / exponential (proportional hazards)
+# and log-logistic (proportional odds), where covariates act on the hazard or
+# odds scale -- the AFT parameterisation has covariates *shift the log-time
+# distribution*.  The linear predictor adds to mu (location), not to log-hazard.
+# Consequently:
 #
 #   * predict() "linear_predictor" returns beta (same interface as PH)
 #   * predict() "survival" returns Phi(-z) directly (NOT exp(-H))
