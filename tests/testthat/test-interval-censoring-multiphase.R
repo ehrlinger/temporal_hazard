@@ -86,8 +86,11 @@ test_that("multiphase right-censored contribution is -(H(stop) - H(start))", {
 })
 
 test_that("multiphase interval bounds are validated (lower > upper -> -Inf)", {
-  expect_true(is.infinite(
-    mp_ic_ll(time = 1.0, status = 2L, time_lower = 2.0, time_upper = 1.0)))
+  # Specifically -Inf (an infeasible interval), not merely non-finite: a
+  # likelihood of +Inf would be a bug, so assert the exact value.
+  expect_equal(
+    mp_ic_ll(time = 1.0, status = 2L, time_lower = 2.0, time_upper = 1.0),
+    -Inf)
 })
 
 test_that("interval-censored multiphase: integer weights match row duplication", {
@@ -129,7 +132,9 @@ test_that("multiphase fit converges on an interval-censored sample", {
     fit = TRUE, control = list(n_starts = 1L, maxit = 500L, conserve = FALSE)
   ))
 
-  expect_true(is.logical(fit$fit$converged))
+  # The optimizer must actually converge on interval-censored multiphase data
+  # (not merely return a logical flag).
+  expect_true(isTRUE(fit$fit$converged))
   expect_true(is.finite(fit$fit$objective))
   # Two intercepts estimated (early + constant), shapes held fixed.
   expect_length(fit$fit$theta, 5L)
