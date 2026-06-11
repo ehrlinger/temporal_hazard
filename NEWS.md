@@ -15,6 +15,15 @@
   unfitted branch and the assertions compared `NULL`/`NA` vacuously; they now
   supply starts and genuinely compare the weighted MLE to the duplicated-row
   MLE.
+* Added a SAS fractional-weight parity capture scaffold under
+  `inst/extdata/weights-fixtures/` (roadmap 7a / FIXTURE-GAP-LIST B5): a
+  `PROC HAZARD ... WEIGHT IPW` template, a deterministic non-integer weight
+  dataset, a `.lst` parser, and `test-weights-sas-parity.R`. The parity test
+  re-fits the SAS specification in R and compares covariate estimates and
+  log-likelihood; it skips when the capture fixture is absent (as it is by
+  default), so CI and installation are unaffected until a SAS run is dropped
+  in. R-side fractional-weight correctness is already proven by the invariants
+  above; this is the drop-in external SAS confirmation.
 
 ## Documentation
 
