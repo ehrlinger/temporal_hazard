@@ -6,7 +6,13 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Mathematical Foundations of TemporalHazard • TemporalHazard</title>
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
@@ -96,12 +102,12 @@
 <p>Every temporal phase in TemporalHazard is built from a single parametric family, <code>decompos(t; t_half, nu, m)</code>, introduced by Blackstone, Naftel, and Turner (1986) that produces three linked quantities from just three parameters:</p>
 <ul>
 <li>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">G(t)</annotation></semantics></math> — cumulative distribution function (CDF), bounded <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">[0, 1]</annotation></semantics></math>
+<span class="math inline">\(G(t)\)</span> — cumulative distribution function (CDF), bounded <span class="math inline">\([0, 1]\)</span>
 </li>
 <li>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>d</mi><mi>G</mi><mi>/</mi><mi>d</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">g(t) = dG/dt</annotation></semantics></math> — probability density function</li>
+<span class="math inline">\(g(t) = dG/dt\)</span> — probability density function</li>
 <li>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>g</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>G</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">h(t) = g(t) / (1 - G(t))</annotation></semantics></math> — hazard function</li>
+<span class="math inline">\(h(t) = g(t) / (1 - G(t))\)</span> — hazard function</li>
 </ul>
 <p>The three parameters control the shape of the distribution:</p>
 <table class="table caption-top">
@@ -118,9 +124,9 @@
 <tbody>
 <tr class="odd">
 <td><code>t_half</code></td>
-<td>Half-life: time at which <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mrow><mn>1</mn><mi>/</mi><mn>2</mn></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">G(t_{1/2}) = 0.5</annotation></semantics></math>
+<td>Half-life: time at which <span class="math inline">\(G(t_{1/2}) = 0.5\)</span>
 </td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">&gt; 0</annotation></semantics></math></td>
+<td><span class="math inline">\(&gt; 0\)</span></td>
 </tr>
 <tr class="even">
 <td><code>nu</code></td>
@@ -140,13 +146,13 @@
 <p>The original C code used different parameter names per phase:</p>
 <ul>
 <li>
-<strong>Early phase (G1):</strong> <code>DELTA</code>, <code>RHO</code>/<code>THALF</code>, <code>NU</code>, <code>M</code> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math><code>t_half</code>, <code>nu</code>, <code>m</code>
+<strong>Early phase (G1):</strong> <code>DELTA</code>, <code>RHO</code>/<code>THALF</code>, <code>NU</code>, <code>M</code> <span class="math inline">\(\to\)</span> <code>t_half</code>, <code>nu</code>, <code>m</code>
 </li>
 <li>
-<strong>Late phase (G3):</strong> <code>TAU</code>, <code>GAMMA</code>, <code>ALPHA</code>, <code>ETA</code> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math><code>t_half</code>, <code>nu</code>, <code>m</code>
+<strong>Late phase (G3):</strong> <code>TAU</code>, <code>GAMMA</code>, <code>ALPHA</code>, <code>ETA</code> <span class="math inline">\(\to\)</span> <code>t_half</code>, <code>nu</code>, <code>m</code>
 </li>
 </ul>
-<p>Both collapse onto the same 3-parameter decomposition family. The C <code>DELTA</code> parameter controlled a time transformation <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mo stretchy="false" form="prefix">(</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>δ</mi><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mn>1</mn><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mi>δ</mi></mrow><annotation encoding="application/x-tex">B(t) = (\exp(\delta t) - 1)/\delta</annotation></semantics></math> that is absorbed into the shape.</p>
+<p>Both collapse onto the same 3-parameter decomposition family. The C <code>DELTA</code> parameter controlled a time transformation <span class="math inline">\(B(t) = (\exp(\delta t) - 1)/\delta\)</span> that is absorbed into the shape.</p>
 </blockquote>
 </div>
 <p>In R, <code><a href="../reference/hzr_decompos.html">hzr_decompos()</a></code> computes all three quantities:</p>
@@ -170,7 +176,7 @@
 </section><section class="level2" data-number="1.2"><h3 data-number="1.2" id="the-six-valid-cases">
 <span class="header-section-number">1.2</span> The six valid cases<a class="anchor" aria-label="anchor" href="#the-six-valid-cases"></a>
 </h3>
-<p>Different sign combinations of <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ν</mi><annotation encoding="application/x-tex">\nu</annotation></semantics></math> and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>m</mi><annotation encoding="application/x-tex">m</annotation></semantics></math> pick out different asymptotic behaviors of <code>decompos()</code>, and the package treats each as a separate case for numerical stability. The combination <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>&lt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">m &lt; 0</annotation></semantics></math><strong>and</strong> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ν</mi><mo>&lt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\nu &lt; 0</annotation></semantics></math> produces an integrand with no finite normalization and is rejected at the input-validation step. The remaining six are the catalog every phase in the package selects from:</p>
+<p>Different sign combinations of <span class="math inline">\(\nu\)</span> and <span class="math inline">\(m\)</span> pick out different asymptotic behaviors of <code>decompos()</code>, and the package treats each as a separate case for numerical stability. The combination <span class="math inline">\(m &lt; 0\)</span> <strong>and</strong> <span class="math inline">\(\nu &lt; 0\)</span> produces an integrand with no finite normalization and is rejected at the input-validation step. The remaining six are the catalog every phase in the package selects from:</p>
 <div class="cell">
 <div class="cell-output-display">
 <table class="table caption-top">
@@ -222,7 +228,7 @@
 </table>
 </div>
 </div>
-<p>The following plot shows the CDF <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">G(t)</annotation></semantics></math>, density <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">g(t)</annotation></semantics></math>, and hazard <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">h(t)</annotation></semantics></math> for each case, all with <code>t_half = 3</code>:</p>
+<p>The following plot shows the CDF <span class="math inline">\(G(t)\)</span>, density <span class="math inline">\(g(t)\)</span>, and hazard <span class="math inline">\(h(t)\)</span> for each case, all with <code>t_half = 3</code>:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="va">has_ggplot</span><span class="op">)</span> <span class="op">{</span></span>
@@ -278,35 +284,35 @@ Figure 1: G(t), g(t), and h(t) for all six valid decomposition cases
 </section><section class="level2" data-number="1.3"><h3 data-number="1.3" id="derivation-sketch">
 <span class="header-section-number">1.3</span> Derivation sketch<a class="anchor" aria-label="anchor" href="#derivation-sketch"></a>
 </h3>
-<p>The construction begins with a rate function <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ρ</mi><annotation encoding="application/x-tex">\rho</annotation></semantics></math> chosen so that <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mrow><mn>1</mn><mi>/</mi><mn>2</mn></mrow></msub><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">G(t_{1/2}) = 0.5</annotation></semantics></math> exactly. For Case 1 (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>&gt;</mo><mn>0</mn><mo>,</mo><mi>ν</mi><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">m &gt; 0, \nu &gt; 0</annotation></semantics></math>):</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ρ</mi><mo>=</mo><mi>ν</mi><mspace width="0.167em"></mspace><msub><mi>t</mi><mrow><mn>1</mn><mi>/</mi><mn>2</mn></mrow></msub><msup><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><mrow><msup><mn>2</mn><mi>m</mi></msup><mo>−</mo><mn>1</mn></mrow><mi>m</mi></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><mrow><mspace width="-0.167em"></mspace><mi>ν</mi></mrow></msup></mrow><annotation encoding="application/x-tex">
+<p>The construction begins with a rate function <span class="math inline">\(\rho\)</span> chosen so that <span class="math inline">\(G(t_{1/2}) = 0.5\)</span> exactly. For Case 1 (<span class="math inline">\(m &gt; 0, \nu &gt; 0\)</span>):</p>
+<p><span class="math display">\[
 \rho = \nu \, t_{1/2} \left(\frac{2^m - 1}{m}\right)^{\!\nu}
-</annotation></semantics></math></p>
-<p>Then, with the dimensionless time <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>b</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>ν</mi><mi>t</mi><mi>/</mi><mi>ρ</mi></mrow><annotation encoding="application/x-tex">b(t) = \nu t / \rho</annotation></semantics></math>:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>+</mo><mi>m</mi><mspace width="0.167em"></mspace><mi>b</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><msup><mo stretchy="false" form="postfix">)</mo><mrow><mi>−</mi><mn>1</mn><mi>/</mi><mi>ν</mi></mrow></msup><mo stretchy="true" form="postfix">)</mo></mrow><mrow><mi>−</mi><mn>1</mn><mi>/</mi><mi>m</mi></mrow></msup></mrow><annotation encoding="application/x-tex">
+\]</span></p>
+<p>Then, with the dimensionless time <span class="math inline">\(b(t) = \nu t / \rho\)</span>:</p>
+<p><span class="math display">\[
 G(t) = \left(1 + m \, b(t)^{-1/\nu}\right)^{-1/m}
-</annotation></semantics></math></p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>g</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><mn>1</mn><mo>+</mo><mi>m</mi><mspace width="0.167em"></mspace><mi>b</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><msup><mo stretchy="false" form="postfix">)</mo><mrow><mi>−</mi><mn>1</mn><mi>/</mi><mi>ν</mi></mrow></msup><mo stretchy="true" form="postfix">)</mo></mrow><mrow><mi>−</mi><mn>1</mn><mi>/</mi><mi>m</mi><mo>−</mo><mn>1</mn></mrow></msup><mo>⋅</mo><mi>b</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><msup><mo stretchy="false" form="postfix">)</mo><mrow><mi>−</mi><mn>1</mn><mi>/</mi><mi>ν</mi><mo>−</mo><mn>1</mn></mrow></msup><mi>/</mi><mi>ρ</mi></mrow><annotation encoding="application/x-tex">
+\]</span></p>
+<p><span class="math display">\[
 g(t) = \left(1 + m \, b(t)^{-1/\nu}\right)^{-1/m - 1}
        \cdot b(t)^{-1/\nu - 1} / \rho
-</annotation></semantics></math></p>
-<p>The other five cases arise as limits (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>→</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">m \to 0</annotation></semantics></math>, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ν</mi><mo>→</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\nu \to 0</annotation></semantics></math>) or sign reflections of this base form. The implementation in <code><a href="../reference/hzr_decompos.html">hzr_decompos()</a></code> dispatches to the appropriate branch after checking the signs of <code>nu</code> and <code>m</code>.</p>
+\]</span></p>
+<p>The other five cases arise as limits (<span class="math inline">\(m \to 0\)</span>, <span class="math inline">\(\nu \to 0\)</span>) or sign reflections of this base form. The implementation in <code><a href="../reference/hzr_decompos.html">hzr_decompos()</a></code> dispatches to the appropriate branch after checking the signs of <code>nu</code> and <code>m</code>.</p>
 </section></section><section class="section level2" data-number="2"><h2 data-number="2" id="sec-multiphase">
 <span class="header-section-number">2</span> Additive Multiphase Hazard Model<a class="anchor" aria-label="anchor" href="#sec-multiphase"></a>
 </h2>
 <section class="level2" data-number="2.1"><h3 data-number="2.1" id="model-specification">
 <span class="header-section-number">2.1</span> Model specification<a class="anchor" aria-label="anchor" href="#model-specification"></a>
 </h3>
-<p>The total cumulative hazard decomposes additively across <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>J</mi><annotation encoding="application/x-tex">J</annotation></semantics></math> phases:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>∣</mo><mi>𝐱</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>J</mi></munderover><msub><mi>μ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>𝐱</mi><mo stretchy="false" form="postfix">)</mo><mo>⋅</mo><msub><mi mathvariant="normal">Φ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>;</mo><mspace width="0.167em"></mspace><msub><mi>t</mi><mrow><mn>1</mn><mi>/</mi><mn>2</mn><mo>,</mo><mi>j</mi></mrow></msub><mo>,</mo><mspace width="0.167em"></mspace><msub><mi>ν</mi><mi>j</mi></msub><mo>,</mo><mspace width="0.167em"></mspace><msub><mi>m</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+<p>The total cumulative hazard decomposes additively across <span class="math inline">\(J\)</span> phases:</p>
+<p><span class="math display">\[
 H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \cdot \Phi_j(t;\, t_{1/2,j},\, \nu_j,\, m_j)
-</annotation></semantics></math></p>
+\]</span></p>
 <p>where:</p>
 <ul>
 <li>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>𝐱</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>α</mi><mi>j</mi></msub><mo>+</mo><msub><mi>𝐱</mi><mi>j</mi></msub><msub><mi>𝛃</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j \boldsymbol{\beta}_j)</annotation></semantics></math> is the phase-specific log-linear scale with covariates</li>
+<span class="math inline">\(\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j \boldsymbol{\beta}_j)\)</span> is the phase-specific log-linear scale with covariates</li>
 <li>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="normal">Φ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\Phi_j(t)</annotation></semantics></math> is the temporal shape, determined by the phase type</li>
+<span class="math inline">\(\Phi_j(t)\)</span> is the temporal shape, determined by the phase type</li>
 </ul>
 <p>The three phase types correspond to different uses of the decomposition output:</p>
 <table class="table caption-top">
@@ -318,27 +324,27 @@ H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \cdot \Phi_j(t;\, t_{1/2
 </colgroup>
 <thead><tr class="header">
 <th>Phase type</th>
-<th><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="normal">Φ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\Phi_j(t)</annotation></semantics></math></th>
+<th><span class="math inline">\(\Phi_j(t)\)</span></th>
 <th>Domain</th>
 <th>Interpretation</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td><code>"cdf"</code></td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">G(t)</annotation></semantics></math></td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">[0, 1]</annotation></semantics></math></td>
+<td><span class="math inline">\(G(t)\)</span></td>
+<td><span class="math inline">\([0, 1]\)</span></td>
 <td>Early risk that resolves over time</td>
 </tr>
 <tr class="even">
 <td><code>"hazard"</code></td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>G</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">-\log(1 - G(t))</annotation></semantics></math></td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><mn>0</mn><mo>,</mo><mi>∞</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">[0, \infty)</annotation></semantics></math></td>
+<td><span class="math inline">\(-\log(1 - G(t))\)</span></td>
+<td><span class="math inline">\([0, \infty)\)</span></td>
 <td>Late or aging risk that accumulates</td>
 </tr>
 <tr class="odd">
 <td><code>"constant"</code></td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math></td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><mn>0</mn><mo>,</mo><mi>∞</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">[0, \infty)</annotation></semantics></math></td>
+<td><span class="math inline">\(t\)</span></td>
+<td><span class="math inline">\([0, \infty)\)</span></td>
 <td>Flat background rate (no shape parameters)</td>
 </tr>
 </tbody>
@@ -349,38 +355,38 @@ H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \cdot \Phi_j(t;\, t_{1/2
 <p>The classic three-phase HAZARD model used:</p>
 <ul>
 <li>
-<strong>G1</strong> (early) <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math><code>hzr_phase("cdf", ...)</code>
+<strong>G1</strong> (early) <span class="math inline">\(\to\)</span> <code>hzr_phase("cdf", ...)</code>
 </li>
 <li>
-<strong>G2</strong> (constant) <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math><code>hzr_phase("constant")</code>
+<strong>G2</strong> (constant) <span class="math inline">\(\to\)</span> <code>hzr_phase("constant")</code>
 </li>
 <li>
-<strong>G3</strong> (late) <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math><code>hzr_phase("hazard", ...)</code>
+<strong>G3</strong> (late) <span class="math inline">\(\to\)</span> <code>hzr_phase("hazard", ...)</code>
 </li>
 </ul>
-<p>TemporalHazard generalizes this to <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>N</mi><annotation encoding="application/x-tex">N</annotation></semantics></math> phases of any type.</p>
+<p>TemporalHazard generalizes this to <span class="math inline">\(N\)</span> phases of any type.</p>
 </blockquote>
 </div>
 </section><section class="level2" data-number="2.2"><h3 data-number="2.2" id="derived-quantities">
 <span class="header-section-number">2.2</span> Derived quantities<a class="anchor" aria-label="anchor" href="#derived-quantities"></a>
 </h3>
 <p>From the cumulative hazard, the instantaneous hazard and survival are:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>∣</mo><mi>𝐱</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mi>J</mi></munderover><msub><mi>μ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>𝐱</mi><mo stretchy="false" form="postfix">)</mo><mo>⋅</mo><msub><mi>φ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mspace width="2.0em"></mspace><mrow><mtext mathvariant="normal">where </mtext><mspace width="0.333em"></mspace></mrow><msub><mi>φ</mi><mi>j</mi></msub><mo>=</mo><mi>d</mi><msub><mi mathvariant="normal">Φ</mi><mi>j</mi></msub><mi>/</mi><mi>d</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">
+<p><span class="math display">\[
 h(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \cdot \varphi_j(t)
 \qquad\text{where } \varphi_j = d\Phi_j/dt
-</annotation></semantics></math></p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>∣</mo><mi>𝐱</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mspace width="-0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mo>−</mo><mi>H</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>∣</mo><mi>𝐱</mi><mo stretchy="false" form="postfix">)</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+\]</span></p>
+<p><span class="math display">\[
 S(t \mid \mathbf{x}) = \exp\!\bigl(-H(t \mid \mathbf{x})\bigr)
-</annotation></semantics></math></p>
-<p>The derivative <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>φ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\varphi_j(t)</annotation></semantics></math> depends on phase type:</p>
+\]</span></p>
+<p>The derivative <span class="math inline">\(\varphi_j(t)\)</span> depends on phase type:</p>
 <ul>
 <li>
-<code>"cdf"</code>: <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>φ</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>g</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\varphi(t) = g(t)</annotation></semantics></math> (the density)</li>
+<code>"cdf"</code>: <span class="math inline">\(\varphi(t) = g(t)\)</span> (the density)</li>
 <li>
-<code>"hazard"</code>: <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>φ</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>h</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>g</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>G</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\varphi(t) = h(t) = g(t)/(1 - G(t))</annotation></semantics></math>
+<code>"hazard"</code>: <span class="math inline">\(\varphi(t) = h(t) = g(t)/(1 - G(t))\)</span>
 </li>
 <li>
-<code>"constant"</code>: <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>φ</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\varphi(t) = 1</annotation></semantics></math>
+<code>"constant"</code>: <span class="math inline">\(\varphi(t) = 1\)</span>
 </li>
 </ul></section><section class="level2" data-number="2.3"><h3 data-number="2.3" id="constructing-phases-in-r">
 <span class="header-section-number">2.3</span> Constructing phases in R<a class="anchor" aria-label="anchor" href="#constructing-phases-in-r"></a>
@@ -402,7 +408,7 @@ S(t \mid \mathbf{x}) = \exp\!\bigl(-H(t \mid \mathbf{x})\bigr)
 <span><span class="co">#&gt; &lt;hzr_phase&gt; hazard (late risk) </span></span>
 <span><span class="co">#&gt;   t_half = 5  nu = 1  m = 0</span></span></code></pre></div>
 </div>
-<p>The cumulative hazard contribution <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Φ</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\Phi(t)</annotation></semantics></math> and instantaneous hazard <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>φ</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\varphi(t)</annotation></semantics></math> for each phase can be computed directly:</p>
+<p>The cumulative hazard contribution <span class="math inline">\(\Phi(t)\)</span> and instantaneous hazard <span class="math inline">\(\varphi(t)\)</span> for each phase can be computed directly:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="va">has_ggplot</span><span class="op">)</span> <span class="op">{</span></span>
@@ -456,7 +462,7 @@ Figure 2: Phi(t) and phi(t) for each phase type
 </section><section class="level2" data-number="2.4"><h3 data-number="2.4" id="additive-composition-example">
 <span class="header-section-number">2.4</span> Additive composition example<a class="anchor" aria-label="anchor" href="#additive-composition-example"></a>
 </h3>
-<p>To build intuition, here is how three phases combine into a total hazard. The key insight is that phases contribute additively to the <strong>cumulative hazard</strong> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">H(t)</annotation></semantics></math>, not to the survival directly.</p>
+<p>To build intuition, here is how three phases combine into a total hazard. The key insight is that phases contribute additively to the <strong>cumulative hazard</strong> <span class="math inline">\(H(t)\)</span>, not to the survival directly.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="va">has_ggplot</span><span class="op">)</span> <span class="op">{</span></span>
@@ -529,41 +535,41 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>δ</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\delta_i = 1</annotation></semantics></math></td>
+<td><span class="math inline">\(\delta_i = 1\)</span></td>
 <td>Exact event</td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mi>h</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\log h(t_i \mid \mathbf{x}_i) - H(t_i \mid \mathbf{x}_i)</annotation></semantics></math></td>
+<td><span class="math inline">\(\log h(t_i \mid \mathbf{x}_i) - H(t_i \mid \mathbf{x}_i)\)</span></td>
 </tr>
 <tr class="even">
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>δ</mi><mi>i</mi></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\delta_i = 0</annotation></semantics></math></td>
+<td><span class="math inline">\(\delta_i = 0\)</span></td>
 <td>Right-censored</td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">-H(t_i \mid \mathbf{x}_i)</annotation></semantics></math></td>
+<td><span class="math inline">\(-H(t_i \mid \mathbf{x}_i)\)</span></td>
 </tr>
 <tr class="odd">
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>δ</mi><mi>i</mi></msub><mo>=</mo><mi>−</mi><mn>1</mn></mrow><annotation encoding="application/x-tex">\delta_i = -1</annotation></semantics></math></td>
+<td><span class="math inline">\(\delta_i = -1\)</span></td>
 <td>Left-censored</td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\log\bigl(1 - \exp(-H(u_i \mid \mathbf{x}_i))\bigr)</annotation></semantics></math></td>
+<td><span class="math inline">\(\log\bigl(1 - \exp(-H(u_i \mid \mathbf{x}_i))\bigr)\)</span></td>
 </tr>
 <tr class="even">
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>δ</mi><mi>i</mi></msub><mo>=</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">\delta_i = 2</annotation></semantics></math></td>
+<td><span class="math inline">\(\delta_i = 2\)</span></td>
 <td>Interval-censored</td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>l</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mo stretchy="false" form="prefix">(</mo><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>l</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">-H(l_i \mid \mathbf{x}_i) + \log\bigl(1 - \exp(-(H(u_i) - H(l_i)))\bigr)</annotation></semantics></math></td>
+<td><span class="math inline">\(-H(l_i \mid \mathbf{x}_i) + \log\bigl(1 - \exp(-(H(u_i) - H(l_i)))\bigr)\)</span></td>
 </tr>
 </tbody>
 </table>
-<p>where <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>l</mi><mi>i</mi></msub><annotation encoding="application/x-tex">l_i</annotation></semantics></math> and <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>u</mi><mi>i</mi></msub><annotation encoding="application/x-tex">u_i</annotation></semantics></math> are the lower and upper bounds of the censoring interval.</p>
+<p>where <span class="math inline">\(l_i\)</span> and <span class="math inline">\(u_i\)</span> are the lower and upper bounds of the censoring interval.</p>
 <p>The full log-likelihood is:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℓ</mi><mo stretchy="false" form="prefix">(</mo><mi>𝛉</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><munder><mo>∑</mo><mrow><mi>i</mi><mo>:</mo><mspace width="0.167em"></mspace><msub><mi>δ</mi><mi>i</mi></msub><mo>=</mo><mn>1</mn></mrow></munder><mo minsize="180%" maxsize="180%" stretchy="true" form="prefix">[</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mi>h</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo minsize="180%" maxsize="180%" stretchy="true" form="postfix">]</mo><mo>−</mo><munder><mo>∑</mo><mrow><mi>i</mi><mo>:</mo><mspace width="0.167em"></mspace><msub><mi>δ</mi><mi>i</mi></msub><mo>=</mo><mn>0</mn></mrow></munder><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+<p><span class="math display">\[
 \ell(\boldsymbol{\theta}) = \sum_{i:\,\delta_i=1}
   \Bigl[\log h(t_i \mid \mathbf{x}_i) - H(t_i \mid \mathbf{x}_i)\Bigr]
   - \sum_{i:\,\delta_i=0} H(t_i \mid \mathbf{x}_i)
-</annotation></semantics></math><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>+</mi><munder><mo>∑</mo><mrow><mi>i</mi><mo>:</mo><mspace width="0.167em"></mspace><msub><mi>δ</mi><mi>i</mi></msub><mo>=</mo><mi>−</mi><mn>1</mn></mrow></munder><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mspace width="-0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow></msup><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>+</mo><munder><mo>∑</mo><mrow><mi>i</mi><mo>:</mo><mspace width="0.167em"></mspace><msub><mi>δ</mi><mi>i</mi></msub><mo>=</mo><mn>2</mn></mrow></munder><mo minsize="180%" maxsize="180%" stretchy="true" form="prefix">[</mo><mo>−</mo><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>l</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>𝐱</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mspace width="-0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><mo stretchy="false" form="prefix">(</mo><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>u</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>−</mo><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>l</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow></msup><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo minsize="180%" maxsize="180%" stretchy="true" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">
+\]</span> <span class="math display">\[
   + \sum_{i:\,\delta_i=-1}
     \log\!\bigl(1 - e^{-H(u_i \mid \mathbf{x}_i)}\bigr)
   + \sum_{i:\,\delta_i=2}
     \Bigl[-H(l_i \mid \mathbf{x}_i)
     + \log\!\bigl(1 - e^{-(H(u_i) - H(l_i))}\bigr)\Bigr]
-</annotation></semantics></math></p>
-<p>The <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><mi>x</mi></mrow></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\log(1 - e^{-x})</annotation></semantics></math> terms are computed using the numerically stable primitive <code><a href="../reference/hzr_log1mexp.html">hzr_log1mexp()</a></code>, which avoids catastrophic cancellation when <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>x</mi><annotation encoding="application/x-tex">x</annotation></semantics></math> is near zero.</p>
+\]</span></p>
+<p>The <span class="math inline">\(\log(1 - e^{-x})\)</span> terms are computed using the numerically stable primitive <code><a href="../reference/hzr_log1mexp.html">hzr_log1mexp()</a></code>, which avoids catastrophic cancellation when <span class="math inline">\(x\)</span> is near zero.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Naive log(1 - exp(-x)) fails near zero</span></span>
@@ -576,7 +582,7 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 </section><section class="level2" data-number="3.2"><h3 data-number="3.2" id="internal-parameterization">
 <span class="header-section-number">3.2</span> Internal parameterization<a class="anchor" aria-label="anchor" href="#internal-parameterization"></a>
 </h3>
-<p>During optimization, shape parameters are reparameterized for unconstrained search. For each phase <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>j</mi><annotation encoding="application/x-tex">j</annotation></semantics></math>, the internal parameter sub-vector is:</p>
+<p>During optimization, shape parameters are reparameterized for unconstrained search. For each phase <span class="math inline">\(j\)</span>, the internal parameter sub-vector is:</p>
 <table class="table caption-top">
 <thead><tr class="header">
 <th>Parameter</th>
@@ -586,55 +592,55 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 <tbody>
 <tr class="odd">
 <td>Scale</td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>μ</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">\log \mu_j</annotation></semantics></math></td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>j</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>μ</mi><mi>j</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mu_j = \exp(\log \mu_j)</annotation></semantics></math></td>
+<td><span class="math inline">\(\log \mu_j\)</span></td>
+<td><span class="math inline">\(\mu_j = \exp(\log \mu_j)\)</span></td>
 </tr>
 <tr class="even">
 <td>Half-life</td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>t</mi><mrow><mn>1</mn><mi>/</mi><mn>2</mn><mo>,</mo><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\log t_{1/2,j}</annotation></semantics></math></td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mrow><mn>1</mn><mi>/</mi><mn>2</mn><mo>,</mo><mi>j</mi></mrow></msub><mo>=</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>t</mi><mrow><mn>1</mn><mi>/</mi><mn>2</mn><mo>,</mo><mi>j</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">t_{1/2,j} = \exp(\log t_{1/2,j})</annotation></semantics></math></td>
+<td><span class="math inline">\(\log t_{1/2,j}\)</span></td>
+<td><span class="math inline">\(t_{1/2,j} = \exp(\log t_{1/2,j})\)</span></td>
 </tr>
 <tr class="odd">
 <td>Time exponent</td>
 <td>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ν</mi><mi>j</mi></msub><annotation encoding="application/x-tex">\nu_j</annotation></semantics></math> (unconstrained)</td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ν</mi><mi>j</mi></msub><annotation encoding="application/x-tex">\nu_j</annotation></semantics></math></td>
+<span class="math inline">\(\nu_j\)</span> (unconstrained)</td>
+<td><span class="math inline">\(\nu_j\)</span></td>
 </tr>
 <tr class="even">
 <td>Shape</td>
 <td>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>m</mi><mi>j</mi></msub><annotation encoding="application/x-tex">m_j</annotation></semantics></math> (unconstrained)</td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>m</mi><mi>j</mi></msub><annotation encoding="application/x-tex">m_j</annotation></semantics></math></td>
+<span class="math inline">\(m_j\)</span> (unconstrained)</td>
+<td><span class="math inline">\(m_j\)</span></td>
 </tr>
 <tr class="odd">
 <td>Covariates</td>
-<td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mrow><mi>j</mi><mo>,</mo><mn>1</mn></mrow></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>β</mi><mrow><mi>j</mi><mo>,</mo><msub><mi>p</mi><mi>j</mi></msub></mrow></msub></mrow><annotation encoding="application/x-tex">\beta_{j,1}, \ldots, \beta_{j,p_j}</annotation></semantics></math></td>
+<td><span class="math inline">\(\beta_{j,1}, \ldots, \beta_{j,p_j}\)</span></td>
 <td>same</td>
 </tr>
 </tbody>
 </table>
-<p>Constant phases omit <code>log_t_half</code>, <code>nu</code>, and <code>m</code>, contributing only one shape-free parameter (<code>log_mu</code>). The full <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝛉</mi><annotation encoding="application/x-tex">\boldsymbol{\theta}</annotation></semantics></math> is the concatenation of all phase sub-vectors.</p>
+<p>Constant phases omit <code>log_t_half</code>, <code>nu</code>, and <code>m</code>, contributing only one shape-free parameter (<code>log_mu</code>). The full <span class="math inline">\(\boldsymbol{\theta}\)</span> is the concatenation of all phase sub-vectors.</p>
 </section><section class="level2" data-number="3.3"><h3 data-number="3.3" id="optimization-strategy">
 <span class="header-section-number">3.3</span> Optimization strategy<a class="anchor" aria-label="anchor" href="#optimization-strategy"></a>
 </h3>
 <p>The optimizer uses <code><a href="https://rdrr.io/r/stats/optim.html" class="external-link">stats::optim()</a></code> with BFGS on the unconstrained internal scale, wrapped by <code>.hzr_optim_generic()</code>. Key features:</p>
 <ul>
 <li>
-<strong>Multi-start</strong>: the optimizer runs from <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math> random perturbations around the user-supplied starting values (default <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">k = 5</annotation></semantics></math>, controlled by <code>control$n_starts</code>). The run with the highest log-likelihood is kept.</li>
+<strong>Multi-start</strong>: the optimizer runs from <span class="math inline">\(k\)</span> random perturbations around the user-supplied starting values (default <span class="math inline">\(k = 5\)</span>, controlled by <code>control$n_starts</code>). The run with the highest log-likelihood is kept.</li>
 <li>
-<strong>Feasibility guard</strong>: any parameter vector where <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>&lt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">m &lt; 0</annotation></semantics></math><strong>and</strong> <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ν</mi><mo>&lt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\nu &lt; 0</annotation></semantics></math> for the same phase returns <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mi>∞</mi></mrow><annotation encoding="application/x-tex">-\infty</annotation></semantics></math> immediately.</li>
+<strong>Feasibility guard</strong>: any parameter vector where <span class="math inline">\(m &lt; 0\)</span> <strong>and</strong> <span class="math inline">\(\nu &lt; 0\)</span> for the same phase returns <span class="math inline">\(-\infty\)</span> immediately.</li>
 <li>
-<strong>Post-fit Hessian</strong>: the numerical Hessian of the negative log-likelihood at the solution is inverted to produce the variance-covariance matrix <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>V</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat{V}</annotation></semantics></math>, with standard errors <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msqrt><mrow><mtext mathvariant="normal">diag</mtext><mo stretchy="false" form="prefix">(</mo><mover><mi>V</mi><mo accent="true">̂</mo></mover><mo stretchy="false" form="postfix">)</mo></mrow></msqrt><annotation encoding="application/x-tex">\sqrt{\text{diag}(\hat{V})}</annotation></semantics></math>. The inversion is hardened against the ill-conditioning that arises at high parameter counts: the Hessian is symmetrized, its reciprocal condition number is checked, and it is inverted via a Cholesky factorization, with a general <code><a href="https://rdrr.io/r/base/solve.html" class="external-link">solve()</a></code> fallback when the Hessian is not positive-definite. Non-positive variance estimates are flagged rather than silently returned as <code>NaN</code> standard errors. Each fit carries <code>rcond</code> (reciprocal condition number) and <code>pd</code> (positive-definiteness) diagnostics; <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> prints a note, and a warning is raised, when a fit is ill-conditioned or not positive-definite.</li>
+<strong>Post-fit Hessian</strong>: the numerical Hessian of the negative log-likelihood at the solution is inverted to produce the variance-covariance matrix <span class="math inline">\(\hat{V}\)</span>, with standard errors <span class="math inline">\(\sqrt{\text{diag}(\hat{V})}\)</span>. The inversion is hardened against the ill-conditioning that arises at high parameter counts: the Hessian is symmetrized, its reciprocal condition number is checked, and it is inverted via a Cholesky factorization, with a general <code><a href="https://rdrr.io/r/base/solve.html" class="external-link">solve()</a></code> fallback when the Hessian is not positive-definite. Non-positive variance estimates are flagged rather than silently returned as <code>NaN</code> standard errors. Each fit carries <code>rcond</code> (reciprocal condition number) and <code>pd</code> (positive-definiteness) diagnostics; <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> prints a note, and a warning is raised, when a fit is ill-conditioned or not positive-definite.</li>
 </ul></section></section><section class="section level2" data-number="4"><h2 data-number="4" id="sec-covariates">
 <span class="header-section-number">4</span> Covariates and Phase-Specific Formulas<a class="anchor" aria-label="anchor" href="#sec-covariates"></a>
 </h2>
 <section class="level2" data-number="4.1"><h3 data-number="4.1" id="global-covariates">
 <span class="header-section-number">4.1</span> Global covariates<a class="anchor" aria-label="anchor" href="#global-covariates"></a>
 </h3>
-<p>By default, every phase shares the same covariate vector from the model formula. Each phase gets its own coefficient vector <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>𝛃</mi><mi>j</mi></msub><annotation encoding="application/x-tex">\boldsymbol{\beta}_j</annotation></semantics></math>:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>𝐱</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mspace width="-0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><msub><mi>α</mi><mi>j</mi></msub><mo>+</mo><mi>𝐱</mi><mspace width="0.167em"></mspace><msub><mi>𝛃</mi><mi>j</mi></msub><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+<p>By default, every phase shares the same covariate vector from the model formula. Each phase gets its own coefficient vector <span class="math inline">\(\boldsymbol{\beta}_j\)</span>:</p>
+<p><span class="math display">\[
 \mu_j(\mathbf{x}) = \exp\!\bigl(\alpha_j + \mathbf{x}\,\boldsymbol{\beta}_j\bigr)
-</annotation></semantics></math></p>
+\]</span></p>
 <p>So the same predictors can have different effects on early vs. late risk, which is a core feature of multiphase models.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
@@ -653,8 +659,8 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 </section><section class="level2" data-number="4.2"><h3 data-number="4.2" id="phase-specific-covariates">
 <span class="header-section-number">4.2</span> Phase-specific covariates<a class="anchor" aria-label="anchor" href="#phase-specific-covariates"></a>
 </h3>
-<p>The global formula above lets every covariate act on every phase through a shared shift <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>x</mi><mi>⊤</mi></msup><mi>β</mi></mrow><annotation encoding="application/x-tex">x^\top \beta</annotation></semantics></math>. That’s the right structure when a covariate plausibly affects the entire hazard trajectory. But clinical reality often pulls the other way: surgical risk factors (grade IV complications, intra-operative blood loss) belong in the early phase but say nothing about late attrition; chronic comorbidities (NYHA class progression, late-onset diabetes) belong in the late phase but were irrelevant during the operative window. Phase-specific covariates let you build that structure directly.</p>
-<p>When a phase carries its own one-sided formula, the phase gets its own design matrix from the data, and only those covariates appear in that phase’s <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>𝛃</mi><mi>j</mi></msub><annotation encoding="application/x-tex">\boldsymbol{\beta}_j</annotation></semantics></math>. Other phases ignore them entirely.</p>
+<p>The global formula above lets every covariate act on every phase through a shared shift <span class="math inline">\(x^\top \beta\)</span>. That’s the right structure when a covariate plausibly affects the entire hazard trajectory. But clinical reality often pulls the other way: surgical risk factors (grade IV complications, intra-operative blood loss) belong in the early phase but say nothing about late attrition; chronic comorbidities (NYHA class progression, late-onset diabetes) belong in the late phase but were irrelevant during the operative window. Phase-specific covariates let you build that structure directly.</p>
+<p>When a phase carries its own one-sided formula, the phase gets its own design matrix from the data, and only those covariates appear in that phase’s <span class="math inline">\(\boldsymbol{\beta}_j\)</span>. Other phases ignore them entirely.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Early risk depends on surgical factors; late risk on chronic conditions</span></span>
@@ -671,16 +677,16 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 <span>  fit <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
-<p>When a phase has a <code>formula</code>, it gets its own design matrix built from the data, and only those covariates appear in its <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>𝛃</mi><mi>j</mi></msub><annotation encoding="application/x-tex">\boldsymbol{\beta}_j</annotation></semantics></math>. The parameter vector is shorter for phases with fewer covariates, which can improve identifiability and convergence.</p>
+<p>When a phase has a <code>formula</code>, it gets its own design matrix built from the data, and only those covariates appear in its <span class="math inline">\(\boldsymbol{\beta}_j\)</span>. The parameter vector is shorter for phases with fewer covariates, which can improve identifiability and convergence.</p>
 </section><section class="level2" data-number="4.3"><h3 data-number="4.3" id="time-varying-coefficients">
 <span class="header-section-number">4.3</span> Time-varying coefficients<a class="anchor" aria-label="anchor" href="#time-varying-coefficients"></a>
 </h3>
 <p>For single-distribution models, TemporalHazard supports piecewise time-varying coefficients via the <code>time_windows</code> argument. This expands the design matrix into window-specific blocks:</p>
-<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>i</mi></msub><mo>=</mo><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><msub><mi>𝐱</mi><mi>i</mi></msub><msub><mi>𝛃</mi><mi>k</mi></msub><mo>⋅</mo><mn>𝟏</mn><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>∈</mo><msub><mi>W</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+<p><span class="math display">\[
 \eta_i = \sum_{k=1}^{K} \mathbf{x}_i \boldsymbol{\beta}_k \cdot
 \mathbf{1}(t_i \in W_k)
-</annotation></semantics></math></p>
-<p>where <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>W</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>W</mi><mi>K</mi></msub></mrow><annotation encoding="application/x-tex">W_1, \ldots, W_K</annotation></semantics></math> are the time windows defined by the cut points. Each predictor gets a separate coefficient in each window, allowing effects to change over follow-up time.</p>
+\]</span></p>
+<p>where <span class="math inline">\(W_1, \ldots, W_K\)</span> are the time windows defined by the cut points. Each predictor gets a separate coefficient in each window, allowing effects to change over follow-up time.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Two windows: [0, 2] and (2, infinity)</span></span>
@@ -698,7 +704,7 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 <div>
 <blockquote>
 <p><strong>Multiphase vs. time-varying coefficients</strong></p>
-<p>For multiphase models, the phase structure itself captures time-varying effects: early phases dominate at small <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math> and late phases at large <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>. The <code>time_windows</code> mechanism is a complementary approach for single-distribution models.</p>
+<p>For multiphase models, the phase structure itself captures time-varying effects: early phases dominate at small <span class="math inline">\(t\)</span> and late phases at large <span class="math inline">\(t\)</span>. The <code>time_windows</code> mechanism is a complementary approach for single-distribution models.</p>
 </blockquote>
 </div>
 </section></section><section class="section level2" data-number="5"><h2 data-number="5" id="sec-identifiability">
@@ -709,7 +715,7 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 </h3>
 <p>Multiphase models with many free parameters can have flat or multi-modal likelihood surfaces. Practical guidelines:</p>
 <ol type="1">
-<li><p><strong>Fix shape parameters when possible.</strong> If clinical knowledge suggests a specific temporal pattern (e.g. early mortality follows a Weibull shape with <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">m = 0</annotation></semantics></math>), fix <code>m</code> in the <code><a href="../reference/hzr_phase.html">hzr_phase()</a></code> starting values and inspect whether the optimizer moves it.</p></li>
+<li><p><strong>Fix shape parameters when possible.</strong> If clinical knowledge suggests a specific temporal pattern (e.g. early mortality follows a Weibull shape with <span class="math inline">\(m = 0\)</span>), fix <code>m</code> in the <code><a href="../reference/hzr_phase.html">hzr_phase()</a></code> starting values and inspect whether the optimizer moves it.</p></li>
 <li><p><strong>Start from the SAS/C estimates.</strong> If legacy results are available, translate them using <code><a href="../reference/hzr_argument_mapping.html">hzr_argument_mapping()</a></code> and supply as starting values.</p></li>
 <li><p><strong>Use multi-start optimization.</strong> The default <code>control$n_starts = 5</code> helps escape local optima, but complex models may benefit from more starts.</p></li>
 <li><p><strong>Phase-specific covariates improve identifiability.</strong> Restricting each phase to clinically relevant predictors reduces the parameter count and sharpens the likelihood surface.</p></li>
@@ -718,12 +724,12 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 </h3>
 <p>The decomposition engine applies several guards:</p>
 <ul>
-<li>Time is clamped above <code>.Machine$double.xmin</code> to avoid <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mn>0</mn><mtext mathvariant="normal">negative</mtext></msup><annotation encoding="application/x-tex">0^{\text{negative}}</annotation></semantics></math>
+<li>Time is clamped above <code>.Machine$double.xmin</code> to avoid <span class="math inline">\(0^{\text{negative}}\)</span>
 </li>
 <li>
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>−</mo><mi>G</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">1 - G(t)</annotation></semantics></math> is clamped above <code>.Machine$double.xmin</code> before computing the hazard <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>g</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><mi>G</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">h(t) = g(t)/(1 - G(t))</annotation></semantics></math>
+<span class="math inline">\(1 - G(t)\)</span> is clamped above <code>.Machine$double.xmin</code> before computing the hazard <span class="math inline">\(h(t) = g(t)/(1 - G(t))\)</span>
 </li>
-<li>Left- and interval-censored contributions use <code><a href="../reference/hzr_log1mexp.html">hzr_log1mexp()</a></code> to avoid <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\log(0)</annotation></semantics></math> when <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">H(t)</annotation></semantics></math> is very small</li>
+<li>Left- and interval-censored contributions use <code><a href="../reference/hzr_log1mexp.html">hzr_log1mexp()</a></code> to avoid <span class="math inline">\(\log(0)\)</span> when <span class="math inline">\(H(t)\)</span> is very small</li>
 </ul>
 <p>Together these keep the gradients finite throughout the optimization, even in regions of parameter space far from the optimum.</p>
 </section></section><section class="section level2" data-number="6"><h2 data-number="6" id="sec-api">
@@ -741,17 +747,17 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 <tbody>
 <tr class="odd">
 <td><code>hzr_decompos(t, t_half, nu, m)</code></td>
-<td>Core decomposition: returns <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>G</mi><annotation encoding="application/x-tex">G</annotation></semantics></math>, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>g</mi><annotation encoding="application/x-tex">g</annotation></semantics></math>, <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>h</mi><annotation encoding="application/x-tex">h</annotation></semantics></math>
+<td>Core decomposition: returns <span class="math inline">\(G\)</span>, <span class="math inline">\(g\)</span>, <span class="math inline">\(h\)</span>
 </td>
 </tr>
 <tr class="even">
 <td><code>hzr_phase_cumhaz(t, ..., type)</code></td>
-<td>Phase cumulative hazard <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Φ</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\Phi(t)</annotation></semantics></math>
+<td>Phase cumulative hazard <span class="math inline">\(\Phi(t)\)</span>
 </td>
 </tr>
 <tr class="odd">
 <td><code>hzr_phase_hazard(t, ..., type)</code></td>
-<td>Phase instantaneous hazard <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>φ</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\varphi(t)</annotation></semantics></math>
+<td>Phase instantaneous hazard <span class="math inline">\(\varphi(t)\)</span>
 </td>
 </tr>
 <tr class="even">
@@ -768,11 +774,11 @@ Figure 3: Three-phase additive cumulative hazard: total = early + constant + la
 </tr>
 <tr class="odd">
 <td><code><a href="../reference/hzr_argument_mapping.html">hzr_argument_mapping()</a></code></td>
-<td>SAS/C <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>→</mo><annotation encoding="application/x-tex">\to</annotation></semantics></math> R parameter translation table</td>
+<td>SAS/C <span class="math inline">\(\to\)</span> R parameter translation table</td>
 </tr>
 <tr class="even">
 <td><code>hzr_log1mexp(x)</code></td>
-<td>Stable <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msup><mi>e</mi><mrow><mi>−</mi><mi>x</mi></mrow></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\log(1 - e^{-x})</annotation></semantics></math>
+<td>Stable <span class="math inline">\(\log(1 - e^{-x})\)</span>
 </td>
 </tr>
 </tbody>

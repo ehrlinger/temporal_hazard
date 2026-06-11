@@ -182,15 +182,13 @@ Blackstone–Naftel–Turner framework’s key idea is to split the hazard
 into a *sum* of phase-specific contributions, each with its own temporal
 shape and its own scale:
 
-``` math
-H(t \mid x) = \sum_{j=1}^{J} \mu_j(x) \cdot \Phi_j(t)
-```
+\\H(t \mid x) = \sum\_{j=1}^{J} \mu_j(x) \cdot \Phi_j(t)\\
 
-Each $`\Phi_j(t)`$ is a phase-specific unit-scaled curve (early-peaking
-saturating, flat constant, late-rising polynomial) and each $`\mu_j(x)`$
+Each \\\Phi_j(t)\\ is a phase-specific unit-scaled curve (early-peaking
+saturating, flat constant, late-rising polynomial) and each \\\mu_j(x)\\
 is the phase-specific scale, possibly modulated by covariates. The
 phases overlap and add — no switching, no thresholds — so the total
-instantaneous hazard at any $`t`$ is the sum of the per-phase rates. See
+instantaneous hazard at any \\t\\ is the sum of the per-phase rates. See
 [`vignette("getting-started")`](https://ehrlinger.github.io/temporal_hazard/articles/getting-started.md)
 for the longer-form motivation; what follows here is the practical
 workflow for *fitting* one.
@@ -394,12 +392,12 @@ types arise frequently enough to warrant explicit handling.
 *between* two observation times, but not at a specific time. The
 canonical example is clinic-visit data: a patient is confirmed alive at
 month 12 and found dead at month 24, so the event occurred somewhere in
-$`(12, 24)`$. A naive analysis treats the event as right-censored at 12
+\\(12, 24)\\. A naive analysis treats the event as right-censored at 12
 or exactly observed at 24; both introduce bias.
 
 **Left censoring** is the mirror: the event occurred *before* the first
 observation time (time_upper), so it was already established at the
-moment of first contact — $`T \leq t_{\text{upper}}`$.
+moment of first contact — \\T \leq t\_{\text{upper}}\\.
 
 ### 5.1 Status codes
 
@@ -545,8 +543,8 @@ rbind(
 ```
 
 The interval-censored fit recovers both parameters accurately. The naive
-fit estimates $`\mu`$ comparably but introduces a substantial positive
-bias in $`\nu`$ — it sees events consistently appearing at visit times
+fit estimates \\\mu\\ comparably but introduces a substantial positive
+bias in \\\nu\\ — it sees events consistently appearing at visit times
 (every 6 months) and infers a sharper, more periodic hazard shape that
 doesn’t match the underlying exponential structure.
 
@@ -563,11 +561,11 @@ to do about it.
 ### 6.1 Reading the KM cumulative hazard for starting values
 
 For a Weibull model, the relationship between the starting values and
-the data is direct: because $`H(t) = (\mu t)^\nu`$, taking logs gives
-$`\log H(t) = \nu \log t + \nu \log \mu`$. Plot $`\log H(t)`$ (the
-Nelson-Aalen cumulative hazard on the log scale) against $`\log t`$ and
-fit a straight line; the slope is $`\hat\nu`$ and the intercept is
-$`\hat\nu \log \hat\mu`$.
+the data is direct: because \\H(t) = (\mu t)^\nu\\, taking logs gives
+\\\log H(t) = \nu \log t + \nu \log \mu\\. Plot \\\log H(t)\\ (the
+Nelson-Aalen cumulative hazard on the log scale) against \\\log t\\ and
+fit a straight line; the slope is \\\hat\nu\\ and the intercept is
+\\\hat\nu \log \hat\mu\\.
 
 ``` r
 
@@ -686,12 +684,12 @@ round(exp(coef(fit_3ph)[log_mu_idx]), 6)
 The constant and late phase scales are both near zero — the optimizer
 found no evidence in the AVC data for either of those temporal shapes
 over this follow-up window. The early phase is absorbing all the
-identifiable structure. Any phase whose fitted scale is
-$`\mu \lesssim 10^{-4}`$ is not contributing meaningful hazard and is a
-candidate for removal. The right diagnostic question is not “did the AIC
-improve?” but “does this phase represent real clinical biology?” — late
-deterioration after AVC repair requires long follow-up to observe; this
-dataset doesn’t have it.
+identifiable structure. Any phase whose fitted scale is \\\mu \lesssim
+10^{-4}\\ is not contributing meaningful hazard and is a candidate for
+removal. The right diagnostic question is not “did the AIC improve?” but
+“does this phase represent real clinical biology?” — late deterioration
+after AVC repair requires long follow-up to observe; this dataset
+doesn’t have it.
 
 When shapes are also free (`fixed = "none"`), a redundant phase can make
 the Hessian rank-deficient and

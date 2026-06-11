@@ -124,12 +124,12 @@ wrap
 [`hzr_decompos()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos.md)
 and apply the phase type mapping:
 
-| Phase type   | $`\Phi(t)`$                            | $`\phi(t)`$ |
+| Phase type   | \\\Phi(t)\\                            | \\\phi(t)\\ |
 |:-------------|:---------------------------------------|:------------|
-| `"cdf"`      | $`G_1(t)`$                             | $`g_1(t)`$  |
-| `"hazard"`   | $`-\log(1-G_1(t))`$                    | $`h_1(t)`$  |
-| `"g3"`       | $`G_3(t; \tau, \gamma, \alpha, \eta)`$ | $`g_3(t)`$  |
-| `"constant"` | $`t`$                                  | $`1`$       |
+| `"cdf"`      | \\G_1(t)\\                             | \\g_1(t)\\  |
+| `"hazard"`   | \\-\log(1-G_1(t))\\                    | \\h_1(t)\\  |
+| `"g3"`       | \\G_3(t; \tau, \gamma, \alpha, \eta)\\ | \\g_3(t)\\  |
+| `"constant"` | \\t\\                                  | \\1\\       |
 
 #### 3.1.4 Multi-start optimization
 
@@ -250,7 +250,7 @@ against the C HAZARD binary output for the KUL CABG dataset:
     saturation at the C reference parameter values.
 
 3.  **Conservation of events** —Checks that the model-implied expected
-    events ($`\sum [1 - \exp(-H(t_i))]`$) matches the observed event
+    events (\\\sum \[1 - \exp(-H(t_i))\]\\) matches the observed event
     count (545), as reported by the C binary (544.9993).
 
 4.  **Profile standard errors** —Computes a numerical Hessian varying
@@ -392,7 +392,7 @@ knitr::kable(
 | legacy_input | r_parameter | implementation_status | notes |
 |:---|:---|:---|:---|
 | TIME variable | time | implemented | Core observation time input. |
-| EVENT/censor variable | status | implemented | Event indicator currently retained as numeric in object$`data`$status. |
+| EVENT/censor variable | status | implemented | Event indicator currently retained as numeric in object\\data\\status. |
 | X covariate block | x | implemented | Future versions will support richer design encoding helpers. |
 | initial parameters | theta | implemented | Used by predict.hazard as coefficient vector. |
 | baseline distribution | dist | implemented | Current default is ‘weibull’; more options planned. |
@@ -441,12 +441,12 @@ directly supported via `hzr_phase("g3", ...)`:
   case)
 - **ETA** –\> `eta` (outer exponent)
 
-The G3 formula (for `alpha > 0`) is:
-$`G_3(t) = \left(\left((t/\tau)^\gamma + 1\right)^{1/\alpha} - 1\right)^\eta`$
+The G3 formula (for `alpha > 0`) is: \\G_3(t) =
+\left(\left((t/\tau)^\gamma + 1\right)^{1/\alpha} - 1\right)^\eta\\
 
 Unlike G1, G3 is unbounded —it can grow without limit, making it
 suitable for late-phase rising hazards. For the KUL benchmark with
-`gamma = 3, alpha = 1, eta = 1`, this simplifies to $`G_3(t) = t^3`$.
+`gamma = 3, alpha = 1, eta = 1`, this simplifies to \\G_3(t) = t^3\\.
 
 ## 8 Version history
 

@@ -46,7 +46,7 @@ knitr::kable(
 | SAS Statement | Legacy Input | C Concept | R Parameter | Required | Expected Type | Transform Rule | Status | Notes |
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|
 | HAZARD | TIME variable | obs time array | time | TRUE | numeric vector | pass through as numeric | implemented | Core observation time input. |
-| HAZARD | EVENT/censor variable | event indicator array | status | TRUE | numeric/logical vector | coerce to numeric 0/1 | implemented | Event indicator currently retained as numeric in object$`data`$status. |
+| HAZARD | EVENT/censor variable | event indicator array | status | TRUE | numeric/logical vector | coerce to numeric 0/1 | implemented | Event indicator currently retained as numeric in object\\data\\status. |
 | HAZARD | X covariate block | design matrix | x | FALSE | numeric matrix or data.frame | data.frame -\> data.matrix | implemented | Future versions will support richer design encoding helpers. |
 | HAZARD | initial parameters | parameter vector | theta | FALSE | numeric vector | length must equal ncol(x) when x is present | implemented | Used by predict.hazard as coefficient vector. |
 | HAZARD | baseline distribution | phase distribution selector | dist | FALSE | character scalar | normalized lower-case label | implemented | Current default is ‘weibull’; more options planned. |

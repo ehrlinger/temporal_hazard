@@ -6,7 +6,13 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Prediction &amp; Visualization • TemporalHazard</title>
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
@@ -124,15 +130,15 @@ Figure 1: Kaplan-Meier survival estimate: death after AVC repair
 <p>The <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> method exposes four quantities through its <code>type=</code> argument, each useful for a different downstream question:</p>
 <ul>
 <li>
-<code>"linear_predictor"</code> — <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>x</mi><mi>⊤</mi></msup><mi>β</mi></mrow><annotation encoding="application/x-tex">x^\top \beta</annotation></semantics></math>, the covariate-driven log-hazard shift. Use it to rank patients on relative risk without pinning down absolute survival probabilities.</li>
+<code>"linear_predictor"</code> — <span class="math inline">\(x^\top \beta\)</span>, the covariate-driven log-hazard shift. Use it to rank patients on relative risk without pinning down absolute survival probabilities.</li>
 <li>
-<code>"hazard"</code> — <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><msup><mi>x</mi><mi>⊤</mi></msup><mi>β</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\exp(x^\top \beta)</annotation></semantics></math>, the multiplicative hazard ratio relative to the baseline. Use it when you want hazard ratios for reporting or for further calculation.</li>
+<code>"hazard"</code> — <span class="math inline">\(\exp(x^\top \beta)\)</span>, the multiplicative hazard ratio relative to the baseline. Use it when you want hazard ratios for reporting or for further calculation.</li>
 <li>
-<code>"cumulative_hazard"</code> — <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>∣</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">H(t \mid x)</annotation></semantics></math>, the integrated hazard up to time <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math> for each row. Use it when you need the raw integrated intensity (decomposing it by phase, for example, or computing derived quantities like the expected number of events).</li>
+<code>"cumulative_hazard"</code> — <span class="math inline">\(H(t \mid x)\)</span>, the integrated hazard up to time <span class="math inline">\(t\)</span> for each row. Use it when you need the raw integrated intensity (decomposing it by phase, for example, or computing derived quantities like the expected number of events).</li>
 <li>
-<code>"survival"</code> — <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>∣</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mi>H</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>∣</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">S(t \mid x) = \exp(-H(t \mid x))</annotation></semantics></math>, the probability of surviving past time <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>. This is what clinicians and patients actually want to see; it’s also what we plot for diagnostics.</li>
+<code>"survival"</code> — <span class="math inline">\(S(t \mid x) = \exp(-H(t \mid x))\)</span>, the probability of surviving past time <span class="math inline">\(t\)</span>. This is what clinicians and patients actually want to see; it’s also what we plot for diagnostics.</li>
 </ul>
-<p>The two predictions we extract below are <code>"survival"</code> and <code>"cumulative_hazard"</code> — survival for the clinical communication, and the cumulative hazard so we can sanity-check the relationship <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>=</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mi>H</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">S = \exp(-H)</annotation></semantics></math> holds row-by-row. We fit a multivariable Weibull on the AVC death endpoint first.</p>
+<p>The two predictions we extract below are <code>"survival"</code> and <code>"cumulative_hazard"</code> — survival for the clinical communication, and the cumulative hazard so we can sanity-check the relationship <span class="math inline">\(S = \exp(-H)\)</span> holds row-by-row. We fit a multivariable Weibull on the AVC death endpoint first.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hazard.html">hazard</a></span><span class="op">(</span></span>
@@ -230,7 +236,7 @@ Figure 2: Weibull parametric survival vs. Kaplan-Meier (AVC death)
 <span><span class="co">#&gt; 5 0.9385173 0.017970625 0.8953492 0.9642310</span></span>
 <span><span class="co">#&gt; 6 0.9352997 0.018851038 0.8902883 0.9622320</span></span></code></pre></div>
 </div>
-<p>Confidence limits use SAS-matched transformations chosen so the interval respects the natural range of each quantity: log-scale for <code>hazard</code> and <code>cumulative_hazard</code> (keeps the lower bound positive), and <code>log(-log(S))</code> for <code>survival</code> (keeps the interval inside <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">[</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">[0, 1]</annotation></semantics></math>). The linear predictor uses symmetric natural-scale CLs. The point isn’t notational fussiness — it’s that a symmetric CI on survival probability would frequently dip below 0 or rise above 1, giving nonsense values that the transformed form avoids by construction.</p>
+<p>Confidence limits use SAS-matched transformations chosen so the interval respects the natural range of each quantity: log-scale for <code>hazard</code> and <code>cumulative_hazard</code> (keeps the lower bound positive), and <code>log(-log(S))</code> for <code>survival</code> (keeps the interval inside <span class="math inline">\([0, 1]\)</span>). The linear predictor uses symmetric natural-scale CLs. The point isn’t notational fussiness — it’s that a symmetric CI on survival probability would frequently dip below 0 or rise above 1, giving nonsense values that the transformed form avoids by construction.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ci_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -273,7 +279,7 @@ Figure 3: Parametric survival with 95% delta-method confidence band
 </section><section class="level2" data-number="5"><h2 data-number="5" id="decomposed-multiphase-hazard">
 <span class="header-section-number">5</span> Decomposed multiphase hazard<a class="anchor" aria-label="anchor" href="#decomposed-multiphase-hazard"></a>
 </h2>
-<p>The multiphase model’s whole point is that the total hazard is a sum of phase contributions. <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> with <code>decompose = TRUE</code> and <code>type = "cumulative_hazard"</code> exposes those contributions row by row, returning a data frame with one column per phase plus a <code>total</code> column. Numerically differentiating each column gives you the instantaneous hazard rate for each phase — which is the diagnostic that tells you whether the multiphase model is doing what you asked of it. The early phase should dominate near <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">t = 0</annotation></semantics></math> and fall off, the constant phase should be a flat floor, and the late phase should sit near zero early and rise after a lag.</p>
+<p>The multiphase model’s whole point is that the total hazard is a sum of phase contributions. <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> with <code>decompose = TRUE</code> and <code>type = "cumulative_hazard"</code> exposes those contributions row by row, returning a data frame with one column per phase plus a <code>total</code> column. Numerically differentiating each column gives you the instantaneous hazard rate for each phase — which is the diagnostic that tells you whether the multiphase model is doing what you asked of it. The early phase should dominate near <span class="math inline">\(t = 0\)</span> and fall off, the constant phase should be a flat floor, and the late phase should sit near zero early and rise after a lag.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">cabgkul</span><span class="op">)</span></span>
@@ -291,11 +297,7 @@ Figure 3: Parametric survival with 95% delta-method confidence band
 <span>  <span class="op">)</span>,</span>
 <span>  fit     <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_starts <span class="op">=</span> <span class="fl">5</span>, maxit <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Hessian is not positive-definite at</span></span>
-<span><span class="co">#&gt; the optimum; standard errors may be unreliable</span></span>
-<span><span class="co">#&gt; Warning in .hzr_safe_solve(hess_result): Non-positive variance estimates; the</span></span>
-<span><span class="co">#&gt; optimum may not be a proper maximum</span></span></code></pre></div>
+<span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb10"><pre class="downlit sourceCode r">

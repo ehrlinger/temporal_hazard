@@ -6,7 +6,13 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Package Architecture • TemporalHazard</title>
-<script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
+  window.MathJax = {
+    chtml: {
+      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
+    }
+  };
+</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
@@ -255,29 +261,29 @@ hazard(dist='multiphase')
 <table class="table caption-top">
 <thead><tr class="header">
 <th style="text-align: left;">Phase type</th>
-<th style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Φ</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\Phi(t)</annotation></semantics></math></th>
-<th style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϕ</mi><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\phi(t)</annotation></semantics></math></th>
+<th style="text-align: left;"><span class="math inline">\(\Phi(t)\)</span></th>
+<th style="text-align: left;"><span class="math inline">\(\phi(t)\)</span></th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td style="text-align: left;"><code>"cdf"</code></td>
-<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">G_1(t)</annotation></semantics></math></td>
-<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">g_1(t)</annotation></semantics></math></td>
+<td style="text-align: left;"><span class="math inline">\(G_1(t)\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(g_1(t)\)</span></td>
 </tr>
 <tr class="even">
 <td style="text-align: left;"><code>"hazard"</code></td>
-<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>−</mi><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mn>1</mn><mo>−</mo><msub><mi>G</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">-\log(1-G_1(t))</annotation></semantics></math></td>
-<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mn>1</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">h_1(t)</annotation></semantics></math></td>
+<td style="text-align: left;"><span class="math inline">\(-\log(1-G_1(t))\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(h_1(t)\)</span></td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;"><code>"g3"</code></td>
-<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mn>3</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo>;</mo><mi>τ</mi><mo>,</mo><mi>γ</mi><mo>,</mo><mi>α</mi><mo>,</mo><mi>η</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">G_3(t; \tau, \gamma, \alpha, \eta)</annotation></semantics></math></td>
-<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><mn>3</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">g_3(t)</annotation></semantics></math></td>
+<td style="text-align: left;"><span class="math inline">\(G_3(t; \tau, \gamma, \alpha, \eta)\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(g_3(t)\)</span></td>
 </tr>
 <tr class="even">
 <td style="text-align: left;"><code>"constant"</code></td>
-<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math></td>
-<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mn>1</mn><annotation encoding="application/x-tex">1</annotation></semantics></math></td>
+<td style="text-align: left;"><span class="math inline">\(t\)</span></td>
+<td style="text-align: left;"><span class="math inline">\(1\)</span></td>
 </tr>
 </tbody>
 </table></section><section class="level3" data-number="3.1.4"><h4 data-number="3.1.4" id="multi-start-optimization">
@@ -444,7 +450,7 @@ hazard(dist='multiphase')
 <ol type="1">
 <li><p><strong>Likelihood evaluation</strong> —Evaluates the R log-likelihood at the C converged parameters and asserts it matches the C output (-3740.52).</p></li>
 <li><p><strong>Decomposition consistency</strong> —Verifies phase additivity and CDF saturation at the C reference parameter values.</p></li>
-<li><p><strong>Conservation of events</strong> —Checks that the model-implied expected events (<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>∑</mo><mo stretchy="false" form="prefix">[</mo><mn>1</mn><mo>−</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mi>H</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">\sum [1 - \exp(-H(t_i))]</annotation></semantics></math>) matches the observed event count (545), as reported by the C binary (544.9993).</p></li>
+<li><p><strong>Conservation of events</strong> —Checks that the model-implied expected events (<span class="math inline">\(\sum [1 - \exp(-H(t_i))]\)</span>) matches the observed event count (545), as reported by the C binary (544.9993).</p></li>
 <li><p><strong>Profile standard errors</strong> —Computes a numerical Hessian varying only the 3 log(mu) parameters (shapes held fixed), matching the C binary’s estimation strategy, and compares standard errors.</p></li>
 <li><p><strong>Full fit convergence</strong> —Fits the R multiphase optimizer on the full dataset with informed starting values and checks that the log-likelihood meets or exceeds the C reference.</p></li>
 </ol></section></section><section class="section level2" data-number="6"><h2 data-number="6" id="sec-datasets">
@@ -677,7 +683,7 @@ hazard(dist='multiphase')
 <td style="text-align: left;">EVENT/censor variable</td>
 <td style="text-align: left;">status</td>
 <td style="text-align: left;">implemented</td>
-<td style="text-align: left;">Event indicator currently retained as numeric in object<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi><mi>a</mi><mi>t</mi><mi>a</mi></mrow><annotation encoding="application/x-tex">data</annotation></semantics></math>status.</td>
+<td style="text-align: left;">Event indicator currently retained as numeric in object<span class="math inline">\(data\)</span>status.</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">X covariate block</td>
@@ -830,8 +836,8 @@ hazard(dist='multiphase')
 <li>
 <strong>ETA</strong> –&gt; <code>eta</code> (outer exponent)</li>
 </ul>
-<p>The G3 formula (for <code>alpha &gt; 0</code>) is: <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mn>3</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><msup><mrow><mo stretchy="true" form="prefix">(</mo><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mi>/</mi><mi>τ</mi><msup><mo stretchy="false" form="postfix">)</mo><mi>γ</mi></msup><mo>+</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mrow><mn>1</mn><mi>/</mi><mi>α</mi></mrow></msup><mo>−</mo><mn>1</mn><mo stretchy="true" form="postfix">)</mo></mrow><mi>η</mi></msup></mrow><annotation encoding="application/x-tex">G_3(t) = \left(\left((t/\tau)^\gamma + 1\right)^{1/\alpha} - 1\right)^\eta</annotation></semantics></math></p>
-<p>Unlike G1, G3 is unbounded —it can grow without limit, making it suitable for late-phase rising hazards. For the KUL benchmark with <code>gamma = 3, alpha = 1, eta = 1</code>, this simplifies to <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mn>3</mn></msub><mo stretchy="false" form="prefix">(</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msup><mi>t</mi><mn>3</mn></msup></mrow><annotation encoding="application/x-tex">G_3(t) = t^3</annotation></semantics></math>.</p>
+<p>The G3 formula (for <code>alpha &gt; 0</code>) is: <span class="math inline">\(G_3(t) = \left(\left((t/\tau)^\gamma + 1\right)^{1/\alpha} - 1\right)^\eta\)</span></p>
+<p>Unlike G1, G3 is unbounded —it can grow without limit, making it suitable for late-phase rising hazards. For the KUL benchmark with <code>gamma = 3, alpha = 1, eta = 1</code>, this simplifies to <span class="math inline">\(G_3(t) = t^3\)</span>.</p>
 </section></section><section class="section level2" data-number="8"><h2 data-number="8" id="version-history">
 <span class="header-section-number">8</span> Version history<a class="anchor" aria-label="anchor" href="#version-history"></a>
 </h2>

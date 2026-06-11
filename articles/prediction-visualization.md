@@ -65,25 +65,25 @@ The [`predict()`](https://rdrr.io/r/stats/predict.html) method exposes
 four quantities through its `type=` argument, each useful for a
 different downstream question:
 
-- `"linear_predictor"` — $`x^\top \beta`$, the covariate-driven
+- `"linear_predictor"` — \\x^\top \beta\\, the covariate-driven
   log-hazard shift. Use it to rank patients on relative risk without
   pinning down absolute survival probabilities.
-- `"hazard"` — $`\exp(x^\top \beta)`$, the multiplicative hazard ratio
+- `"hazard"` — \\\exp(x^\top \beta)\\, the multiplicative hazard ratio
   relative to the baseline. Use it when you want hazard ratios for
   reporting or for further calculation.
-- `"cumulative_hazard"` — $`H(t \mid x)`$, the integrated hazard up to
-  time $`t`$ for each row. Use it when you need the raw integrated
+- `"cumulative_hazard"` — \\H(t \mid x)\\, the integrated hazard up to
+  time \\t\\ for each row. Use it when you need the raw integrated
   intensity (decomposing it by phase, for example, or computing derived
   quantities like the expected number of events).
-- `"survival"` — $`S(t \mid x) = \exp(-H(t \mid x))`$, the probability
-  of surviving past time $`t`$. This is what clinicians and patients
+- `"survival"` — \\S(t \mid x) = \exp(-H(t \mid x))\\, the probability
+  of surviving past time \\t\\. This is what clinicians and patients
   actually want to see; it’s also what we plot for diagnostics.
 
 The two predictions we extract below are `"survival"` and
 `"cumulative_hazard"` — survival for the clinical communication, and the
-cumulative hazard so we can sanity-check the relationship
-$`S = \exp(-H)`$ holds row-by-row. We fit a multivariable Weibull on the
-AVC death endpoint first.
+cumulative hazard so we can sanity-check the relationship \\S =
+\exp(-H)\\ holds row-by-row. We fit a multivariable Weibull on the AVC
+death endpoint first.
 
 ``` r
 
@@ -207,7 +207,7 @@ head(surv_ci)
 Confidence limits use SAS-matched transformations chosen so the interval
 respects the natural range of each quantity: log-scale for `hazard` and
 `cumulative_hazard` (keeps the lower bound positive), and `log(-log(S))`
-for `survival` (keeps the interval inside $`[0, 1]`$). The linear
+for `survival` (keeps the interval inside \\\[0, 1\]\\). The linear
 predictor uses symmetric natural-scale CLs. The point isn’t notational
 fussiness — it’s that a symmetric CI on survival probability would
 frequently dip below 0 or rise above 1, giving nonsense values that the
@@ -264,7 +264,7 @@ contributions row by row, returning a data frame with one column per
 phase plus a `total` column. Numerically differentiating each column
 gives you the instantaneous hazard rate for each phase — which is the
 diagnostic that tells you whether the multiphase model is doing what you
-asked of it. The early phase should dominate near $`t = 0`$ and fall
+asked of it. The early phase should dominate near \\t = 0\\ and fall
 off, the constant phase should be a flat floor, and the late phase
 should sit near zero early and rise after a lag.
 
@@ -286,10 +286,6 @@ fit_mp <- hazard(
   fit     = TRUE,
   control = list(n_starts = 5, maxit = 1000)
 )
-#> Warning in .hzr_safe_solve(hess_result): Hessian is not positive-definite at
-#> the optimum; standard errors may be unreliable
-#> Warning in .hzr_safe_solve(hess_result): Non-positive variance estimates; the
-#> optimum may not be a proper maximum
 ```
 
 ``` r

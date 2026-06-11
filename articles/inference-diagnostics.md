@@ -159,8 +159,8 @@ are convenience wrappers that return richer output than
 [`survival::survfit()`](https://rdrr.io/pkg/survival/man/survfit.html):
 [`hzr_kaplan()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_kaplan.md)
 ships KM with logit-transformed confidence limits (more accurate in the
-tails than the standard Greenwood limits, which can stray outside
-$`[0, 1]`$), interval hazard rates, density estimates, and a
+tails than the standard Greenwood limits, which can stray outside \\\[0,
+1\]\\), interval hazard rates, density estimates, and a
 restricted-mean-survival-time scalar.
 [`hzr_nelson()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_nelson.md)
 returns the Wayne Nelson cumulative hazard estimator with log-normal

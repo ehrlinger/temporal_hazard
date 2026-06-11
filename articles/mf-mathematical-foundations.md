@@ -40,31 +40,31 @@ family, `decompos(t; t_half, nu, m)`, introduced by Blackstone, Naftel,
 and Turner (1986) that produces three linked quantities from just three
 parameters:
 
-- $`G(t)`$ — cumulative distribution function (CDF), bounded $`[0, 1]`$
-- $`g(t) = dG/dt`$ — probability density function
-- $`h(t) = g(t) / (1 - G(t))`$ — hazard function
+- \\G(t)\\ — cumulative distribution function (CDF), bounded \\\[0,
+  1\]\\
+- \\g(t) = dG/dt\\ — probability density function
+- \\h(t) = g(t) / (1 - G(t))\\ — hazard function
 
 The three parameters control the shape of the distribution:
 
-| Parameter | Meaning                                       | Constraint       |
-|-----------|-----------------------------------------------|------------------|
-| `t_half`  | Half-life: time at which $`G(t_{1/2}) = 0.5`$ | $`> 0`$          |
-| `nu`      | Time exponent — controls rate dynamics        | any finite value |
-| `m`       | Shape exponent — controls distributional form | any finite value |
+| Parameter | Meaning                                        | Constraint       |
+|-----------|------------------------------------------------|------------------|
+| `t_half`  | Half-life: time at which \\G(t\_{1/2}) = 0.5\\ | \\\> 0\\         |
+| `nu`      | Time exponent — controls rate dynamics         | any finite value |
+| `m`       | Shape exponent — controls distributional form  | any finite value |
 
 > **SAS/C parameter bridge**
 >
 > The original C code used different parameter names per phase:
 >
-> - **Early phase (G1):** `DELTA`, `RHO`/`THALF`, `NU`, `M`
->   $`\to`$`t_half`, `nu`, `m`
-> - **Late phase (G3):** `TAU`, `GAMMA`, `ALPHA`, `ETA` $`\to`$`t_half`,
->   `nu`, `m`
+> - **Early phase (G1):** `DELTA`, `RHO`/`THALF`, `NU`, `M` \\\to\\
+>   `t_half`, `nu`, `m`
+> - **Late phase (G3):** `TAU`, `GAMMA`, `ALPHA`, `ETA` \\\to\\
+>   `t_half`, `nu`, `m`
 >
 > Both collapse onto the same 3-parameter decomposition family. The C
-> `DELTA` parameter controlled a time transformation
-> $`B(t) = (\exp(\delta t) - 1)/\delta`$ that is absorbed into the
-> shape.
+> `DELTA` parameter controlled a time transformation \\B(t) =
+> (\exp(\delta t) - 1)/\delta\\ that is absorbed into the shape.
 
 In R,
 [`hzr_decompos()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos.md)
@@ -90,12 +90,12 @@ cat("Max |h - g/(1-G)| =", max(abs(d$h - h_check)), "\n")
 
 ### 1.2 The six valid cases
 
-Different sign combinations of $`\nu`$ and $`m`$ pick out different
+Different sign combinations of \\\nu\\ and \\m\\ pick out different
 asymptotic behaviors of `decompos()`, and the package treats each as a
-separate case for numerical stability. The combination $`m < 0`$**and**
-$`\nu < 0`$ produces an integrand with no finite normalization and is
-rejected at the input-validation step. The remaining six are the catalog
-every phase in the package selects from:
+separate case for numerical stability. The combination \\m \< 0\\
+**and** \\\nu \< 0\\ produces an integrand with no finite normalization
+and is rejected at the input-validation step. The remaining six are the
+catalog every phase in the package selects from:
 
 | Case | m    | nu   | Behavior                                    |
 |:-----|:-----|:-----|:--------------------------------------------|
@@ -108,8 +108,8 @@ every phase in the package selects from:
 
 Six valid parameter sign combinations {.table .caption-top}
 
-The following plot shows the CDF $`G(t)`$, density $`g(t)`$, and hazard
-$`h(t)`$ for each case, all with `t_half = 3`:
+The following plot shows the CDF \\G(t)\\, density \\g(t)\\, and hazard
+\\h(t)\\ for each case, all with `t_half = 3`:
 
 ``` r
 
@@ -160,25 +160,19 @@ Figure 1: G(t), g(t), and h(t) for all six valid decomposition cases
 
 ### 1.3 Derivation sketch
 
-The construction begins with a rate function $`\rho`$ chosen so that
-$`G(t_{1/2}) = 0.5`$ exactly. For Case 1 ($`m > 0, \nu > 0`$):
+The construction begins with a rate function \\\rho\\ chosen so that
+\\G(t\_{1/2}) = 0.5\\ exactly. For Case 1 (\\m \> 0, \nu \> 0\\):
 
-``` math
-\rho = \nu \, t_{1/2} \left(\frac{2^m - 1}{m}\right)^{\!\nu}
-```
+\\ \rho = \nu \\ t\_{1/2} \left(\frac{2^m - 1}{m}\right)^{\\\nu} \\
 
-Then, with the dimensionless time $`b(t) = \nu t / \rho`$:
+Then, with the dimensionless time \\b(t) = \nu t / \rho\\:
 
-``` math
-G(t) = \left(1 + m \, b(t)^{-1/\nu}\right)^{-1/m}
-```
+\\ G(t) = \left(1 + m \\ b(t)^{-1/\nu}\right)^{-1/m} \\
 
-``` math
-g(t) = \left(1 + m \, b(t)^{-1/\nu}\right)^{-1/m - 1}
-       \cdot b(t)^{-1/\nu - 1} / \rho
-```
+\\ g(t) = \left(1 + m \\ b(t)^{-1/\nu}\right)^{-1/m - 1} \cdot
+b(t)^{-1/\nu - 1} / \rho \\
 
-The other five cases arise as limits ($`m \to 0`$, $`\nu \to 0`$) or
+The other five cases arise as limits (\\m \to 0\\, \\\nu \to 0\\) or
 sign reflections of this base form. The implementation in
 [`hzr_decompos()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos.md)
 dispatches to the appropriate branch after checking the signs of `nu`
@@ -188,55 +182,51 @@ and `m`.
 
 ### 2.1 Model specification
 
-The total cumulative hazard decomposes additively across $`J`$ phases:
+The total cumulative hazard decomposes additively across \\J\\ phases:
 
-``` math
-H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \cdot \Phi_j(t;\, t_{1/2,j},\, \nu_j,\, m_j)
-```
+\\ H(t \mid \mathbf{x}) = \sum\_{j=1}^{J} \mu_j(\mathbf{x}) \cdot
+\Phi_j(t;\\ t\_{1/2,j},\\ \nu_j,\\ m_j) \\
 
 where:
 
-- $`\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j \boldsymbol{\beta}_j)`$
-  is the phase-specific log-linear scale with covariates
-- $`\Phi_j(t)`$ is the temporal shape, determined by the phase type
+- \\\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}\_j
+  \boldsymbol{\beta}\_j)\\ is the phase-specific log-linear scale with
+  covariates
+- \\\Phi_j(t)\\ is the temporal shape, determined by the phase type
 
 The three phase types correspond to different uses of the decomposition
 output:
 
-| Phase type | $`\Phi_j(t)`$ | Domain | Interpretation |
+| Phase type | \\\Phi_j(t)\\ | Domain | Interpretation |
 |----|----|----|----|
-| `"cdf"` | $`G(t)`$ | $`[0, 1]`$ | Early risk that resolves over time |
-| `"hazard"` | $`-\log(1 - G(t))`$ | $`[0, \infty)`$ | Late or aging risk that accumulates |
-| `"constant"` | $`t`$ | $`[0, \infty)`$ | Flat background rate (no shape parameters) |
+| `"cdf"` | \\G(t)\\ | \\\[0, 1\]\\ | Early risk that resolves over time |
+| `"hazard"` | \\-\log(1 - G(t))\\ | \\\[0, \infty)\\ | Late or aging risk that accumulates |
+| `"constant"` | \\t\\ | \\\[0, \infty)\\ | Flat background rate (no shape parameters) |
 
 > **SAS/C bridge**
 >
 > The classic three-phase HAZARD model used:
 >
-> - **G1** (early) $`\to`$`hzr_phase("cdf", ...)`
-> - **G2** (constant) $`\to`$`hzr_phase("constant")`
-> - **G3** (late) $`\to`$`hzr_phase("hazard", ...)`
+> - **G1** (early) \\\to\\ `hzr_phase("cdf", ...)`
+> - **G2** (constant) \\\to\\ `hzr_phase("constant")`
+> - **G3** (late) \\\to\\ `hzr_phase("hazard", ...)`
 >
-> TemporalHazard generalizes this to $`N`$ phases of any type.
+> TemporalHazard generalizes this to \\N\\ phases of any type.
 
 ### 2.2 Derived quantities
 
 From the cumulative hazard, the instantaneous hazard and survival are:
 
-``` math
-h(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \cdot \varphi_j(t)
-\qquad\text{where } \varphi_j = d\Phi_j/dt
-```
+\\ h(t \mid \mathbf{x}) = \sum\_{j=1}^{J} \mu_j(\mathbf{x}) \cdot
+\varphi_j(t) \qquad\text{where } \varphi_j = d\Phi_j/dt \\
 
-``` math
-S(t \mid \mathbf{x}) = \exp\!\bigl(-H(t \mid \mathbf{x})\bigr)
-```
+\\ S(t \mid \mathbf{x}) = \exp\\\bigl(-H(t \mid \mathbf{x})\bigr) \\
 
-The derivative $`\varphi_j(t)`$ depends on phase type:
+The derivative \\\varphi_j(t)\\ depends on phase type:
 
-- `"cdf"`: $`\varphi(t) = g(t)`$ (the density)
-- `"hazard"`: $`\varphi(t) = h(t) = g(t)/(1 - G(t))`$
-- `"constant"`: $`\varphi(t) = 1`$
+- `"cdf"`: \\\varphi(t) = g(t)\\ (the density)
+- `"hazard"`: \\\varphi(t) = h(t) = g(t)/(1 - G(t))\\
+- `"constant"`: \\\varphi(t) = 1\\
 
 ### 2.3 Constructing phases in R
 
@@ -269,8 +259,8 @@ print(late)
 #>   t_half = 5  nu = 1  m = 0
 ```
 
-The cumulative hazard contribution $`\Phi(t)`$ and instantaneous hazard
-$`\varphi(t)`$ for each phase can be computed directly:
+The cumulative hazard contribution \\\Phi(t)\\ and instantaneous hazard
+\\\varphi(t)\\ for each phase can be computed directly:
 
 ``` r
 
@@ -321,7 +311,7 @@ Figure 2: Phi(t) and phi(t) for each phase type
 
 To build intuition, here is how three phases combine into a total
 hazard. The key insight is that phases contribute additively to the
-**cumulative hazard** $`H(t)`$, not to the survival directly.
+**cumulative hazard** \\H(t)\\, not to the survival directly.
 
 ``` r
 
@@ -380,33 +370,27 @@ by the `status` indicator:
 
 | Code | Type | Contribution to log-likelihood |
 |----|----|----|
-| $`\delta_i = 1`$ | Exact event | $`\log h(t_i \mid \mathbf{x}_i) - H(t_i \mid \mathbf{x}_i)`$ |
-| $`\delta_i = 0`$ | Right-censored | $`-H(t_i \mid \mathbf{x}_i)`$ |
-| $`\delta_i = -1`$ | Left-censored | $`\log\bigl(1 - \exp(-H(u_i \mid \mathbf{x}_i))\bigr)`$ |
-| $`\delta_i = 2`$ | Interval-censored | $`-H(l_i \mid \mathbf{x}_i) + \log\bigl(1 - \exp(-(H(u_i) - H(l_i)))\bigr)`$ |
+| \\\delta_i = 1\\ | Exact event | \\\log h(t_i \mid \mathbf{x}\_i) - H(t_i \mid \mathbf{x}\_i)\\ |
+| \\\delta_i = 0\\ | Right-censored | \\-H(t_i \mid \mathbf{x}\_i)\\ |
+| \\\delta_i = -1\\ | Left-censored | \\\log\bigl(1 - \exp(-H(u_i \mid \mathbf{x}\_i))\bigr)\\ |
+| \\\delta_i = 2\\ | Interval-censored | \\-H(l_i \mid \mathbf{x}\_i) + \log\bigl(1 - \exp(-(H(u_i) - H(l_i)))\bigr)\\ |
 
-where $`l_i`$ and $`u_i`$ are the lower and upper bounds of the
+where \\l_i\\ and \\u_i\\ are the lower and upper bounds of the
 censoring interval.
 
 The full log-likelihood is:
 
-``` math
-\ell(\boldsymbol{\theta}) = \sum_{i:\,\delta_i=1}
-  \Bigl[\log h(t_i \mid \mathbf{x}_i) - H(t_i \mid \mathbf{x}_i)\Bigr]
-  - \sum_{i:\,\delta_i=0} H(t_i \mid \mathbf{x}_i)
-```
-``` math
-  + \sum_{i:\,\delta_i=-1}
-    \log\!\bigl(1 - e^{-H(u_i \mid \mathbf{x}_i)}\bigr)
-  + \sum_{i:\,\delta_i=2}
-    \Bigl[-H(l_i \mid \mathbf{x}_i)
-    + \log\!\bigl(1 - e^{-(H(u_i) - H(l_i))}\bigr)\Bigr]
-```
+\\ \ell(\boldsymbol{\theta}) = \sum\_{i:\\\delta_i=1} \Bigl\[\log h(t_i
+\mid \mathbf{x}\_i) - H(t_i \mid \mathbf{x}\_i)\Bigr\] -
+\sum\_{i:\\\delta_i=0} H(t_i \mid \mathbf{x}\_i) \\ \\ +
+\sum\_{i:\\\delta_i=-1} \log\\\bigl(1 - e^{-H(u_i \mid
+\mathbf{x}\_i)}\bigr) + \sum\_{i:\\\delta_i=2} \Bigl\[-H(l_i \mid
+\mathbf{x}\_i) + \log\\\bigl(1 - e^{-(H(u_i) - H(l_i))}\bigr)\Bigr\] \\
 
-The $`\log(1 - e^{-x})`$ terms are computed using the numerically stable
+The \\\log(1 - e^{-x})\\ terms are computed using the numerically stable
 primitive
 [`hzr_log1mexp()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_log1mexp.md),
-which avoids catastrophic cancellation when $`x`$ is near zero.
+which avoids catastrophic cancellation when \\x\\ is near zero.
 
 ``` r
 
@@ -421,19 +405,19 @@ cat("Stable: ", hzr_log1mexp(x_small), "\n")
 ### 3.2 Internal parameterization
 
 During optimization, shape parameters are reparameterized for
-unconstrained search. For each phase $`j`$, the internal parameter
+unconstrained search. For each phase \\j\\, the internal parameter
 sub-vector is:
 
 | Parameter | Internal (estimation) | User-facing (reported) |
 |----|----|----|
-| Scale | $`\log \mu_j`$ | $`\mu_j = \exp(\log \mu_j)`$ |
-| Half-life | $`\log t_{1/2,j}`$ | $`t_{1/2,j} = \exp(\log t_{1/2,j})`$ |
-| Time exponent | $`\nu_j`$ (unconstrained) | $`\nu_j`$ |
-| Shape | $`m_j`$ (unconstrained) | $`m_j`$ |
-| Covariates | $`\beta_{j,1}, \ldots, \beta_{j,p_j}`$ | same |
+| Scale | \\\log \mu_j\\ | \\\mu_j = \exp(\log \mu_j)\\ |
+| Half-life | \\\log t\_{1/2,j}\\ | \\t\_{1/2,j} = \exp(\log t\_{1/2,j})\\ |
+| Time exponent | \\\nu_j\\ (unconstrained) | \\\nu_j\\ |
+| Shape | \\m_j\\ (unconstrained) | \\m_j\\ |
+| Covariates | \\\beta\_{j,1}, \ldots, \beta\_{j,p_j}\\ | same |
 
 Constant phases omit `log_t_half`, `nu`, and `m`, contributing only one
-shape-free parameter (`log_mu`). The full $`\boldsymbol{\theta}`$ is the
+shape-free parameter (`log_mu`). The full \\\boldsymbol{\theta}\\ is the
 concatenation of all phase sub-vectors.
 
 ### 3.3 Optimization strategy
@@ -443,16 +427,16 @@ The optimizer uses
 unconstrained internal scale, wrapped by `.hzr_optim_generic()`. Key
 features:
 
-- **Multi-start**: the optimizer runs from $`k`$ random perturbations
-  around the user-supplied starting values (default $`k = 5`$,
+- **Multi-start**: the optimizer runs from \\k\\ random perturbations
+  around the user-supplied starting values (default \\k = 5\\,
   controlled by `control$n_starts`). The run with the highest
   log-likelihood is kept.
-- **Feasibility guard**: any parameter vector where $`m < 0`$**and**
-  $`\nu < 0`$ for the same phase returns $`-\infty`$ immediately.
+- **Feasibility guard**: any parameter vector where \\m \< 0\\ **and**
+  \\\nu \< 0\\ for the same phase returns \\-\infty\\ immediately.
 - **Post-fit Hessian**: the numerical Hessian of the negative
   log-likelihood at the solution is inverted to produce the
-  variance-covariance matrix $`\hat{V}`$, with standard errors
-  $`\sqrt{\text{diag}(\hat{V})}`$. The inversion is hardened against the
+  variance-covariance matrix \\\hat{V}\\, with standard errors
+  \\\sqrt{\text{diag}(\hat{V})}\\. The inversion is hardened against the
   ill-conditioning that arises at high parameter counts: the Hessian is
   symmetrized, its reciprocal condition number is checked, and it is
   inverted via a Cholesky factorization, with a general
@@ -471,11 +455,10 @@ features:
 
 By default, every phase shares the same covariate vector from the model
 formula. Each phase gets its own coefficient vector
-$`\boldsymbol{\beta}_j`$:
+\\\boldsymbol{\beta}\_j\\:
 
-``` math
-\mu_j(\mathbf{x}) = \exp\!\bigl(\alpha_j + \mathbf{x}\,\boldsymbol{\beta}_j\bigr)
-```
+\\ \mu_j(\mathbf{x}) = \exp\\\bigl(\alpha_j +
+\mathbf{x}\\\boldsymbol{\beta}\_j\bigr) \\
 
 So the same predictors can have different effects on early vs. late
 risk, which is a core feature of multiphase models.
@@ -498,7 +481,7 @@ hazard(
 ### 4.2 Phase-specific covariates
 
 The global formula above lets every covariate act on every phase through
-a shared shift $`x^\top \beta`$. That’s the right structure when a
+a shared shift \\x^\top \beta\\. That’s the right structure when a
 covariate plausibly affects the entire hazard trajectory. But clinical
 reality often pulls the other way: surgical risk factors (grade IV
 complications, intra-operative blood loss) belong in the early phase but
@@ -509,7 +492,7 @@ you build that structure directly.
 
 When a phase carries its own one-sided formula, the phase gets its own
 design matrix from the data, and only those covariates appear in that
-phase’s $`\boldsymbol{\beta}_j`$. Other phases ignore them entirely.
+phase’s \\\boldsymbol{\beta}\_j\\. Other phases ignore them entirely.
 
 ``` r
 
@@ -530,7 +513,7 @@ hazard(
 
 When a phase has a `formula`, it gets its own design matrix built from
 the data, and only those covariates appear in its
-$`\boldsymbol{\beta}_j`$. The parameter vector is shorter for phases
+\\\boldsymbol{\beta}\_j\\. The parameter vector is shorter for phases
 with fewer covariates, which can improve identifiability and
 convergence.
 
@@ -540,12 +523,10 @@ For single-distribution models, TemporalHazard supports piecewise
 time-varying coefficients via the `time_windows` argument. This expands
 the design matrix into window-specific blocks:
 
-``` math
-\eta_i = \sum_{k=1}^{K} \mathbf{x}_i \boldsymbol{\beta}_k \cdot
-\mathbf{1}(t_i \in W_k)
-```
+\\ \eta_i = \sum\_{k=1}^{K} \mathbf{x}\_i \boldsymbol{\beta}\_k \cdot
+\mathbf{1}(t_i \in W_k) \\
 
-where $`W_1, \ldots, W_K`$ are the time windows defined by the cut
+where \\W_1, \ldots, W_K\\ are the time windows defined by the cut
 points. Each predictor gets a separate coefficient in each window,
 allowing effects to change over follow-up time.
 
@@ -567,8 +548,8 @@ hazard(
 > **Multiphase vs. time-varying coefficients**
 >
 > For multiphase models, the phase structure itself captures
-> time-varying effects: early phases dominate at small $`t`$ and late
-> phases at large $`t`$. The `time_windows` mechanism is a complementary
+> time-varying effects: early phases dominate at small \\t\\ and late
+> phases at large \\t\\. The `time_windows` mechanism is a complementary
 > approach for single-distribution models.
 
 ## 5 Identifiability and Practical Considerations
@@ -580,7 +561,7 @@ likelihood surfaces. Practical guidelines:
 
 1.  **Fix shape parameters when possible.** If clinical knowledge
     suggests a specific temporal pattern (e.g. early mortality follows a
-    Weibull shape with $`m = 0`$), fix `m` in the
+    Weibull shape with \\m = 0\\), fix `m` in the
     [`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
     starting values and inspect whether the optimizer moves it.
 
@@ -602,12 +583,12 @@ likelihood surfaces. Practical guidelines:
 The decomposition engine applies several guards:
 
 - Time is clamped above `.Machine$double.xmin` to avoid
-  $`0^{\text{negative}}`$
-- $`1 - G(t)`$ is clamped above `.Machine$double.xmin` before computing
-  the hazard $`h(t) = g(t)/(1 - G(t))`$
+  \\0^{\text{negative}}\\
+- \\1 - G(t)\\ is clamped above `.Machine$double.xmin` before computing
+  the hazard \\h(t) = g(t)/(1 - G(t))\\
 - Left- and interval-censored contributions use
   [`hzr_log1mexp()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_log1mexp.md)
-  to avoid $`\log(0)`$ when $`H(t)`$ is very small
+  to avoid \\\log(0)\\ when \\H(t)\\ is very small
 
 Together these keep the gradients finite throughout the optimization,
 even in regions of parameter space far from the optimum.
@@ -616,14 +597,14 @@ even in regions of parameter space far from the optimum.
 
 | Function | Purpose |
 |----|----|
-| `hzr_decompos(t, t_half, nu, m)` | Core decomposition: returns $`G`$, $`g`$, $`h`$ |
-| `hzr_phase_cumhaz(t, ..., type)` | Phase cumulative hazard $`\Phi(t)`$ |
-| `hzr_phase_hazard(t, ..., type)` | Phase instantaneous hazard $`\varphi(t)`$ |
+| `hzr_decompos(t, t_half, nu, m)` | Core decomposition: returns \\G\\, \\g\\, \\h\\ |
+| `hzr_phase_cumhaz(t, ..., type)` | Phase cumulative hazard \\\Phi(t)\\ |
+| `hzr_phase_hazard(t, ..., type)` | Phase instantaneous hazard \\\varphi(t)\\ |
 | `hzr_phase(type, t_half, nu, m, formula)` | Construct a phase specification |
 | `hazard(..., dist = "multiphase", phases = ...)` | Fit a multiphase model |
 | `predict(fit, type, decompose = TRUE)` | Per-phase decomposed predictions |
-| [`hzr_argument_mapping()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_argument_mapping.md) | SAS/C $`\to`$ R parameter translation table |
-| `hzr_log1mexp(x)` | Stable $`\log(1 - e^{-x})`$ |
+| [`hzr_argument_mapping()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_argument_mapping.md) | SAS/C \\\to\\ R parameter translation table |
+| `hzr_log1mexp(x)` | Stable \\\log(1 - e^{-x})\\ |
 
 For a worked clinical example, see
 [`vignette("getting-started")`](https://ehrlinger.github.io/temporal_hazard/articles/getting-started.md).

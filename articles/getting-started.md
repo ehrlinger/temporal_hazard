@@ -6,11 +6,11 @@ you’ve worked with
 Kaplan-Meier curves before you already have most of the vocabulary; this
 is a quick refresh of the bits that matter for what follows.
 
-A **hazard** is the instantaneous risk of the event at time $`t`$, given
-the subject has survived until $`t`$. A Kaplan-Meier curve reflects it
+A **hazard** is the instantaneous risk of the event at time \\t\\, given
+the subject has survived until \\t\\. A Kaplan-Meier curve reflects it
 implicitly: KM gives you survival probabilities, and the rate at which
 those probabilities drop is (minus) the hazard. A **parametric** hazard
-model writes the hazard as a smooth function of $`t`$ with a small
+model writes the hazard as a smooth function of \\t\\ with a small
 number of parameters, plus covariate effects. The payoff over
 nonparametric KM is a smooth curve you can extrapolate, patient-specific
 risk predictions, and the ability to compare fitted hazard *shapes*
@@ -91,12 +91,12 @@ A fitted hazard model lets you score new patients without refitting. The
 compute:
 
 - `"linear_predictor"` — the covariate-driven log-hazard-ratio for each
-  row, $`x^\top \beta`$.
-- `"hazard"` — the hazard multiplier, $`\exp(x^\top \beta)`$.
+  row, \\x^\top \beta\\.
+- `"hazard"` — the hazard multiplier, \\\exp(x^\top \beta)\\.
 - `"survival"` — the probability of surviving past each row’s `time`,
-  $`S(t \mid x)`$.
+  \\S(t \mid x)\\.
 - `"cumulative_hazard"` — the integrated hazard up to each row’s `time`,
-  $`H(t \mid x) = -\log S(t \mid x)`$.
+  \\H(t \mid x) = -\log S(t \mid x)\\.
 
 The three rows below are made-up patients spanning the covariate range
 in the training data: a younger, low-NYHA, no-shock patient at an early
@@ -205,18 +205,16 @@ one distribution to do everything, we describe the total cumulative
 hazard as a *sum* of phase-specific contributions, each with its own
 temporal shape:
 
-``` math
-H(t \mid x) = \sum_{j=1}^{J} \mu_j(x) \cdot \Phi_j(t)
-```
+\\H(t \mid x) = \sum\_{j=1}^{J} \mu_j(x) \cdot \Phi_j(t)\\
 
-Each $`\Phi_j(t)`$ is a phase-specific *temporal shape*: a unit-scaled
-curve that says *how* phase $`j`$’s hazard accumulates over time. Each
-$`\mu_j(x)`$ is the phase-specific *scale*: how much cumulative hazard
-belongs to phase $`j`$, possibly modulated by covariates. The phases
+Each \\\Phi_j(t)\\ is a phase-specific *temporal shape*: a unit-scaled
+curve that says *how* phase \\j\\’s hazard accumulates over time. Each
+\\\mu_j(x)\\ is the phase-specific *scale*: how much cumulative hazard
+belongs to phase \\j\\, possibly modulated by covariates. The phases
 overlap and their hazards add. There’s no switching, no thresholds, no
-piecewise joins; at any time $`t`$ the instantaneous hazard
-$`h(t) = dH/dt`$ is the sum of the per-phase contributions
-$`\mu_j \cdot \phi_j(t)`$, where $`\phi_j = d\Phi_j/dt`$.
+piecewise joins; at any time \\t\\ the instantaneous hazard \\h(t) =
+dH/dt\\ is the sum of the per-phase contributions \\\mu_j \cdot
+\phi_j(t)\\, where \\\phi_j = d\Phi_j/dt\\.
 
 ### Why multiple phases?
 
@@ -335,7 +333,7 @@ just want to look) to get an instantaneous hazard rate.
 
 The plot that follows is the diagnostic that matters: it shows whether
 the model carved up the timeline the way we expected. The early phase
-should dominate near $`t = 0`$ and die off. The constant phase should be
+should dominate near \\t = 0\\ and die off. The constant phase should be
 a flat floor. The late phase should be near zero early and rise after a
 lag. If any of those shapes looks wrong, the fix is in the starting
 values or in the choice of shape function, not in the data.
@@ -432,17 +430,17 @@ Picking the right phase shape is the single biggest modeling decision in
 a multiphase fit. The package ships the canonical shapes from the SAS C
 HAZARD library:
 
-- **`"cdf"`** — a saturating curve $`\Phi(t) \in [0, 1]`$, parameterized
-  by `t_half` (the time at which $`G(t_{1/2}) = 0.5`$), `nu` (a time
-  exponent), and `m` (a shape exponent). This is the SAS “early” or G1
-  shape. Use it for the early phase, or for any phase whose accumulated
-  hazard saturates rather than growing without bound.
-- **`"constant"`** — $`\Phi(t) = t`$. The phase’s hazard rate is flat;
-  there are no shape parameters to estimate, only the scale $`\mu`$.
+- **`"cdf"`** — a saturating curve \\\Phi(t) \in \[0, 1\]\\,
+  parameterized by `t_half` (the time at which \\G(t\_{1/2}) = 0.5\\),
+  `nu` (a time exponent), and `m` (a shape exponent). This is the SAS
+  “early” or G1 shape. Use it for the early phase, or for any phase
+  whose accumulated hazard saturates rather than growing without bound.
+- **`"constant"`** — \\\Phi(t) = t\\. The phase’s hazard rate is flat;
+  there are no shape parameters to estimate, only the scale \\\mu\\.
   This is the SAS G2 shape. Use it for a background plateau.
 - **`"g3"`** — the SAS “late” shape, parameterized by `tau` (a
   time-scale), `gamma` (a time exponent), `alpha` (a shape parameter;
-  $`\alpha = 0`$ gives an exponential limit), and `eta` (an outer
+  \\\alpha = 0\\ gives an exponential limit), and `eta` (an outer
   exponent). Use it for a late phase that is near-zero early and
   accelerates over time — graft deterioration over years is the
   archetype.
@@ -480,15 +478,14 @@ keep the likelihood evaluations stable across the wide range of
 arguments an optimizer encounters. They’re exported so you can reach for
 them in custom code or when debugging a fit.
 
-The most common one is `hzr_log1pexp(x)`, which computes
-$`\log(1 + e^x)`$ in a numerically stable way. The naive
-`log(1 + exp(x))` overflows once $`x`$ exceeds about 700 (because
-`exp(x)` itself overflows); the helper switches to the asymptotic
-$`x + \log(1 + e^{-x})`$ for large $`x`$, which is exact to
-floating-point precision. The package uses it inside every
-log-likelihood expression that involves a log-survival term, so the same
-evaluation can run on $`x = -50`$ and $`x = 5000`$ without producing
-`Inf` or `NaN`.
+The most common one is `hzr_log1pexp(x)`, which computes \\\log(1 +
+e^x)\\ in a numerically stable way. The naive `log(1 + exp(x))`
+overflows once \\x\\ exceeds about 700 (because `exp(x)` itself
+overflows); the helper switches to the asymptotic \\x + \log(1 +
+e^{-x})\\ for large \\x\\, which is exact to floating-point precision.
+The package uses it inside every log-likelihood expression that involves
+a log-survival term, so the same evaluation can run on \\x = -50\\ and
+\\x = 5000\\ without producing `Inf` or `NaN`.
 
 ``` r
 
