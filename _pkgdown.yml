@@ -4,6 +4,11 @@ description: Pure-R implementation of the HAZARD model with transparency and par
 
 template:
   bootstrap: 5
+  # Render Rd \eqn{}/\deqn{} math client-side. pkgdown 2.x defaults to
+  # math-rendering: mathml, which needs the katex package at build time; the
+  # docs-build environment lacks it, so equations shipped as raw LaTeX. MathJax
+  # has no build-time dependency.
+  math-rendering: mathjax
 
 navbar:
   structure:
