@@ -1,6 +1,9 @@
 # Clamp probabilities away from 0 and 1
 
-Clamp probabilities away from 0 and 1
+Bounds a probability vector to \\\[\epsilon,\\ 1 - \epsilon\]\\ so that
+downstream \\\log p\\ or \\\log(1 - p)\\ evaluations stay finite. Used
+throughout the likelihood and prediction code to guard survival and CDF
+values against exact 0 or 1.
 
 ## Usage
 
@@ -16,11 +19,18 @@ hzr_clamp_prob(p, eps = 1e-12)
 
 - eps:
 
-  Small positive tolerance.
+  Small positive tolerance in \\(0, 0.5)\\; default `1e-12`.
 
 ## Value
 
 Numeric vector bounded to `[eps, 1 - eps]`.
+
+## See also
+
+[`hzr_log1pexp()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_log1pexp.md)
+and
+[`hzr_log1mexp()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_log1mexp.md)
+for the companion stable-logarithm primitives.
 
 ## Examples
 

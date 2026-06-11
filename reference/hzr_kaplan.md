@@ -98,6 +98,15 @@ where \\\text{SI} = \sqrt{V_P - 1} / (1 - S)\\, \\V_P\\ is the
 cumulative Greenwood variance product, and \\z\_\alpha\\ is the normal
 quantile for the requested confidence level.
 
+## References
+
+Kaplan EL, Meier P (1958). Nonparametric estimation from incomplete
+observations. *J Am Stat Assoc* 53(282):457–481.
+[doi:10.1080/01621459.1958.10501452](https://doi.org/10.1080/01621459.1958.10501452)
+
+Greenwood M (1926). The natural duration of cancer. *Reports on Public
+Health and Medical Subjects* 33:1–26.
+
 ## See also
 
 [`hzr_gof()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_gof.md)

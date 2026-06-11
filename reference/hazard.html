@@ -132,8 +132,12 @@ coefficient.</p></dd>
 
 
 <dt id="arg-dist">dist<a class="anchor" aria-label="anchor" href="#arg-dist"></a></dt>
-<dd><p>Character baseline distribution label (default "weibull").
-Use <code>"multiphase"</code> for N-phase additive hazard models (requires <code>phases</code>).</p></dd>
+<dd><p>Character baseline distribution label (default <code>"weibull"</code>).
+One of <code>"weibull"</code>, <code>"exponential"</code>, <code>"loglogistic"</code>, <code>"lognormal"</code>, or
+<code>"multiphase"</code>.  The single-distribution families differ in the <em>shape</em> the
+hazard traces over time; <code>"multiphase"</code> builds an additive N-phase hazard
+and requires <code>phases</code>.  See the <strong>Baseline distributions</strong> section for what
+each means and when to use it.</p></dd>
 
 
 <dt id="arg-phases">phases<a class="anchor" aria-label="anchor" href="#arg-phases"></a></dt>
@@ -195,6 +199,75 @@ interactions so each window has its own coefficient vector.</p></li>
 <li><p>This is implemented as design-matrix expansion, so the existing likelihood
 engines remain unchanged.</p></li>
 </ul></div>
+    <div class="section level2">
+    <h2 id="the-fitted-model">The fitted model<a class="anchor" aria-label="anchor" href="#the-fitted-model"></a></h2>
+
+
+
+<p>For <code>dist = "multiphase"</code> the cumulative hazard, instantaneous hazard, and
+survival are</p>
+<p>$$H(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \, \Phi_j(t),
+      \qquad
+      h(t \mid \mathbf{x}) = \sum_{j=1}^{J} \mu_j(\mathbf{x}) \, \varphi_j(t),
+      \qquad
+      S(t \mid \mathbf{x}) = \exp\!\bigl(-H(t \mid \mathbf{x})\bigr)$$</p>
+<p>where \(\mu_j(\mathbf{x}) = \exp(\alpha_j + \mathbf{x}_j^\top
+\boldsymbol{\beta}_j)\) and the temporal shapes \(\Phi_j\), \(\varphi_j\)
+are set by each phase's <code>type</code> (see <code><a href="hzr_phase.html">hzr_phase()</a></code>).  Single-phase
+distributions (<code>"weibull"</code>, <code>"exponential"</code>, <code>"lognormal"</code>,
+<code>"loglogistic"</code>) are the special case \(J = 1\).  Parameters are estimated
+on an unconstrained internal scale (e.g. \(\log\mu\), \(\log t_{1/2}\))
+and transformed back for reporting; see
+<code><a href="../articles/mf-mathematical-foundations.html">vignette("mf-mathematical-foundations")</a></code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="baseline-distributions">Baseline distributions<a class="anchor" aria-label="anchor" href="#baseline-distributions"></a></h2>
+
+
+
+<p>The <code>dist</code> argument selects the parametric form of the baseline hazard.  The
+four single-distribution families (\(J = 1\)) differ in the <em>shape</em> the
+hazard traces over follow-up; choose by what the risk is expected to do over
+time.  <code>"multiphase"</code> is the general additive model that lets several such
+shapes coexist.</p>
+<dl><dt><code>"weibull"</code> — monotone rising or falling hazard (default)</dt>
+<dd><p>The
+workhorse parametric model: \(H(t \mid \mathbf{x}) = (\mu t)^\nu
+    \exp(\eta)\), with hazard \(h \propto t^{\nu - 1}\).  The single shape
+\(\nu\) makes risk increase over time (\(\nu &gt; 1\)), decrease
+(\(\nu &lt; 1\)), or stay flat (\(\nu = 1\)).  Use it as the default when
+a single monotone trend describes the hazard.</p></dd>
+
+<dt><code>"exponential"</code> — constant hazard</dt>
+<dd><p>The memoryless special case
+\(\nu = 1\): a time-invariant baseline rate, \(H(t \mid \mathbf{x}) =
+    \mu t \exp(\eta)\).  Use it when the event rate does not change with
+follow-up time (the constant background risk also appears as the
+<code>"constant"</code> phase in a multiphase model).</p></dd>
+
+<dt><code>"loglogistic"</code> — unimodal (rise-then-fall) hazard</dt>
+<dd><p>A log-logistic
+proportional-odds form (covariates act multiplicatively on the odds of
+failure, \(\exp(\eta)\), not as an AFT time shift) whose hazard rises to
+a single peak and then declines when the shape exceeds 1 (and is monotone
+decreasing otherwise), with heavier tails than the log-normal.  Use it
+when risk climbs to an early peak and then eases off.</p></dd>
+
+<dt><code>"lognormal"</code> — early-peaking, resolving hazard</dt>
+<dd><p>An
+accelerated-failure-time form in which \(\log\) time is Gaussian; the
+hazard rises to an early peak and then decays toward zero.  Use it for
+risk that is concentrated early and resolves over time.</p></dd>
+
+<dt><code>"multiphase"</code> — additive N-phase hazard</dt>
+<dd><p>Sums several phase shapes
+into one model, \(H = \sum_j \mu_j(\mathbf{x}) \Phi_j(t)\), so the
+overall hazard can fall, level off, and rise again within one fit.
+Requires <code>phases</code>; see <code><a href="hzr_phase.html">hzr_phase()</a></code> for the available phase shapes.  This
+is the form that reproduces the classic C/SAS HAZARD models.</p></dd>
+
+
+</dl></div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
     <p>Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of time-varying

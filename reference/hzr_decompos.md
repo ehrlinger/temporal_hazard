@@ -75,6 +75,27 @@ The combination m \< 0 **and** nu \< 0 is undefined and raises an error.
 limit); `nu = 0` with m \>= 0 has no usable limiting form and raises an
 error.
 
+## Mathematical form
+
+The construction fixes a rate \\\rho\\ so that \\G(t\_{1/2}) = 0.5\\
+exactly. For the base case (\\m \> 0,\\ \nu \> 0\\):
+
+\$\$\rho = \nu \\ t\_{1/2} \left(\frac{2^m - 1}{m}\right)^{\\\nu},
+\qquad b(t) = \frac{\nu t}{\rho}\$\$
+
+The CDF and density are then
+
+\$\$G(t) = \bigl(1 + m \\ b(t)^{-1/\nu}\bigr)^{-1/m}, \qquad g(t) =
+\bigl(1 + m \\ b(t)^{-1/\nu}\bigr)^{-1/m - 1} \\ b(t)^{-1/\nu - 1} /
+\rho\$\$
+
+and the hazard is \\h(t) = g(t) / (1 - G(t))\\. The remaining five cases
+in the table above arise as limits (\\m \to 0\\, \\\nu \to 0\\) or sign
+reflections of this base form; the implementation dispatches to the
+appropriate branch after inspecting the signs of `nu` and `m`. See
+[`vignette("mf-mathematical-foundations")`](https://ehrlinger.github.io/temporal_hazard/articles/mf-mathematical-foundations.md)
+for the full derivation of every case.
+
 ## References
 
 Blackstone EH, Naftel DC, Turner ME Jr. The decomposition of

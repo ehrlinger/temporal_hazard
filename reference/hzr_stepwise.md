@@ -58,12 +58,16 @@ as.data.frame(x, ...)
 
 - direction:
 
-  One of `"both"` (default), `"forward"`, `"backward"`.
+  Search strategy — one of `"both"` (default), `"forward"`, or
+  `"backward"`. Controls whether variables may only enter, only leave,
+  or both. See the **Selection direction and criterion** section.
 
 - criterion:
 
-  One of `"wald"` (default) or `"aic"`. SAS-style p-value thresholds
-  apply to Wald; AIC uses `DeltaAIC < 0` uniformly.
+  Entry / retention rule — one of `"wald"` (default) or `"aic"`.
+  `"wald"` applies SAS-style p-value thresholds (`slentry` / `slstay`);
+  `"aic"` adds or drops whenever it lowers the AIC. See the **Selection
+  direction and criterion** section.
 
 - slentry:
 
@@ -193,6 +197,67 @@ The `steps` data frame has columns:
 - `logLik`, `aic`, `n_coef`:
 
   Goodness-of-fit diagnostics of the model *after* this step.
+
+## Selection direction and criterion
+
+Two arguments shape the search. `direction` decides which moves are
+allowed at each step; `criterion` decides how a candidate move is scored
+and whether it is accepted.
+
+- `direction = "forward"`:
+
+  Start from the base model and only *add* variables — the best eligible
+  candidate enters each step until none clears the entry rule. Variables
+  never leave once in.
+
+- `direction = "backward"`:
+
+  Start from the full candidate model and only *drop* variables — the
+  weakest term leaves each step until all survivors clear the retention
+  rule.
+
+- `direction = "both"` (default):
+
+  Two-way stepwise: after each entry, already-selected variables are
+  re-tested and may be dropped. This is the SAS `SELECTION = STEPWISE`
+  strategy. `max_move` caps how often a single variable may oscillate
+  before it is frozen.
+
+&nbsp;
+
+- `criterion = "wald"` (default):
+
+  Accept moves on SAS-style significance thresholds, using the Wald
+  \\\chi^2\\ of the affected coefficient(s): a candidate enters if its
+  p-value is below `slentry`, and a term is dropped if its p-value rises
+  above `slstay`. Entry candidates are scored from a refit that adds the
+  candidate (so its new coefficient can be tested); drop candidates are
+  scored from the *current* model's Wald p-values without a
+  per-candidate refit, and a single refit is run only after a drop is
+  chosen. Note this differs algorithmically from C/SAS HAZARD, which
+  selects on a *score* (Q) statistic evaluated without refitting; the
+  two can take different step paths even when they converge to a similar
+  final model.
+
+- `criterion = "aic"`:
+
+  Accept any move with \\\Delta\mathrm{AIC} \< 0\\ (a strictly better
+  penalised fit), ignoring `slentry` / `slstay`. Entry candidates use
+  the actual \\\Delta\mathrm{AIC}\\ from the candidate refit; drop
+  candidates use a Wald-to-likelihood-ratio approximation,
+  \\\Delta\mathrm{AIC} \approx W - 2\\\mathrm{df}\\, computed from the
+  current model without a per-candidate refit (the chosen drop is refit
+  afterwards). Use this for a non-significance-based,
+  information-criterion search.
+
+## See also
+
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+for the base model and
+[`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
+for multiphase scopes;
+[`stepwise_trace()`](https://ehrlinger.github.io/temporal_hazard/reference/stepwise_trace.md)
+to retrieve the captured selection log.
 
 ## Examples
 

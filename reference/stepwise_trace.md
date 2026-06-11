@@ -22,6 +22,11 @@ stepwise_trace(fit)
 
 Character vector, one element per console line.
 
+## See also
+
+[`hzr_stepwise()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_stepwise.md),
+which produces the object this accessor reads.
+
 ## Examples
 
 ``` r

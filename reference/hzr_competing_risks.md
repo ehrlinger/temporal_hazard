@@ -88,6 +88,15 @@ competing-risks incidence (unlike
 which accepts `weights`). Pre-expand weighted rows to individual records
 if an approximate weighted estimate is needed.
 
+## References
+
+Aalen O, Johansen S (1978). An empirical transition matrix for
+non-homogeneous Markov chains based on censored observations. *Scand J
+Statist* 5(3):141–150.
+
+Kalbfleisch JD, Prentice RL (1980). *The Statistical Analysis of Failure
+Time Data.* Wiley, New York.
+
 ## See also
 
 [`hzr_kaplan()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_kaplan.md)

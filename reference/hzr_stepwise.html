@@ -117,13 +117,17 @@ refits.</p></dd>
 
 
 <dt id="arg-direction">direction<a class="anchor" aria-label="anchor" href="#arg-direction"></a></dt>
-<dd><p>One of <code>"both"</code> (default), <code>"forward"</code>,
-<code>"backward"</code>.</p></dd>
+<dd><p>Search strategy — one of <code>"both"</code> (default),
+<code>"forward"</code>, or <code>"backward"</code>.  Controls whether variables may only
+enter, only leave, or both.  See the <strong>Selection direction and
+criterion</strong> section.</p></dd>
 
 
 <dt id="arg-criterion">criterion<a class="anchor" aria-label="anchor" href="#arg-criterion"></a></dt>
-<dd><p>One of <code>"wald"</code> (default) or <code>"aic"</code>.  SAS-style
-p-value thresholds apply to Wald; AIC uses <code>DeltaAIC &lt; 0</code> uniformly.</p></dd>
+<dd><p>Entry / retention rule — one of <code>"wald"</code> (default)
+or <code>"aic"</code>.  <code>"wald"</code> applies SAS-style p-value thresholds
+(<code>slentry</code> / <code>slstay</code>); <code>"aic"</code> adds or drops whenever it lowers the
+AIC.  See the <strong>Selection direction and criterion</strong> section.</p></dd>
 
 
 <dt id="arg-slentry">slentry<a class="anchor" aria-label="anchor" href="#arg-slentry"></a></dt>
@@ -243,6 +247,62 @@ diagnostics of the model <em>after</em> this step.</p></dd>
 
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="selection-direction-and-criterion">Selection direction and criterion<a class="anchor" aria-label="anchor" href="#selection-direction-and-criterion"></a></h2>
+
+
+
+<p>Two arguments shape the search.  <code>direction</code> decides which moves are
+allowed at each step; <code>criterion</code> decides how a candidate move is scored
+and whether it is accepted.</p>
+<dl><dt><code>direction = "forward"</code></dt>
+<dd><p>Start from the base model and only
+<em>add</em> variables — the best eligible candidate enters each step
+until none clears the entry rule.  Variables never leave once in.</p></dd>
+
+<dt><code>direction = "backward"</code></dt>
+<dd><p>Start from the full candidate model and
+only <em>drop</em> variables — the weakest term leaves each step until all
+survivors clear the retention rule.</p></dd>
+
+<dt><code>direction = "both"</code> (default)</dt>
+<dd><p>Two-way stepwise: after each
+entry, already-selected variables are re-tested and may be dropped.
+This is the SAS <code>SELECTION = STEPWISE</code> strategy.  <code>max_move</code> caps how
+often a single variable may oscillate before it is frozen.</p></dd>
+
+
+</dl><dl><dt><code>criterion = "wald"</code> (default)</dt>
+<dd><p>Accept moves on SAS-style
+significance thresholds, using the Wald \(\chi^2\) of the affected
+coefficient(s): a candidate enters if its p-value is below <code>slentry</code>, and
+a term is dropped if its p-value rises above <code>slstay</code>.  Entry candidates
+are scored from a refit that adds the candidate (so its new coefficient
+can be tested); drop candidates are scored from the <em>current</em> model's
+Wald p-values without a per-candidate refit, and a single refit is run
+only after a drop is chosen.  Note this differs algorithmically from
+C/SAS HAZARD, which selects on a <em>score</em> (Q) statistic evaluated without
+refitting; the two can take different step paths even when they converge
+to a similar final model.</p></dd>
+
+<dt><code>criterion = "aic"</code></dt>
+<dd><p>Accept any move with
+\(\Delta\mathrm{AIC} &lt; 0\) (a strictly better penalised fit), ignoring
+<code>slentry</code> / <code>slstay</code>.  Entry candidates use the actual
+\(\Delta\mathrm{AIC}\) from the candidate refit; drop candidates use a
+Wald-to-likelihood-ratio approximation,
+\(\Delta\mathrm{AIC} \approx W - 2\,\mathrm{df}\), computed from the
+current model without a per-candidate refit (the chosen drop is refit
+afterwards).  Use this for a non-significance-based,
+information-criterion search.</p></dd>
+
+
+</dl></div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="hazard.html">hazard()</a></code> for the base model and <code><a href="hzr_phase.html">hzr_phase()</a></code> for multiphase
+scopes; <code><a href="stepwise_trace.html">stepwise_trace()</a></code> to retrieve the captured selection log.</p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

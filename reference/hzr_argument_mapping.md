@@ -19,6 +19,15 @@ hzr_argument_mapping(include_planned = TRUE)
 
 A data frame with one row per mapping rule.
 
+## See also
+
+[`hazard()`](https://ehrlinger.github.io/temporal_hazard/reference/hazard.md)
+for the target arguments,
+[`hzr_phase()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_phase.md)
+for phase construction, and
+[`hzr_decompos()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos.md)/[`hzr_decompos_g3()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_decompos_g3.md)
+for the parameter-level early/late translations.
+
 ## Examples
 
 ``` r

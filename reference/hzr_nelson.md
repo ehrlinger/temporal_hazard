@@ -98,6 +98,16 @@ which uses the Breslow estimator with Greenwood variance, this function
 uses the Wayne Nelson estimator with lognormal confidence limits that
 are always non-negative.
 
+## References
+
+Nelson W (1972). Theory and applications of hazard plotting for censored
+failure data. *Technometrics* 14(4):945–966.
+[doi:10.1080/00401706.1972.10488991](https://doi.org/10.1080/00401706.1972.10488991)
+
+Aalen O (1978). Nonparametric inference for a family of counting
+processes. *Ann Statist* 6(4):701–726.
+[doi:10.1214/aos/1176344247](https://doi.org/10.1214/aos/1176344247)
+
 ## See also
 
 [`hzr_kaplan()`](https://ehrlinger.github.io/temporal_hazard/reference/hzr_kaplan.md)
