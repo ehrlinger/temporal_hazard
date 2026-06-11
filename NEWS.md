@@ -1,5 +1,21 @@
 # TemporalHazard 1.2.0.9000 (development version)
 
+## Testing
+
+* Added fractional (non-integer) weight coverage to close the roadmap 7a gap.
+  Prior weight tests verified weighting only via integer row duplication, which
+  cannot express fractional (e.g. inverse-probability) weights. The new tests
+  assert the two properties that define a correct per-row weighted
+  log-likelihood: an **additive split** (a row of weight `a + b` equals two
+  identical copies of weights `a` and `b`) and **linear scaling**
+  (`L(theta; c*w) = c * L(theta; w)`, gradient likewise, MLE invariant), across
+  the Weibull, exponential, and multiphase-with-covariates paths.
+* Made the single-distribution weighted-fit tests exercise a real fit. They
+  previously omitted `theta` start values, so `hazard(fit = TRUE)` took its
+  unfitted branch and the assertions compared `NULL`/`NA` vacuously; they now
+  supply starts and genuinely compare the weighted MLE to the duplicated-row
+  MLE.
+
 ## Documentation
 
 * Added a package-level overview help page (`?TemporalHazard`) giving the

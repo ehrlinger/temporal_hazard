@@ -129,14 +129,16 @@ test_that("fit with integer weights matches the duplicated-row fit (Weibull)", {
   w <- sample(1:3, n, replace = TRUE)
   df_exp <- expand_rows(df, w)
 
+  # Single-distribution fits only run the optimizer when start values are
+  # supplied (hazard()'s `fit && !is.null(theta)` branch), so pass `theta`.
   fit_w <- hazard(
     survival::Surv(time, status) ~ x,
-    data = df, dist = "weibull",
+    data = df, dist = "weibull", theta = c(0.3, 1, 0),
     weights = w, fit = TRUE
   )
   fit_dup <- hazard(
     survival::Surv(time, status) ~ x,
-    data = df_exp, dist = "weibull",
+    data = df_exp, dist = "weibull", theta = c(0.3, 1, 0),
     fit = TRUE
   )
 
@@ -402,11 +404,11 @@ test_that("fit with integer weights matches the duplicated-row fit (exponential)
 
   fit_w <- hazard(
     survival::Surv(time, status) ~ x, data = df,
-    dist = "exponential", weights = w, fit = TRUE
+    dist = "exponential", theta = c(log(0.6), 0), weights = w, fit = TRUE
   )
   fit_dup <- hazard(
     survival::Surv(time, status) ~ x, data = df_exp,
-    dist = "exponential", fit = TRUE
+    dist = "exponential", theta = c(log(0.6), 0), fit = TRUE
   )
 
   expect_equal(coef(fit_w), coef(fit_dup), tolerance = 1e-3)
@@ -422,11 +424,11 @@ test_that("fit with integer weights matches the duplicated-row fit (log-logistic
 
   fit_w <- hazard(
     survival::Surv(time, status) ~ x, data = df,
-    dist = "loglogistic", weights = w, fit = TRUE
+    dist = "loglogistic", theta = c(0, 0.2, 0), weights = w, fit = TRUE
   )
   fit_dup <- hazard(
     survival::Surv(time, status) ~ x, data = df_exp,
-    dist = "loglogistic", fit = TRUE
+    dist = "loglogistic", theta = c(0, 0.2, 0), fit = TRUE
   )
 
   expect_equal(coef(fit_w), coef(fit_dup), tolerance = 1e-3)
@@ -442,11 +444,11 @@ test_that("fit with integer weights matches the duplicated-row fit (log-normal)"
 
   fit_w <- hazard(
     survival::Surv(time, status) ~ x, data = df,
-    dist = "lognormal", weights = w, fit = TRUE
+    dist = "lognormal", theta = c(1, 0, 0), weights = w, fit = TRUE
   )
   fit_dup <- hazard(
     survival::Surv(time, status) ~ x, data = df_exp,
-    dist = "lognormal", fit = TRUE
+    dist = "lognormal", theta = c(1, 0, 0), fit = TRUE
   )
 
   expect_equal(coef(fit_w), coef(fit_dup), tolerance = 1e-3)
@@ -735,4 +737,174 @@ test_that(".hzr_logl_weibull gradient attribute respects weights", {
   g_num <- numDeriv::grad(obj, theta)
 
   expect_equal(g_attr, g_num, tolerance = 1e-5)
+})
+
+# ---------------------------------------------------------------------------
+# FRACTIONAL (non-integer) weights -- roadmap 7a.
+#
+# Every test above proves weighting via *integer* row duplication.  Fractional
+# weights (e.g. inverse-probability or aggregated-cell weights) cannot be
+# checked that way -- you cannot duplicate a row 2.5 times.  Instead we verify
+# the two algebraic properties that DEFINE a correctly weighted, per-row
+# additive log-likelihood  L(theta; w) = sum_i w_i * l_i(theta):
+#
+#   (A) ADDITIVE SPLIT.  Splitting one row of weight w_i into two identical
+#       copies whose weights sum to w_i leaves L unchanged.  This is the
+#       continuous generalisation of duplication -- it reduces to the integer
+#       duplication tests when the split weights are 1, and exercises the
+#       fractional arithmetic when they are not.  If any term failed to scale
+#       linearly in w_i (e.g. a w_i applied inside a log, or a stray w_i^2),
+#       the split would not balance.
+#   (B) LINEAR SCALING.  L(theta; c*w) = c * L(theta; w) and the gradient
+#       scales likewise; the MLE (argmax) is therefore invariant to a positive
+#       scalar reweight while the objective scales by c.
+#
+# Together (A) and (B) pin the fractional-weight path without a SAS fixture --
+# a SAS `WEIGHT`-statement parity run (roadmap 7a) remains the external check,
+# but these establish internal correctness now.
+# ---------------------------------------------------------------------------
+
+# Replace each row i (weight w_i) with two identical copies carrying weights
+# w_i * f_i and w_i * (1 - f_i).  Returns the doubled vectors + split weights.
+.frac_split <- function(time, status, x, w, f) {
+  list(
+    time   = c(time, time),
+    status = c(status, status),
+    x      = rbind(x, x),
+    w      = c(w * f, w * (1 - f))
+  )
+}
+
+test_that("fractional weights: additive split leaves the LL unchanged (Weibull)", {
+  df <- make_toy()
+  n  <- nrow(df)
+  set.seed(71)                      # seed the weight/split draws (make_toy() seeds its own data)
+  w  <- runif(n, 0.3, 2.7)          # fractional
+  f  <- runif(n, 0.1, 0.9)          # fractional split point per row
+  theta <- c(mu = 0.8, nu = 1.2, beta = 0.25)
+  xm <- matrix(df$x, ncol = 1)
+
+  s <- .frac_split(df$time, df$status, xm, w, f)
+
+  ll_w <- TemporalHazard:::.hzr_logl_weibull(
+    theta = theta, time = df$time, status = df$status, x = xm, weights = w)
+  ll_split <- TemporalHazard:::.hzr_logl_weibull(
+    theta = theta, time = s$time, status = s$status, x = s$x, weights = s$w)
+
+  expect_equal(ll_w, ll_split, tolerance = 1e-10)
+})
+
+test_that("fractional weights: additive split leaves the LL unchanged (exponential)", {
+  df <- make_toy()
+  n  <- nrow(df)
+  set.seed(72)                      # seed the weight/split draws (make_toy() seeds its own data)
+  w  <- runif(n, 0.3, 2.7)
+  f  <- runif(n, 0.1, 0.9)
+  theta <- c(log_lambda = log(0.6), beta = 0.25)
+  xm <- matrix(df$x, ncol = 1)
+
+  s <- .frac_split(df$time, df$status, xm, w, f)
+
+  ll_w <- TemporalHazard:::.hzr_logl_exponential(
+    theta = theta, time = df$time, status = df$status, x = xm, weights = w)
+  ll_split <- TemporalHazard:::.hzr_logl_exponential(
+    theta = theta, time = s$time, status = s$status, x = s$x, weights = s$w)
+
+  expect_equal(ll_w, ll_split, tolerance = 1e-10)
+})
+
+test_that("fractional weights: additive split leaves the LL unchanged (multiphase + covariates)", {
+  d <- make_mp_cov(seed = 73)
+  set.seed(73)                      # seed the weight/split draws (make_mp_cov() seeds its own data)
+  w <- runif(d$n, 0.3, 2.7)
+  f <- runif(d$n, 0.1, 0.9)
+  xm <- matrix(d$x, ncol = 1)
+
+  x_list   <- list(early = xm, constant = xm)
+  x_list_s <- list(early = rbind(xm, xm), constant = rbind(xm, xm))
+
+  ll_w <- TemporalHazard:::.hzr_logl_multiphase(
+    theta = mp_cov_theta, time = d$t, status = d$status,
+    phases = mp_cov_phases(), covariate_counts = mp_cov_counts,
+    x_list = x_list, weights = w)
+  ll_split <- TemporalHazard:::.hzr_logl_multiphase(
+    theta = mp_cov_theta, time = c(d$t, d$t), status = c(d$status, d$status),
+    phases = mp_cov_phases(), covariate_counts = mp_cov_counts,
+    x_list = x_list_s, weights = c(w * f, w * (1 - f)))
+
+  expect_equal(ll_w, ll_split, tolerance = 1e-10)
+})
+
+test_that("fractional weights: LL and gradient scale linearly in the weights (Weibull)", {
+  # No numDeriv needed: this checks the analytic LL/gradient scale exactly in w.
+  df <- make_toy()
+  set.seed(74)                      # seed the weight draws (make_toy() seeds its own data)
+  w  <- runif(nrow(df), 0.3, 2.7)
+  cc <- 2.5                         # fractional scale factor
+  theta <- c(mu = 0.8, nu = 1.2, beta = 0.25)
+  xm <- matrix(df$x, ncol = 1)
+
+  ll_1 <- TemporalHazard:::.hzr_logl_weibull(
+    theta = theta, time = df$time, status = df$status, x = xm, weights = w)
+  ll_c <- TemporalHazard:::.hzr_logl_weibull(
+    theta = theta, time = df$time, status = df$status, x = xm, weights = cc * w)
+  expect_equal(ll_c, cc * ll_1, tolerance = 1e-10)
+
+  g_1 <- TemporalHazard:::.hzr_gradient_weibull(
+    theta = theta, time = df$time, status = df$status, x = xm, weights = w)
+  g_c <- TemporalHazard:::.hzr_gradient_weibull(
+    theta = theta, time = df$time, status = df$status, x = xm, weights = cc * w)
+  expect_equal(as.numeric(g_c), cc * as.numeric(g_1), tolerance = 1e-10)
+})
+
+test_that("fractional weights: the MLE is invariant to a positive scalar reweight (Weibull)", {
+  skip_on_cran()
+  df <- make_toy()
+  set.seed(75)                      # seed the weight draws (make_toy() seeds its own data)
+  w  <- runif(nrow(df), 0.3, 2.7)
+  cc <- 2.0
+  # Single-distribution fits run the optimizer only when start values are
+  # supplied (the `fit && !is.null(theta)` branch in hazard()); pass `theta`
+  # so this exercises a real fit rather than an unfitted object.
+  theta0 <- c(0.3, 1, 0)
+
+  fit_w  <- hazard(survival::Surv(time, status) ~ x, data = df,
+                   dist = "weibull", theta = theta0, weights = w,      fit = TRUE)
+  fit_cw <- hazard(survival::Surv(time, status) ~ x, data = df,
+                   dist = "weibull", theta = theta0, weights = cc * w, fit = TRUE)
+
+  # argmax unchanged; the maximised objective scales by the constant.
+  expect_equal(coef(fit_cw), coef(fit_w), tolerance = 5e-3)
+  expect_equal(fit_cw$fit$objective / fit_w$fit$objective, cc, tolerance = 1e-4)
+})
+
+test_that("fractional weights: additive-split fit matches the original fit (multiphase + covariates)", {
+  skip_on_cran()
+  d  <- make_mp_cov(seed = 76)
+  set.seed(76)                      # seed the weight/split draws (make_mp_cov() seeds its own data)
+  w  <- runif(d$n, 0.3, 2.7)
+  f  <- runif(d$n, 0.1, 0.9)
+  df <- data.frame(time = d$t, status = d$status, x = d$x)
+  df_split <- rbind(df, df)
+  w_split  <- c(w * f, w * (1 - f))
+
+  mk_fit <- function(data, weights) {
+    hazard(
+      survival::Surv(time, status) ~ 1,
+      data = data, dist = "multiphase",
+      phases = list(
+        early    = hzr_phase("cdf", t_half = 0.3, nu = 1, m = 1,
+                             fixed = "shapes", formula = ~ x),
+        constant = hzr_phase("constant", formula = ~ x)
+      ),
+      weights = weights, fit = TRUE,
+      control = list(conserve = FALSE, n_starts = 1L, maxit = 500L)
+    )
+  }
+
+  fit_w     <- suppressWarnings(mk_fit(df,       w))
+  fit_split <- suppressWarnings(mk_fit(df_split, w_split))
+
+  expect_equal(coef(fit_w), coef(fit_split), tolerance = 1e-3)
+  expect_equal(fit_w$fit$objective, fit_split$fit$objective, tolerance = 1e-4)
 })
