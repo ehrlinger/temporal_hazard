@@ -85,7 +85,7 @@ function for phase j.
 
 ---
 
-## Phase 3: CRAN Release — COMPLETE (v1.0.3 submitted 2026-05-27)
+## Phase 3: CRAN Release — COMPLETE (v1.0.3 accepted 2026-06-02)
 
 Initial CRAN submission and resubmission cycle.
 
@@ -102,18 +102,19 @@ Initial CRAN submission and resubmission cycle.
   v1.0.2 auto-processed; CRAN reviewer Altmann flagged `.GlobalEnv` write in
   `hzr_bootstrap()` — fixed in v1.0.3 by reverting to `set.seed(seed)` idiom
 - v1.0.3 submitted 2026-05-27; auto-check `Status: 1 NOTE` (new submission);
-  manual review pending
+  accepted to CRAN 2026-06-02 (Ligges Windows-binary build notice)
 - Full vignette clarity pass (7 vignettes, +640 lines, PR #30)
 - `inst/CITATION` templated to `meta$Version`; `RoxygenNote` synced to 8.0.0
 - CRAN cookbook full audit: all 4 policy sections clean; `build/` excluded
   from tarball via `.Rbuildignore`
 
-### Post-acceptance checklist (see RELEASE.md)
+### Post-acceptance checklist (see RELEASE.md) — COMPLETE
 
-- Tag `v1.0.3` at SHA `5525158`, publish GitHub Release from NEWS section
-- README badge swap: CRAN status + cranlogs ×2 (replace manual shields badge)
-- `git rm .github/workflows/update-version-badge.yaml`
-- Bump `main` → `1.0.3.9000` + dev NEWS heading (PR; tag+release are exception)
+- [x] Tag `v1.0.3` at SHA `5525158`, publish GitHub Release from NEWS section
+      (release published 2026-05-30)
+- [x] README badge swap: CRAN status + cranlogs ×2 (replace manual shields badge)
+- [x] `git rm .github/workflows/update-version-badge.yaml`
+- [x] Bump `main` → dev NEWS heading (landed at `1.1.0.9000`, v1.1 dev cycle)
 
 ---
 
